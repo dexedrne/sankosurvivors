@@ -1,0 +1,23 @@
+import { readFileSync } from 'node:fs';
+import * as THREE from 'three';
+import { buildTerrain } from '../src/terrain.js';
+const P = new URL('../public/assets/world/', import.meta.url).pathname;
+const data = JSON.parse(readFileSync(P + 'scenes/world.json'));
+const realTiles = JSON.parse(readFileSync(new URL('../reference/terrain-captures/terrain-tiles.json', import.meta.url))).tiles;
+const num = (v, d) => (v == null || Number.isNaN(v) ? d : v);
+const root = new THREE.Object3D(), nodes = [];
+const walk = (nd, parent) => { const o = new THREE.Object3D(); parent.add(o); const t = nd.transform;
+  if (t) { if (t.position) o.position.set(num(t.position[0], 0), num(t.position[1], 0), num(t.position[2], 0)); if (t.rotation) o.rotation.set(num(t.rotation[0], 0), num(t.rotation[1], 0), num(t.rotation[2], 0)); if (t.scale != null) { if (Array.isArray(t.scale)) o.scale.set(num(t.scale[0], 1), num(t.scale[1], 1), num(t.scale[2], 1)); else o.scale.setScalar(num(t.scale, 1)); } }
+  const m = (nd.components || []).find((c) => c.type === 'model' && c.filename); if (m) nodes.push({ o, file: m.filename, name: nd.name });
+  for (const c of nd.children || []) walk(c, o); };
+for (const r of data) walk(r, root); root.updateMatrixWorld(true);
+const v = new THREE.Vector3();
+const props = nodes.map(({ o, file, name }) => { v.setFromMatrixPosition(o.matrixWorld); return { file, name, x: v.x, y: v.y, z: v.z }; });
+const T = buildTerrain({ rgba: readFileSync(process.argv[2]), S: 512, props, tiles: process.env.NOTILE ? [] : realTiles });
+const hAt = (x, z) => { const i = Math.floor(x), j = Math.floor(z), fu = x - i, fv = z - j, n = T.n, d = T.h; return (d[j*n+i]*(1-fu)+d[j*n+i+1]*fu)*(1-fv)+(d[(j+1)*n+i]*(1-fu)+d[(j+1)*n+i+1]*fu)*fv; };
+const [cx, cz, R] = (process.argv[3] || '365,300,35').split(',').map(Number);
+const rows = props.filter((p) => Math.hypot(p.x - cx, p.z - cz) < R).map((p) => ({ ...p, g: hAt(p.x, p.z), d: hAt(p.x, p.z) - p.y }));
+rows.sort((a, b) => b.d - a.d);
+for (const r of rows.filter((r) => !/ruins_grid/.test(r.file)).slice(0, Number(process.env.TOP || 25))) console.log(r.d.toFixed(2).padStart(6), 'ground', r.g.toFixed(2), 'prop y', r.y.toFixed(2), r.x.toFixed(1), r.z.toFixed(1), r.file, '|', r.name);
+console.log('roof-ish files near:', [...new Set(rows.filter(r => /roof|gable|hip|attic|top|cap/i.test(r.file + r.name)).map(r => r.file))].join(', '));
+console.log('all files near:', [...new Set(rows.map(r => r.file))].sort().join(', '));

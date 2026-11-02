@@ -1,0 +1,6 @@
+.vercel
+node_modules
+dist
+reference/ws-capture
+tools/supabase/functions.sql
+tools/supabase/update2.sql

@@ -1,0 +1,426 @@
+/* SankoQuest's own interface kit: the RuneScape pixel fonts, the four-colour pixel frame, glossy slots and pill buttons,
+   orange body text with hard black drop shadows, all on dark brown. */
+@font-face { font-family: RSBold; src: url(../assets/ui/sq/fonts/RuneScape-Bold-12.ttf) format("truetype"); font-display: swap; }
+@font-face { font-family: RSPlain; src: url(../assets/ui/sq/fonts/RuneScape-Plain-12.ttf) format("truetype"); font-display: swap; }
+@font-face { font-family: RSSmall; src: url(../assets/ui/sq/fonts/RuneScape-Plain-11.ttf) format("truetype"); font-display: swap; }
+@font-face { font-family: RSQuill; src: url(../assets/ui/sq/fonts/RuneScape-Quill.ttf) format("truetype"); font-display: swap; }
+@font-face { font-family: RSQuill8; src: url(../assets/ui/sq/fonts/RuneScape-Quill-8.ttf) format("truetype"); font-display: swap; } /* headings, buttons and numbers (companyphone 11/2: Quill 8 over the bold pixel font) */
+:root { --ink:#ff981f; --cream:#fff0c0; --gold:#ffff00; --panel:#2f251b; --deep:#1e1710; --line:#5a4632; --red:#c8453a; --green:#6bbf59; --xp:#58c4ff; --sh: 1px 1px 0 #000; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #1c1814; color: var(--ink); font-family: "Trebuchet MS", Verdana, system-ui, sans-serif; user-select: none; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#fx { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.dn { position: absolute; left: 0; top: 0; font-weight: 800; font-size: 15px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; will-change: transform; }
+.dn.crit { font-size: 21px; }
+#hurt { position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px 30px rgba(200,40,30,0); transition: box-shadow .25s; }
+#hurt.on { box-shadow: inset 0 0 120px 30px rgba(200,40,30,.55); }
+.hidden { display: none !important; }
+
+#hud { position: fixed; inset: 0; pointer-events: none; }
+#topbar { position: absolute; top: 0; left: 0; right: 0; height: 30px; display: flex; align-items: center; }
+#xpbar { position: absolute; inset: 0; background: rgba(20,16,12,.8); border-bottom: 2px solid var(--line); }
+#xpfill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(#6fd0ff,#3a9bd6); }
+#lvl { position: absolute; right: 12px; top: 5px; font-weight: 800; text-shadow: 0 1px 2px #000; }
+#clock { position: absolute; left: 50%; top: 36px; transform: translateX(-50%); font-size: 30px; font-weight: 800; text-shadow: 0 2px 4px #000; }
+#killcount { position: absolute; right: 12px; top: 38px; text-shadow: 0 1px 3px #000; }
+#killcount b { color: var(--gold); font-size: 20px; }
+#bossbar { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: min(520px, 70vw); text-align: center; text-shadow: 0 1px 3px #000; font-weight: 800; }
+#bossbar div { height: 12px; background: rgba(20,16,12,.85); border: 2px solid var(--line); margin-top: 3px; }
+#bossfill { display: block; height: 100%; background: linear-gradient(#e0574a,#a42c24); width: 100%; }
+#hp { position: absolute; left: 14px; bottom: 14px; width: min(300px, 40vw); }
+#hp .bar { height: 18px; background: rgba(20,16,12,.85); border: 2px solid var(--line); }
+#hpfill { display: block; height: 100%; width: 100%; background: linear-gradient(#e0574a,#a42c24); transition: width .1s; }
+#hptext { font-size: 13px; text-shadow: 0 1px 2px #000; }
+#loadout { position: absolute; left: 14px; top: 78px; display: flex; flex-direction: column; gap: 6px; }
+#wrow, #prow { display: flex; gap: 6px; }
+.slot { position: relative; width: 40px; height: 40px; background: rgba(38,32,26,.85); border: 2px solid var(--line); display: grid; place-items: center; font-size: 22px; }
+.slot img { width: 32px; height: 32px; image-rendering: pixelated; }
+.slot small { position: absolute; right: 2px; bottom: 0; font-size: 12px; font-weight: 800; color: var(--gold); text-shadow: 0 1px 2px #000; }
+#banner { position: absolute; top: 28%; left: 50%; transform: translateX(-50%); font-size: 34px; font-weight: 900; text-shadow: 0 3px 8px #000; opacity: 0; transition: opacity .4s; text-align: center; color: var(--gold); }
+#banner.on { opacity: 1; }
+
+.screen { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(15,12,9,.62); z-index: 5; }
+.panel { background: var(--panel); border: 3px solid var(--line); box-shadow: 0 10px 40px #000a; padding: 26px 30px; max-width: min(720px, 94vw); text-align: center; }
+h1 { margin: 0; font-size: 54px; letter-spacing: 1px; color: var(--ink); text-shadow: 0 3px 0 #5b4220; } h1 span { color: var(--gold); }
+h2 { margin: 4px 0 12px; letter-spacing: 3px; color: var(--gold); }
+p { line-height: 1.5; }
+button { font: inherit; font-weight: 800; padding: 12px 26px; margin: 8px 6px 0; background: linear-gradient(#e2b04b,#b4812a); color: #2a1d08; border: 2px solid #5b4220; cursor: pointer; font-size: 18px; }
+button:hover:not(:disabled) { filter: brightness(1.12); } button:disabled { opacity: .5; cursor: wait; }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+#loadbar { height: 14px; background: #1c1814; border: 2px solid var(--line); margin: 14px 0 4px; } #loadfill { display: block; height: 100%; width: 0; background: var(--gold); transition: width .2s; }
+#loadtext, .keys, .fine { font-size: 13px; opacity: .85; margin-top: 6px; } .fine { opacity: .55; font-size: 11px; margin-top: 14px; }
+#cards { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.card { width: 200px; background: #2b241c; border: 2px solid var(--line); padding: 14px 10px; cursor: pointer; text-align: center; }
+.card:hover, .card.sel { border-color: var(--gold); background: #3a2f22; }
+.card img { width: 48px; height: 48px; image-rendering: pixelated; } .card .emoji { font-size: 40px; }
+.card h3 { margin: 6px 0 2px; font-size: 17px; } .card .tier { color: var(--gold); font-size: 13px; font-weight: 800; } .card p { font-size: 13px; margin: 6px 0 0; opacity: .9; }
+.card .key { font-size: 12px; opacity: .6; margin-top: 8px; }
+
+#pickweapon { margin: 14px 0 4px; } #pickweapon .lbl { font-size: 13px; opacity: .8; margin-bottom: 6px; }
+#wpick { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.wopt { width: 92px; padding: 8px 4px; background: #2b241c; border: 2px solid var(--line); cursor: pointer; font-size: 12px; text-align: center; }
+.wopt img { width: 36px; height: 36px; image-rendering: pixelated; display: block; margin: 0 auto 4px; } .wopt.sel { border-color: var(--gold); background: #3a2f22; }
+#best { font-size: 13px; opacity: .85; min-height: 18px; margin-top: 6px; }
+
+#mapselect { margin: 10px 0 0; } #mapselect .lbl { font-size: 13px; opacity: .8; margin-bottom: 6px; }
+#mpick { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.mopt { width: 128px; font-size: 12px; background: #2b241c; border: 2px solid var(--line); cursor: pointer; padding: 4px; text-align: center; }
+.mopt .thumb { position: relative; height: 70px; margin-bottom: 4px; background-repeat: no-repeat; image-rendering: pixelated; display: grid; place-items: center; font-size: 22px; }
+.mopt .thumb i { position: absolute; right: 3px; top: 1px; font-style: normal; color: var(--gold); text-shadow: 0 1px 2px #000; }
+.mopt.sel { border-color: var(--gold); background: #3a2f22; } .mopt.locked { opacity: .55; }
+
+/* ---- title screen: the character stands in the scene; choices run along the bottom ---- */
+#title { place-items: stretch; background: linear-gradient(180deg, rgba(15,12,9,.72) 0, rgba(15,12,9,0) 30%, rgba(15,12,9,0) 52%, rgba(15,12,9,.88) 100%); }
+#brand { position: absolute; top: 18px; left: 0; right: 0; text-align: center; pointer-events: none; }
+#brand h1 { font-size: clamp(34px, 7vw, 64px); } #brand h2 { margin: 0; font-size: clamp(13px, 2vw, 18px); } #tagline { margin: 6px 0 0; opacity: .85; font-size: 14px; }
+#topright { position: absolute; top: 14px; right: 16px; text-align: right; font-size: 13px; text-shadow: 0 1px 3px #000; }
+#coinbox { display: flex; gap: 6px; align-items: center; justify-content: flex-end; font-size: 20px; } #coinbox img { width: 24px; height: 24px; image-rendering: pixelated; } #coinbox b { color: var(--gold); }
+#menu { position: absolute; left: 0; right: 0; bottom: 50px; display: flex; gap: 10px; justify-content: center; align-items: flex-end; padding: 0 14px; flex-wrap: wrap; }
+#menu section { background: var(--panel); border: 2px solid var(--line); padding: 10px 12px 12px; box-shadow: 0 6px 24px #000a; max-width: 96vw; }
+#menu h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); text-align: left; }
+#apick { display: grid; grid-template-columns: repeat(4, 58px); gap: 5px; } #mpick { display: grid; grid-template-columns: repeat(3, 86px); gap: 5px; }
+.aopt { padding: 4px 2px; background: #2b241c; border: 2px solid var(--line); cursor: pointer; font-size: 10px; line-height: 1.15; text-align: center; position: relative; min-height: 54px; }
+.aopt img { width: 28px; height: 28px; image-rendering: pixelated; display: block; margin: 0 auto 2px; } .aopt.sel { border-color: var(--gold); background: #3a2f22; } .aopt.locked { opacity: .5; }
+.aopt .lock { position: absolute; right: 1px; top: 0; font-size: 10px; }
+#ainfo, #mapinfo { margin-top: 6px; font-size: 11px; line-height: 1.35; text-align: left; opacity: .92; height: 44px; overflow: hidden; width: 250px; } #ainfo b, #mapinfo b { color: var(--gold); }
+#mpick .mopt { width: auto; font-size: 10px; padding: 3px; line-height: 1.15; } #mpick .mopt .thumb { height: 38px; margin-bottom: 2px; font-size: 16px; }
+#actions { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-end; gap: 4px; min-width: 190px; align-self: stretch; }
+#actions button { margin: 4px 0 0; padding: 10px 14px; font-size: 15px; } #actions #start { font-size: 19px; padding: 16px 14px; } #actions #loadbar { margin: 0 0 2px; height: 8px; } #actions #loadtext { margin: 0 0 4px; max-width: 210px; }
+#hardwrap { font-size: 13px; display: flex; gap: 6px; align-items: center; justify-content: center; cursor: pointer; }
+.keys { position: absolute; bottom: 26px; left: 0; right: 0; text-align: center; text-shadow: 0 1px 3px #000; } .fine { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; margin: 0; }
+.panel.wide { max-width: min(860px, 96vw); } .coinline { display: flex; gap: 6px; align-items: center; justify-content: center; margin-bottom: 10px; } .coinline img { width: 22px; height: 22px; image-rendering: pixelated; } .coinline b { color: var(--gold); }
+#skillgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; text-align: left; }
+.skill { background: #2b241c; border: 2px solid var(--line); padding: 10px; display: grid; grid-template-columns: 40px 1fr; gap: 4px 10px; align-items: center; }
+.skill img { width: 36px; height: 36px; image-rendering: pixelated; grid-row: span 2; } .skill h4 { margin: 0; font-size: 14px; } .skill p { margin: 0; font-size: 12px; opacity: .85; line-height: 1.3; }
+.skill .pips { font-size: 12px; letter-spacing: 2px; color: var(--gold); } .skill button { grid-column: 1 / -1; margin: 4px 0 0; padding: 6px 10px; font-size: 14px; } .skill button:disabled { opacity: .45; }
+#zoomhint { position: absolute; bottom: 14px; right: 16px; font-size: 11px; opacity: .5; text-shadow: 0 1px 2px #000; }
+.card.evo { border-color: #ff9a3c; background: #3b2a18; box-shadow: 0 0 18px #ff9a3c66; } .card.evo .tier { color: #ff9a3c; }
+@media (max-height: 640px) { #brand p, .keys { display: none; } #menu { bottom: 30px; } }
+.slot.evo { border-color: #ff9a3c; box-shadow: 0 0 10px #ff9a3c88; } .slot.evo small { color: #ff9a3c; }
+#endcoins { display: flex; gap: 6px; align-items: center; justify-content: center; color: var(--gold); font-weight: 800; } #endcoins img { width: 22px; height: 22px; image-rendering: pixelated; }
+#brand { text-align: left; left: 22px; right: auto; max-width: 380px; } #brand h1 { font-size: clamp(30px, 5vw, 52px); } #tagline { font-size: 12px; }
+body.qa #banner, body.qa #pause { display: none !important; }
+
+/* ---- SankoQuest skin (overrides) ---- */
+html, body { font-family: RSPlain, "Trebuchet MS", sans-serif; font-size: 16px; color: var(--ink); -webkit-font-smoothing: none; font-smooth: never; text-shadow: var(--sh); cursor: url(../assets/ui/sq/cursors/customcursor.png), auto; }
+button, .aopt, .mopt, .card, .skill button, #hardwrap { cursor: url(../assets/ui/sq/cursors/customcursor_hand.png), pointer; }
+h1, h2, h3, h4, button, #clock, #banner, .card h3, #lvl, #killcount, .slot small { font-family: RSQuill8, "Trebuchet MS", sans-serif; font-weight: 400; }
+h2 { color: var(--cream); letter-spacing: 0; font-size: 32px; text-shadow: 2px 2px 0 #000; }
+.panel, #menu section { background: var(--panel); border: 10px solid transparent; border-image: url(../assets/ui/sq/frame.png) 20 round; box-shadow: 0 8px 22px rgba(0,0,0,.65); }
+.panel { padding: 16px 22px; }
+#menu section { padding: 6px 10px 10px; }
+#menu h3 { font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--cream); border-bottom: 6px solid transparent; border-image: url(../assets/ui/sq/borders/hor-div-yellow.png) 0 0 14 0 stretch; padding-bottom: 4px; margin-bottom: 8px; }
+p, #ainfo, #mapinfo, #loadtext, .keys, .card p, .skill p { font-family: RSPlain, sans-serif; font-size: 16px; line-height: 1.15; }
+#ainfo, #mapinfo { color: var(--ink); opacity: 1; height: 56px; width: 268px; }
+#ainfo b, #mapinfo b, .coinline b, #coinbox b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; }
+.fine { font-family: RSSmall, sans-serif; font-size: 16px; color: #c8a46a; opacity: .8; }
+.keys { color: var(--cream); } .keys b { color: var(--gold); font-weight: 400; }
+
+/* buttons: the game's green accept and red decline pills */
+button { border: 8px solid transparent; border-image: url(../assets/ui/sq/accept_button.png) 12 fill stretch; background: none; color: var(--cream); font-size: 16px; padding: 4px 18px; text-shadow: 1px 1px 0 #000; image-rendering: pixelated; }
+button.ghost { border-image: url(../assets/ui/sq/decline_button.png) 12 fill stretch; background: none; color: var(--cream); }
+button:hover:not(:disabled) { filter: brightness(1.18); }
+#actions #start { font-size: 32px; padding: 10px 14px; text-shadow: 2px 2px 0 #000; }
+#actions button { font-size: 16px; }
+
+/* slots and pickers: glossy pixel slots */
+.slot, .aopt, .mopt, .card, .skill { border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch; background: none; image-rendering: pixelated; }
+.aopt.sel, .mopt.sel, .card.sel, .card:hover { border-image-source: url(../assets/ui/sq/yellow_slot.png); background: none; }
+.card.evo { border-image-source: url(../assets/ui/sq/blue_slot.png); background: none; box-shadow: none; }
+.slot.evo { border-image-source: url(../assets/ui/sq/blue_slot.png); box-shadow: none; }
+.aopt { font-family: RSSmall, sans-serif; font-size: 16px; line-height: 1; color: #fff; min-height: 58px; padding: 2px 0; }
+.aopt img { width: 28px; height: 28px; }
+.mopt, #mpick .mopt { font-family: RSSmall, sans-serif; font-size: 16px; line-height: 1; color: #fff; padding: 0 0 2px; }
+#mpick .mopt .thumb { height: 36px; border: 1px solid #000; }
+#apick { grid-template-columns: repeat(4, 64px); gap: 3px; } #mpick { grid-template-columns: repeat(3, 90px); gap: 3px; }
+.slot { width: 44px; height: 44px; } .slot small { font-size: 16px; color: var(--gold); right: 1px; bottom: -3px; }
+.card { width: 210px; padding: 10px 10px 8px; color: var(--ink); }
+.card h3 { color: var(--gold); font-size: 16px; margin: 4px 0 0; } .card .tier { color: var(--cream); font-size: 16px; font-weight: 400; font-family: RSSmall, sans-serif; }
+.card .key { color: var(--cream); font-size: 16px; opacity: .8; } .card.evo .tier { color: #9fe6ff; }
+.skill { color: var(--ink); } .skill h4 { color: var(--gold); font-size: 16px; } .skill .pips { color: var(--gold); }
+.skill button { font-size: 16px; padding: 2px 10px; }
+
+/* title */
+#title { background: linear-gradient(180deg, rgba(20,14,8,.7) 0, rgba(20,14,8,0) 26%, rgba(20,14,8,0) 50%, rgba(20,14,8,.85) 100%); }
+#brand h1 { font-family: RSQuill8, sans-serif; font-size: 64px; line-height: .9; color: var(--cream); text-shadow: 3px 3px 0 #000; letter-spacing: 0; }
+#brand h1 span { color: var(--gold); }
+#brand h2 { font-family: RSQuill, RSQuill8, sans-serif; font-size: 32px; color: var(--ink); letter-spacing: 1px; text-shadow: 2px 2px 0 #000; margin-top: 2px; }
+#tagline { font-size: 16px; color: var(--cream); opacity: 1; }
+#topright { font-size: 16px; color: var(--cream); } #coinbox { font-size: 32px; font-family: RSQuill8, sans-serif; } #coinbox img { width: 32px; height: 32px; }
+#hardwrap { font-size: 16px; color: var(--cream); }
+#loadbar, #actions #loadbar { background: #000; border: 1px solid #5a4632; height: 10px; } #loadfill { background: linear-gradient(#ffff66, #c8a400); }
+
+/* HUD */
+#xpbar { background: rgba(30,23,16,.88); border-bottom: 6px solid transparent; border-image: url(../assets/ui/sq/borders/hor-div-yellow.png) 0 0 14 0 stretch; }
+#xpfill { background: linear-gradient(#8fe2ff, #2f8fd0); box-shadow: inset 0 -2px 0 rgba(0,0,0,.35); }
+#lvl { font-size: 16px; color: var(--gold); top: 6px; }
+#clock { font-size: 32px; color: var(--cream); text-shadow: 2px 2px 0 #000; top: 34px; }
+/* the run's goal under the clock: how long you have to last (none in endless) */
+#clockgoal { position: absolute; left: 50%; top: 70px; transform: translateX(-50%); font-family: RSPlain, sans-serif; font-size: 15px; color: var(--cream); opacity: .75; text-shadow: 1px 1px 0 #000; pointer-events: none; }
+#killcount { color: var(--cream); font-size: 16px; } #killcount b { color: var(--gold); font-size: 32px; font-weight: 400; }
+#hp { width: min(320px, 44vw); display: grid; grid-template-columns: 34px 1fr; grid-template-rows: auto auto; column-gap: 6px; align-items: center; }
+#hp::before { content: ""; grid-row: span 2; width: 32px; height: 32px; background: url(../assets/ui/sq/hp.webp) center / contain no-repeat; image-rendering: pixelated; }
+#hp .bar { height: 16px; background: #000; border: 2px solid #3d2f20; }
+#hpfill { background: linear-gradient(#32d14a, #0f8a1f); }
+#hptext { font-size: 16px; color: var(--cream); }
+#bossbar { color: var(--cream); font-family: RSQuill8, sans-serif; font-weight: 400; font-size: 16px; } #bossbar div { background: #000; border: 2px solid #3d2f20; height: 14px; }
+#bossfill { background: linear-gradient(#ff3b2f, #9a0f08); }
+#banner { color: var(--gold); font-size: 32px; text-shadow: 2px 2px 0 #000; font-weight: 400; }
+#zoomhint { font-family: RSSmall, sans-serif; font-size: 16px; color: var(--cream); opacity: .55; }
+.dn { font-family: RSQuill8, sans-serif; font-weight: 400; font-size: 16px; text-shadow: 1px 1px 0 #000; }
+.dn.crit { font-size: 32px; }
+#endcoins { color: var(--gold); font-family: RSQuill8, sans-serif; font-weight: 400; }
+#endtext { color: var(--cream); }
+/* cards and skills read on dark brown, framed by the slot edge (no fill) */
+.card, .skill { border-image: url(../assets/ui/sq/grey_slot.png) 14 stretch; background: #3a2e22; }
+.card.sel, .card:hover { border-image: url(../assets/ui/sq/yellow_slot.png) 14 stretch; background: #4a3a26; }
+.card.evo { border-image: url(../assets/ui/sq/blue_slot.png) 14 stretch; background: #23324a; }
+.card { width: 196px; } .card p { color: var(--cream); } #levelup .panel { max-width: min(700px, 96vw); }
+/* secondary actions are grey; leaving a run is the red one */
+button.ghost { border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch; color: #fff; }
+#quit { border-image: url(../assets/ui/sq/decline_button.png) 12 fill stretch; }
+
+/* ---- modes, gear, quests, level-up extras, toasts ---- */
+#modes { display: flex; gap: 12px; justify-content: center; min-height: 20px; }
+#endlesswrap { font-size: 16px; color: var(--cream); display: flex; gap: 6px; align-items: center; cursor: url(../assets/ui/sq/cursors/customcursor_hand.png), pointer; }
+.btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; } .btnrow button { margin: 4px 0 0; }
+.lurow { display: flex; gap: 8px; justify-content: center; margin-top: 10px; } .lurow button { margin: 0; padding: 2px 14px; }
+.lurow button:disabled { opacity: .45; }
+#gearwrap { display: grid; grid-template-columns: 170px 1fr; gap: 14px; text-align: left; min-height: 300px; }
+#gearslots { display: grid; grid-template-columns: repeat(2, 76px); gap: 6px; align-content: start; }
+.gslot { position: relative; width: 76px; height: 76px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch; display: grid; place-items: center; cursor: url(../assets/ui/sq/cursors/customcursor_hand.png), pointer; }
+.gslot.sel { border-image-source: url(../assets/ui/sq/yellow_slot.png); }
+.gslot img { width: 40px; height: 40px; image-rendering: pixelated; } .gslot .empty { width: 40px; height: 40px; }
+.gslot small { position: absolute; left: 0; right: 0; bottom: -4px; text-align: center; font-family: RSSmall, sans-serif; font-size: 16px; color: #fff; }
+#gearbank { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px; align-content: start; max-height: 52vh; overflow: auto; }
+.gitem { display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: center; padding: 6px 8px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 stretch; background: #3a2e22; cursor: url(../assets/ui/sq/cursors/customcursor_hand.png), pointer; }
+.gitem.on { border-image-source: url(../assets/ui/sq/yellow_slot.png); background: #4a3a26; }
+.gitem img { width: 36px; height: 36px; image-rendering: pixelated; } .gitem b { display: block; color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; } .gitem span { color: var(--cream); line-height: 1.1; }
+.gempty { color: var(--cream); margin: 6px 0; }
+#gearinfo { margin-top: 10px; text-align: left; color: var(--cream); line-height: 1.2; } #gearinfo b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; } .dim { opacity: .7; }
+#questlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px; text-align: left; max-height: 60vh; overflow: auto; }
+.quest { padding: 6px 10px 8px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 stretch; background: #3a2e22; }
+.quest.done { border-image-source: url(../assets/ui/sq/green_slot.png); background: #2c3a22; }
+.qhead { display: flex; justify-content: space-between; gap: 8px; } .qhead b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; } .qhead span { color: var(--cream); }
+.quest p { margin: 2px 0 4px; color: var(--cream); }
+.qbar { height: 8px; background: #000; border: 1px solid #5a4632; } .qbar i { display: block; height: 100%; background: linear-gradient(#ffff66, #c8a400); }
+.quest.done .qbar i { background: linear-gradient(#5be36b, #1d8a2a); }
+.qreward { margin-top: 4px; display: flex; gap: 4px; align-items: center; color: var(--ink); } .qreward img { width: 20px; height: 20px; image-rendering: pixelated; }
+#toasts { position: fixed; right: 14px; top: 88px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; z-index: 4; }
+.toast { display: flex; gap: 8px; align-items: center; padding: 4px 10px 4px 6px; background: var(--panel); border: 6px solid transparent; border-image: url(../assets/ui/sq/yellow_slot.png) 14 stretch; color: var(--cream); animation: toastin .25s ease-out; }
+.toast img { width: 36px; height: 36px; image-rendering: pixelated; } .toast b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; }
+@keyframes toastin { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+#endloot { color: var(--cream); margin: 4px 0 6px; max-width: 620px; } #endloot img { width: 22px; height: 22px; image-rendering: pixelated; vertical-align: middle; }
+#endloot em { font-style: normal; color: var(--ink); } .lootline b, .questline b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; } .questline { margin-top: 4px; }
+
+/* ---- menus never taller than the screen (the panel scrolls inside) ---- */
+.screen .panel { max-height: calc(100dvh - 24px); overflow: auto; overscroll-behavior: contain; }
+#skillgrid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; }
+.skill { padding: 6px 8px; gap: 2px 8px; } .skill p { line-height: 1.05; } .skill img { width: 32px; height: 32px; }
+#skills .panel, #gear .panel, #quests .panel { width: min(860px, 96vw); max-width: min(860px, 96vw); }
+
+/* ---- touch: thumb stick, pause button ---- */
+html, body, #c, #hud { touch-action: none; }
+.screen .panel, #menu { touch-action: pan-y; }
+#stick { position: fixed; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; background: rgba(30, 23, 16, .35); border: 2px solid rgba(255, 240, 192, .45); pointer-events: none; z-index: 3; }
+#stick i { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; border-radius: 50%; background: rgba(255, 240, 192, .55); border: 2px solid rgba(0, 0, 0, .5); transform: translate(-50%, -50%); }
+#pausebtn { display: none; position: absolute; top: 74px; right: 10px; pointer-events: auto; margin: 0; padding: 4px 14px; font-size: 16px; }
+body.touch #pausebtn { display: block; }
+body.touch #zoomhint { display: none; }
+body.touch .keys { display: none; }
+body.touch .card .key { display: none; }
+
+/* ---- small screens (phones, the folded/unfolded iPhone Duo, portrait tablets) ---- */
+@media (max-width: 760px) {
+  #title { overflow-y: auto; touch-action: pan-y; display: block; }
+  #brand { position: relative; top: 0; left: 0; padding: 12px 14px 0; max-width: none; }
+  #brand h1 { font-size: 48px; } #brand h2 { font-size: 24px; } #tagline { display: none; }
+  #topright { top: 10px; right: 12px; } #coinbox { font-size: 24px; } #best { display: none; }
+  #menu { position: relative; bottom: auto; margin-top: 34vh; padding: 0 8px 70px; flex-direction: column; align-items: stretch; gap: 6px; }
+  #menu section { max-width: none; }
+  #apick { grid-template-columns: repeat(4, 1fr); } #mpick { grid-template-columns: repeat(3, 1fr); }
+  #ainfo, #mapinfo { width: auto; height: auto; }
+  #actions { min-width: 0; }
+  .fine { position: relative; bottom: auto; padding: 0 10px 12px; }
+  #cards { flex-direction: column; align-items: center; gap: 6px; }
+  .card { width: min(340px, 86vw); display: grid; grid-template-columns: 48px 1fr; grid-template-rows: auto auto auto; column-gap: 10px; text-align: left; padding: 6px 10px; }
+  .card img, .card .emoji { grid-row: span 3; align-self: center; }
+  .card h3 { margin: 0; } .card p { margin: 2px 0 0; } .card .key { display: none; }
+  .panel { padding: 10px 12px; } h2 { font-size: 24px; margin: 2px 0 8px; }
+  #gearwrap { grid-template-columns: 1fr; min-height: 0; } #gearslots { grid-template-columns: repeat(6, 1fr); } .gslot { width: auto; height: 64px; }
+  #gearbank { max-height: 40vh; }
+  #loadout { top: 70px; left: 8px; } .slot { width: 36px; height: 36px; } .slot img { width: 26px; height: 26px; }
+  #clock { font-size: 24px; top: 32px; } #killcount b { font-size: 24px; }
+  #hp { left: 8px; bottom: 10px; }
+  #banner { font-size: 24px; width: 92vw; }
+  #toasts { top: auto; bottom: 64px; right: 8px; }
+  #endloot { font-size: 16px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  #brand h1 { font-size: 40px; } #brand h2 { font-size: 20px; } #tagline { display: none; }
+  #menu { bottom: 22px; } #menu section { padding: 4px 8px 6px; } .aopt { min-height: 46px; } #mpick .mopt .thumb { height: 26px; }
+  #ainfo, #mapinfo { height: 36px; } #actions #start { font-size: 24px; padding: 4px 10px; }
+}
+#settings .panel { width: min(560px, 96vw); }
+#setlist { display: flex; flex-direction: column; gap: 6px; text-align: left; margin-bottom: 8px; }
+.setrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--cream); }
+.seg { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.seg button { margin: 0; padding: 0 10px; font-size: 16px; }
+.seg button.on { border-image: url(../assets/ui/sq/yellow_slot.png) 14 fill stretch; color: #2a1d08; text-shadow: none; }
+#pause .panel button { display: block; width: 100%; margin: 6px 0 0; }
+/* minimap, framed like the game's */
+#mmwrap { position: absolute; top: 70px; right: 10px; width: 180px; height: 180px; border: 6px solid transparent; border-image: url(../assets/ui/sq/frame.png) 20 round; border-radius: 50%; background: #1e1710; display: grid; place-items: center; }
+#minimap { width: 168px; height: 168px; border-radius: 50%; image-rendering: pixelated; }
+body.touch #pausebtn { top: 258px; }
+@media (max-width: 760px) { #mmwrap { width: 120px; height: 120px; top: 62px; } #minimap { width: 108px; height: 108px; } body.touch #pausebtn { top: 190px; } }
+#killcount { top: 38px; }
+#toasts { top: 262px; }
+@media (max-width: 760px) { #toasts { top: auto; } }
+#mmwrap { border: 4px solid #8f642f; border-image: none; box-shadow: 0 0 0 2px #1e1710, 0 4px 12px rgba(0,0,0,.6); width: 176px; height: 176px; }
+@media (max-width: 760px) { #mmwrap { width: 116px; height: 116px; } }
+/* the belt: four slots for items you keep (1-4, tap, or LB/RB/X/Y) */
+#belt { position: absolute; left: 14px; bottom: 48px; display: flex; gap: 4px; pointer-events: auto; }
+.bslot { position: relative; width: 40px; height: 40px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch; display: grid; place-items: center; cursor: url(../assets/ui/sq/cursors/customcursor_hand.png), pointer; }
+.bslot.empty { opacity: .55; } .bslot img { width: 26px; height: 26px; image-rendering: pixelated; }
+.bslot small { position: absolute; left: -2px; top: -6px; font-family: RSSmall, sans-serif; font-size: 16px; color: var(--cream); }
+@media (max-width: 760px) { #belt { left: 8px; bottom: 44px; } .bslot { width: 44px; height: 44px; } }
+#enddmg { display: flex; flex-direction: column; gap: 3px; margin: 2px auto 8px; max-width: 460px; text-align: left; }
+.drow { display: grid; grid-template-columns: 26px 150px 1fr 70px; gap: 8px; align-items: center; color: var(--cream); }
+.drow img { width: 24px; height: 24px; image-rendering: pixelated; } .drow b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; text-align: right; }
+.drow span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dbar { height: 10px; background: #000; border: 1px solid #5a4632; } .dbar i { display: block; height: 100%; background: linear-gradient(#ff9a3c, #c8521f); }
+@media (max-width: 760px) { .drow { grid-template-columns: 24px 110px 1fr 56px; } }
+#apick { grid-template-columns: repeat(5, 54px); } .aopt { min-height: 54px; }
+#updates .panel { width: min(720px, 96vw); }
+#updlist { display: flex; flex-direction: column; gap: 6px; text-align: left; max-height: 62vh; overflow: auto; margin-bottom: 8px; }
+.upd { padding: 6px 10px 4px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 stretch; background: #3a2e22; }
+.upd:first-child { border-image-source: url(../assets/ui/sq/yellow_slot.png); }
+.updhead { display: flex; justify-content: space-between; gap: 8px; } .updhead b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; } .updhead span { color: var(--cream); opacity: .8; }
+.upd ul { margin: 4px 0 2px; padding-left: 18px; color: var(--cream); } .upd li { margin: 2px 0; line-height: 1.15; }
+#updbtn { margin-top: 4px; } #updnew { color: var(--gold); margin-left: 4px; }
+.gup { display: block; margin: 4px 0 0; padding: 0 8px; font-size: 16px; } .gup:disabled { opacity: .5; }
+#apick.forced { opacity: .45; pointer-events: none; }
+/* controller / keyboard focus in menus */
+.navfocus { outline: 3px solid #ffff00 !important; outline-offset: 2px; box-shadow: 0 0 14px rgba(255, 255, 0, .55) !important; }
+#version { position: absolute; right: 10px; bottom: 6px; font-family: RSSmall, sans-serif; font-size: 16px; color: var(--cream); opacity: .6; }
+#board .panel { width: min(760px, 96vw); }
+#lbtabs { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 8px; } #lbtabs button { margin: 0; padding: 0 8px; font-size: 16px; }
+#lbtabs button.on { border-image: url(../assets/ui/sq/yellow_slot.png) 14 fill stretch; color: #2a1d08; text-shadow: none; }
+#lblist { max-height: 55vh; overflow: auto; color: var(--cream); } #lblist table { width: 100%; border-collapse: collapse; }
+#lblist th { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; text-align: left; padding: 2px 6px; border-bottom: 1px solid #5a4632; }
+#lblist td { padding: 2px 6px; border-bottom: 1px solid rgba(90,70,50,.4); } #lblist tr.won td { color: var(--gold); } #lblist em { color: var(--ink); font-style: normal; }
+#endlb { margin: 6px 0; color: var(--cream); display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
+#endlb input, #bugtext, #ranked input, #ranked select { font-family: RSPlain, sans-serif; font-size: 16px; background: #1e1710; color: var(--cream); border: 2px solid #5a4632; padding: 3px 6px; }
+#endlb button { margin: 0; padding: 0 12px; } #lbmsg { color: var(--gold); }
+#bug .panel { width: min(520px, 96vw); } #bugtext { width: 100%; resize: vertical; } #bugmsg { color: var(--gold); min-height: 18px; margin-top: 4px; }
+
+/* ---- phones, the iPhone Duo (626x890 open, 890x626 turned) and the installed app ---- */
+body.touch .key { display: none; }
+/* keep the HUD and title clear of the Dynamic Island, rounded corners and home bar */
+#hud, #title { top: env(safe-area-inset-top, 0px); right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px); left: env(safe-area-inset-left, 0px); }
+#installbtn { margin-top: 4px; }
+/* turned sideways or a short window: everything in one row under the logo */
+@media (min-width: 761px) and (max-width: 1180px) and (max-height: 760px) {
+  #menu { flex-wrap: nowrap; gap: 6px; padding: 0 8px; bottom: 26px; }
+  #apick { grid-template-columns: repeat(5, 48px); } .aopt { min-height: 48px; }
+  #mpick { grid-template-columns: repeat(3, 78px); } #mpick .mopt .thumb { height: 28px; }
+  #actions { min-width: 168px; } #actions #start { font-size: 26px; padding: 6px 10px; }
+  #actions button { padding: 6px 10px; } #actions .btnrow button { padding: 4px 8px; }
+  #ainfo, #mapinfo { max-width: 270px; }
+  #brand h1 { font-size: 48px; } #brand h2 { font-size: 24px; } #tagline { display: none; }
+  .keys { display: none; }
+}
+/* tall narrow screens: the start button stays on screen while you scroll the pickers */
+@media (max-width: 760px) {
+  #actions #start { position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 4; margin: 0; box-shadow: 0 6px 18px #000c; }
+  #menu { padding-bottom: 96px; }
+  #title .fine { padding-bottom: 0; }
+  /* the version sits under the credit line, and the space for the fixed Start bar (76px tall + its 10px gap) comes after it */
+  #version { position: static; text-align: center; margin-top: 4px; padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
+  /* the Start button floats at the bottom, so the menu buttons start at the top of their panel; no empty modes row */
+  #actions { justify-content: flex-start; }
+  #modes:not(:has(label:not(.hidden))) { display: none; }
+  #actions #loadtext:empty { display: none; }
+}
+/* fingertip-sized buttons on touch screens */
+body.touch .panel button, body.touch #actions button, body.touch #lbtabs button { min-height: 42px; }
+body.touch .seg button { min-height: 38px; min-width: 44px; }
+
+/* credit line, tip button and the tip panel */
+.fine a, .fine .linkbtn { pointer-events: auto; color: var(--gold); text-decoration: none; }
+.fine a:hover, .fine .linkbtn:hover { text-decoration: underline; }
+.linkbtn { background: none; border: 0; border-image: none; padding: 0; margin: 0; font: inherit; color: var(--gold); cursor: pointer; min-height: 0 !important; text-shadow: inherit; }
+#tip .panel { width: min(480px, 94vw); }
+#tipaddr { display: block; margin: 8px 0; padding: 8px 10px; background: #1e1710; border: 2px solid #5a4632; color: var(--cream); font-family: RSPlain, monospace; font-size: 15px; word-break: break-all; user-select: all; }
+#tipmsg { color: var(--gold); min-height: 18px; }
+#bugmsg a { color: var(--gold); }
+.btnrow:has(> .hidden) { grid-template-columns: 1fr; } /* a row with one button hidden: the other takes the full width */
+
+/* picker labels fit their button; until the slot frames have loaded, a plain colour shows which one is picked */
+.aopt .nm { display: block; overflow: hidden; white-space: normal; overflow-wrap: normal; padding: 0 1px; }
+.slot, .aopt, .mopt, .card, .skill { background: #5b5650; background-clip: padding-box; }
+.aopt.sel, .mopt.sel, .card.sel { background: #b8962e; background-clip: padding-box; }
+/* give the adventurer buttons the room there is, so long names stay readable */
+#apick { grid-template-columns: repeat(5, 70px); }
+@media (min-width: 761px) and (max-width: 1180px) and (max-height: 760px) { #apick { grid-template-columns: repeat(5, 50px); } }
+@media (max-width: 760px) { #apick { grid-template-columns: repeat(5, 1fr); } }
+
+/* Update button: shows when the site has a newer build than this tab */
+#updatebtn { border-image-source: url(../assets/ui/sq/green_slot.png); }
+.btnrow:has(> .hidden + .hidden) { display: none; } /* no install and no update: no empty row */
+
+.sethead { margin: 10px 0 2px; color: var(--gold); font-family: RSQuill8, sans-serif; font-size: 16px; font-weight: 400; border-bottom: 1px solid rgba(143, 100, 47, .5); padding-bottom: 2px; }
+.sethead:first-child { margin-top: 0; }
+
+#lblist tr.me td { background: rgba(255, 210, 60, .16); color: var(--gold); } /* your own runs */
+
+/* DMT holder perks */
+#dmt .panel, #ranked .panel { width: min(520px, 94vw); text-align: left; }
+#dmt h2, #ranked h2 { text-align: center; }
+.dmtperks { margin: 6px 0 8px; padding-left: 18px; color: var(--cream); } .dmtperks li { margin: 3px 0; }
+.dmtok { color: #5ff2d8; font-family: RSQuill8, sans-serif; }
+.dmtwallets { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.dmtwallets button, .btnlink { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; }
+.dmtwallets img { width: 22px; height: 22px; }
+.btnlink { padding: 8px 12px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch; color: var(--cream); text-decoration: none; font-family: RSQuill8, sans-serif; }
+#dmtmsg, #rankedmsg, #rankedresult { color: var(--gold); min-height: 18px; margin: 6px 0; text-align: center; }
+#dmtchip { margin-top: 2px; color: #5ff2d8; font-family: RSQuill8, sans-serif; font-size: 16px; text-shadow: 1px 1px 0 #000; }
+.dmtb { display: inline-block; padding: 0 4px; margin-left: 2px; font-size: 13px; line-height: 16px; color: #1e1710; background: linear-gradient(90deg, #ffd34d, #5ff2d8); border-radius: 2px; }
+.dmtnote { color: #5ff2d8; font-style: normal; }
+
+/* title menu: the big start button, the four main screens in a 2x2 grid, then a compact row of small extras */
+#actions .btngrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; }
+#actions .btngrid button { margin: 0; }
+#actions .minirow { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+#actions .minirow button { flex: 1 1 30%; margin: 0; padding: 3px 4px; font-size: 14px; min-width: 0; white-space: nowrap; }
+#actions .minirow #updatebtn { border-image-source: url(../assets/ui/sq/green_slot.png); }
+/* More: the extras in one place, so the title menu stays short */
+#actions .minirow #morebtn { flex: 1 1 60%; position: relative; overflow: visible; }
+#more .panel { width: min(340px, 92vw); }
+#more .morelist { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 10px; }
+#more .morelist button { margin: 0; min-height: 44px; position: relative; overflow: visible; }
+#more .morelinks { font-family: RSSmall, sans-serif; font-size: 16px; color: #c8a46a; text-align: center; margin: 4px 0 10px; }
+#more .morelinks a { color: var(--gold); text-decoration: none; }
+#morenew { position: absolute; top: -7px; right: -3px; padding: 0 3px; font-size: 11px; line-height: 13px; color: #2a1d08; background: var(--gold); border: 1px solid #000; text-shadow: none; }
+#rankedbtn { margin-top: 4px; border-image-source: url(../assets/ui/sq/yellow_slot.png); color: #2a1d08; text-shadow: none; font-size: 18px; }
+#actions #updbtn { position: relative; overflow: visible; }
+#more #updnew { top: 6px; right: 8px; }
+#updnew { position: absolute; top: -7px; right: -3px; padding: 0 3px; font-size: 11px; line-height: 13px; color: #2a1d08; background: var(--gold); border: 1px solid #000; text-shadow: none; }
+@media (max-width: 760px) {
+  #actions .btngrid button { min-height: 44px; }
+  #actions .minirow button { flex: 1 1 30%; min-height: 40px; font-size: 15px; }
+}
+@media (min-width: 761px) and (max-width: 1180px) and (max-height: 760px) { #actions .minirow button { font-size: 13px; padding: 2px 3px; } }
+
+/* Ranked uses the holder panel; only its content layout differs. */
+#ranked label { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+#ranked input, #ranked select { min-width: 0; flex: 1; min-height: 44px; }
+#ranked button, #ranked .btnlink { min-height: 44px; }
+/* the standings scroll inside a frame of their own, so the last row never runs into the rules below */
+#rankedstandings { max-height: 180px; overflow: auto; border: 2px solid #5a4632; background: #1e1710; padding: 2px 8px; margin: 8px 0 10px; }
+#rankedstandings:empty { display: none; }
+#rankedstandings ol { padding-left: 24px; margin: 4px 0; }
+#rankedstandings li { margin: 6px 0; overflow-wrap: anywhere; }
+#ranked p { margin: 8px 0; }
+#rankedready button, #rankedwallets button { white-space: normal; }

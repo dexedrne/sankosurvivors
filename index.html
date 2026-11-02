@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>
+// Saves live in the browser, one store per web address. The game's old addresses hand the save over to
+// sankosurvivors.quest (in the #fragment, which never reaches a server), then forward there.
+(function () {
+  var HOME = 'sankosurvivors.quest', OLD = ['sankosurvivors.vyvanse.beer', 'sankoquest.vyvanse.beer'];
+  try {
+    if (OLD.indexOf(location.hostname) >= 0) {
+      var s = {}, n = 0;
+      for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('sq-') === 0) { s[k] = localStorage.getItem(k); n++; } }
+      location.replace('https://' + HOME + '/' + location.search + (n ? '#carry=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(s))))) : ''));
+      document.write('<plaintext style="display:none">'); // nothing else on this page loads
+      return;
+    }
+    // only a hand-off that really comes from an old address counts: a #carry= link from anywhere else could plant data
+    var m = /^#carry=(.+)$/.exec(location.hash), from = '';
+    try { from = new URL(document.referrer).hostname; } catch (e) { /* no referrer */ }
+    if (m && OLD.indexOf(from) < 0) { history.replaceState(null, '', location.pathname + location.search); m = null; }
+    if (m) {
+      var d = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+      var fresh = !localStorage.getItem('sq-coins') && !localStorage.getItem('sq-stats'); // nothing played here yet: take it all
+      // progress and settings only (a DMT pass is signed again here), each a value the game itself would have saved
+      var KEEP = ['sq-coins', 'sq-name', 'sq-gear', 'sq-best', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-seen', 'sq-roofs', 'sq-quests', 'sq-muted', 'sq-map', 'sq-gearlv', 'sq-cleared', 'sq-bank', 'sq-adv'];
+      var ok = function (k, v) { if (typeof v !== 'string' || v.length > 20000) return false; if (k === 'sq-roofs') return v === 'off' || v === 'on'; try { JSON.parse(v); return true; } catch (e) { return false; } };
+      for (var key in d) if (Object.prototype.hasOwnProperty.call(d, key) && KEEP.indexOf(key) >= 0 && ok(key, d[key]) && (fresh || localStorage.getItem(key) === null)) localStorage.setItem(key, d[key]);
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  } catch (e) { /* storage blocked: nothing to carry */ }
+})();
+</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#2b2118">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SQ Survivors">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="preload" as="image" href="/assets/ui/sq/grey_slot.png" fetchpriority="high">
+<link rel="preload" as="image" href="/assets/ui/sq/yellow_slot.png" fetchpriority="high">
+<link rel="preload" as="image" href="/assets/ui/sq/frame.png" fetchpriority="high">
+<title>SankoQuest Survivors</title>
+<meta name="description" content="Survive the hordes in the real SankoQuest world. An unofficial fan game you play in the browser.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SankoQuest Survivors">
+<meta property="og:title" content="SankoQuest Survivors">
+<meta property="og:description" content="Survive the hordes in the real SankoQuest world. An unofficial fan game you play in the browser.">
+<meta property="og:url" content="https://sankosurvivors.quest/">
+<link rel="canonical" href="https://sankosurvivors.quest/">
+<meta property="og:image" content="https://sankosurvivors.quest/og.jpg?v=25">
+<meta property="og:image:secure_url" content="https://sankosurvivors.quest/og.jpg?v=25">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="An adventurer in Greentown surrounded by a horde of chickens, goblins, cows and skeletons">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@dexedrne">
+<meta name="twitter:creator" content="@dexedrne">
+<meta name="author" content="dexedrne">
+<meta name="twitter:title" content="SankoQuest Survivors">
+<meta name="twitter:description" content="Survive the hordes in the real SankoQuest world. An unofficial fan game you play in the browser.">
+<meta name="twitter:image" content="https://sankosurvivors.quest/og.jpg?v=25">
+<meta name="theme-color" content="#2f251b">
+<link rel="icon" href="./assets/ui/item_Air_Shard.png">
+<link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="fx"></div>
+<div id="hurt"></div>
+
+<div id="hud" class="hidden">
+  <div id="topbar"><div id="xpbar"><i id="xpfill"></i><span id="lvl">Lv 1</span></div>
+    <div id="clock">0:00</div><div id="clockgoal"></div><div id="killcount"><b id="kills">0</b> slain</div></div>
+  <div id="bossbar" class="hidden"><span id="bossname"></span><div><i id="bossfill"></i></div></div>
+  <div id="belt"></div>
+  <div id="hp"><div class="bar"><i id="hpfill"></i></div><span id="hptext">100</span></div>
+  <div id="loadout"><div id="wrow"></div><div id="prow"></div></div>
+  <div id="mmwrap"><canvas id="minimap" width="168" height="168"></canvas></div>
+  <div id="banner"></div>
+  <div id="zoomhint">scroll zoom · middle mouse or Q/E turns camera</div>
+  <button id="pausebtn" class="ghost" aria-label="Pause">II</button>
+</div>
+<div id="stick" class="hidden"><i></i></div>
+
+<div id="title" class="screen">
+  <div id="brand"><h1>Sanko<span>Quest</span></h1><h2>SURVIVORS</h2><p id="tagline">Greentown is overrun. Hold out for fifteen minutes, or take down the Dragon.</p></div>
+  <div id="topright"><div id="coinbox"><img src="./assets/ui/items/item_Gold.png" alt=""><b id="coins">0</b></div><div id="dmtchip" class="hidden">DMT holder</div><div id="best"></div></div>
+  <div id="menu">
+    <section><h3>Adventurer</h3><div id="apick"></div><div id="ainfo"></div></section>
+    <section><h3>Map</h3><div id="mpick"></div><div id="mapinfo"></div></section>
+    <section id="actions">
+      <div id="loadbar"><i id="loadfill"></i></div><div id="loadtext">Loading the world…</div>
+      <div id="modes"><label id="hardwrap" class="hidden"><input type="checkbox" id="hard"> Hard mode</label><label id="endlesswrap" class="hidden"><input type="checkbox" id="endless"> Endless</label></div>
+      <button id="start" disabled>Enter the field</button>
+      <button id="rankedbtn" class="hidden">Ranked: weekly DMT prizes</button>
+      <div class="btngrid"><button id="gearbtn" class="ghost">Gear</button><button id="questbtn" class="ghost">Quests</button><button id="skillsbtn" class="ghost">Skills</button><button id="lbbtn" class="ghost">Leaderboard</button></div>
+      <div class="minirow"><button id="morebtn" class="ghost">More<span id="morenew" class="hidden">NEW</span></button><button id="updatebtn" class="hidden">Update</button></div>
+    </section>
+  </div>
+  <div class="keys"><b>WASD</b> / arrows / left stick move · attacks are automatic · <b>1 2 3</b> pick upgrades · <b>scroll</b> zoom · <b>middle mouse</b> / Q E turn camera · <b>Esc</b> pause · <b>M</b> mute</div>
+  <div class="fine">Unofficial fan game · made by <a id="creditx" href="https://x.com/dexedrne" target="_blank" rel="noopener">@dexedrne</a><span id="tipwrap" class="hidden"> · <button id="tipbtn" class="linkbtn">Tip in ETH</button></span> · Sanko: <a id="sankotg" href="https://t.me/sankogamecorp" target="_blank" rel="noopener">Telegram</a> · <a id="sankox" href="https://x.com/SankoGameCorp" target="_blank" rel="noopener">X</a></div>
+  <div id="version"></div>
+</div>
+
+<div id="skills" class="screen hidden"><div class="panel wide"><h2>Skills &amp; upgrades</h2><div class="coinline"><img src="./assets/ui/items/item_Gold.png" alt=""> <b id="coins2">0</b> coins</div><div id="skillgrid"></div><button id="skillsclose" class="ghost">Back</button></div></div>
+<div id="levelup" class="screen hidden"><div class="panel"><h2 id="lutitle">Level up!</h2><div id="cards"></div><div class="lurow"><button id="reroll" class="ghost">Reroll</button><button id="skiplv" class="ghost">Skip for a coin<span class="key"> (X)</span></button></div><div class="fine keys">Press 1, 2 or 3 · or click</div></div></div>
+<div id="gear" class="screen hidden"><div class="panel wide"><h2>Gear</h2><div id="gearwrap"><div id="gearslots"></div><div id="gearbank"></div></div><div id="gearinfo"></div><button id="gearclose" class="ghost">Back</button></div></div>
+<div id="quests" class="screen hidden"><div class="panel wide"><h2>Quests</h2><div id="questlist"></div><button id="questclose" class="ghost">Back</button></div></div>
+<div id="toasts"></div>
+<div id="pause" class="screen hidden"><div class="panel"><h2>Paused</h2><button id="resume">Resume</button><button id="setbtn2" class="ghost">Settings</button><button id="bugbtn2" class="ghost">Report a bug</button><button id="quit" class="ghost">Quit run</button></div></div>
+<div id="updates" class="screen hidden"><div class="panel wide"><h2>Updates</h2><div id="updlist"></div><button id="updclose" class="ghost">Back</button></div></div>
+<div id="board" class="screen hidden"><div class="panel wide"><h2>Leaderboard</h2><div id="lbtabs"></div><div id="lblist"></div><button id="lbclose" class="ghost">Back</button></div></div>
+<div id="bug" class="screen hidden"><div class="panel"><h2>Report a bug</h2><p class="dim">What happened, and what were you doing? Your settings, map and game version are sent with it.</p><textarea id="bugtext" maxlength="2000" rows="6" placeholder="e.g. On Greentown my character walked through a wall near the bank"></textarea><div id="bugmsg"></div><button id="bugsend">Send report</button><button id="bugclose" class="ghost">Back</button></div></div>
+<div id="more" class="screen hidden"><div class="panel"><h2>More</h2><div class="morelist"><button id="setbtn" class="ghost">Settings</button><button id="updbtn" class="ghost">What's new<span id="updnew" class="hidden">NEW</span></button><button id="dmtbtn" class="ghost">DMT holder perks</button><button id="bugbtn" class="ghost">Report a bug</button><button id="installbtn" class="ghost hidden">Install the app</button></div><p class="morelinks">Made by <a href="https://x.com/dexedrne" target="_blank" rel="noopener">@dexedrne</a> · Sanko: <a href="https://t.me/sankogamecorp" target="_blank" rel="noopener">Telegram</a> · <a href="https://x.com/SankoGameCorp" target="_blank" rel="noopener">X</a></p><button id="moreclose" class="ghost">Back</button></div></div>
+<div id="settings" class="screen hidden"><div class="panel"><h2>Settings</h2><div id="setlist"></div><button id="setclose" class="ghost">Back</button></div></div>
+<div id="end" class="screen hidden"><div class="panel"><h2 id="endtitle"></h2><p id="endtext"></p><p id="endcoins"></p><div id="enddmg"></div><div id="endloot"></div><div id="endlb"><label>Name for the leaderboard <input id="lbname" maxlength="16" autocomplete="off" spellcheck="false"></label><button id="lbsubmit">Submit score</button><span id="lbmsg"></span></div><div id="rankedresult" role="status"></div><button id="rankedretry" class="hidden">Retry ranked submission</button><button id="again">Run it back</button><button id="sharex" class="ghost">Share on X</button><button id="tomenu" class="ghost">Main menu</button></div></div>
+<div id="ranked" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="rankedtitle"><div class="panel">
+  <h2 id="rankedtitle">Ranked weekly runs</h2>
+  <p id="rankedweek">Loading this week…</p><p id="rankedtime" class="dim"></p><p id="rankedpool"></p>
+  <div id="rankedstandings"></div>
+  <p class="dim">Entry is 0.5 DMT on Arbitrum: 10% house fee, 90% prize pool split 40/25/15/12/8 between the top five wallets. Monday to Monday UTC, one map, up to 20 entries per wallet and one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input.</p>
+  <label>Name <input id="rankedname" maxlength="16" autocomplete="off" spellcheck="false"></label>
+  <label>Adventurer <select id="rankedadv"></select></label>
+  <div id="rankedready" class="dmtwallets"></div><div id="rankedwallets" class="dmtwallets"></div>
+  <button id="rankedenter">Enter for 0.5 DMT</button>
+  <div id="rankedmsg" role="status" aria-live="polite"></div><button id="rankedupdate" class="hidden">Update</button><button id="rankedclose" class="ghost">Back</button>
+</div></div>
+<div id="dmt" class="screen hidden"><div class="panel"><h2>DMT holder perks</h2><div id="dmtbody"></div><div id="dmtmsg"></div><button id="dmtclose" class="ghost">Back</button></div></div>
+<div id="tip" class="screen hidden"><div class="panel"><h2>Tip the maker</h2><p>Enjoying the game? A tip in ETH keeps it going. Thank you!</p><p class="dim">Same address on Ethereum, Arbitrum and Robinhood Chain. Check it against your wallet before you send.</p><code id="tipaddr"></code><div id="tipmsg"></div><div class="lurow"><button id="tipcopy">Copy address</button><button id="tipwallet" class="ghost">Open in wallet</button></div><button id="tipclose" class="ghost">Back</button></div></div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
