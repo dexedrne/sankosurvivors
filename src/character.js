@@ -132,7 +132,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     mixer.update(0); root.updateMatrixWorld(true);
     {
       const box = new THREE.Box3().setFromObject(root, true), size = box.getSize(new THREE.Vector3());
-      const k = size.y > 0.01 ? (spec.h || 1.9) / size.y : 1;
+      const k = size.y > 0.01 ? (spec.h || 1.6) / size.y : 1; // people stand ~1.6, as in SankoQuest
       holder.scale.setScalar(k);
       holder.position.set(-(box.min.x + box.max.x) / 2 * k, -box.min.y * k, -(box.min.z + box.max.z) / 2 * k);
     }
@@ -251,7 +251,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     byRig.set(hip, c);
     return c;
   }
-  function animate(gltf, h = 1.9, clipName = 'walk', { zUp = false } = {}) {
+  function animate(gltf, h = 1.6, clipName = 'walk', { zUp = false } = {}) {
     const master = SkeletonUtils.clone(gltf.scene);
     const bones = new Map();
     master.traverse((o) => { o.frustumCulled = false; if (o.isBone) { if (/^mixamorig(?!_)/.test(o.name)) o.name = o.name.replace(/^mixamorig:?/, 'mixamorig_'); bones.set(o.name, o); } });

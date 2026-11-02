@@ -1,6 +1,15 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.34', date: '2 Nov 2026', title: 'True to SankoQuest',
+    items: [
+      'Spells look like they do in SankoQuest: the shard staff fires the game\'s own Strike (and, evolved, Blast) projectile in each element\'s colour, at its real size.',
+      'Arrows fly as SankoQuest draws them: a dark shaft, a grey head and tan fletching.',
+      'Everyone is their real size now: your hero, the townsfolk and the monsters match the live game (spiders and goblins were too big).',
+      'New look for boss attack warnings, the leaderboard has Ranked and Casual, and the draw distance reaches further.',
+    ],
+  },
+  {
     version: '0.33', date: '2 Nov 2026', title: 'Sharper swings, clearer goal',
     items: [
       'Sword swings look better: your hero turns smoothly instead of snapping, faces each swing while it lands, and the swing itself is quicker, in time with the slash.',

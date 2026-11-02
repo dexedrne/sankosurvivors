@@ -569,7 +569,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         const p = protos[special] || (special === 'sankson' ? playerProto : null);
         if (!p) continue;
         try {
-          const inst = kit ? kit.animate(p.gltf, (ENEMIES[special] && ENEMIES[special].h) || 1.9, 'idle') : instantiate(p, 'idle');
+          const inst = kit ? kit.animate(p.gltf, (ENEMIES[special] && ENEMIES[special].h) || 1.6, 'idle') : instantiate(p, 'idle');
           if (inst.kit && ENEMIES[special] && ENEMIES[special].yawFix) inst.kit.yaw0 += ENEMIES[special].yawFix;
           inst.root.position.set(f[0], groundAt(f[0], f[1]), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - ((inst.kit && inst.kit.yaw0) || 0);
           if (!inst.mixer) inst.mixer = { update() {} };
@@ -683,7 +683,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     onProgress('monsters', 0.6 + 0.3 * (++loaded / types.length));
   }));
   let playerProto = null;
-  try { playerProto = await prepare(A('models/mobs/sankson/sankson.glb'), 1.9); } catch (e) { console.warn('player model failed', e); }
+  try { playerProto = await prepare(A('models/mobs/sankson/sankson.glb'), 1.6); } catch (e) { console.warn('player model failed', e); }
   // the real SankoQuest character (modular body + armor) for the player and humanoid enemies
   let kit = null;
   try {
@@ -738,9 +738,14 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // Missile tier for the staff, the bigger Blast tier once it evolves. Sizes x MS_K to read at this game's camera.
   const SPELL_COLORS = [0x9fe8ff, 0x3b82f6, 0x6db33f, 0xff5a1f, 0xffe066, 0xb25cff]; // air, water, earth, fire (the game's), then spirit, void
   // (trail spacing in ms is about half the game's: these bolts fly faster, and the trail should stay close behind)
-  const SPELL_TIER = { missile: { size: 1, trail: 24, impact: 260, spread: 0.36 }, blast: { size: 1.65, trail: 32, impact: 400, spread: 0.7 } };
-  const MS_K = 2.4, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc);
+  const SPELL_TIER = { missile: { size: 1, trail: 14, impact: 320, spread: 0.36 }, blast: { size: 1.65, trail: 18, impact: 420, spread: 0.6 } }; // sizes and swell from the live game (2026-11-02)
+  const MS_K = 1, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc);
   const msMat = new THREE.MeshBasicMaterial({ toneMapped: false });
+  // the game's pieces are lit from above: colour x (0.82 + 0.18 * normal.y)
+  msMat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vNy;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvNy = normal.y;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vNy;').replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= 0.82 + 0.18 * vNy;');
+  };
   const msGlowMats = new Map();
   function msGlowMat(col, tier) {
     const key = col + ':' + tier; if (msGlowMats.has(key)) return msGlowMats.get(key);
@@ -749,10 +754,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader: `uniform vec3 uCol; uniform float uBlast, uTime; varying vec2 vUv;
         void main(){
-          vec2 r = abs(vUv - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - (r.x + r.y)), 2.0) * 0.45; vec3 c = uCol;
-          if (uBlast > 0.5) { float t = length((vUv - 0.5) * 2.0), core = pow(max(0.0, 1.0 - t), 2.0), ring = max(0.0, 1.0 - abs(t - (sin(uTime * 6.0) * 0.035 + 0.58)) * 16.0);
-            c = mix(uCol, vec3(1.0, 0.957, 0.863), pow(core, 3.0) * 0.55); a = core * 0.6 + ring * 0.3; }
-          gl_FragColor = vec4(c, a);
+          vec2 r = abs(vUv - 0.5) * 2.0; float a = pow(max(0.0, 1.0 - (r.x + r.y)), 2.0) * 0.45; // the game's diamond glow, both tiers
+          gl_FragColor = vec4(uCol, a);
         }` });
     msGlowMats.set(key, m); return m;
   }
@@ -760,12 +763,21 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const o = new THREE.Group(), T = SPELL_TIER[tier];
     const parts = new THREE.InstancedMesh(msGeo, msMat, 7); parts.frustumCulled = false; parts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     const c = new THREE.Color(col), tmp = new THREE.Color();
-    for (let i = 0; i < 7; i++) parts.setColorAt(i, tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.7 : 0.12).multiplyScalar(1.5));
+    for (let i = 0; i < 7; i++) parts.setColorAt(i, tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.7 : 0.15)); // pale head, element-tinted trail
     const glow = new THREE.Mesh(msGlowGeo, msGlowMat(col, tier)); glow.scale.setScalar(0.54 * T.size * MS_K);
     o.add(parts, glow);
     o.userData.ms = { parts, glow, T, trail: Array.from({ length: 8 }, () => ({ p: new THREE.Vector3(), at: -1 })), born: performance.now(), dir: new THREE.Vector3(0, 0, 1) };
     return o;
   }
+  const lin = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace);
+  const ARROW = (() => {
+    const g = new THREE.Group(), side = THREE.DoubleSide;
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.022, 0.34), new THREE.MeshBasicMaterial({ color: lin(0.31, 0.16, 0.06) }));
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.105, 4).rotateX(Math.PI / 2).translate(0, 0, 0.21), new THREE.MeshBasicMaterial({ color: lin(0.55, 0.6, 0.63) }));
+    const finGeo = new THREE.PlaneGeometry(0.048, 0.16).rotateX(Math.PI / 2).translate(0.024, 0, -0.145), finMat = new THREE.MeshBasicMaterial({ color: lin(0.76, 0.62, 0.33), side });
+    g.add(shaft, head); for (let k = 0; k < 4; k++) { const f = new THREE.Mesh(finGeo, finMat); f.rotation.z = k * Math.PI / 2; g.add(f); }
+    return g;
+  })();
   const msQ = new THREE.Quaternion(), msObj = new THREE.Object3D(), msWp = new THREE.Vector3();
   function stepMagicSphere(o, now) {
     const d = o.userData.ms, T = d.T, t = now - d.born;
@@ -782,7 +794,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         if (q.at >= 0) msObj.position.copy(q.p).sub(msWp).applyQuaternion(msQ);
         msObj.position.x += Math.sin(13 * sec - 1.7 * i) * a * 0.055 * MS_K; msObj.position.y += Math.cos(11 * sec - 1.7 * i) * a * 0.055 * MS_K;
       }
-      const sc = (i === 0 ? 0.1125 : 0.075 * (1 - 0.8 * a)) * T.size * MS_K;
+      const sc = (i === 0 ? 0.113 : 0.065 - 0.01 * (i - 1)) * T.size * MS_K; // head 0.113, trail 0.065 down to 0.015
       msObj.scale.set(sc, sc, sc * (i === 0 ? 1.3 : 1.6));
       msObj.quaternion.identity(); msObj.rotateZ(4 * sec + i); msObj.updateMatrix(); d.parts.setMatrixAt(i, msObj.matrix);
     }
@@ -800,7 +812,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const b = msBursts[i], t = (now - b.born) / b.T.impact, d = b.o.userData.ms;
       if (t >= 1) { dyn.remove(b.o); msBursts.splice(i, 1); continue; }
       d.glow.quaternion.copy(camera.quaternion);
-      d.glow.scale.setScalar((b.tier === 'blast' ? 1.35 * Math.sin(Math.PI * Math.sqrt(t)) : 0.82 * (1 - t)) * MS_K);
+      d.glow.scale.setScalar(0.54 * b.T.size * (1 + 0.42 * Math.sin(Math.PI * Math.min(1, t * 1.25))) * (t > 0.8 ? (1 - t) / 0.2 : 1) * MS_K);
       for (let k = 0; k < 7; k++) {
         const ang = k * Math.PI * 2 / 7, r = b.T.spread * t * MS_K;
         msObj.position.set(Math.cos(ang) * r, Math.sin(2 * ang) * r * 0.65 - t * t * 0.15 * MS_K, Math.sin(ang) * r);
@@ -1194,7 +1206,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (a && a.adv !== p.adv) { dyn.remove(a.root); playerActors.delete(p.id); a = null; } // picked someone else on the title screen
       if (!a) {
         let inst = null;
-        if (kit) { try { const look = (ADVENTURER_BY_ID[p.adv] || ADVENTURER_BY_ID.adventurer).look; const k = kit.build({ ...look, h: 1.9 }); inst = { root: k.root, inner: k.master, mixer: k.mixer, kit: k, armorLvl: 0, baseArmor: look.armor || {} }; } catch (e) { console.warn('player rig failed', e); } }
+        if (kit) { try { const look = (ADVENTURER_BY_ID[p.adv] || ADVENTURER_BY_ID.adventurer).look; const k = kit.build({ ...look, h: 1.6 }); /* SankoQuest's people stand ~1.6 (skeletons, the same size, measure 1.51 in the live game) */ inst = { root: k.root, inner: k.master, mixer: k.mixer, kit: k, armorLvl: 0, baseArmor: look.armor || {} }; } catch (e) { console.warn('player rig failed', e); } }
         if (!inst) inst = playerProto ? instantiate(playerProto) : makeEnemy('goblin');
         const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: SLOT_COLORS[p.slot % 4], side: THREE.DoubleSide }));
         ring.position.y = 0.05; inst.root.add(ring);
@@ -1364,10 +1376,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           const col = evo ? SPELL_COLORS[5] : SPELL_COLORS[Math.min(5, Math.max(0, lvl - 1))];
           o.add(magicSphere(col, evo ? 'blast' : 'missile')); Object.assign(o.userData, { spell: { col, tier: evo ? 'blast' : 'missile' } });
         } else if (art === 'arrow') {
-          item(weaponModelPath('bow', lvl, 'arrowModel')).then((p) => { if (p) o.add(orientedItem(p, 1.4)); });
-          const col = evo ? 0x9fe6ff : 0xfff6dc;
-          o.add(new THREE.Mesh(new THREE.PlaneGeometry(0.16, 2.6).rotateX(-Math.PI / 2).translate(0, 0, -1.6), streakMat(col, evo ? 0.8 : 0.45)));
-          if (evo) Object.assign(o.userData, { trail: 0x9fe6ff, every: 0.5 });
+          o.add(ARROW.clone()); // SankoQuest's flying arrow, as the live game draws it
+          Object.assign(o.userData, evo ? { trail: 0x9fe6ff, every: 0.5 } : { trail: 0xb89a6a, every: 0.7 }); // the glacial bow's frost, or a little dust
         } else if (art === 'sword') { // a thrown short sword, point first, with a bright streak
           item(weaponModelPath('shortsword', lvl)).then((p) => { if (p) o.add(orientedItem(p, 1.1)); });
           o.add(new THREE.Mesh(new THREE.PlaneGeometry(0.14, 2.0).rotateX(-Math.PI / 2).translate(0, 0, -1.2), streakMat(evo ? 0x7fe0ff : 0xfff6dc, 0.55)));
