@@ -22,6 +22,10 @@ let sim = null, renderer = null, mode = 'title', acc = 0, last = 0, frame = 0, s
 const keys = new Set();
 const audio = createAudio();
 const fmtT = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+// A boss's own name on one map (screen only; the sim and ranked replays never see it). SankoQuest's swamp ogre is Fudna.
+const BOSS_TITLES = { swamp: { ogre: 'Fudna the Hoard Keeper' } };
+const bossName = (map, type) => BOSS_TITLES[map && map.id]?.[type] || ENEMIES[type].name;
+const slayName = (map, type) => BOSS_TITLES[map && map.id]?.[type] || `the ${ENEMIES[type].name}`;
 
 // ---- saved progress ------------------------------------------------------------------------------
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
@@ -100,7 +104,7 @@ function buildMaps() {
     pickMap(el.dataset.id);
   };
   const m = MAP_BY_ID[selMap];
-  $('mapinfo').innerHTML = `<b>${m.name}</b> · ${m.blurb}<br>Final boss: ${ENEMIES[m.finalBoss].name}`;
+  $('mapinfo').innerHTML = `<b>${m.name}</b> · ${m.blurb}<br>Final boss: ${bossName(m, m.finalBoss)}`;
   $('apick').classList.toggle('forced', !!m.forceAdv);
   if (m.forceAdv) { const fa = ADVENTURER_BY_ID[m.forceAdv]; $('ainfo').innerHTML = `On ${m.name} you play as <b>${fa.name}</b>: ${weaponTitle(fa.weapon, 1)}, bronze armour, winged boots and extra health.`; }
   const cleared = cl.has(m.id) || params.has('unlock');
@@ -569,7 +573,7 @@ async function startRun(live = null) {
   $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
   $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
   if (isRanked && sim.pending[PLAYER]) showLevelUp();
-  const goalText = !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay the ${ENEMIES[map.finalBoss].name}`;
+  const goalText = !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
   banner(`${isRanked ? 'Ranked ·' : endlessOn ? 'Endless' : 'Survive'} ${map.name}${!isRanked && hardOn ? ' (hard)' : ''}${goalText}`, 4500);
 }
 let bannerT = 0;
@@ -808,7 +812,7 @@ function updateHud(view) {
   $('kills').textContent = view.kills;
   const boss = view.enemies.find((e) => ENEMIES[e[1]].boss);
   $('bossbar').classList.toggle('hidden', !boss);
-  if (boss) { $('bossname').textContent = ENEMIES[boss[1]].name; $('bossfill').style.width = boss[5] + '%'; }
+  if (boss) { $('bossname').textContent = bossName(sim && sim.map, boss[1]); $('bossfill').style.width = boss[5] + '%'; }
   const bk = JSON.stringify(me.belt || []);
   if (bk !== slotCache.b) {
     slotCache.b = bk; const BELT_ICON = { beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard' };
@@ -819,7 +823,7 @@ function updateHud(view) {
   if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" title="${weaponDisplay(id, l, me.evo[id]).name}">${iconHTML('weapon', id, l, me.evo[id])}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
   if (pk !== slotCache.p) { slotCache.p = pk; $('prow').innerHTML = Object.entries(me.ps).map(([id, l]) => `<div class="slot" title="${passiveTitle(id, l)}">${iconHTML('passive', id, l)}<small>${l}</small></div>`).join(''); }
   for (const f of view.fx) {
-    if (f.k === 'boss') banner(sim && !sim.endless && f.type === sim.map.finalBoss && sim.bossIndex >= sim.map.bosses.length ? `${ENEMIES[f.type].name} approaches! Slay it to win the run.` : `${ENEMIES[f.type].name} approaches!`, 3500);
+    if (f.k === 'boss') banner(sim && !sim.endless && f.type === sim.map.finalBoss && sim.bossIndex >= sim.map.bosses.length ? `${bossName(sim.map, f.type)} approaches! Slay it to win the run.` : `${bossName(sim && sim.map, f.type)} approaches!`, 3500);
     else if (f.k === 'down') banner('You have fallen…', 3000);
     else if (f.k === 'evolve') banner(`${EVOLUTIONS[f.id].name}!`, 3000);
     else if (f.k === 'use' && f.kind === 'beer') banner('Tin of Beer: speed up!', 1400);
