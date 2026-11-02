@@ -43,7 +43,7 @@ export const ENEMIES = {
   ogre:      { name: 'Ogre Warlord', model: 'mobs/snow_biome/ogre.glb',          h: 4.1, r: 1.5, hp: 2200, speed: 2.5, dmg: 34, xp: 120, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam', 'charge'] },
   colossus:  { name: 'Rime Colossus',model: 'mobs/snow_biome/rime_colossus.glb', h: 6.0, r: 2.0, hp: 4200, speed: 2.4, dmg: 40, xp: 200, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam', 'volley'], shot: 'ice' },
   reaper:    { name: 'Pumpkin Reaper', model: 'mobs/halloween/pumpkin-reaper/pumpkin-reaper.glb', h: 4.4, r: 1.5, hp: 3600, speed: 3.1, dmg: 38, xp: 160, walk: 'walk', idle: 'idle', boss: true, attacks: ['charge', 'volley'], shot: 'fire' },
-  dragon:    { name: 'Dragon',       model: 'mobs/Dragon.glb',                   h: 6.5, r: 2.4, hp: 9000, speed: 3.4, dmg: 50, xp: 500, walk: 'Walk', idle: 'Idle', boss: true, final: true, attacks: ['volley', 'slam', 'charge'], shot: 'fire' },
+  dragon:    { name: 'Dragon',       model: 'mobs/Dragon.glb',                   h: 3.8, r: 2.4, hp: 9000, speed: 3.4, dmg: 50, xp: 500, walk: 'Walk', idle: 'Idle', boss: true, final: true, attacks: ['volley', 'slam', 'charge'], shot: 'fire' },
 };
 
 // Spawn table: from `t` seconds on, these types join the random pool (weight).
