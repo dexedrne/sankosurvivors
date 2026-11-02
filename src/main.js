@@ -396,26 +396,46 @@ $('updates').addEventListener('click', (e) => { if (e.target.id === 'updates') $
 
 // ---- version, leaderboard and bug reports ------------------------------------------------------------------------------
 $('version').textContent = 'v' + LATEST;
+$('version').title = "What's new";
+$('version').onclick = () => $('updbtn').click(); // the version in the corner opens what's new
 const recentErrors = [];
 addEventListener('error', (e) => { recentErrors.push(String(e.message || e).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 addEventListener('unhandledrejection', (e) => { recentErrors.push(String(e.reason && e.reason.message || e.reason).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 const ADV_NAME = (id) => (ADVENTURER_BY_ID[id] || {}).name || id;
-let lbMap = null;
-async function showBoard(mapId) {
-  lbMap = mapId || lbMap || selMap;
-  $('lbtabs').innerHTML = MAPS.map((m) => `<button class="${m.id === lbMap ? 'on' : 'ghost'}" data-id="${m.id}">${m.name}</button>`).join('');
-  for (const b of $('lbtabs').children) b.onclick = () => showBoard(b.dataset.id);
+let lbMap = null, lbMode = 'casual';
+const rankedIsOpen = () => !$('rankedbtn').classList.contains('hidden');
+// the leaderboard: Ranked (this week's standings and pot) or Casual (one map at a time, picked from a list)
+async function showBoard(mapId, mode) {
+  if (mode) lbMode = mode; if (mapId && mapId !== 'ranked') lbMap = mapId; lbMap = lbMap || selMap;
+  if (mapId === 'ranked') lbMode = 'ranked';
+  if (lbMode === 'ranked' && !rankedIsOpen()) lbMode = 'casual';
+  $('lbtabs').innerHTML = (rankedIsOpen() ? `<div class="lbmode"><button class="${lbMode === 'ranked' ? 'on' : 'ghost'} rankedtab" data-mode="ranked">Ranked</button><button class="${lbMode === 'casual' ? 'on' : 'ghost'}" data-mode="casual">Casual</button></div>` : '')
+    + (lbMode === 'casual' ? `<label class="lbpick">Map <select id="lbmapsel">${MAPS.map((m) => `<option value="${m.id}"${m.id === lbMap ? ' selected' : ''}>${m.name}</option>`).join('')}</select></label>` : '');
+  for (const b of $('lbtabs').querySelectorAll('[data-mode]')) b.onclick = () => showBoard(null, b.dataset.mode);
+  if ($('lbmapsel')) $('lbmapsel').onchange = (e) => showBoard(e.target.value, 'casual');
   $('lblist').innerHTML = '<p class="dim">Loading…</p>';
+  if (lbMode === 'ranked') return showRankedBoard();
   try {
     const r = await fetch(`${BASE}api/scores?map=${encodeURIComponent(lbMap)}`);
     if (r.status === 503) { $('lblist').innerHTML = '<p class="dim">The shared leaderboard opens soon. Your best run: ' + localBest() + '</p>'; return; }
     const d = await r.json(); const rows = d.rows || []; const myName = load('sq-name', ''); // your own runs stand out
-    $('lblist').innerHTML = rows.length ? `<table><tr><th>#</th><th>Name</th><th>Adventurer</th><th>Time</th><th>Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td>${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : '<p class="dim">No runs yet. Be the first.</p>';
+    $('lblist').innerHTML = rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Adventurer</th><th>Time</th><th class="opt">Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td class="opt">${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : '<p class="dim">No runs on this map yet. Be the first.</p>';
   } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach the leaderboard.</p>'; }
+}
+// this week's ranked standings: each wallet's best run, and what the top places would win if the week ended now
+async function showRankedBoard() {
+  try {
+    const r = await fetch(`${BASE}api/ranked-week`); const d = await r.json();
+    const rows = d.rows || [], pays = d.payouts || [], pool = Number(d.poolDmt) || 0, myName = load('sq-name', '');
+    const left = Math.max(0, (d.endsAt || 0) - Date.now()), dd = Math.floor(left / 86400000), hh = Math.floor((left % 86400000) / 3600000);
+    const head = `<p class="lbweek">${esc((MAP_BY_ID[d.map] || {}).name || d.map)} · ${d.entries} entries · <b>${pool} DMT pot</b> · resets in ${dd}d ${hh}h</p>`;
+    const prize = (i) => (pays[i] ? `${Math.round(pool * pays[i] * 1000) / 1000} DMT` : '');
+    $('lblist').innerHTML = head + (rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}</td><td class="opt">${esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4))}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>` : '<p class="dim">No ranked runs yet this week. Enter from the Ranked button on the title screen.</p>');
+  } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
 }
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const localBest = () => { const b = load('sq-best', null); return b ? `${fmtT(Number(b.t) || 0)}, level ${Number(b.level) || 0}, ${Number(b.kills) || 0} slain` : 'none yet'; };
-$('lbbtn').onclick = () => { $('board').classList.remove('hidden'); showBoard(selMap); };
+$('lbbtn').onclick = () => { $('board').classList.remove('hidden'); showBoard(selMap, rankedIsOpen() ? 'ranked' : 'casual'); };
 $('lbclose').onclick = () => $('board').classList.add('hidden');
 $('board').addEventListener('click', (e) => { if (e.target.id === 'board') $('board').classList.add('hidden'); });
 let lastRun = null;

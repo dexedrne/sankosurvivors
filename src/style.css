@@ -87,7 +87,7 @@ button.ghost { background: transparent; color: var(--ink); border-color: var(--l
 #actions { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-end; gap: 4px; min-width: 190px; align-self: stretch; }
 #actions button { margin: 4px 0 0; padding: 10px 14px; font-size: 15px; } #actions #start { font-size: 19px; padding: 16px 14px; } #actions #loadbar { margin: 0 0 2px; height: 8px; } #actions #loadtext { margin: 0 0 4px; max-width: 210px; }
 #hardwrap { font-size: 13px; display: flex; gap: 6px; align-items: center; justify-content: center; cursor: pointer; }
-.keys { position: absolute; bottom: 26px; left: 0; right: 0; text-align: center; text-shadow: 0 1px 3px #000; } .fine { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; margin: 0; }
+.keys { position: absolute; bottom: 34px; left: 0; right: 0; text-align: center; text-shadow: 0 1px 3px #000; } .fine { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; margin: 0; }
 .panel.wide { max-width: min(860px, 96vw); } .coinline { display: flex; gap: 6px; align-items: center; justify-content: center; margin-bottom: 10px; } .coinline img { width: 22px; height: 22px; image-rendering: pixelated; } .coinline b { color: var(--gold); }
 #skillgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; text-align: left; }
 .skill { background: #2b241c; border: 2px solid var(--line); padding: 10px; display: grid; grid-template-columns: 40px 1fr; gap: 4px 10px; align-items: center; }
@@ -113,7 +113,7 @@ h2 { color: var(--cream); letter-spacing: 0; font-size: 32px; text-shadow: 2px 2
 p, #ainfo, #mapinfo, #loadtext, .keys, .card p, .skill p { font-family: RSPlain, sans-serif; font-size: 16px; line-height: 1.15; }
 #ainfo, #mapinfo { color: var(--ink); opacity: 1; height: 56px; width: 268px; }
 #ainfo b, #mapinfo b, .coinline b, #coinbox b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; }
-.fine { font-family: RSSmall, sans-serif; font-size: 16px; color: #c8a46a; opacity: .8; }
+.fine { font-family: RSQuill8, sans-serif; font-size: 19px; color: #e2c58c; opacity: .95; text-shadow: 1px 1px 0 #000; } /* the credit line: readable, not a whisper */
 .keys { color: var(--cream); } .keys b { color: var(--gold); font-weight: 400; }
 
 /* buttons: the game's green accept and red decline pills */
@@ -303,7 +303,8 @@ body.touch #pausebtn { top: 258px; }
 #apick.forced { opacity: .45; pointer-events: none; }
 /* controller / keyboard focus in menus */
 .navfocus { outline: 3px solid #ffff00 !important; outline-offset: 2px; box-shadow: 0 0 14px rgba(255, 255, 0, .55) !important; }
-#version { position: absolute; right: 10px; bottom: 6px; font-family: RSSmall, sans-serif; font-size: 16px; color: var(--cream); opacity: .6; }
+#version { position: absolute; right: 10px; bottom: 6px; font-family: RSQuill8, sans-serif; font-size: 20px; color: var(--cream); opacity: .7; cursor: pointer; pointer-events: auto; text-shadow: 1px 1px 0 #000; }
+#version:hover { opacity: 1; color: var(--gold); }
 #board .panel { width: min(760px, 96vw); }
 #lbtabs { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 8px; } #lbtabs button { margin: 0; padding: 0 8px; font-size: 16px; }
 #lbtabs button.on { border-image: url(../assets/ui/sq/yellow_slot.png) 14 fill stretch; color: #2a1d08; text-shadow: none; }
@@ -337,7 +338,7 @@ body.touch .key { display: none; }
   #menu { padding-bottom: 96px; }
   #title .fine { padding-bottom: 0; }
   /* the version sits under the credit line, and the space for the fixed Start bar (76px tall + its 10px gap) comes after it */
-  #version { position: static; text-align: center; margin-top: 4px; padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
+  #version { position: static; display: block; width: max-content; margin: 4px auto calc(112px + env(safe-area-inset-bottom, 0px)); }
   /* the Start button floats at the bottom, so the menu buttons start at the top of their panel; no empty modes row */
   #actions { justify-content: flex-start; }
   #modes:not(:has(label:not(.hidden))) { display: none; }
@@ -424,3 +425,12 @@ body.touch .seg button { min-height: 38px; min-width: 44px; }
 #rankedstandings li { margin: 6px 0; overflow-wrap: anywhere; }
 #ranked p { margin: 8px 0; }
 #rankedready button, #rankedwallets button { white-space: normal; }
+
+/* the leaderboard: a Ranked / Casual switch, then (casual) one map picker */
+#lbtabs .lbmode { display: flex; gap: 6px; justify-content: center; margin: 2px 0 8px; }
+#lbtabs .lbmode button { flex: 0 1 220px; margin: 0; }
+#lbtabs .rankedtab.on { border-image-source: url(../assets/ui/sq/yellow_slot.png); color: #2a1d08; text-shadow: none; }
+#lbtabs .lbpick { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px 0 8px; font-family: RSPlain, sans-serif; font-size: 16px; }
+#lbtabs .lbpick select { font-family: RSPlain, sans-serif; font-size: 16px; background: #1e1710; color: var(--cream); border: 2px solid #5a4632; padding: 4px 8px; min-height: 40px; max-width: 70vw; }
+@media (max-width: 600px) { .lbtable .opt { display: none; } }
+.lbweek { text-align: center; margin: 4px 0 8px; } .lbweek b { color: var(--gold); font-weight: 400; }
