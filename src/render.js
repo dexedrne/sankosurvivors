@@ -929,12 +929,34 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, len).rotateX(-Math.PI / 2).translate(0, 0, len / 2), ringMat(0xff3b2f, false));
     m.material.opacity = 0.45; m.position.set(x, groundAt(x, z) + 0.1, z); m.rotation.y = a; addEffect(m, t + 0.3, 0);
   }
+  // boss attack warnings on the ground: a glowing rim with marching dashes, warning stripes over the ground still to be
+  // covered, and a bright wave that sweeps out from the middle as the attack charges, heating to white just before it lands
+  const hazardMat = () => new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    uniforms: { uProg: { value: 0 }, uTime: { value: 0 }, uCol: { value: new THREE.Color(0xff3b2f) } },
+    vertexShader: 'varying vec2 vP; void main(){ vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform float uProg, uTime; uniform vec3 uCol; varying vec2 vP;
+      void main(){
+        float r = length(vP); if (r > 1.0) discard;
+        float ang = atan(vP.y, vP.x);
+        vec3 hot = mix(uCol, vec3(1.0, 0.62, 0.22), smoothstep(0.72, 1.0, uProg) * 0.85); // red, heating to a hot orange just before the hit
+        float rim = smoothstep(0.88, 0.97, r) * (1.0 - smoothstep(0.985, 1.0, r));
+        float dash = step(0.45, fract(ang * 24.0 / 6.2832 - uTime * 0.8));
+        float rimA = rim * (0.55 + 0.45 * dash) * (0.85 + 0.15 * sin(uTime * 14.0));
+        float inner = smoothstep(0.62, 0.64, r) * (1.0 - smoothstep(0.645, 0.665, r)) * 0.35;
+        float filled = 1.0 - smoothstep(uProg - 0.015, uProg, r);
+        float front = exp(-abs(r - uProg) * 34.0) * step(r, 1.0) * (uProg < 0.995 ? 1.0 : 0.0);
+        float stripes = step(0.5, fract((vP.x + vP.y) * 3.2 - uTime * 1.6)) * (1.0 - filled) * 0.10;
+        float body = filled * (0.14 + 0.16 * uProg);
+        float a = clamp(rimA + inner + body + front * 0.75 + stripes, 0.0, 1.0);
+        gl_FragColor = vec4(hot * (0.9 + front * 0.45 + rim * 0.25), a);
+      }`,
+  });
   const hazardPool = Array.from({ length: 16 }, () => {
     const g = new THREE.Group(); g.visible = false;
-    const edge = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 48).rotateX(-Math.PI / 2), ringMat(0xff3b2f, false));
-    const fill = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), ringMat(0xff3b2f, false)); fill.material.opacity = 0.3;
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 64).rotateX(-Math.PI / 2), hazardMat());
     const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff6a20).multiplyScalar(1.8), toneMapped: false })); rock.visible = false;
-    g.add(edge, fill, rock); g.userData = { edge, fill, rock }; scene.add(g); return g;
+    g.add(disc, rock); g.userData = { disc, rock }; scene.add(g); return g;
   });
   const eprojObjs = new Map();
   // a column of light where you level up
@@ -1311,8 +1333,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const h = view.hazards && view.hazards[i], m = hazardPool[i];
       if (!h) { m.visible = false; continue; }
       m.visible = true; m.position.set(h[0], groundAt(h[0], h[1]) + 0.08, h[1]); m.scale.setScalar(h[2]);
-      m.userData.fill.scale.setScalar(Math.max(0.01, h[3])); m.userData.edge.material.opacity = 0.55 + 0.4 * Math.sin(time * 18);
-      const col = h[4] ? 0xff8a2a : 0xff3b2f; m.userData.edge.material.color.setHex(col); m.userData.fill.material.color.setHex(col);
+      const u = m.userData.disc.material.uniforms; u.uProg.value = Math.max(0.01, h[3]); u.uTime.value = time; u.uCol.value.setHex(h[4] ? 0xff8a2a : 0xff3b2f);
       const rock = m.userData.rock; rock.visible = !!h[4];
       if (h[4]) { rock.position.set(0, (1 - h[3]) * 26 / h[2], 0); rock.scale.setScalar(0.9 / h[2]); if (Math.random() < 0.6) emit(h[0], m.position.y + (1 - h[3]) * 26, h[1], 1, 0.6, { s: 1.4, life: 0.4, color: 0xff7a30, up: 1.5, g: 0 }); }
     }
