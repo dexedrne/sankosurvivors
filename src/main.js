@@ -355,7 +355,7 @@ const SETTINGS = [
   { id: 'dof', name: 'Depth of field', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'time', name: 'Time of day', opts: [['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']] },
   { head: 'World' },
-  { id: 'view', name: 'Draw distance', opts: [['near', 'Near'], ['normal', 'Normal'], ['far', 'Far']] },
+  { id: 'view', name: 'Draw distance', opts: [['near', 'Near'], ['normal', 'Normal'], ['far', 'Far'], ['max', 'Max']] },
   { id: 'water', name: 'Water reflections', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'foliage', name: 'Grass and flowers', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'rain', name: 'Rain', opts: [[true, 'On'], [false, 'Off']] },

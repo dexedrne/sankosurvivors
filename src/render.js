@@ -989,7 +989,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // ---- settings: effects you can switch on and off ----------------------------------------------------------------
   const settings = { shadows: !low, bloom: !low, dof: false, ao: false, grade: true, rain: false, foliage: true, roofs: 'off', quality: low ? 'low' : 'auto', shake: true, time: 'day',
     res: 'auto', fps: 'max', aa: false, shadowq: 'auto', view: 'normal', water: true, fx: 'full', numbers: true };
-  const VIEW = { near: 0.72, normal: 1, far: 1.45 };
+  const VIEW = { near: 0.85, normal: 1.25, far: 1.7, max: 2.2 }; // draw distance: fog, camera range and small props
   // time of day: the map's own sky by day; a low orange sun at dusk; moonlight and a torch at night
   const torch = new THREE.PointLight(0xffb060, 0, 16, 1.6); scene.add(torch);
   function applyTime() {
