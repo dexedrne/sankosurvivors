@@ -34,7 +34,8 @@ export async function recoverPayment(base, onStep) {
   }
 }
 
-export async function payEntry(wallet, base, onStep) {
+// onTx(hash) hears about the payment as soon as the wallet sends it (for an Arbiscan link while it confirms)
+export async function payEntry(wallet, base, onStep, onTx = () => {}) {
   if (readRanked(PAYMENT)) throw new Error('Check your saved payment before entering again.');
   // Check persistence before asking for any money.
   writeRanked(ENTRIES, readRanked(ENTRIES, []));
@@ -45,8 +46,6 @@ export async function payEntry(wallet, base, onStep) {
   onStep('Checking your entries for this week…');
   const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}`);
   if (!n.message || !n.nonce || n.chainId !== 42161 || !/^0x[\da-f]{40}$/i.test(n.dmt) || !/^0x[\da-f]{40}$/i.test(n.collect) || n.amountWei !== '500000000000000000') throw new Error('Invalid entry details. No payment was requested.');
-  onStep('Sign the message in your wallet (free)…');
-  const signature = await p.request({ method: 'personal_sign', params: [hex(n.message), address] });
   onStep('Switch to Arbitrum One in your wallet…');
   const chain = { chainId: '0xa4b1' };
   try { await p.request({ method: 'wallet_switchEthereumChain', params: [chain] }); }
@@ -57,10 +56,13 @@ export async function payEntry(wallet, base, onStep) {
     await p.request({ method: 'wallet_switchEthereumChain', params: [chain] });
   }
   if (String(await p.request({ method: 'eth_chainId' })).toLowerCase() !== chain.chainId) throw new Error('Switch to Arbitrum One before paying.');
+  onStep('Sign the message in your wallet (free)…');
+  const signature = await p.request({ method: 'personal_sign', params: [hex(n.message), address] });
   onStep('Approve the 0.5 DMT entry in your wallet. Arbitrum gas is paid in ETH…');
   const data = '0xa9059cbb' + n.collect.slice(2).toLowerCase().padStart(64, '0') + BigInt(n.amountWei).toString(16).padStart(64, '0');
   const tx = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: n.dmt, data, value: '0x0' }] });
   writeRanked(PAYMENT, { tx, signature, nonce: n.nonce });
+  try { onTx(tx); } catch { /* display only */ }
   onStep('Payment sent. Waiting for its Arbitrum receipt…');
   const until = Date.now() + 120000;
   while (Date.now() < until) {

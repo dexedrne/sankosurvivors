@@ -7,6 +7,7 @@ import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { CREATOR, TIP_ETH } from './config.js';
 import { wallets, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
+import { connect as walletConnect, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, SKILL_MAX, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
@@ -126,6 +127,7 @@ $('endless').onchange = (e) => { endlessOn = e.target.checked; };
 // ---- ranked: paid tickets, recovery and the holder-style panel ----
 const SIM_ID = import.meta.env.VITE_SIM;
 let rankedWeek = null, rankedRun = null, rankedRec = null, rankedBusy = false;
+let walletBal = null; // the connected wallet's DMT and ETH on Arbitrum, last read
 const rankedLive = () => readRanked('sq-ranked-live');
 const rankedPlaying = () => !!rankedRun && !!sim && !sim.over;
 const rankedMessage = (text) => { $('rankedmsg').textContent = text; };
@@ -163,6 +165,7 @@ function renderRanked() {
     if (!list.children.length) $('rankedstandings').textContent = 'No runs yet this week.';
     rankedTime();
   }
+  renderRankedFrom();
 }
 function rankedTime() {
   if (!rankedWeek) return;
@@ -176,7 +179,7 @@ async function refreshRanked() {
   catch { $('rankedbtn').classList.add('hidden'); }
 }
 async function openRanked() {
-  $('ranked').classList.remove('hidden'); renderRanked(); $('rankedclose').focus(); await refreshRanked();
+  $('ranked').classList.remove('hidden'); renderRanked(); $('rankedclose').focus(); refreshBalances(true); await refreshRanked();
 }
 $('rankedbtn').onclick = openRanked;
 $('rankedupdate').onclick = () => $('updatebtn').click();
@@ -193,18 +196,37 @@ async function rankedAction(fn) {
   rankedBusy = true; renderRanked();
   for (const b of $('rankedwallets').querySelectorAll('button')) b.disabled = true;
   try { await fn(); }
-  catch (e) { rankedMessage(e.refund ? e.message : why(e)); if (e.status === 409) { $('updatebtn').classList.remove('hidden'); $('rankedupdate').classList.remove('hidden'); } }
+  catch (e) { rankedMessage(e.refund || e.plain ? e.message : why(e)); if (e.status === 409) { $('updatebtn').classList.remove('hidden'); $('rankedupdate').classList.remove('hidden'); } }
   finally { rankedBusy = false; $('rankedwallets').replaceChildren(); renderRanked(); }
 }
+// the wallet the entry is paid from, its balances, and what is missing before you can pay
+function renderRankedFrom() {
+  const c = walletNow(), el = $('rankedfrom'), enter = $('rankedenter');
+  if (!c) { el.innerHTML = '<p class="dim">Connect a wallet to enter. Prizes are paid to the wallet that entered.</p>'; enter.textContent = 'Connect wallet'; return; }
+  const b = walletBal && walletBal.address.toLowerCase() === c.address.toLowerCase() ? walletBal : null;
+  el.innerHTML = `<div class="rkfrom">${walletIcon(c.w)}<span>Paying from <b>${esc(short(c.address))}</b></span>${b ? `<span>${esc(fmtDmt(b.dmt))} DMT · ${esc(fmtEth(b.eth))} ETH</span>` : '<span class="dim">checking balance…</span>'}<button id="rkchange" class="linkbtn">Change</button></div>`
+    + (b && b.dmt < 0.5 ? `<p class="rkwarn">You need 0.5 DMT on Arbitrum. <a href="${GET_DMT}" target="_blank" rel="noopener">Get DMT</a></p>` : '')
+    + (b && b.eth < ETH_FOR_GAS ? `<p class="rkwarn">You need a little ETH on Arbitrum for the network fee (well under a cent). <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a></p>` : '');
+  $('rkchange').onclick = () => openWallet();
+  enter.textContent = 'Enter for 0.5 DMT';
+}
+const plain = (text) => Object.assign(new Error(text), { plain: true });
 $('rankedenter').onclick = () => {
-  const ws = wallets(), wrap = $('rankedwallets'); wrap.replaceChildren();
-  if (!ws.length) {
-    rankedMessage('Open the game in your wallet app’s browser.');
-    for (const [name, href] of walletAppLinks()) { const a = document.createElement('a'); a.className = 'btnlink'; a.textContent = name; a.href = href; a.rel = 'noopener'; wrap.appendChild(a); }
+  const c = walletNow(), wrap = $('rankedwallets'); wrap.replaceChildren();
+  if (!c) {
+    const ch = walletChoices((w) => rankedAction(async () => { await walletConnect(w); await refreshBalances(true); rankedMessage('Connected. Check your balance, then enter.'); }));
+    wrap.innerHTML = ch.html; ch.bind(wrap); rankedMessage(wallets().length ? 'Pick your wallet.' : '');
     return;
   }
-  rankedMessage('Pick a wallet for this week.');
-  for (const w of ws) { const b = document.createElement('button'); b.textContent = w.name; b.onclick = () => rankedAction(() => payEntry(w, BASE, rankedMessage)); wrap.appendChild(b); }
+  rankedAction(async () => {
+    rankedMessage('Checking your balance on Arbitrum…');
+    const b = await refreshBalances(true); // unreadable balances never block: the wallet itself has the last word
+    if (b && b.dmt < 0.5) throw plain('You need 0.5 DMT on Arbitrum to enter.');
+    if (b && b.eth < ETH_FOR_GAS) throw plain('You need a little ETH on Arbitrum for the network fee.');
+    $('rankedtx').replaceChildren();
+    await payEntry(c.w, BASE, rankedMessage, (tx) => { $('rankedtx').innerHTML = `<a href="${arbiscanTx(tx)}" target="_blank" rel="noopener">See your payment on Arbiscan</a>`; });
+    refreshBalances(true);
+  });
 };
 async function startRankedEntry(entry) {
   await rankedAction(async () => {
@@ -472,7 +494,7 @@ $('sharex').onclick = () => {
 };
 // ---- DMT holder perks ----
 const DMT_PERKS = '<ul class="dmtperks"><li>A gold-and-teal DMT aura around your adventurer</li><li>+25% coins after every run</li><li>A DMT badge next to your name on the leaderboard</li></ul>';
-function applyDmt() { const p = savedPass(); if (renderer) renderer.setAura(!!p); $('dmtchip').classList.toggle('hidden', !p); }
+function applyDmt() { const p = savedPass(); if (renderer) renderer.setAura(!!p); $('dmtchip').classList.toggle('hidden', !p || !!walletNow()); renderWalletChip(); }
 function renderDmt() {
   const pass = savedPass(), body = $('dmtbody');
   if (pass) {
@@ -480,7 +502,7 @@ function renderDmt() {
     $('dmtagain').onclick = () => connectDmt(); $('dmtforget').onclick = () => { forget(); applyDmt(); $('dmtmsg').textContent = 'Forgotten. Perks are off.'; renderDmt(); };
     return;
   }
-  const ws = wallets();
+  const c = walletNow(), ws = c ? [{ ...c.w, name: `${c.w.name} (${short(c.address)})` }] : wallets();
   body.innerHTML = `<p>Hold DMT on Arbitrum? Connect your wallet and sign a free message: no transaction, no gas, nothing leaves your wallet.</p>${DMT_PERKS}`
     + (ws.length ? `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${w.icon ? `<img src="${esc(w.icon)}" alt="">` : ''}Connect ${esc(w.name)}</button>`).join('')}</div>`
       : `<p class="dim">No wallet in this browser. Open the game in your wallet app's browser:</p><div class="dmtwallets">${walletAppLinks().map(([n, u]) => `<a class="btnlink" href="${u}" rel="noopener">${n}</a>`).join('')}</div><p class="dim">On a computer, install a wallet such as MetaMask or Rabby, then come back.</p>`)
@@ -488,9 +510,10 @@ function renderDmt() {
   for (const b of body.querySelectorAll('[data-w]')) b.onclick = () => connectDmt(ws[Number(b.dataset.w)]);
 }
 async function connectDmt(w) {
-  w = w || wallets()[0]; if (!w) { $('dmtmsg').textContent = 'No wallet found in this browser.'; return; }
+  w = w || (walletNow() && walletNow().w) || wallets()[0]; if (!w) { $('dmtmsg').textContent = 'No wallet found in this browser.'; return; }
   for (const b of $('dmtbody').querySelectorAll('button')) b.disabled = true;
   try {
+    if (!walletNow() || walletNow().w.p !== w.p) await walletConnect(w); // the site remembers the wallet you checked with
     const r = await prove(w, BASE, (t) => { $('dmtmsg').textContent = t; });
     $('dmtmsg').textContent = r.pass ? 'You hold DMT. Your perks are on!' : `${short(r.address)} holds no DMT on Arbitrum.`;
   } catch (e) { $('dmtmsg').textContent = why(e); }
@@ -499,6 +522,64 @@ async function connectDmt(w) {
 $('dmtbtn').onclick = () => { $('dmtmsg').textContent = ''; renderDmt(); $('dmt').classList.remove('hidden'); };
 $('dmtclose').onclick = () => $('dmt').classList.add('hidden');
 $('dmt').addEventListener('click', (e) => { if (e.target.id === 'dmt') $('dmt').classList.add('hidden'); });
+// ---- the wallet: one button in the corner (Rabby, MetaMask…), used by DMT perks and ranked ----
+const walletIcon = (w) => (w && w.icon ? `<img src="${esc(w.icon)}" alt="">` : '');
+const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+// a button for each wallet in this browser, or how to get one
+function walletChoices(onPick) {
+  const ws = wallets();
+  if (ws.length) return { html: `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${walletIcon(w)}${esc(w.name)}</button>`).join('')}</div>`, bind: (root) => { for (const b of root.querySelectorAll('[data-w]')) b.onclick = () => onPick(ws[Number(b.dataset.w)]); } };
+  const html = isPhone()
+    ? `<p class="dim">Phone browsers have no wallet inside. Open the game in your wallet app:</p><div class="dmtwallets">${walletAppLinks().map(([n, u]) => `<a class="btnlink" href="${u}" rel="noopener">${n}</a>`).join('')}</div>`
+    : '<p class="dim">No wallet found in this browser. Install <a href="https://rabby.io" target="_blank" rel="noopener">Rabby</a> or <a href="https://metamask.io/download/" target="_blank" rel="noopener">MetaMask</a>, then reload this page.</p>';
+  return { html, bind: () => {} };
+}
+async function pickWallet(w, msg) {
+  try { msg('Approve the connection in your wallet…'); await walletConnect(w); msg(''); } catch (e) { msg(why(e)); }
+}
+async function refreshBalances(force = false) {
+  const c = walletNow(); if (!c) { walletBal = null; return null; }
+  try { walletBal = await balances(c.address, force); } catch { walletBal = null; }
+  renderWalletChip();
+  if (!$('wallet').classList.contains('hidden')) renderWallet();
+  if (!$('ranked').classList.contains('hidden')) renderRankedFrom();
+  return walletBal;
+}
+function renderWalletChip() {
+  const c = walletNow(), chip = $('walletchip'), pass = savedPass();
+  const b = c && walletBal && walletBal.address.toLowerCase() === c.address.toLowerCase() ? walletBal : null;
+  chip.classList.toggle('on', !!c);
+  chip.classList.toggle('holder', !!(c && pass && pass.address.toLowerCase() === c.address.toLowerCase()));
+  chip.innerHTML = c ? `${walletIcon(c.w)}<span>${esc(short(c.address))}</span>${b ? `<b>${esc(fmtDmt(b.dmt))} DMT</b>` : ''}` : 'Connect wallet';
+  chip.title = c ? `${c.w.name}: ${c.address}` : 'Connect Rabby, MetaMask or another wallet';
+}
+function renderWallet() {
+  const c = walletNow(), body = $('walletbody'), msg = (t) => { $('walletmsg').textContent = t; };
+  if (!c) {
+    const ch = walletChoices((w) => pickWallet(w, msg));
+    body.innerHTML = `<p>Connect once and the game remembers it. Connecting only shares your address: nothing is signed or sent.</p>${ch.html}`;
+    ch.bind(body); return;
+  }
+  const pass = savedPass(), mine = pass && pass.address.toLowerCase() === c.address.toLowerCase();
+  const b = walletBal && walletBal.address.toLowerCase() === c.address.toLowerCase() ? walletBal : null;
+  body.innerHTML = `<div class="wlhead">${walletIcon(c.w)}<div><b>${esc(c.w.name)}</b><br><a href="${arbiscanAddress(c.address)}" target="_blank" rel="noopener">${esc(short(c.address))}</a> <button id="wlcopy" class="linkbtn">Copy</button></div></div>`
+    + `<div class="wlbal">${b ? `<span><b>${esc(fmtDmt(b.dmt))}</b> DMT</span><span><b>${esc(fmtEth(b.eth))}</b> ETH</span><span class="dim">on Arbitrum</span>` : '<span class="dim">Reading your balances on Arbitrum…</span>'}</div>`
+    + (mine ? `<p class="dmtok">DMT perks are on until ${new Date(pass.exp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.</p>`
+      : b && b.dmt > 0 ? '<div class="dmtwallets"><button id="wlperks">Turn on DMT perks (free signature)</button></div>'
+        : `<p class="dim">Hold DMT on Arbitrum for holder perks. <a href="${GET_DMT}" target="_blank" rel="noopener">Get DMT</a></p>`)
+    + `<div class="lurow">${rankedWeek && rankedWeek.open ? '<button id="wlranked">Ranked runs</button>' : ''}<button id="wlswitch" class="ghost">Switch wallet</button><button id="wldisc" class="ghost">Disconnect</button></div>`;
+  $('wlcopy').onclick = async () => { try { await navigator.clipboard.writeText(c.address); msg('Address copied.'); } catch { msg(c.address); } };
+  if ($('wlperks')) $('wlperks').onclick = async () => { $('wlperks').disabled = true; try { const r = await prove(c.w, BASE, msg); msg(r.pass ? 'You hold DMT. Your perks are on!' : `${short(r.address)} holds no DMT on Arbitrum.`); } catch (e) { msg(why(e)); } applyDmt(); renderWallet(); };
+  if ($('wlranked')) $('wlranked').onclick = () => { $('wallet').classList.add('hidden'); openRanked(); };
+  $('wlswitch').onclick = () => { const ch = walletChoices((w) => pickWallet(w, msg)); body.innerHTML = `<p>Pick a wallet. For another account in the same wallet, switch accounts inside the wallet.</p>${ch.html}`; ch.bind(body); };
+  $('wldisc').onclick = () => { walletDisconnect(); msg('Disconnected.'); };
+}
+function openWallet() { $('walletmsg').textContent = ''; renderWallet(); $('wallet').classList.remove('hidden'); $('walletclose').focus(); refreshBalances(true); }
+$('walletchip').onclick = openWallet;
+$('walletclose').onclick = () => { $('wallet').classList.add('hidden'); (!$('ranked').classList.contains('hidden') ? $('rankedclose') : $('walletchip')).focus(); };
+$('wallet').addEventListener('click', (e) => { if (e.target.id === 'wallet') $('walletclose').click(); });
+onWallet(() => { walletBal = null; applyDmt(); if (!$('wallet').classList.contains('hidden')) renderWallet(); if (!$('ranked').classList.contains('hidden')) renderRanked(); refreshBalances(); });
+renderWalletChip(); walletRestore();
 // Tip in ETH (only when an address is set in src/config.js)
 const tipOk = /^0x[0-9a-fA-F]{40}$/.test(TIP_ETH) || /^[a-z0-9-]+(\.[a-z0-9-]+)*\.eth$/i.test(TIP_ETH);
 if (tipOk) { $('tipwrap').classList.remove('hidden'); $('tipaddr').textContent = TIP_ETH; }

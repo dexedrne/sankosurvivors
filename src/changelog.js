@@ -1,6 +1,14 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.34.1', date: '2 Nov 2026', title: 'Your wallet, in one place',
+    items: [
+      'A wallet button in the top corner: connect Rabby, MetaMask or any other wallet once and the game remembers it next time. It shows your address and DMT.',
+      'Tap it for your DMT and ETH on Arbitrum, to turn on DMT perks with one free signature, or to switch or disconnect.',
+      'Ranked pays from that wallet and shows your balance first. If you are short on DMT, or on ETH for the network fee, it says so and links where to get some. After you pay, a link shows the payment on Arbiscan.',
+    ],
+  },
+  {
     version: '0.34', date: '2 Nov 2026', title: 'True to SankoQuest',
     items: [
       'Spells look like they do in SankoQuest: the shard staff fires the game\'s own Strike (and, evolved, Blast) projectile in each element\'s colour, at its real size.',

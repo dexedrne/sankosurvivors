@@ -434,3 +434,22 @@ body.touch .seg button { min-height: 38px; min-width: 44px; }
 #lbtabs .lbpick select { font-family: RSPlain, sans-serif; font-size: 16px; background: #1e1710; color: var(--cream); border: 2px solid #5a4632; padding: 4px 8px; min-height: 40px; max-width: 70vw; }
 @media (max-width: 600px) { .lbtable .opt { display: none; } }
 .lbweek { text-align: center; margin: 4px 0 8px; } .lbweek b { color: var(--gold); font-weight: 400; }
+
+/* ---- the wallet: corner chip, wallet panel, ranked "paying from" ---- */
+.walletchip { display: inline-flex; align-items: center; gap: 6px; margin: 6px 0 0; padding: 2px 12px; font-family: RSQuill8, sans-serif; font-size: 16px; font-weight: 400; max-width: 100%; }
+.walletchip img { width: 18px; height: 18px; flex: none; }
+.walletchip b { color: #5ff2d8; font-weight: 400; }
+.walletchip.holder { filter: drop-shadow(0 0 6px rgba(95, 242, 216, .65)); }
+.wlhead { display: flex; gap: 12px; align-items: center; margin: 4px 0 8px; }
+.wlhead img { width: 40px; height: 40px; flex: none; }
+.wlhead b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; font-size: 20px; }
+.wlhead a, .rkwarn a, #rankedtx a, #walletbody .dim a { color: var(--xp); }
+.wlbal { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin: 10px 0; font-size: 17px; }
+.wlbal b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; font-size: 24px; }
+button.linkbtn { border: 0; border-image: none; background: none; padding: 0 4px; margin: 0; color: var(--xp); text-decoration: underline; font-size: inherit; font-weight: 400; text-shadow: none; }
+.rkfrom { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin: 10px 0 4px; }
+.rkfrom img { width: 20px; height: 20px; }
+.rkfrom b { color: var(--gold); font-weight: 400; }
+.rkwarn { color: #ffb347; margin: 4px 0; }
+#rankedtx { margin: 4px 0; }
+@media (max-width: 760px) { .walletchip { font-size: 14px; padding: 2px 8px; } .wlbal b { font-size: 20px; } }

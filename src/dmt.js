@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
   window.dispatchEvent(new Event('eip6963:requestProvider'));
 }
 export function wallets() {
-  const list = [...found.values()].map((d) => ({ name: d.info.name, icon: d.info.icon, p: d.provider }));
+  const list = [...found.values()].map((d) => ({ name: d.info.name, icon: d.info.icon, rdns: d.info.rdns || '', p: d.provider }));
   if (!list.length && window.ethereum && window.ethereum.request) list.push({ name: 'Browser wallet', icon: null, p: window.ethereum });
   return list;
 }
