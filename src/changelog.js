@@ -17,6 +17,7 @@ export const CHANGELOG = [
       'Dropped items no longer show a dark box around them (ambient occlusion and depth of field now leave sprites out).',
       'Bones on the ground are 10% bigger.',
       'Mushrooms, daisies, grass and path stones are their real size again (the smaller-download change had made mushrooms huge and the rest too small).',
+      'The Star Wizard walks facing forward.',
       'Townsfolk dress for their job: gravediggers by the graveyard and swamp, the priests in pale vestments, the elder in plain clothes, and the Shape Wizards in their own set. Only wizards wear wizard robes now.',
       'Food drops come in SankoQuest’s tiers: Cooked Crawdad (+15 health), Brown Trout (+25), Catfish (+35) and Bubba Bass (+50). Better fish later in a run and from elites; bosses drop a Bubba Bass.',
       'Softer effects: the throwing axe’s spin, elite halos, the fire ring, the DMT aura and enemy bolts glow and fade at the edges instead of hard flat rings.',

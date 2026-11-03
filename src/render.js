@@ -916,6 +916,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // out and leaned over
   // Skelly (hips flipped 180), the Spiky Boatman and the Stars (hips turned -90 / -81): the clips' own rig otherwise
   const FROM_REST = new Map([['skeleton', 'hips'], ['boatman', 'hips'], ['star', 'hips'], ['starwiz', 'hips']]);
+  // drawing-only turn fixes, kept here (not in content.js) so the ranked game version does not change for a look fix:
+  // the Star Wizard's walk points its toes behind it, so it walked backwards (owner 3 Nov)
+  const YAW_FIX = new Map([['starwiz', Math.PI]]);
   function makeEnemy(type) {
     const def = ENEMIES[type];
     if (def.rig && kit) {
@@ -927,7 +930,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       } catch (e) { console.warn('rig enemy failed', type, e); }
     }
     const p = protos[type];
-    if (p && def.mixamo && kit) { try { const inst = kit.animate(p.gltf, def.h, 'walk', { fromRest: FROM_REST.get(type) || false }); if (def.yawFix && inst.kit) inst.kit.yaw0 += def.yawFix; return inst; } catch (e) { console.warn('mob anim failed', type, e); } }
+    if (p && def.mixamo && kit) { try { const inst = kit.animate(p.gltf, def.h, 'walk', { fromRest: FROM_REST.get(type) || false }); const fix = def.yawFix || YAW_FIX.get(type) || 0; if (fix && inst.kit) inst.kit.yaw0 += fix; return inst; } catch (e) { console.warn('mob anim failed', type, e); } }
     if (!p) { const m = new THREE.Mesh(fallbackGeo, fallbackMat); const g = new THREE.Group(); m.position.y = 0.8; g.add(m); return { root: g, inner: m, mixer: null }; }
     return instantiate(p, ENEMIES[type].walk);
   }
