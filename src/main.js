@@ -2,6 +2,7 @@ import { RunRecorder } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRanked } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
+import { asset, pickAssetHost } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK } from './sim.js';
 import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
@@ -51,7 +52,7 @@ const questsDone = () => new Set(load('sq-quests', []));
 const statVal = (st, key) => st[key] || 0;
 // a new item goes to the bank; a duplicate is sold for coins (unless it was already high alched in the run: sell = false)
 function bankItem(name, sell = true) { if (!Object.hasOwn(GEAR, name)) return false; const raw = load('sq-bank', []), b = Array.isArray(raw) ? raw : []; if (b.includes(name)) { if (sell) save('sq-coins', getCoins() + 25); return false; } b.push(name); save('sq-bank', b); return true; }
-const autoAlchOn = () => load('sq-autoalch', false) === true; // Settings: auto high alch caskets that are not better
+const autoAlchOn = () => load('sq-autoalch', true) !== false; // Settings: auto high alch caskets that are not better (on by default: duplicates kept popping a card)
 // special maps (Tutorial Island) are open from the start and sit outside the campaign chain
 const unlockedMap = (i) => params.has('unlock') || i === 0 || !!MAPS[i].special || clearedMaps().has(MAPS[i].after || MAPS[i - 1].id);
 const unlockedAdv = (a) => params.has('unlock') || a.unlock <= clearedMaps().size;
@@ -62,9 +63,9 @@ const runAdv = () => ADVENTURER_BY_ID[(MAP_BY_ID[selMap] && MAP_BY_ID[selMap].fo
 const EMOJI = { baseball: '⚾', lighter: '🔥', area: '🧥', amount: '🪶', crit: '🍄', thorns: '🦂', greed: '🗝️', greatsword: '⚔️', shortsword: '🗡️', katana: '🗡️', axe: '🪓', pickaxe: '⛏️', shield: '🛡️', bow: '🏹', staff: '🪄', might: '💪', haste: '💨', vigor: '❤️', boots: '👢', magnet: '🧲', armor: '🛡️', growth: '📖', fish: '🐟' };
 // upgrade icons are fetched a step ahead, so level-up cards never show up blank
 const iconsAsked = new Set();
-function preloadIcons(names) { for (const n of names) { if (!n || iconsAsked.has(n)) continue; iconsAsked.add(n); const im = new Image(); im.src = `${BASE}assets/ui/items/${itemIconFile(n)}`; } }
+function preloadIcons(names) { for (const n of names) { if (!n || iconsAsked.has(n)) continue; iconsAsked.add(n); const im = new Image(); im.src = `${asset('')}ui/items/${itemIconFile(n)}`; } }
 const preloadNextIcons = (p) => { if (!p) return; const out = []; for (const [w, l] of Object.entries(p.weapons || {})) out.push(weaponItem(w, l + 1), weaponItem(w, l + 2)); for (const [k, l] of Object.entries(p.passives || {})) out.push(passiveItem(k, l + 1)); preloadIcons(out); };
-const imgTag = (name, fallback = '✦') => `<img src="${BASE}assets/ui/items/${itemIconFile(name)}" alt="${name}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'emoji',textContent:'${fallback}'}))">`;
+const imgTag = (name, fallback = '✦') => `<img src="${asset('')}ui/items/${itemIconFile(name)}" alt="${name}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'emoji',textContent:'${fallback}'}))">`;
 function iconHTML(kind, id, level, evo) {
   if (kind === 'weapon') return imgTag(weaponDisplay(id, level || 1, evo).item, EMOJI[id]);
   if (kind === 'passive') return imgTag(passiveItem(id, level || 1), EMOJI[id]);
@@ -102,7 +103,7 @@ function buildMaps() {
   const cl = clearedMaps();
   $('mpick').innerHTML = MAPS.map((m, i) => {
     const open = unlockedMap(i), px = 1.2;
-    const bg = m.world ? `background-image:url(${BASE}assets/world/world-map-full.webp);background-size:cover;background-position:center` : `background-image:url(${BASE}assets/world/world-map-full.webp);background-size:${512 * px}px;background-position:${-(m.cx * px - 45)}px ${-(m.cz * px - 26)}px`;
+    const bg = m.world ? `background-image:url(${asset('')}world/world-map-full.webp);background-size:cover;background-position:center` : `background-image:url(${asset('')}world/world-map-full.webp);background-size:${512 * px}px;background-position:${-(m.cx * px - 45)}px ${-(m.cz * px - 26)}px`;
     return `<div class="mopt${m.id === selMap ? ' sel' : ''}${open ? '' : ' locked'}" data-id="${m.id}"><div class="thumb" style="${bg}">${open ? '' : '🔒'}${cl.has(m.id) ? '<i>✔</i>' : ''}</div>${m.name}</div>`;
   }).join('');
   for (const el of $('mpick').children) el.onclick = () => {
@@ -295,7 +296,7 @@ function buildSkills() {
   $('coins2').textContent = coins;
   $('skillgrid').innerHTML = SKILL_IDS.map((id) => {
     const s = SKILLS[id], l = lv[id] || 0, max = l >= s.max, cost = skillCost(id, l);
-    return `<div class="skill"><img src="${BASE}assets/${s.icon}" alt=""><h4>${s.name}</h4><div class="pips">${'■'.repeat(l)}${'□'.repeat(s.max - l)}</div><p style="grid-column:1/-1">${s.blurb}</p><button data-id="${id}" ${max || coins < cost ? 'disabled' : ''}>${max ? 'Maxed' : `Train · ${cost} coins`}</button></div>`;
+    return `<div class="skill"><img src="${asset('')}${s.icon}" alt=""><h4>${s.name}</h4><div class="pips">${'■'.repeat(l)}${'□'.repeat(s.max - l)}</div><p style="grid-column:1/-1">${s.blurb}</p><button data-id="${id}" ${max || coins < cost ? 'disabled' : ''}>${max ? 'Maxed' : `Train · ${cost} coins`}</button></div>`;
   }).join('');
   for (const b of $('skillgrid').querySelectorAll('button')) b.onclick = () => {
     const id = b.dataset.id, l = getSkills()[id] || 0, cost = skillCost(id, l);
@@ -313,6 +314,7 @@ const labels = { map: 'Drawing the map…', props: 'Raising Greentown…', monst
 async function boot() {
   if (params.has('qa')) document.body.classList.add('qa');
   try {
+    await pickAssetHost(); // jsDelivr, or the game's own host if it does not answer
     renderer = await createRenderer($('c'), (stage, v) => { $('loadfill').style.width = Math.round(v * 100) + '%'; $('loadtext').textContent = labels[stage] || ''; });
     $('loadtext').textContent = ''; $('loadbar').classList.add('hidden');
     await renderer.preloadGear(Object.values(getGear()));
@@ -1075,7 +1077,7 @@ addEventListener('keydown', (e) => {
 }, true);
 
 // ---- minimap: the game's own map art around you, turned with the camera ---------------------------------------------
-const mmImg = new Image(); mmImg.src = BASE + 'assets/world/world-map-full.webp';
+const mmImg = new Image(); mmImg.src = asset('world/world-map-full.webp');
 const mm = $('minimap'), mmx = mm.getContext('2d');
 function drawMinimap(view) {
   if (!mmImg.complete || !view.players.length) return;

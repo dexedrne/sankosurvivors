@@ -1,4 +1,5 @@
 // SankoQuest's own sound effects and music tracks. Starts on the first click (browser autoplay rules).
+import { asset } from './assets.js';
 const BASE = import.meta.env.BASE_URL || './';
 const SFX = {
   hit: ['Sword_Hit1', 'Sword_Hit2', 'Sword_Hit3', 'Sword_Hit4'], die: ['NPC_Death'], hurt: ['goblin_attacked', 'goblin_attacked2', 'goblin_attacked3', 'goblin_attacked4'],
@@ -16,7 +17,7 @@ export function createAudio() {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     ctx = new AC(); sfxGain = ctx.createGain(); sfxGain.gain.value = muted ? 0 : 0.5; sfxGain.connect(ctx.destination);
     await Promise.all([...new Set(Object.values(SFX).flat())].map(async (n) => {
-      try { const r = await fetch(`${BASE}assets/sound/soundEffects/${n}.${EXT[n] || 'mp3'}`); buffers.set(n, await ctx.decodeAudioData(await r.arrayBuffer())); } catch { /* optional */ }
+      try { const r = await fetch(asset(`sound/soundEffects/${n}.${EXT[n] || 'mp3'}`)); buffers.set(n, await ctx.decodeAudioData(await r.arrayBuffer())); } catch { /* optional */ }
     }));
   }
   function play(kind, { minGap = 0.05, vol = 1, rate = 1 } = {}) {
@@ -29,7 +30,7 @@ export function createAudio() {
   function music(key) {
     const file = TRACKS[key]; if (!file || file === musicName) return;
     musicName = file;
-    const old = musicEl; const el = new Audio(`${BASE}assets/music/${file}.mp3`); el.loop = true; el.volume = 0; el.preload = 'auto';
+    const old = musicEl; const el = new Audio(asset(`music/${file}.mp3`)); el.loop = true; el.volume = 0; el.preload = 'auto';
     musicEl = el; el.play().catch(() => {});
     let v = 0; const target = muted ? 0 : 0.3;
     const fade = setInterval(() => { v = Math.min(target, v + 0.02); el.volume = v; if (old) old.volume = Math.max(0, old.volume - 0.03); if (v >= target && (!old || old.volume <= 0)) { clearInterval(fade); old && old.pause(); } }, 100);

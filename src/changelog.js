@@ -6,6 +6,8 @@ export const CHANGELOG = [
       'Move your progress to another computer or phone: More, Move progress, copy the code, paste it on the other device.',
       'Endless runs get their own leaderboard: Leaderboard, Casual, Endless. Clear a map to unlock Endless for it.',
       'After a ranked run, the play-again button takes you back to Ranked (Run it back starts a free casual run).',
+      'Caskets that are not better (a piece you already wear, or a weaker one) are high alched for you, with a note. Turn it off in Settings to see every casket.',
+      'Phones: pinch zoom only when two fingers land together, so steering and tapping no longer jolt the camera.',
       'Monsters drop bones for experience, like in SankoQuest.',
       'New map: the Hidden Oasis, behind the locked door under Apache town. A dark cave of alligator pools, the old factory rooms and the high ground beyond, lit by its own lamps and the torch you carry.',
       'Jungle spiders, slimers, alligators and mutant slimers live down there, as in SankoQuest. A Lesser Giant, the Pumpkin Reaper and finally the Rime Colossus come for you.',

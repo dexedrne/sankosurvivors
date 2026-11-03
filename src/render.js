@@ -17,7 +17,8 @@ import { createCharacterKit, armorSet } from './character.js';
 import { terrainFromTiles, WATER_Y } from './terrain.js';
 
 const BASE = import.meta.env.BASE_URL || './';
-const A = (p) => `${BASE}assets/${p}`;
+import { asset } from './assets.js';
+const A = asset; // jsDelivr on live builds, the game's own host otherwise (src/assets.js)
 export const GROUND_Y = 7.0;
 const MAP_SIZE = 512; // minimap covers world x,z in [0,512] (4 px per unit)
 // underground areas (their own scene file, placed where tools/build-world-tiles.py put their ground): the Hidden Oasis
@@ -1115,7 +1116,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // two-finger pinch zooms on touch screens
   const pinch = { d: 0 };
   const touchDist = (e) => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-  window.addEventListener('touchstart', (e) => { if (e.touches.length === 2) pinch.d = touchDist(e); }, { passive: true });
+  // a pinch is two fingers landing together: a thumb already on the move stick plus a tap is NOT a pinch (on phones it
+  // made the zoom jump every time the steering thumb moved)
+  window.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) pinch.t0 = performance.now();
+    if (e.touches.length === 2) pinch.d = performance.now() - (pinch.t0 || 0) < 350 ? touchDist(e) : 0;
+    if (e.touches.length > 2) pinch.d = 0;
+  }, { passive: true });
   window.addEventListener('touchmove', (e) => { if (e.touches.length === 2 && pinch.d) { const d = touchDist(e); cam.zoomT = Math.max(0.5, Math.min(2.2, cam.zoomT * (pinch.d / d))); pinch.d = d; } }, { passive: true });
   window.addEventListener('touchend', (e) => { if (e.touches.length < 2) pinch.d = 0; }, { passive: true });
   let composer = null; // post effects (bloom, depth of field), built once the scene is ready
