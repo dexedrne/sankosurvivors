@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FakePayoutDB, FakeChain, fixture, wallet } from './helpers/payout.mjs';
 import { run } from '../tools/payout/runner.mjs';
+import { decimal, units } from '../tools/payout/core.mjs';
 
 for(const count of [0,1,3,5,10]) test(`runner pays a full week with ${count} wallets, refunds and rollover`,async()=>{
   const f=fixture(count); await run(f.config,f.ports);
@@ -222,4 +223,59 @@ test('two refund rows for one payment pause the bot', async () => {
   f.db.refunds.push({ id: '101', week: 0, wallet: wallet(9), paid: '500000000000000000', tx: '0x' + '100'.padStart(64, 'e') }); // the same payment as entry 100
   await run(f.config, f.ports);
   assert.equal(f.chain.broadcasts.length, 0); assert.ok(f.logs.some((s) => s.includes('PAUSED: refund paid twice')));
+});
+
+// security pass 3: a cap holds back only the rows that break it. Before, any row over a cap paused every payout, so ~1000 DMT
+// of over-payments (refunded later anyway) could stall the honest refunds and the week's prizes.
+const e18=n=>(BigInt(Math.round(n*1000))*10n**15n).toString();
+test('a flood of over-payment refunds is held back past its week budget; the honest refund and the house fee still go', async () => {
+  const f=fixture(0); // week 0 has no winners: its house fee (1 DMT) and an honest 0.5 DMT pre-reset refund are due
+  f.db.refunds.push({id:'300',week:1,wallet:wallet(80),paid:e18(0.6)}); // an honest over-payment, first in week 1
+  for(let i=0;i<11;i++)f.db.refunds.push({id:String(301+i),week:1,wallet:wallet(81+i),paid:e18(100)});
+  await run(f.config,f.ports);
+  const refund=id=>f.db.rows.find(r=>r.source_entry_id===id);
+  assert.equal(refund('100').status,'confirmed','the honest pre-reset refund');
+  assert.equal(f.db.rows.find(r=>r.week===0&&r.kind==='house').status,'confirmed','the house fee');
+  // week 1's refunds: oldest first within WEEK_DMT_CAP (1000 DMT): 0.6 + 9 x 100; the last two wait
+  const week1=f.db.rows.filter(r=>r.week===1&&r.kind==='refund');
+  assert.deepEqual(week1.map(r=>r.status),[...Array(10).fill('confirmed'),'planned','planned']);
+  assert.ok(week1.filter(r=>r.status==='confirmed').reduce((s,r)=>s+BigInt(r.amount),0n)<=f.config.weekCap);
+  assert.equal(f.chain.broadcasts.length,12);
+  await run(f.config,f.ports);
+  assert.equal(f.chain.broadcasts.length,12,'the held-back rows stay held back');
+  const notices=[...f.db.notices].filter(n=>n.includes('alert:DMT cap: '));
+  assert.equal(notices.length,1); assert.ok(notices[0].length<200,notices[0]);
+  assert.equal(notices[0],`live:alert:DMT cap: 2 row(s) held back, first row ${week1[10].id}`);
+  assert.equal(f.messages.filter(s=>s.includes('DMT cap')).length,1,'one notice');
+  assert.ok(!f.logs.some(s=>s.startsWith('PAUSED')),'nothing paused');
+});
+test('a planned row above TRANSFER_DMT_CAP is held back while the others send', async () => {
+  const f=fixture(3); f.config.transferCap=decimal('3'); // prize1 is 3.6 DMT
+  await run(f.config,f.ports);
+  const prize1=f.db.rows.find(r=>r.kind==='prize1');
+  assert.equal(prize1.status,'planned');
+  assert.ok(f.db.rows.filter(r=>r.kind!=='rollover-note'&&r!==prize1).every(r=>r.status==='confirmed'));
+  assert.equal(f.chain.broadcasts.length,4); // the refund, prizes 2 and 3, the house fee
+  assert.ok(f.messages.some(s=>s.includes(`DMT cap: 1 row(s) held back, first row ${prize1.id}`)));
+});
+test('an already signed row over a cap still stops the run', async () => {
+  const f=fixture(3); f.db.crashPrepared=true; await assert.rejects(run(f.config,f.ports)); f.db.crashPrepared=false;
+  const signed=f.db.rows.find(r=>r.status==='sending'); assert.ok(signed.raw_tx);
+  f.config.transferCap=units(signed.amount)-1n;
+  await run(f.config,f.ports);
+  assert.equal(f.chain.broadcasts.length,0);
+  assert.ok(f.logs.includes(`PAUSED: weeks ${signed.week}: DMT cap`),f.logs.join('\n'));
+  assert.equal(signed.status,'sending');
+});
+test('a flood of over-cap refunds is held back without a chain call each, and the honest payouts still go out (security pass 3 review)', async () => {
+  const f = fixture(3);
+  for (let i = 0; i < 40; i++) f.db.refunds.push({ id: String(700 + i), week: 0, wallet: wallet(7), paid: '600000000000000000000', forged: true }); // over TRANSFER_DMT_CAP
+  f.chain.dmt += 40n * 600n * 10n ** 18n; // real over-payments are DMT that arrived in the wallet
+  const before = f.chain.calls.filter((c) => c === 'eth_getTransactionReceipt').length;
+  await run(f.config, f.ports);
+  const receipts = f.chain.calls.filter((c) => c === 'eth_getTransactionReceipt').length - before;
+  assert.ok(f.chain.broadcasts.length >= 3, 'prizes, house and the honest refund were sent');
+  assert.ok(!f.logs.some((s) => s.includes('unverified refund')), 'the capped rows were never checked, so never paused the run');
+  assert.ok(receipts < 20, `receipt lookups stay small: ${receipts}`);
+  assert.ok(f.logs.some((s) => s.includes('HELD BACK')));
 });

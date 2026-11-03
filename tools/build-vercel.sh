@@ -16,7 +16,10 @@ mkdir -p tools/vercel-api/sims/$SIM
 [ "$(cat tools/vercel-api/sims/current.txt 2>/dev/null)" = "$SIM" ] || echo "$(date +%s)000 $SIM" >> tools/vercel-api/sims/history.txt
 echo $SIM > tools/vercel-api/sims/current.txt
 rm -rf $SIMTMP
-VITE_SIM=$SIM VITE_BUILD=$BUILD node_modules/.bin/vite build >/dev/null 2>&1 # the repo's own vite, never a downloaded one
+# SQS_PREBUILT_DIST=1: tools/remote-build.sh brought dist (the browser files only) back from the job box, so no vite here;
+# everything the server runs below is still made from this tree (security pass 3)
+if [ -n "${SQS_PREBUILT_DIST:-}" ]; then [ -f dist/index.html ] || { echo "build-vercel: SQS_PREBUILT_DIST is set but there is no dist/index.html"; exit 1; }
+else VITE_SIM=$SIM VITE_BUILD=$BUILD node_modules/.bin/vite build >/dev/null 2>&1; fi # the repo's own vite, never a downloaded one
 rm -rf .vercel/output && mkdir -p .vercel/output/functions/preview.func .vercel/output/functions/api.func
 # no payout function here (security pass, 3 Nov): prizes are signed only on the owner's laptop, from the encrypted keystore
 # (node tools/payout/run.mjs), so no deployed function ever holds the entry wallet's key

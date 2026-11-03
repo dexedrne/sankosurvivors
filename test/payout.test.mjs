@@ -26,7 +26,7 @@ test('EIP-1559 signing matches ethers 6 scratch output byte for byte',async()=>{
   const expected='0x02f86a0180843b9aca0084773594008252089400000000000000000000000000000000000000020180c080a0af4b97144c98df9fcb0c1576f39c8d363c264804a5038b63429fa4d163f2b34da021201c1801e2941053fea42762ace7f587891c1728768f528437b6e5dbc02c70';
   assert.equal(sign1559(tx,key).raw,expected);
 });
-test('config is file-only, dry by default, and refuses conflicting key sources or a wrong funding wallet',async()=>{
+test('config is file-only, dry by default, keystore-only for the wallet key, and refuses a raw wallet key',async()=>{
   const {parseConfig}=await import('../tools/payout/config.mjs');
   const base={SUPABASE_URL:'https://db.example',SUPABASE_KEY:'public',REPORTS_KEY:'report',PAYOUT_KEY:'payout',TG_BOT_TOKEN:'bot',TG_CHAT_ID:'chat'};
   process.env.PAYOUT_LIVE='1';
@@ -34,6 +34,14 @@ test('config is file-only, dry by default, and refuses conflicting key sources o
   assert.throws(()=>parseConfig({...base,PAYOUT_LIVE:'yes'}));
   assert.throws(()=>parseConfig({...base,WALLET_PRIVATE_KEY:key,KEYSTORE_PATH:'x',KEYSTORE_PASSPHRASE_FILE:'y'}));
   assert.throws(()=>parseConfig({...base,WEEK_DMT_CAP:'Infinity'}));
+  // security pass 3: the raw key is refused in any mode, so it is never kept in a file; live mode needs the keystore
+  for(const extra of [{},{PAYOUT_LIVE:'0'},{PAYOUT_LIVE:'1'},{PAYOUT_LIVE:'1',KEYSTORE_PATH:'/k.json',KEYSTORE_PASSPHRASE_FILE:'/k.pass'}])
+    assert.throws(()=>parseConfig({...base,...extra,WALLET_PRIVATE_KEY:key}),e=>/raw wallet key is not accepted/.test(e.message)&&!e.message.includes(key));
+  assert.throws(()=>parseConfig({...base,PAYOUT_LIVE:'1'}),/live mode requires a key/);
+  assert.throws(()=>parseConfig({...base,PAYOUT_LIVE:'1',KEYSTORE_PATH:'/k.json'}),/incomplete keystore/);
+  const live=parseConfig({...base,PAYOUT_LIVE:'1',KEYSTORE_PATH:'/k.json',KEYSTORE_PASSPHRASE_FILE:'/k.pass'});
+  assert.equal(live.live,true);assert.equal(live.keystore,'/k.json');assert.equal(live.passphraseFile,'/k.pass');assert.ok(!('privateKey' in live));
+  assert.equal(Object.hasOwn(await import('../tools/payout/config.mjs'),'loadVercelConfig'),false,'no Vercel loader');
 });
 test('Arbitrum token transaction vector and decoded sender match independent ethers output',async()=>{
   const {sign1559,decode1559}=await import('../tools/payout/crypto.mjs');
@@ -43,18 +51,31 @@ test('Arbitrum token transaction vector and decoded sender match independent eth
   const decoded=decode1559(raw);assert.equal(decoded.from,'0x7e5f4552091a69125d5dfcb7b8c2659029395bdf');assert.equal(decoded.nonce,128n);assert.equal(decoded.data,tx.data);
   for(const bad of ['0x','0x02','0x01'+raw.slice(4),raw+'00'])assert.throws(()=>decode1559(bad));
 });
+// https://github.com/ethereum/tests/blob/develop/KeyStoreTests/basic_tests.json (mycrypto)
+const mycrypto={version:3,address:'460121576cc7df020759730751f92bd62fd78dd6',crypto:{cipher:'aes-128-ctr',cipherparams:{iv:'681679cdb125bba9495d068b002816a4'},ciphertext:'54ae683c6287fa3d58321f09d56e26d94e58a00d4f90bdd95782ae0e4aab618b',kdf:'scrypt',kdfparams:{dklen:32,n:8192,p:1,r:8,salt:'c3407f363fce02a66e3c4bf4a8f6b7da1c1f54266cef66381f0625c251c32785'},mac:'dea6bdf22a2f522166ed82808c22a6311e84c355f4bbe100d4260483ff675a46'}};
 test('Web3 v3 published mycrypto scrypt vector decrypts; wrong password and MAC fail closed',async()=>{
   const {decryptKeystore}=await import('../tools/payout/crypto.mjs');
-  // https://github.com/ethereum/tests/blob/develop/KeyStoreTests/basic_tests.json (mycrypto)
-  const store={version:3,address:'460121576cc7df020759730751f92bd62fd78dd6',crypto:{cipher:'aes-128-ctr',cipherparams:{iv:'681679cdb125bba9495d068b002816a4'},ciphertext:'54ae683c6287fa3d58321f09d56e26d94e58a00d4f90bdd95782ae0e4aab618b',kdf:'scrypt',kdfparams:{dklen:32,n:8192,p:1,r:8,salt:'c3407f363fce02a66e3c4bf4a8f6b7da1c1f54266cef66381f0625c251c32785'},mac:'dea6bdf22a2f522166ed82808c22a6311e84c355f4bbe100d4260483ff675a46'}};
+  const store=mycrypto;
   assert.equal(decryptKeystore(store,'foobartest121'),'0x05a4d3eb46c742cb8850440145ce70cbc80b59f891cf5f50fd3e9c280b50c4e4');
   assert.throws(()=>decryptKeystore(store,'incorrect'),/authentication/);
   assert.throws(()=>decryptKeystore({...store,crypto:{...store.crypto,mac:'00'.repeat(32)}},'foobartest121'),/authentication/);
   assert.throws(()=>decryptKeystore({...store,crypto:{...store.crypto,kdfparams:{...store.crypto.kdfparams,n:2147483648}}},'foobartest121'),/parameters/);
 });
-test('private key files are optional in dry run; wrong funding key is rejected without exposing it',async()=>{
+test('the wallet key comes only from a mode-600 keystore; a keystore for another wallet is rejected without exposing its key',async()=>{
   const {loadWallet}=await import('../tools/payout/config.mjs');
-  await assert.rejects(loadWallet({privateKey:key}),e=>e.message.includes('entry wallet')&&!e.message.includes(key));
+  const {mkdtemp,writeFile,chmod,rm}=await import('node:fs/promises');
+  const {tmpdir}=await import('node:os');const {join}=await import('node:path');
+  const dir=await mkdtemp(join(tmpdir(),'sqs-keystore-'));
+  try {
+    const keystore=join(dir,'store.json'),passphraseFile=join(dir,'pass');
+    await writeFile(keystore,JSON.stringify(mycrypto),{mode:0o600});await writeFile(passphraseFile,'foobartest121\n',{mode:0o600});
+    const fixture='05a4d3eb46c742cb8850440145ce70cbc80b59f891cf5f50fd3e9c280b50c4e4'; // the published vector's key: not the entry wallet
+    await assert.rejects(loadWallet({keystore,passphraseFile}),e=>e.message.includes('entry wallet')&&!e.message.includes(fixture));
+    await assert.rejects(loadWallet({privateKey:key,keystore,passphraseFile}),/entry wallet/,'a privateKey field is ignored');
+    await assert.rejects(loadWallet({privateKey:key}),e=>!e.message.includes('entry wallet')&&!e.message.includes(key),'no keystore: nothing to load');
+    await chmod(keystore,0o644);
+    await assert.rejects(loadWallet({keystore,passphraseFile}),/mode 600/);
+  } finally {await rm(dir,{recursive:true,force:true});}
 });
 test('sub-unit share dust goes to the last actual winner while missing places roll over',async()=>{
   const {makePlan}=await import('../tools/payout/core.mjs');

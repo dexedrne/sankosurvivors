@@ -6,7 +6,6 @@ const MODES = ['normal', 'hard'], FEE = { normal: '0.5', hard: '1.5' };
 export class RankedDB {
   constructor() { this.rows = []; this.next = 1; this.finishError = null; }
   async rpc(fn, p) {
-    if (fn === 'sqs_ranked_restart' && this.noRestart) throw new Error('rpc sqs_ranked_restart failed: 404 not found'); // before update7.sql
     const error = (error) => ({ error });
     const mode = p.p_mode ?? 'normal';
     const refund = (why, m = mode) => ({ error: why + `. Your ${FEE[m]} DMT will be sent back.`, refund: true });
@@ -46,7 +45,8 @@ export class RankedDB {
         if (!/^0x[0-9a-f]{64}$/.test(tx) || !/^0x[0-9a-f]{40}$/.test(wallet) || !MODES.includes(mode)) return error('bad entry');
         if (this.rows.some(e => e.tx === tx && (e.wallet !== wallet || e.refund_reason == null))) return error('that payment was already used for an entry');
         if (!this.rows.some(e => e.tx === tx)) this.rows.push({ id: this.next++, week, mode, wallet, tx, paid: p.p_paid, ip_hash: '', seed: 0, refund_reason: p.p_reason.slice(0, 120) });
-        return { ok: true };
+        // update8.sql: a payment over 100 DMT is recorded too, for the owner to review (the SQL also says review: false)
+        return BigInt(p.p_paid) > 10n ** 20n ? { ok: true, review: true } : { ok: true };
       case 'sqs_ranked_start':
         if (!/^[a-z]{2,16}$/.test(p.p_adv)) return error('bad adventurer');
         if (!e || e.refund_reason != null) return error('that entry was already used');
@@ -68,10 +68,11 @@ export class RankedDB {
         this.rows.filter(x => x.week <= e.week && !keep.has(x.id)).forEach(x => { x.log = null; });
         return { ok: true, rank };
       }
-      case 'sqs_ranked_restart': // update7.sql
+      case 'sqs_ranked_restart': // update7.sql, bound to the entry's current start by update8.sql (p_started)
         if (!e) return error('that run was already sent');
         if ((e.restarts || 0) >= 3) return error('this entry was restarted 3 times already: tell the dev');
         if (e.started_at == null || e.claimed_at != null || e.refund_reason != null) return error('that run was already sent');
+        if (p.p_started != null && e.started_at !== Number(p.p_started)) return error('that run was already sent');
         Object.assign(e, { started_at: null, seed: Number(p.p_seed), restarts: (e.restarts || 0) + 1 });
         return { ok: true, week: e.week, mode: e.mode };
       case 'sqs_ranked_void':

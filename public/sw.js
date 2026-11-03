@@ -1,7 +1,8 @@
-// Offline cache for the installed app. The page is network-first (so updates show up
-// right away); game files are served from cache and refreshed in the background.
+// Offline cache for the installed app. The page, the game's code (scripts, workers, .js and .wasm, including the Draco
+// decoder that is fetch()ed) and world data are network-first, so updates show up right away and a cached copy is used
+// only offline; other game files are served from cache and refreshed in the background.
 // The API (leaderboard, bug reports) is never cached.
-const CACHE = 'sqs-v2'; // v2 (security pass, 3 Nov): drops anything an old cache may hold
+const CACHE = 'sqs-v3'; // v3 (security pass 3): drops any poisoned v2 entries
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/manifest.webmanifest', '/icons/icon-192.png'])).then(() => self.skipWaiting()));
 });
@@ -21,7 +22,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (req.headers.has('range')) return; // music streams
-  if (['script', 'style', 'worker'].includes(req.destination)) { // the game's code: always the network's when online
+  if (['script', 'style', 'worker', 'sharedworker'].includes(req.destination) || /\.(m?js|wasm)$/.test(url.pathname)) { // code, including Draco's fetch()ed decoder: always the network's when online
     e.respondWith(fetch(req).then((res) => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); } return res; }).catch(() => caches.match(req)));
     return;
   }

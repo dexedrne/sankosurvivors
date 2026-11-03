@@ -6,7 +6,7 @@
 //   POST /api/ranked-start {entry, adv}         reveals the run's seed and starts the clock (asking again, before the run
 //                                               is sent, returns the same run: a lost answer never costs the entry)
 //   POST /api/ranked-submit {run, name, log}    replays the run on the server; only what the inputs earned counts
-//   POST /api/ranked-void {run}                 a run cut off by a game update (reloaded into a newer version) is refunded
+//   POST /api/ranked-void {run}                 a run cut off by a game update starts again on the same entry (new seed, nothing refunded)
 // The entry fee goes to the ranked entry wallet. Per race: 10% is the house fee (sent on to the dev's wallet); 90% is the
 // race's prize pool for the week, paid to its top 5 wallets (40/25/15/12/8) by the payout bot. The database serializes
 // eligibility and run state changes.
@@ -34,8 +34,6 @@ const MAX_PICKS = 4000;                // level-up choices, rerolls, skips and c
 const SIMS = process.env.SQS_SIMS_DIR || path.join(__dirname, 'sims'), loaded = new Map(); // tests point SQS_SIMS_DIR at a build of the current code
 const SIM_ID = /^[0-9a-f]{12}$/;
 function currentSim() { try { return fs.readFileSync(path.join(SIMS, 'current.txt'), 'utf8').trim(); } catch { return null; } }
-// when each version went live, "<ms> <simId>" per line (tools/build-vercel.sh appends one for every new version)
-function simHistory() { try { return fs.readFileSync(path.join(SIMS, 'history.txt'), 'utf8').trim().split('\n').map((l) => l.trim().split(/\s+/)).filter((x) => x.length === 2).map(([t, id]) => [Number(t), id]); } catch { return []; } }
 // a ranked run may be paused, reloaded or restored for a while, but not played in slow motion: its real time may run past
 // its game time by 10 minutes plus a tenth (owner 3 Nov, security first: a 25-minute run took up to 2:40:00 before)
 const pauseAllowance = (t) => 600 + 0.1 * t;
@@ -183,6 +181,8 @@ async function handle(route, req, res, ctx) {
       : null;
     if (over && !(over.error === 'that payment was already used for an entry')) {
       if (over.error) return send(res, 400, over);
+      // update8.sql: a payment over 100 DMT is recorded too, and its refund waits for the dev (held in the payout ledger)
+      if (over.review) return send(res, 400, { error: `That payment sent more than the ${RACES[mode].dmt} DMT ${RACES[mode].name} entry, so it could not count. It will be sent back after the dev checks it.`, refund: true });
       return send(res, 400, { error: `That payment sent more than the ${RACES[mode].dmt} DMT ${RACES[mode].name} entry, so it could not count. All of it will be sent back.`, refund: true });
     }
     if (!racesIn(g, week).includes(mode)) {
@@ -252,31 +252,14 @@ async function handle(route, req, res, ctx) {
     // update 7: nothing is paid back. The same entry starts again, with a new seed, on the new version (an honest player
     // loses nothing, and a run seen going badly cannot be turned into money). Cheap: no replay, at most 3 times an entry.
     if (r.w !== week) return send(res, 400, { error: 'that run can no longer be restarted: its week is over' });
-    let again = null;
-    try { again = await rpc('sqs_ranked_restart', { p_server_key: SERVER_KEY, p_id: r.id, p_wallet: r.a, p_seed: crypto.randomInt(1, 2 ** 31 - 1), p_reason: `game updated during the run (${r.v} -> ${cur})` }); }
-    catch (e) { if (!/ 404 /.test(String(e.message))) throw e; } // before update7.sql: the checked refund below
-    if (again) {
-      if (again.error) return send(res, 400, again);
-      const mode = again.mode === 'hard' ? 'hard' : 'normal';
-      return send(res, 200, { ok: true, restart: true, entry: signed({ k: 'rentry', id: r.id, a: r.a, w: r.w, ...(mode === 'normal' ? {} : { m: mode }) }), id: r.id, week: r.w, mode });
-    }
-    // only a run of this week, within the time it could still have been sent, that was still alive when its version was
-    // replaced: its own log, replayed on its own version, must end with the player alive and reach the moment of the change
-    // (a run that had ended is sent instead, so a bad run can no longer be refunded; a void after the week cannot double-pay)
-    const played = typeof r.v === 'string' ? load(r.v) : null;
-    if (!played) return send(res, 500, { error: 'server error: that game version is missing. Tell the dev' });
-    const runMax = runSecondsIn(played.game, r.w);
-    if (r.w !== week || Date.now() - r.s > (runMax + LATE_SECONDS) * 1000) return send(res, 400, { error: 'that run can no longer be refunded' });
-    const change = simHistory().find(([t, id]) => t > r.s && id !== r.v);
-    if (!change) return send(res, 400, { error: 'the game did not change during this run: resume or send it instead' });
-    const maxTicks = Math.ceil(runMax * 30), shape = logShape(b.log, maxTicks); if (shape) return send(res, 400, { error: 'send the run log with the refund: ' + shape });
-    const part = played.game.replay(b.log, { seed: r.seed, mapId: played.game.weekMap(r.w), adv: r.adv, ground: played.ground, week: r.w, mode: modeOf(r) }, { maxTicks });
-    const played_t = b.log.runs.reduce((n, x) => n + x[0], 0) / 30, before = (change[0] - r.s) / 1000;
-    if (part.error !== 'the run had not ended') return send(res, 400, { error: 'this run had already ended: send it instead' });
-    if (played_t + pauseAllowance(played_t) < before) return send(res, 400, { error: 'this run stopped before the game changed: send it instead' });
-    const out = await rpc('sqs_ranked_void', { p_server_key: SERVER_KEY, p_id: r.id, p_wallet: r.a, p_reason: `game updated during the run (${r.v} -> ${cur})` });
-    if (!out || out.error) return send(res, 400, out || { error: 'could not record that' });
-    return send(res, 200, { ok: true, refund: true });
+    // security pass 3: only a run that could still have been sent (an old unsent run kept back is not a free retry), and
+    // only the entry's current start (update8.sql: an old token cannot restart a newer run of the same entry). The run's
+    // length comes from the live version's rules: no archived bundle is loaded or replayed here, and nothing is refunded.
+    if (!Number.isFinite(r.s) || Date.now() - r.s > (runSecondsIn(g, r.w) + LATE_SECONDS) * 1000) return send(res, 400, { error: 'that run can no longer be restarted: it started too long ago' });
+    const again = await rpc('sqs_ranked_restart', { p_server_key: SERVER_KEY, p_id: r.id, p_wallet: r.a, p_seed: crypto.randomInt(1, 2 ** 31 - 1), p_reason: `game updated during the run (${r.v} -> ${cur})`, p_started: r.s });
+    if (!again || again.error) return send(res, 400, again || { error: 'could not restart that run' });
+    const mode = again.mode === 'hard' ? 'hard' : 'normal';
+    return send(res, 200, { ok: true, restart: true, entry: signed({ k: 'rentry', id: r.id, a: r.a, w: r.w, ...(mode === 'normal' ? {} : { m: mode }) }), id: r.id, week: r.w, mode });
   }
   return send(res, 404, { error: 'not found' });
 }

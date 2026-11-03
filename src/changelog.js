@@ -6,6 +6,7 @@ export const CHANGELOG = [
       'A security update: stronger protection for ranked runs, entry payments, prizes, the DMT buy and cloud saves.',
       'If a game update ever cuts a ranked run short, that entry now starts again for free instead of being lost.',
       'Updates that change ranked now wait until nobody is in the middle of a ranked run.',
+      'Ranked fair play: runs must be played live by a person. Bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held. Resuming after a reload is fine.',
     ],
   },
   {

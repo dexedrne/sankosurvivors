@@ -9,3 +9,6 @@ tools/supabase/update2.sql
 !*.env.example
 *.passphrase
 *keystore*.json
+
+# agent worktrees
+.claude/

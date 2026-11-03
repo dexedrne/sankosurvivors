@@ -241,32 +241,46 @@ test('oversized, over-tick, null and nested junk bodies are refused cheaply', as
 const OLD_ID = 'a1b2c3d4e5f6'; mkdirSync(path.join(simsDir, OLD_ID));
 copyFileSync(path.join(simsDir, SIM_TEST_ID, 'ranked-bundle.cjs'), path.join(simsDir, OLD_ID, 'ranked-bundle.cjs'));
 copyFileSync(path.join(simsDir, SIM_TEST_ID, 'ground.bin'), path.join(simsDir, OLD_ID, 'ground.bin'));
-const history = (lines) => writeFileSync(path.join(simsDir, 'history.txt'), lines.map(([t, id]) => `${t} ${id}`).join('\n') + '\n');
-const alive = (ticks = 90) => ({ v: 1, runs: [[ticks, 0, 0]], uses: [], picks: [] }); // standing still for a few seconds: still alive
-test('void before update7.sql (security pass): only a run of this week, still alive when its version was replaced, is refunded', async () => {
-  db.noRestart = true;
-  const e = await enter(), run = await start(e), r0 = decode(run.run);
-  expectError(await call('ranked-void', { run: run.run, log: alive() }), 400, 'the game has not changed since this run started: resume it instead');
-  const oldRun = signed({ ...r0, v: OLD_ID });
-  history([[r0.s - 60000, OLD_ID]]); // nothing went live after this run started
-  expectError(await call('ranked-void', { run: oldRun, log: alive() }), 400, 'the game did not change during this run: resume or send it instead');
-  history([[r0.s - 60000, OLD_ID], [r0.s + 2000, cur]]); // the new version went live 2 s into the run
-  expectError(await call('ranked-void', { run: oldRun }), 400, 'send the run log with the refund: bad log');
-  expectError(await call('ranked-void', { run: signed({ ...r0, v: OLD_ID, w: r0.w + 1 }), log: alive() }), 400, 'that run can no longer be restarted: its week is over');
-  history([[r0.s - 60000, OLD_ID], [r0.s + 3000 * 1000, cur]]); // the change came long after this log stops
-  expectError(await call('ranked-void', { run: oldRun, log: alive() }), 400, 'this run stopped before the game changed: send it instead');
-  history([[r0.s - 60000, OLD_ID], [r0.s + 2000, cur]]);
-  const t0 = now; now = r0.s + (runSeconds(r0.w) + 40 * 60 + 5) * 1000; // past the time it could still have been sent
-  expectError(await call('ranked-void', { run: oldRun, log: alive() }), 400, 'that run can no longer be refunded'); now = t0;
-  assert.deepEqual(await call('ranked-void', { run: oldRun, log: alive() }), { code: 200, json: { ok: true, refund: true } });
-  expectError(await call('ranked-void', { run: oldRun, log: alive() }), 400, 'that run was already sent');
-  expectError(await call('ranked-submit', { run: run.run, log: { v: 1, runs: [[1, 0, 0]], uses: [], picks: [] } }), 400, 'that run was already sent');
-  const refunds = (await db.rpc('sqs_ranked_settle', { p_key: 'reports-key', p_week: 0 })).refunds;
-  assert.deepEqual(refunds, [{ wallet: e.w.address, tx: e.tx, paid: '500000000000000000', why: `game updated during the run (${OLD_ID} -> ${cur})` }]);
-  assert.equal((await call('ranked-week')).json.entries, 0);
-  const e2 = await enter(e.w), run2 = await start(e2);
-  await call('ranked-submit', { run: run2.run, log: { v: 1, runs: [], uses: [], picks: [] } });
-  expectError(await call('ranked-void', { run: signed({ ...decode(run2.run), v: OLD_ID }), log: alive() }), 400, 'that run was already sent');
+const alive = (ticks = 90) => ({ v: 1, runs: [[ticks, 0, 0]], uses: [], picks: [] }); // what the game still sends with a void
+// counts every replay of the versions a void could reach (the live one and the older one)
+function countReplays() {
+  let n = 0; const undo = [];
+  for (const id of [cur, OLD_ID]) {
+    const s = ranked.load(id), game = s.game;
+    s.game = { ...game, replay: (...a) => { n++; return game.replay(...a); } };
+    undo.push(() => { s.game = game; });
+  }
+  return { count: () => n, restore: () => undo.forEach((f) => f()) };
+}
+test('security pass 3: a restart needs a run that could still be sent and the entry\'s current start; it never replays or refunds', async () => {
+  const replays = countReplays();
+  try {
+    const e = await enter(), run = await start(e), r0 = decode(run.run), old = (r) => signed({ ...decode(r.run), v: OLD_ID });
+    expectError(await call('ranked-void', { run: run.run, log: alive() }), 400, 'the game has not changed since this run started: resume it instead');
+    // an unsent run kept back past the time it could still have been sent is not a free retry
+    const t0 = now; now = r0.s + (runSeconds(r0.w) + 40 * 60 + 5) * 1000;
+    expectError(await call('ranked-void', { run: old(run), log: alive() }), 400, 'that run can no longer be restarted: it started too long ago');
+    assert.equal(db.rows[0].restarts, undefined, 'the entry is untouched'); assert.equal(db.rows[0].started_at, r0.s);
+    now = t0 + 60000;
+    const out = await call('ranked-void', { run: old(run), log: alive() });
+    assert.equal(out.code, 200, JSON.stringify(out)); assert.equal(out.json.restart, true); assert.equal(out.json.refund, undefined);
+    now += 60000; const run2 = await start({ entry: out.json.entry }), s2 = decode(run2.run).s;
+    assert.notEqual(s2, r0.s);
+    // the first run's token cannot restart the entry's newer run (it would re-roll a run going badly, up to 3 times)
+    expectError(await call('ranked-void', { run: old(run), log: alive() }), 400, 'that run was already sent');
+    assert.deepEqual([db.rows[0].restarts, db.rows[0].started_at], [1, s2], 'the newer run is still on');
+    // the newer run's own token still restarts it
+    const out2 = await call('ranked-void', { run: old(run2), log: alive() });
+    assert.equal(out2.code, 200, JSON.stringify(out2)); assert.equal(db.rows[0].restarts, 2);
+    assert.equal(replays.count(), 0, 'a void never replays a log');
+    assert.equal((await db.rpc('sqs_ranked_settle', { p_key: 'reports-key', p_week: 0 })).refunds.length, 0, 'nothing refunded');
+    // a run that was sent cannot be restarted (and the counter does see replays: the submit's)
+    now += 60000; const run3 = await start({ entry: out2.json.entry });
+    await call('ranked-submit', { run: run3.run, log: { v: 1, runs: [], uses: [], picks: [] } });
+    const seen = replays.count(); assert.ok(seen >= 1, 'the replay counter works');
+    expectError(await call('ranked-void', { run: old(run3), log: alive() }), 400, 'that run was already sent');
+    assert.equal(replays.count(), seen);
+  } finally { replays.restore(); }
 });
 test('update 7: a run cut short by a game update starts again on the same entry, with a new seed, nothing paid back', async () => {
   const e = await enter(), run = await start(e), r0 = decode(run.run);
@@ -395,6 +409,19 @@ test('an entry costs exactly its race price: a Hard-sized payment on a Normal si
     assert.deepEqual([db.rows[0].refund_reason, db.rows[0].paid, db.rows[0].mode, db.rows[0].week], [`sent more than the ${dmt} DMT entry`, amount.toString(), mode ?? 'normal', week]);
     assert.equal((await call('ranked-week')).json.entries, 0, 'never counted in a pot');
   }
+});
+
+test('security pass 3: a payment over 100 DMT is recorded (not dropped) and its refund waits for the dev to check it', async () => {
+  const w = wallet(), { message, amountWei, ...auth } = await nonce(w);
+  const big = payment(w, { amount: 150n * 10n ** 18n });
+  const want = { code: 400, json: { error: 'That payment sent more than the 0.5 DMT Normal entry, so it could not count. It will be sent back after the dev checks it.', refund: true } };
+  assert.deepEqual(await call('ranked-enter', { ...auth, tx: big }), want);
+  assert.deepEqual(await call('ranked-enter', { ...auth, tx: big }), want, 'a retry answers the same');
+  assert.deepEqual([db.rows.length, db.rows[0].paid, db.rows[0].refund_reason], [1, '150000000000000000000', 'sent more than the 0.5 DMT entry']);
+  // 100 DMT exactly is still refunded without a review
+  const hundred = payment(w, { amount: 100n * 10n ** 18n });
+  assert.deepEqual(await call('ranked-enter', { ...auth, tx: hundred }), { code: 400, json: { error: 'That payment sent more than the 0.5 DMT Normal entry, so it could not count. All of it will be sent back.', refund: true } });
+  assert.equal(db.rows.length, 2); assert.equal((await call('ranked-week')).json.entries, 0, 'never counted in a pot');
 });
 
 test('week 1: each race has its own pot and board; Hard runs replay on hard rules and rank by kills per minute', async () => {

@@ -136,7 +136,28 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
     // can never move DMT (security pass, 3 Nov).
     const refundTx=new Map();
     for(const row of state.rows.filter(r=>r.kind==='refund')){const tx=String(row.source_tx??'').toLowerCase();if(refundTx.has(tx)&&tx){await alert('refund paid twice row '+row.id);return;}refundTx.set(tx,row.id);}
-    for(const row of due.filter(r=>r.kind==='refund')){
+    // caps hold back only the rows that break them: prizes and house need their week's pot within WEEK_DMT_CAP; refunds get
+    // their own per-week budget of WEEK_DMT_CAP, oldest first; every row at most TRANSFER_DMT_CAP (security pass 3: a flood
+    // of over-payments, refunded later, used to pause every payout)
+    const pot=w=>sum(state.rows.filter(r=>r.week===w&&r.kind!=='rollover-note'&&r.kind!=='refund'));
+    const used=new Map();
+    for(const r of state.rows)if(r.kind==='refund'&&['sending','sent','confirmed'].includes(r.status))used.set(r.week,(used.get(r.week)??0n)+units(r.amount));
+    const capped=[];
+    for(const r of due){
+      if(units(r.amount)>config.transferCap||(r.kind!=='refund'&&pot(r.week)>config.weekCap)){capped.push(r);continue;}
+      if(r.kind!=='refund')continue;
+      const next=(used.get(r.week)??0n)+units(r.amount);
+      if(next>config.weekCap){capped.push(r);continue;}
+      used.set(r.week,next);
+    }
+    if(capped.length){ // the rest still goes out, so this is a notice, not a pause (short: notice names are max 200 chars)
+      const code=`DMT cap: ${capped.length} row(s) held back, first row ${capped[0].id}`;
+      log('HELD BACK: '+code);
+      await notice('alert:'+code,'ALERT: '+code+'. The other payouts go ahead. Review those rows in the ledger; raise WEEK_DMT_CAP or TRANSFER_DMT_CAP in payout.env only if they are right.');
+    }
+    const work=[...recover,...due.filter(r=>!capped.includes(r))];
+    // (security pass 3 review: checked only for the refunds about to be sent, so a flood of capped rows costs no chain calls)
+    for(const row of work.filter(r=>r.kind==='refund'&&r.status==='planned')){
       const tx=String(row.source_tx??'').toLowerCase();
       if(!/^0x[0-9a-f]{64}$/.test(tx)){await alert('unverified refund row '+row.id);return;}
       let r;try{r=await chain.rpc('eth_getTransactionReceipt',[tx]);}catch{await alert('chain unavailable');return;}
@@ -144,21 +165,18 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       for(const l of r?.status==='0x1'?r.logs??[]:[])if(l.address?.toLowerCase()===DMT&&l.topics?.[0]===TRANSFER&&l.topics[1]?.toLowerCase()==='0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0')&&l.topics[2]?.toLowerCase()==='0x'+config.wallet.slice(2).toLowerCase().padStart(64,'0'))paid+=BigInt(l.data);
       if(paid!==units(row.amount)){await alert('unverified refund row '+row.id);return;}
     }
-    const work=[...recover,...due];
     if(!work.length){log('No transfers due.');return;}
     let fees,gasById;
     try {
-      for(const row of work) {
-        const weekRows=state.rows.filter(r=>r.week===row.week&&r.kind!=='rollover-note');
-        if(sum(weekRows)>config.weekCap||weekRows.some(r=>units(r.amount)>config.transferCap))throw Error('DMT cap');
-      }
+      for(const row of recover)if(units(row.amount)>config.transferCap||(row.kind!=='refund'&&pot(row.week)>config.weekCap))throw Error('DMT cap'); // signed rows keep the old stop
       const balances=await chain.balances(config.wallet);
       // Reserve held awards and each race's latest rollover as well as every unsettled week.
       let reserve=0n;
       for(const mode of ['normal','hard']){const latest=state.weeks.filter(w=>modeOf(w)===mode).sort((a,b)=>a.week-b.week).at(-1);if(latest)reserve+=units(latest.rollover);}
       if(balances.dmt<sum(outstanding.filter(r=>r.status!=='confirmed'))+reserve)throw Error('DMT balance');
       fees=await chain.fees(config.maxFee);gasById=new Map();let gasCost=0n;
-      for(const row of outstanding.filter(r=>r.status!=='confirmed')) {
+      // gas for this run's transfers and the ones already in flight only (held or capped rows wait, and are not estimated)
+      for(const row of [...new Set([...work,...inFlight])]) {
         const gas=row.raw_tx?savedTransaction(row,config).gas:await chain.estimate(config.wallet,row,fees);
         gasById.set(row.id,gas);gasCost+=gas*(row.raw_tx?savedTransaction(row,config).maxFee:fees.maxFee);
       }
