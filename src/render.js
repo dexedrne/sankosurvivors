@@ -40,6 +40,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9ac7e8);
   scene.fog = new THREE.Fog(0x9ac7e8, 38, 78);
+  // our own shaders end with three's output step (tone mapping and the sRGB conversion). With effects on, the frame goes
+  // through the composer and both are no-ops; with every effect off (low graphics, phones) the frame is drawn straight to
+  // the screen and, without them, these came out dark and over-saturated next to everything else
+  const colorOut = (fs) => fs.replace(/void\s+main\s*\(\s*\)/, 'void sqMain()') + '\nvoid main() { sqMain();\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}';
   const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 140);
   // sprites, glows, particles and flashes live on their own layer: the camera draws it, but the passes that redraw the
   // scene for depth (ambient occlusion, depth of field) leave it out. They draw every object as a solid shape there,
@@ -371,7 +375,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   {
     const skyScene = new THREE.Scene();
     const skyMat = new THREE.ShaderMaterial({ side: THREE.BackSide, uniforms: {}, vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: 'varying vec3 vP; void main(){ float h = normalize(vP).y; vec3 c = mix(vec3(0.55,0.62,0.66), vec3(0.32,0.5,0.78), smoothstep(0.0, 0.7, h)); c = mix(vec3(0.25,0.27,0.24), c, smoothstep(-0.2, 0.02, h)); gl_FragColor = vec4(c, 1.0); }' });
+      fragmentShader: colorOut('varying vec3 vP; void main(){ float h = normalize(vP).y; vec3 c = mix(vec3(0.55,0.62,0.66), vec3(0.32,0.5,0.78), smoothstep(0.0, 0.7, h)); c = mix(vec3(0.25,0.27,0.24), c, smoothstep(-0.2, 0.02, h)); gl_FragColor = vec4(c, 1.0); }') });
     skyScene.add(new THREE.Mesh(new THREE.SphereGeometry(10, 24, 12), skyMat));
     const pm = new THREE.PMREMGenerator(renderer); groundMat.envMap = pm.fromScene(skyScene, 0.02).texture; pm.dispose();
   }
@@ -963,11 +967,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // Blast; the evolved staff casts Fire Blast.
   const SPELL_ELEMENT = { air: 0x9fe8ff, water: 0x3b82f6, earth: 0x6db33f, fire: 0xff5a1f };
   const STAFF_SPELLS = [['air', 'missile'], ['water', 'missile'], ['earth', 'missile'], ['fire', 'missile'], ['air', 'blast'], ['water', 'blast']];
-  const staffSpell = (lvl, evo) => { const [el, tier] = evo ? ['fire', 'blast'] : STAFF_SPELLS[Math.min(STAFF_SPELLS.length - 1, Math.max(0, lvl - 1))]; return { col: SPELL_ELEMENT[el], tier }; };
-  // the game's tiers: impact 260 / 400 ms, burst spread 0.36 / 0.7, Blast 1.65x. Trail spacing is the game's 50 / 65 ms
-  // scaled by flight speed (its spells fly about 4.5 u/s, the staff's bolts 14), so the tail is as long as the game's.
-  const SPELL_TIER = { missile: { size: 1, trail: 16, impact: 260, spread: 0.36 }, blast: { size: 1.65, trail: 21, impact: 400, spread: 0.7 } };
-  const MS_K = 1, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc);
+  // levels 5 and 6 cast three bolts at once: one Air, one Water and one Earth Blast (owner: "the earth air water blast")
+  const staffSpell = (lvl, evo, id = 0) => { const [el, tier] = evo ? ['fire', 'blast'] : lvl >= 5 ? [['air', 'water', 'earth'][id % 3], 'blast'] : STAFF_SPELLS[Math.min(3, Math.max(0, lvl - 1))]; return { col: SPELL_ELEMENT[el], tier }; };
+  // the game's tiers: impact 260 / 400 ms, burst spread 0.36 / 0.7, Blast 1.65x. gap: the game's trail interval (50 / 65 ms)
+  // at its spells' ~4.5 u/s, so the pieces sit 0.225 / 0.2925 apart along the path at any speed (bolts 14, volleys 8.5)
+  const SPELL_TIER = { missile: { size: 1, gap: 0.225, impact: 260, spread: 0.36 }, blast: { size: 1.65, gap: 0.2925, impact: 400, spread: 0.7 } };
+  const MS_K = 1, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc), MS_Z = new THREE.Vector3(0, 0, 1);
+  // the live game tone-maps with ACES (its toneMapped:false does nothing on WebGPU): linear head / trail colours that land on
+  // its pastel look through our Neutral 0.93 + grade (ACES(lerp(col, 0xfff4dc, 0.7 / 0.12)) inverted)
+  const MS_TONE = { 0x9fe8ff: [[0.806, 0.828, 0.805], [0.642, 0.808, 0.849]], 0x3b82f6: [[0.767, 0.761, 0.791], [0.300, 0.455, 0.828]], 0x6db33f: [[0.782, 0.789, 0.674], [0.434, 0.644, 0.251]], 0xff5a1f: [[0.870, 0.748, 0.665], [1.076, 0.377, 0.191]] };
   const msMat = new THREE.MeshBasicMaterial({ toneMapped: false });
   // the game's pieces are lit from above: colour x (0.82 + 0.18 * normal.y)
   msMat.onBeforeCompile = (sh) => {
@@ -980,24 +988,24 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
       uniforms: { uCol: { value: new THREE.Color(col) }, uBlast: { value: tier === 'blast' ? 1 : 0 }, uTime: { value: 0 } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: `uniform vec3 uCol; uniform float uBlast, uTime; varying vec2 vUv;
+      fragmentShader: colorOut(`uniform vec3 uCol; uniform float uBlast, uTime; varying vec2 vUv;
         void main(){
           if (uBlast < 0.5) { vec2 r = abs(vUv - 0.5) * 2.0; gl_FragColor = vec4(uCol, pow(max(0.0, 1.0 - (r.x + r.y)), 2.0) * 0.45); return; } // Missile: a diamond
           float t = length(vUv - 0.5) * 2.0, a = pow(max(0.0, 1.0 - t), 2.0); // Blast: round, white-hot in the middle, with a ring that pulses
           float ring = max(0.0, 1.0 - abs(t - (sin(uTime * 6.0) * 0.035 + 0.58)) * 16.0);
-          gl_FragColor = vec4(mix(uCol, vec3(1.0, 0.957, 0.863), pow(a, 3.0) * 0.55), a * 0.6 + ring * 0.3);
-        }` });
+          gl_FragColor = vec4(mix(uCol, vec3(1.0, 0.905, 0.716), pow(a, 3.0) * 0.55), a * 0.6 + ring * 0.3); // 0xfff4dc in linear, as TSL color() gives it
+        }`) });
     msGlowMats.set(key, m); return m;
   }
   function magicSphere(col, tier) {
     const o = new THREE.Group(), T = SPELL_TIER[tier];
     const parts = new THREE.InstancedMesh(msGeo, msMat, 7); parts.frustumCulled = false; parts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    const c = new THREE.Color(col), tmp = new THREE.Color();
-    for (let i = 0; i < 7; i++) parts.setColorAt(i, tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.7 : 0.12)); // pale head, element-tinted trail (the game's mix)
+    const c = new THREE.Color(col), tmp = new THREE.Color(), tone = MS_TONE[col];
+    for (let i = 0; i < 7; i++) parts.setColorAt(i, tone ? tmp.setRGB(...tone[i === 0 ? 0 : 1], THREE.LinearSRGBColorSpace) : tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.8 : 0.3));
     const glow = new THREE.Mesh(msGlowGeo, msGlowMat(col, tier)); glow.scale.setScalar(0.54 * T.size * MS_K);
     o.add(parts, glow);
-    o.userData.ms = { parts, glow, T, trail: Array.from({ length: 8 }, () => ({ p: new THREE.Vector3(), at: -1 })), born: performance.now(), dir: new THREE.Vector3(0, 0, 1) };
-    return o;
+    o.userData.ms = { parts, glow, T, path: Array.from({ length: 16 }, () => ({ p: new THREE.Vector3(), s: 0 })), pathN: 0, born: performance.now(), dir: new THREE.Vector3(0, 0, 1) };
+    return fxOnly(o); // additive and tiny: kept out of the AO and depth-of-field passes (the game has neither)
   }
   const lin = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace);
   const ARROW = (() => {
@@ -1020,28 +1028,32 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   const msQ = new THREE.Quaternion(), msObj = new THREE.Object3D(), msWp = new THREE.Vector3(), msTv = new THREE.Vector3();
   function stepMagicSphere(o, now) {
-    const d = o.userData.ms, T = d.T, t = now - d.born;
-    o.getWorldPosition(msWp); o.getWorldQuaternion(msQ).invert();
-    if (d.trail[0].at < 0) for (const e of d.trail) { e.p.copy(msWp); e.at = 0; } // the game starts every sample at the launch spot
-    if (t - d.trail[0].at >= T.trail) { const e = d.trail.pop(); e.p.copy(msWp); e.at = t; d.trail.unshift(e); }
-    d.glow.quaternion.copy(camera.quaternion);
-    const sec = t / 1000;
+    const d = o.userData.ms, T = d.T, P = d.path, gap = T.gap * MS_K, sec = (now - d.born) / 1000;
+    o.getWorldPosition(msWp); o.getWorldQuaternion(msQ).invert(); // msQ undoes any turn of the parents: the game's group is never turned
+    // the path the head has flown, a point every ~0.4 gap; the tail grows out of the launch spot and keeps its length when the head stops
+    if (d.pathN === 0) { P[0].p.copy(msWp); P[0].s = 0; d.pathN = 1; }
+    else { const st = msWp.distanceTo(P[0].p); if (st >= gap * 0.4) { const e = P.pop(); e.p.copy(msWp); e.s = P[0].s + st; P.unshift(e); d.pathN = Math.min(P.length, d.pathN + 1); } }
+    const S = P[0].s + msWp.distanceTo(P[0].p);
+    d.glow.quaternion.copy(msQ).multiply(camera.quaternion); // world rotation = the camera's, as the game's q.quaternion.copy(camera.quaternion)
     for (let i = 0; i < 7; i++) {
       const a = i / 6;
       msObj.position.set(0, 0, 0);
-      if (i > 0) { // trailing pieces sit where the head was a moment ago, with a little wobble
-        // where the head was i trail-steps ago, sliding between the two samples around that moment (the game's way)
-        const want = Math.max(0, t - i * T.trail); let newer = msWp, newerAt = t;
-        for (const e of d.trail) { if (e.at <= want) { msTv.copy(e.p).lerp(newer, newerAt === e.at ? 0 : (want - e.at) / (newerAt - e.at)); break; } newer = e.p; newerAt = e.at; msTv.copy(e.p); }
-        msObj.position.copy(msTv).sub(msWp).applyQuaternion(msQ);
-        msObj.position.x += Math.sin(13 * sec - 1.7 * i) * a * 0.055 * MS_K; msObj.position.y += Math.cos(11 * sec - 1.7 * i) * a * 0.055 * MS_K;
+      if (i > 0) { // piece i sits i gaps back along the path (the game: where the head was i trail intervals ago), sliding between points
+        const want = Math.max(0, S - i * gap); let newer = msWp, newerS = S;
+        msTv.copy(P[d.pathN - 1].p);
+        for (let k = 0; k < d.pathN; k++) { const e = P[k]; if (e.s <= want) { msTv.copy(e.p).lerp(newer, newerS === e.s ? 0 : (want - e.s) / (newerS - e.s)); break; } newer = e.p; newerS = e.s; }
+        msTv.sub(msWp); // world offset, then the game's wobble on WORLD x / y, then into the group's frame
+        msTv.x += Math.sin(13 * sec - 1.7 * i) * a * 0.055 * MS_K; msTv.y += Math.cos(11 * sec - 1.7 * i) * a * 0.055 * MS_K;
+        msObj.position.copy(msTv).applyQuaternion(msQ);
       }
-      const sc = (i === 0 ? 0.1125 : 0.075 * (1 - 0.8 * a)) * T.size * MS_K; // the game's: head 0.1125, trail 0.065 down to 0.015
+      const sc = (i === 0 ? 0.1125 : 0.075 * (1 - 0.8 * a)) * T.size * MS_K;
       msObj.scale.set(sc, sc, sc * (i === 0 ? 1.3 : 1.6));
-      msObj.quaternion.identity(); msObj.rotateZ(4 * sec + i); msObj.updateMatrix(); d.parts.setMatrixAt(i, msObj.matrix);
+      // the head points along the flight (setFromUnitVectors(X, Y)); the trail pieces keep WORLD axes; all spin about their z
+      if (i === 0) msObj.quaternion.setFromUnitVectors(MS_Z, d.dir).premultiply(msQ); else msObj.quaternion.copy(msQ);
+      msObj.rotateZ(4 * sec + i); msObj.updateMatrix(); d.parts.setMatrixAt(i, msObj.matrix);
     }
     d.parts.instanceMatrix.needsUpdate = true;
-    d.glow.material.uniforms.uTime.value = now / 1000; // the ring's pulse runs on the clock, as the game's does
+    d.glow.material.uniforms.uTime.value = now / 1000;
   }
   // the burst where a spell lands: seven pieces fly apart in a ring and shrink, the glow swells (blast) or fades (missile)
   const msBursts = [];
@@ -1062,6 +1074,83 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       }
       d.parts.instanceMatrix.needsUpdate = true;
     }
+  }
+  // ---- spell flight: the sim moves spells 30 times a second, rounded to 0.1; the game moves its spell every frame. Spells are
+  // drawn one sim tick behind, sliding between ticks, on a clock that runs with the sim (main.js: acc += dt * (slowmo > 0 ? 0.3 : 1))
+  let spTick = -1, spRT = 0, spSlow = 0;
+  function spellClock(view, dt, frozen) {
+    const vt = Math.round((view.t || 0) * 30);
+    if (spTick < 0 || vt < spTick || vt - spTick > 8) spRT = vt - 1; // first frame, a new run, or a long gap
+    else if (!frozen) { spRT += dt * 30 * (spSlow > 0 ? 0.3 : 1); spSlow -= dt; }
+    spTick = vt;
+    spRT = view.alpha !== undefined ? vt - 1 + view.alpha : Math.min(vt, Math.max(vt - 1, spRT));
+    return vt;
+  }
+  function spellSample(u, g, x, y, z, a) { // a sim position for this spell, once per tick: [g0 -> g1] is the segment being drawn
+    if (u.g1 === g) return;
+    if (u.g1 === undefined) { u.g0 = g - 1; u.x0 = x; u.y0 = y; u.z0 = z; u.a0 = a; }
+    else { u.g0 = u.g1; u.x0 = u.x1; u.y0 = u.y1; u.z0 = u.z1; u.a0 = u.a1; }
+    u.g1 = g; u.x1 = x; u.y1 = y; u.z1 = z; u.a1 = a;
+  }
+  function spellDraw(o) { // place the spell where it was at sim tick spRT; the group is never turned, only the head aims
+    const u = o.userData, f = u.g1 > u.g0 ? Math.min(1, Math.max(0, (spRT - u.g0) / (u.g1 - u.g0))) : 1;
+    const yaw = u.a0 + Math.atan2(Math.sin(u.a1 - u.a0), Math.cos(u.a1 - u.a0)) * f, h = Math.hypot(u.x1 - u.x0, u.z1 - u.z0), p = h > 1e-3 ? Math.atan2(u.y1 - u.y0, h) : 0;
+    o.position.set(u.x0 + (u.x1 - u.x0) * f, u.y0 + (u.y1 - u.y0) * f, u.z0 + (u.z1 - u.z0) * f); o.rotation.set(0, 0, 0);
+    o.children[0].userData.ms.dir.set(Math.sin(yaw) * Math.cos(p), Math.sin(p), Math.cos(yaw) * Math.cos(p));
+    o.updateMatrixWorld();
+  }
+  // this frame's sim hits, for matching a spell that left the sim to what it struck
+  const spFx = { dmg: [], hurt: [], burst: [], volley: [] };
+  function actorAt(x, z) { // the drawn monster at a sim spot (one just killed is already among the corpses)
+    let best = null, bd = 2.25;
+    for (const a of actors.values()) { const d = (a.px - x) ** 2 + (a.pz - z) ** 2; if (d < bd) { bd = d; best = a; } }
+    for (const c of corpses) { const d = (c.a.px - x) ** 2 + (c.a.pz - z) ** 2; if (d < bd) { bd = d; best = c.a; } }
+    return best;
+  }
+  function hitCentre(px, pz, max2) { // the monster a hit near (px, pz) landed on, at its middle (the game aims at its combat centre)
+    let h = null, hd = max2; for (const f of spFx.dmg) { const d = (f.x - px) ** 2 + (f.z - pz) ** 2; if (d < hd) { hd = d; h = f; } }
+    if (!h) return null;
+    const a = actorAt(h.x, h.z);
+    return a ? { x: a.px, y: a.root.position.y + (ENEMIES[a.type].h || 1.8) * (a.base || 1) * 0.5, z: a.pz } : { x: h.x, y: groundAt(h.x, h.z) + 0.9, z: h.z };
+  }
+  function spellRing(x, z, r, col) { // the staff's splash area: a thin edge in the spell's colour (the game's spells have no splash)
+    const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.93, r, 48).rotateX(-Math.PI / 2), ringMat(col));
+    ring.position.set(x, groundAt(x, z) + 0.14, z); addEffect(ring, 0.3, 0.12);
+  }
+  // a spell that left the sim: if it hit, it flies the last stretch into the target's middle and bursts there (the game's head
+  // lerps to the target's combat centre and bursts on it); if it flew out its life or hit a wall it just goes, as the game's does
+  function spellLand(o, vt, bolt) {
+    const u = o.userData;
+    if (!u.land) {
+      const n = Math.max(1, u.g1 - u.g0), px = u.x1 + (u.x1 - u.x0) / n, pz = u.z1 + (u.z1 - u.z0) / n; // one tick on from its last spot
+      let L = null;
+      if (bolt) L = hitCentre(px, pz, 12);
+      else { let h = null, hd = 2.8; for (const f of spFx.hurt) { const d = (f.x - px) ** 2 + (f.z - pz) ** 2; if (d < hd) { hd = d; h = f; } }
+        if (h) { const pa = playerActors.get(h.id), x = pa && pa.px !== undefined ? pa.px : h.x, z = pa && pa.pz !== undefined ? pa.pz : h.z; L = { x, y: groundAt(x, z) + 0.8, z }; } } // a person's middle (ours stand 1.6)
+      if (!L) return false;
+      if (bolt) { let bd = 1.2; for (const f of spFx.burst) if (!f.used) { const d = (f.x - px) ** 2 + (f.z - pz) ** 2; if (d < bd) { bd = d; L.ring = f; } } if (L.ring) L.ring.used = true; }
+      u.land = L;
+      const step = Math.max(0.05, Math.hypot(u.x1 - u.x0, u.z1 - u.z0) / n), far = Math.hypot(L.x - u.x1, L.y - u.y1, L.z - u.z1); // in at its own speed
+      spellSample(u, Math.max(vt, u.g1 + Math.min(8, Math.max(1, Math.round(far / step)))), L.x, L.y, L.z, Math.atan2(L.x - u.x1, L.z - u.z1));
+    }
+    spellDraw(o); stepMagicSphere(o.children[0], performance.now());
+    if (spRT < u.g1) return true; // still on its way in
+    magicBurst(u.land.x, u.land.y, u.land.z, u.spell.col, u.spell.tier); if (u.land.ring) spellRing(u.land.ring.x, u.land.ring.z, u.land.ring.r, u.spell.col);
+    return false;
+  }
+  function spellStray(f, players) { // a staff bolt that hit in the tick it was cast (point blank) was never drawn: burst on what it hit
+    let c = null, cd = 1e9; for (const p of players) if (p.al) { const d = (p.x - f.x) ** 2 + (p.z - f.z) ** 2; if (d < cd) { cd = d; c = p; } }
+    const s = staffSpell((c && c.w && c.w.staff) || 1, !!(c && c.evo && c.evo.staff)), L = hitCentre(f.x, f.z, 9) || { x: f.x, y: groundAt(f.x, f.z) + 0.9, z: f.z };
+    magicBurst(L.x, L.y, L.z, s.col, s.tier); spellRing(f.x, f.z, f.r, s.col);
+  }
+  // SankoQuest's spell flies straight at its target's middle; ours flies 1.3 up, so over its last 3 u it eases to the middle
+  // of the monster ahead of it (a chicken's 0.33, a boss's 2-3) and lands without a dive
+  function boltY(x, z, ang) {
+    const g = groundAt(x, z) + 1.3, sx = Math.sin(ang), sz = Math.cos(ang); let best = null, bd = 1e9;
+    for (const a of actors.values()) { const def = ENEMIES[a.type], dx = a.px - x, dz = a.pz - z, along = dx * sx + dz * sz; if (!def || along <= 0 || along > 4 + def.r || along >= bd || Math.abs(dx * sz - dz * sx) > def.r + 0.5) continue; bd = along; best = a; }
+    if (!best) return g;
+    const def = ENEMIES[best.type], k = Math.min(1, Math.max(0, 1 - (Math.hypot(best.px - x, best.pz - z) - 0.5 - def.r) / 3));
+    return g + (best.root.position.y + (def.h || 1.8) * (best.base || 1) * 0.5 - g) * k;
   }
   const shieldObjs = new Map(); // `${playerId}:${i}` -> object
   const dyn = new THREE.Group(); dyn.name = 'dyn'; scene.add(dyn);
@@ -1159,12 +1248,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const mat = new THREE.ShaderMaterial({
       uniforms: { uColor: { value: new THREE.Color(color).multiplyScalar(1.3) }, uOp: { value: opacity } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: `uniform vec3 uColor; uniform float uOp; varying vec2 vUv;
+      fragmentShader: colorOut(`uniform vec3 uColor; uniform float uOp; varying vec2 vUv;
         void main(){ vec2 p = vUv * 2.0 - 1.0; float r = length(p);
           float band = 1.0 - smoothstep(0.0, ${(half * 1.6).toFixed(4)}, abs(r - ${mid.toFixed(4)})); band *= band;
           float a = band + ${fill.toFixed(3)} * (1.0 - smoothstep(${(mid * 0.4).toFixed(4)}, ${mid.toFixed(4)}, r));
           ${arcs ? `a *= pow(fract((atan(p.y, p.x + 1e-5) / 6.2831853 + 0.5) * ${arcs.toFixed(1)}), 1.8);` : ''}
-          a *= uOp * (1.0 - smoothstep(0.92, 1.0, r)); gl_FragColor = vec4(uColor * a, a); }`,
+          a *= uOp * (1.0 - smoothstep(0.92, 1.0, r)); gl_FragColor = vec4(uColor * a, a); }`),
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     });
     return fxOnly(new THREE.Mesh(new THREE.PlaneGeometry(R * 2, R * 2).rotateX(-Math.PI / 2), mat));
@@ -1179,7 +1268,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const fireFloorMat = new THREE.ShaderMaterial({
     uniforms: { uTime: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: `uniform float uTime; varying vec2 vUv;
+    fragmentShader: colorOut(`uniform float uTime; varying vec2 vUv;
       float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
       void main(){
@@ -1193,7 +1282,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         col = mix(col, vec3(1.0, 0.92, 0.62), clamp((heat - 0.75) * 2.2, 0.0, 1.0));
         float al = clamp(heat, 0.0, 1.0) * (1.0 - smoothstep(1.02, 1.12, r));
         gl_FragColor = vec4(col * al, al);
-      }`,
+      }`),
   });
   const flameTex = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 128; const g = c.getContext('2d');
     const gr = g.createRadialGradient(32, 100, 2, 32, 82, 58); gr.addColorStop(0, 'rgba(255,244,200,1)'); gr.addColorStop(0.25, 'rgba(255,190,70,0.95)'); gr.addColorStop(0.6, 'rgba(255,90,20,0.6)'); gr.addColorStop(1, 'rgba(180,30,5,0)');
@@ -1221,7 +1310,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const slashMat = (color) => new THREE.ShaderMaterial({
     uniforms: { uProg: { value: 0 }, uColor: { value: new THREE.Color(color).multiplyScalar(1.6) }, uArc: { value: 1 }, uIn: { value: 0.25 } },
     vertexShader: 'varying vec2 vP; void main(){ vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: `uniform float uProg, uArc, uIn; uniform vec3 uColor; varying vec2 vP;
+    fragmentShader: colorOut(`uniform float uProg, uArc, uIn; uniform vec3 uColor; varying vec2 vP;
       void main(){
         float r = length(vP); float ang = atan(-vP.y, vP.x + 1e-5); // ring angle 0 is +X
         float t = (ang + uArc * 0.5) / uArc;            // 0..1 across the swing
@@ -1231,7 +1320,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         float edge = smoothstep(0.86, 0.97, r) * (1.0 - smoothstep(0.97, 1.0, r));
         float a = (trail * radial * 0.75 + edge * trail * 1.2) * (1.0 - uProg * 0.6);
         gl_FragColor = vec4(uColor * (1.0 + edge), a);
-      }`,
+      }`),
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
   });
   function slashFx(x, z, a, range, arcDeg, lvl) {
@@ -1260,7 +1349,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const splashMat = (color, kind) => new THREE.ShaderMaterial({
     uniforms: { uProg: { value: 0 }, uColor: { value: new THREE.Color(color).multiplyScalar(1.35) }, uKind: { value: kind }, uSeed: { value: Math.random() * 50 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: `uniform float uProg, uKind, uSeed; uniform vec3 uColor; varying vec2 vUv;
+    fragmentShader: colorOut(`uniform float uProg, uKind, uSeed; uniform vec3 uColor; varying vec2 vUv;
       float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7)) + uSeed) * 43758.5453); }
       float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
       void main(){
@@ -1276,7 +1365,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         float alpha = (rim * 1.15 + fill + streak * 0.7 + fleck * 0.7 + core * 1.1) * (1.0 - smoothstep(0.5, 1.0, t)) * step(r, 1.0);
         vec3 col = mix(uColor, vec3(1.0), clamp(core * 0.85 + rim * 0.3 * (1.0 - t), 0.0, 1.0));
         gl_FragColor = vec4(col * alpha, alpha);
-      }`,
+      }`),
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
   });
   function ringFx(x, z, r, color, kind = 0, life = 0.45) {
@@ -1307,7 +1396,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     transparent: true, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     uniforms: { uProg: { value: 0 }, uTime: { value: 0 }, uCol: { value: new THREE.Color(0xff3b2f) } },
     vertexShader: 'varying vec2 vP; void main(){ vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: `uniform float uProg, uTime; uniform vec3 uCol; varying vec2 vP;
+    fragmentShader: colorOut(`uniform float uProg, uTime; uniform vec3 uCol; varying vec2 vP;
       void main(){
         float r = length(vP); if (r > 1.0) discard;
         float ang = atan(vP.y, vP.x + 1e-5);
@@ -1322,7 +1411,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         float body = filled * (0.14 + 0.16 * uProg);
         float a = clamp(rimA + inner + body + front * 0.75 + stripes, 0.0, 1.0);
         gl_FragColor = vec4(hot * (0.9 + front * 0.45 + rim * 0.25), a);
-      }`,
+      }`),
   });
   const hazardPool = Array.from({ length: 16 }, () => {
     const g = new THREE.Group(); g.visible = false;
@@ -1546,13 +1635,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     if (curMap.world && view.region && (!skyMap || skyMap.id !== view.region)) { skyMap = MAPS.find((mm) => mm.id === view.region) || null; if (settingsReady) applyTime(); }
     time += dt; if (waterMat.userData.sh) waterMat.userData.sh.uniforms.uTime.value = time;
     const me = view.players.find((p) => p.id === localId) || view.players[0];
+    spFx.dmg.length = spFx.hurt.length = spFx.burst.length = spFx.volley.length = 0;
+    const vt = spellClock(view, dt, !!view.over || (!!view.pending && Object.keys(view.pending).length > 0)); // the sim holds still while a card is up
     if (me) { cam.x += (me.x - cam.x) * Math.min(1, dt * 10); cam.z += (me.z - cam.z) * Math.min(1, dt * 10); }
 
     // effects from sim
     for (const f of view.fx) {
-      if (f.k === 'dmg') { number(f.x, f.z, f.v, f.c, f.c ? '#ffd34d' : '#ffffff'); spark(f.x, f.z, f.c); }
-      else if (f.k === 'hurt') { number(f.x, f.z, '-' + f.v, 0, '#ff5a4d'); cam.shake = 0.35; cam.flash = 0.3; }
-      else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; }
+      if (f.k === 'dmg') { number(f.x, f.z, f.v, f.c, f.c ? '#ffd34d' : '#ffffff'); spark(f.x, f.z, f.c); spFx.dmg.push(f); }
+      else if (f.k === 'hurt') { number(f.x, f.z, '-' + f.v, 0, '#ff5a4d'); cam.shake = 0.35; cam.flash = 0.3; spFx.hurt.push(f); }
+      else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; spSlow = 0.9; } // spSlow: main.js slows the sim 0.3x for 0.9 s here
       else if (f.k === 'die') { pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
       else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'shrine-done') { const c = SHRINE_COLORS[f.kind] || 0xffffff; ringFx(f.x, f.z, 4, c, 1, 0.7); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 50, 6, { s: 1, life: 1.1, color: c, up: 9 }); cam.shake = Math.max(cam.shake, 0.2); }
@@ -1568,9 +1659,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'spin') { slashFx(f.x, f.z, 0, f.range, 360, f.evo ? 6 : f.lvl); ringFx(f.x, f.z, f.range, f.evo ? 0xff5a4a : 0xfff0b8); const pa = playerActors.get(localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'slam') { ringFx(f.x, f.z, f.r, f.meteor ? 0xff9a3c : 0xff6a3a, 1, 0.5); ringFx(f.x, f.z, f.r * 0.6, 0xffc06a, 0, 0.35); scorchFx(f.x, f.z, f.r); emit(f.x, groundAt(f.x, f.z) + 0.3, f.z, 40, 7, { s: 1.4, life: 0.7, color: 0xb8a58a, up: 3 }); cam.shake = Math.max(cam.shake, 0.45); }
       else if (f.k === 'aim') aimFx(f.x, f.z, f.a, f.len, f.t);
-      else if (f.k === 'volley') emit(f.x, groundAt(f.x, f.z) + 2, f.z, 14, 4, { s: 1, life: 0.4, color: f.art === 'ice' ? 0x9fe6ff : 0xff8a3a, up: 2 });
+      else if (f.k === 'volley') spFx.volley.push(f); // where the boss stood: its shots start there (the game shows no cast puff; the cast sound stays in audio.js)
       else if (f.k === 'quake') { ringFx(f.x, f.z, f.r, 0xd9b36a); crackFx(f.x, f.z, f.r); cam.shake = Math.max(cam.shake, 0.18); }
-      else if (f.k === 'burst') { const c = f.evo ? 0xb25cff : 0x8fd8ff; ringFx(f.x, f.z, f.r, c, 1); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 12, 4, { s: 0.8, life: 0.4, color: c, up: 2.5, g: 3 }); }
+      else if (f.k === 'burst') spFx.burst.push(f); // the staff's splash: a thin ring in the spell's colour when the bolt lands (spellLand)
       else if (f.k === 'boss') cam.shake = 0.5;
       else if (f.k === 'nuke') { ringFx(f.x, f.z, f.r, 0xff9a3c, 1, 0.7); ringFx(f.x, f.z, f.r * 0.55, 0xfff2a8, 0, 0.45); scorchFx(f.x, f.z, f.r * 0.8); cam.shake = 0.4; }
       else if (f.k === 'evolve') { cam.shake = 0.3; if (me) levelFx(me.x, me.z); }
@@ -1693,7 +1784,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       seenE.add(id);
       let a = actors.get(id);
       if (!a) {
-        a = makeEnemy(type); a.px = x; a.pz = z; a.base = 1; dyn.add(a.root); actors.set(id, a);
+        a = makeEnemy(type); a.type = type; a.px = x; a.pz = z; a.base = 1; dyn.add(a.root); actors.set(id, a);
         if (elite) { // golden elite: bigger, with a gold halo on the ground
           a.base = 1.35; const halo = softRing(0xffd34d, 0.72, 1.02, { opacity: 0.75, fill: 0.1, arcs: 2 }); halo.position.y = 0.06; a.root.add(halo); a.halo = halo;
         }
@@ -1741,20 +1832,24 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const rock = m.userData.rock; rock.visible = !!h[4];
       if (h[4]) { rock.position.set(0, (1 - h[3]) * 26 / h[2], 0); rock.scale.setScalar(0.9 / h[2]); if (Math.random() < 0.6) emit(h[0], m.position.y + (1 - h[3]) * 26, h[1], 1, 0.6, { s: 1.4, life: 0.4, color: 0xff7a30, up: 1.5, g: 0 }); }
     }
-    // monster projectiles (fire and ice)
+    // monster projectiles (fire and ice): SankoQuest's Blast spell (owner 3 Nov: "collosues projectile just a ball")
     const seenEp = new Set();
     for (const b of view.eproj || []) {
       seenEp.add(b[0]); let o = eprojObjs.get(b[0]);
-      if (!o) { // a boss's volley is a SankoQuest Blast spell (owner 3 Nov: "collosues projectile just a ball"): ice or fire
-        const col = b[3] === 'ice' ? 0x9fe6ff : SPELL_ELEMENT.fire; o = new THREE.Group();
-        o.add(magicSphere(col, 'blast')); o.userData.spell = { col, tier: 'blast' }; o.userData.col = col; dyn.add(o); eprojObjs.set(b[0], o);
+      if (!o) {
+        const col = b[3] === 'ice' ? SPELL_ELEMENT.air : SPELL_ELEMENT.fire; o = new THREE.Group();
+        o.add(magicSphere(col, 'blast')); o.userData.spell = { col, tier: 'blast' }; dyn.add(o); eprojObjs.set(b[0], o);
+        let v = null, vd = 9; for (const f of spFx.volley) { const d = (f.x - b[1]) ** 2 + (f.z - b[2]) ** 2; if (d < vd) { vd = d; v = f; } }
+        o.userData.ox = v ? v.x : b[1]; o.userData.oz = v ? v.z : b[2]; // it left the boss this tick: start it there
+        if (v) spellSample(o.userData, vt - 1, v.x, groundAt(v.x, v.z) + 1.3, v.z, Math.atan2(b[1] - v.x, b[2] - v.z));
       }
-      const ny = groundAt(b[1], b[2]) + 1.3, dx = b[1] - o.position.x, dz = b[2] - o.position.z;
-      if (o.userData.placed && dx * dx + dz * dz > 1e-6) o.rotation.y = Math.atan2(dx, dz); // the head points where it flies
-      o.position.set(b[1], ny, b[2]); o.userData.placed = true; o.updateMatrixWorld(); stepMagicSphere(o.children[0], performance.now());
-      if (Math.random() < 0.5) emit(b[1], ny, b[2], 1, 0.4, { s: 0.6, life: 0.3, color: o.userData.col, up: 0.3, g: 0 });
+      // a straight shot: aim along boss -> now (the rounded per-tick step swung the head up to ~25 degrees)
+      const u = o.userData, hx = b[1] - u.ox, hz = b[2] - u.oz;
+      spellSample(u, vt, b[1], groundAt(b[1], b[2]) + 1.3, b[2], hx * hx + hz * hz > 1e-4 ? Math.atan2(hx, hz) : (u.a1 ?? 0));
+      spellDraw(o); stepMagicSphere(o.children[0], performance.now());
     }
-    for (const [id, o] of eprojObjs) if (!seenEp.has(id)) { if (o.userData.spell) magicBurst(o.position.x, o.position.y, o.position.z, o.userData.spell.col, 'blast'); dyn.remove(o); eprojObjs.delete(id); }
+    for (const [id, o] of eprojObjs) if (!seenEp.has(id) && !spellLand(o, vt, false)) { dyn.remove(o); eprojObjs.delete(id); }
+
 
     // projectiles
     const seenPr = new Set();
@@ -1765,8 +1860,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (!o) {
         o = new THREE.Group(); dyn.add(o); projObjs.set(id, o);
         if (art === 'bolt') { // the staff's spell: SankoQuest's magic sphere in the shard's element colour
-          const { col, tier } = staffSpell(lvl, evo);
+          const { col, tier } = staffSpell(lvl, evo, id);
           o.add(magicSphere(col, tier)); Object.assign(o.userData, { spell: { col, tier } });
+          // it left its caster this tick: start the flight there, so the tail grows out of the caster as the game's does
+          let c = null, cd = 4; for (const p of view.players) if (p.al) { const d = (p.x - x) ** 2 + (p.z - z) ** 2; if (d < cd) { cd = d; c = p; } }
+          if (c) spellSample(o.userData, vt - 1, c.x, groundAt(c.x, c.z) + 1.3, c.z, ang);
         } else if (art === 'arrow') {
           o.add(arrowOf(mt)); // SankoQuest's flying arrow, as the live game draws it, with the head in the arrows' metal
           Object.assign(o.userData, evo ? { trail: 0x9fe6ff, every: 0.5 } : { trail: 0xb89a6a, every: 0.7 }); // the glacial bow's frost, or a little dust
@@ -1786,16 +1884,18 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           Object.assign(o.userData, { trail: evo ? 0x7fe0ff : 0xffd38a, every: 0.35 });
         }
       }
-      o.position.set(x, groundAt(x, z) + (art === 'bolt' ? 1.3 : 1.0), z); // spells fly about 1.3 up, as the game's
-      if (art === 'axe') { if (o.userData.spinner2) o.userData.spinner2.rotation.y = spin; if (o.userData.blur) o.userData.blur.rotation.y = spin; o.rotation.y = 0; } else o.rotation.y = ang;
+      if (o.userData.spell) { // spells fly about 1.3 up, as the game's, slide between sim ticks, and are never turned (only the head aims)
+        if (o.userData.g1 !== vt) spellSample(o.userData, vt, x, boltY(x, z, ang), z, ang);
+        spellDraw(o); stepMagicSphere(o.children[0], performance.now());
+      } else {
+        o.position.set(x, groundAt(x, z) + 1.0, z);
+        if (art === 'axe') { if (o.userData.spinner2) o.userData.spinner2.rotation.y = spin; if (o.userData.blur) o.userData.blur.rotation.y = spin; o.rotation.y = 0; } else o.rotation.y = ang;
+      }
       if (o.userData.spinner) o.userData.spinner.rotation.z += dt * 12;
-      if (o.userData.spell) { o.updateMatrixWorld(); stepMagicSphere(o.children[0], performance.now()); }
       if (o.userData.trail && Math.random() < o.userData.every) emit(x, o.position.y, z, 1, 0.3, { s: art === 'bolt' ? 0.7 : 0.45, life: 0.35, color: o.userData.trail, up: 0.25, g: 0 });
     }
-    for (const [id, o] of projObjs) if (!seenPr.has(id)) {
-      if (o.userData.spell) magicBurst(o.position.x, o.position.y, o.position.z, o.userData.spell.col, o.userData.spell.tier);
-      dyn.remove(o); projObjs.delete(id);
-    }
+    for (const [id, o] of projObjs) if (!seenPr.has(id) && !(o.userData.spell && spellLand(o, vt, true))) { dyn.remove(o); projObjs.delete(id); }
+    for (const f of spFx.burst) if (!f.used) spellStray(f, view.players); // a bolt that hit in the tick it was cast was never drawn
     stepMagicBursts(performance.now());
 
     // shrines: SankoQuest's altar, a pillar of light in the shrine's colour, and a circle that fills as you charge it
@@ -1906,6 +2006,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const p of parts) p.life = 0;
     for (const a of folkActors.values()) entGroup.remove(a.root); folkActors.clear(); folkT = 0;
     for (const o of eprojObjs.values()) dyn.remove(o); eprojObjs.clear(); for (const h of hazardPool) h.visible = false;
+    spTick = -1;
     cam.x = curMap.cx; cam.z = curMap.cz;
   }
   return { hop: () => { hopReq = true; }, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v) { cam.shift = v; }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },

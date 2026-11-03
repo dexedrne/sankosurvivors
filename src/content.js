@@ -171,6 +171,9 @@ export const PASSIVES = {
   crit:    { name: 'Amanita',       item: 'Amanita',       blurb: '+5% critical chance per level; critical hits hit harder too.' },
   thorns:  { name: 'Scorpion Carapace', item: 'Scorpion Carapace', blurb: 'Monsters that hit you take 8 damage per level back.' },
   greed:   { name: 'Rusty Key',     item: 'Rusty Key',     blurb: '+15% coins and more reward caskets per level.' },
+  // owner 3 Nov: "we need item thats like curse to make more monsters": risk for reward. Casual only: in a kills-per-minute
+  // race it would multiply the score for whoever happened to be offered the card. Pace 1 (ranked week 0) never sees it.
+  curse:   { name: 'Pumpkin Head',  item: 'Pumpkin Head',  pace: 2, casual: true, blurb: 'Cursed: per level, monsters come 15% faster, 8% more of them at once, with 8% more health and 6% more damage. More kills, more experience, more coins.' },
 };
 export const ARMOR_TIERS = ['Bronze', 'Iron', 'Steel', 'Mithril', 'Adamantite', 'Runite'];
 // Real item name to show for a passive at a level.
@@ -253,6 +256,12 @@ export const weaponItemLabel = (name) => { const w = WEAPON_ITEMS[name]; return 
 export function gemItem() { return 'Air Shard'; }
 export const GEM_COLORS = { 'Air Shard': 0xb8e4ff, 'Water Shard': 0x4aa8ff, 'Earth Shard': 0x7bd04f, 'Fire Shard': 0xff7a30, 'Void Shard': 0xb25cff };
 export const PASSIVE_IDS = Object.keys(PASSIVES);
+/** the passives a run can be offered: pace 1 knows only the ones from before the 9 Nov rules, ranked runs skip casual-only ones */
+export const passiveIdsAt = (pace, ranked = false) => PASSIVE_IDS.filter((id) => !(PASSIVES[id].pace > (pace || 1)) && !(ranked && PASSIVES[id].casual));
+// the Pumpkin Head's curse per level: spawn rate, how many monsters can be out at once, and their health and damage. More
+// monsters alone was a free power-up (balance bot, 144 runs: wins 50% -> 67% at level 5, from the extra experience), so
+// the cursed ones are tougher too; the reward is the kills (experience, coins, kills per minute)
+export const CURSE = { rate: 0.15, cap: 0.08, hp: 0.08, dmg: 0.06 };
 
 // ---- evolutions: a weapon at its last level plus a passive (any level) can evolve ------------------------
 export const EVOLUTIONS = {

@@ -21,7 +21,7 @@ Hey Sanko team 👋 thanks for checking it out. Here's what's in it:
 
 - **The real world.** SankoQuest's own map, buildings, trees, NPCs, gear and sounds, taken from the game itself.
 - **9 maps** with their own monsters, bosses and events. There are 25 monsters and 5 bosses in all.
-- **10 weapons, 12 passives and 10 evolutions.** Weapons climb the metal tiers from Bronze to Runite.
+- **10 weapons, 13 passives and 10 evolutions.** One passive, the Pumpkin Head, is a curse: more and tougher monsters, for more kills (casual only). Weapons climb the metal tiers from Bronze to Runite.
 - **Ranked weekly runs** for $DMT on Arbitrum. One map a week, everyone starts equal, and every run is replayed on the server so only real play counts.
 - Leaderboards, quests, gear from reward caskets, and permanent upgrades bought with coins.
 - It plays on desktop and phones, and installs like an app.

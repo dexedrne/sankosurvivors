@@ -1,7 +1,7 @@
 // Game simulation. No DOM, no three.js: runs in node (tests) and in the host's browser.
 import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in every browser and on the server (ranked replays)
 import {
-  ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS,
+  ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
   ADVENTURER_BY_ID, EVOLUTIONS, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll,
   weaponSlotItem,
@@ -21,11 +21,11 @@ export function mulberry32(a) {
 
 const hyp = dhypot;
 
-export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2 } = {}) {
+export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false } = {}) {
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
   const sim = {
-    seed, rng, map, hard, meta, endless, endAt, pace, t: 0, tick: 0, nextId: 1,
+    seed, rng, map, hard, meta, endless, endAt, pace, ranked: !!ranked, t: 0, tick: 0, nextId: 1,
     // veterans (owner 3 Nov: "regular mode feels too easy"): each permanent skill rank makes casual monsters 1.5% tougher
     // and harder-hitting, to +60% at 40 ranks, with a few more of them. A new player is untouched; ranked has no skills.
     vet: 1, // set below once the players (and the gear they wear) are in // pace: 2 the denser crowd of 3 Nov, 1 the 2 Nov one (ranked week 0)
@@ -282,7 +282,7 @@ function killEnemy(sim, e, owner) {
 export function spawnEnemy(sim, type, x, z, scaleHp = 1) {
   const def = ENEMIES[type];
   const t = sim.t;
-  const hp = def.hp * (1 + t / (sim.pace >= 2 ? 240 : 300)) * (sim.pace >= 2 ? sim.vet : 1) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
+  const hp = def.hp * (1 + t / (sim.pace >= 2 ? 240 : 300)) * (sim.pace >= 2 ? sim.vet * (1 + CURSE.hp * (sim.curse || 0)) : 1) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
   // now and then a golden elite: much tougher, a little slower, and it always carries a reward casket
   const elite = !def.boss && scaleHp === 1 && t > 60 && sim.rng() < 0.012;
   sim.enemies.push({
@@ -325,8 +325,12 @@ function spawnTick(sim, dt) {
   // 2 Nov crowd (pace 1) thinned a run to two thirds of before (balance bot, 72 runs: average crowd 102 -> 68, damage
   // taken by 5:00 44 -> 19). Pace 2: the cap is back to the old 190 by 8:00, spawns ~4.8/s there (old 6.1, pace 1 3.7),
   // health and contact damage grow faster; the first two minutes stay gentle
-  const cap = sim.pace >= 2 ? 125 + 70 * (sim.spawnCount - 1) + 150 * progress : 75 + 70 * (sim.spawnCount - 1) + 155 * progress * progress;
-  const rate = ((sim.pace >= 2 ? (1.15 + 6.0 * progress + 3.0 * progress * progress) * (1 + 0.55 * (sim.vet - 1)) : 1.05 + 1.6 * progress + 6.4 * progress * progress) + Math.max(0, t - M.length) / 92)
+  // the Pumpkin Head's curse (pace 2): the most cursed player sets it for everyone
+  const curse = sim.pace >= 2 && !sim.ranked ? sim.players.reduce((a, p) => (p.alive ? Math.max(a, passiveLevel(p, 'curse')) : a), 0) : 0; sim.curse = curse;
+  const base = sim.pace >= 2 ? 125 + 70 * (sim.spawnCount - 1) + 150 * progress : 75 + 70 * (sim.spawnCount - 1) + 155 * progress * progress;
+  // cursed, the crowd fills up sooner but never past the late-game crowd (every monster is its own draw: phones)
+  const cap = curse ? Math.min(base * (1 + CURSE.cap * curse), 125 + 70 * (sim.spawnCount - 1) + 150) : base;
+  const rate = (1 + CURSE.rate * curse) * ((sim.pace >= 2 ? (1.15 + 6.0 * progress + 3.0 * progress * progress) * (1 + 0.55 * (sim.vet - 1)) : 1.05 + 1.6 * progress + 6.4 * progress * progress) + Math.max(0, t - M.length) / 92)
     * (0.7 + 0.45 * sim.spawnCount) * (sim.hard ? 1.35 : 1); // enemies per second
   sim.spawnAcc += rate * dt;
   if (sim.event && sim.event.kind === 'duel') sim.spawnAcc = Math.min(sim.spawnAcc, 0.5); // the crowd holds back while you duel
@@ -391,7 +395,7 @@ export function rollChoices(sim, p) {
     if (!lvl && Object.keys(p.weapons).length >= st.weaponSlots) continue;
     opts.push({ kind: 'weapon', id, level: lvl + 1, w: lvl ? 3 : 2 });
   }
-  for (const id of PASSIVE_IDS) {
+  for (const id of passiveIdsAt(sim.pace, sim.ranked)) {
     const lvl = p.passives[id] || 0;
     if (lvl >= MAX_PASSIVE_LEVEL) continue;
     if (!lvl && Object.keys(p.passives).length >= st.passiveSlots) continue;
@@ -406,6 +410,10 @@ export function rollChoices(sim, p) {
     for (; i < opts.length; i++) { if ((r -= opts[i].w) <= 0) break; }
     out.push(opts.splice(Math.min(i, opts.length - 1), 1)[0]);
   }
+  // the curse is a drawback you take on purpose: never the first card (the one the level-up timer and the controller's
+  // cursor start on), and when it is all that is left, a fish comes first (no rng: pace 1 never has it, so is unchanged)
+  if (out.length && out.every((c) => c.id === 'curse')) out.unshift({ kind: 'heal', id: 'fish', level: 1 });
+  else if (out.length > 1 && out.some((c) => c.id === 'curse')) out.sort((a, b) => (a.id === 'curse') - (b.id === 'curse'));
   if (!out.length) out.push({ kind: 'heal', id: 'fish', level: 1 });
   // pace 1 (ranked week 0): no rarity, one level a card, and no extra rolls, exactly as before
   if (!(sim.pace >= 2)) return out.map(({ kind, id, level }) => ({ kind, id, level }));
@@ -1007,7 +1015,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       e.face = datan2(dx, dz);
       if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure) {
         const st = playerStats(tp);
-        const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? (sim.pace >= 2 ? 0.8 : 0.7) : 1) * (1 + sim.t / (sim.pace >= 2 ? 750 : 1200)) * (sim.pace >= 2 ? sim.vet : 1) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
+        const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? (sim.pace >= 2 ? 0.8 : 0.7) : 1) * (1 + sim.t / (sim.pace >= 2 ? 750 : 1200)) * (sim.pace >= 2 ? sim.vet * (1 + CURSE.dmg * (sim.curse || 0)) : 1) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
         hurtPlayer(sim, tp, dmg, def.boss ? 'boss-contact' : 'contact');
         if (st.thorns > 0) { sim.src = 'thorns'; damageEnemy(sim, e, st.thorns * (1 + sim.t / 600), tp.id, 2.2, tp.x, tp.z); } // Scorpion Carapace
       }

@@ -67,7 +67,7 @@ const unlockedAdv = (a) => params.has('unlock') || a.unlock <= clearedMaps().siz
 const runAdv = () => ADVENTURER_BY_ID[(MAP_BY_ID[selMap] && MAP_BY_ID[selMap].forceAdv) || selAdv];
 
 // ---- icons: real SankoQuest item icons -----------------------------------------------------------------
-const EMOJI = { baseball: '⚾', lighter: '🔥', area: '🧥', amount: '🪶', crit: '🍄', thorns: '🦂', greed: '🗝️', greatsword: '⚔️', shortsword: '🗡️', katana: '🗡️', axe: '🪓', pickaxe: '⛏️', shield: '🛡️', bow: '🏹', staff: '🪄', might: '💪', haste: '💨', vigor: '❤️', boots: '👢', magnet: '🧲', armor: '🛡️', growth: '📖', fish: '🐟' };
+const EMOJI = { curse: '🎃', baseball: '⚾', lighter: '🔥', area: '🧥', amount: '🪶', crit: '🍄', thorns: '🦂', greed: '🗝️', greatsword: '⚔️', shortsword: '🗡️', katana: '🗡️', axe: '🪓', pickaxe: '⛏️', shield: '🛡️', bow: '🏹', staff: '🪄', might: '💪', haste: '💨', vigor: '❤️', boots: '👢', magnet: '🧲', armor: '🛡️', growth: '📖', fish: '🐟' };
 // upgrade icons are fetched a step ahead, so level-up cards never show up blank
 const iconsAsked = new Set();
 function preloadIcons(names) { for (const n of names) { if (!n || iconsAsked.has(n)) continue; iconsAsked.add(n); const im = new Image(); im.src = `${asset('')}ui/items/${itemIconFile(n)}`; } }
@@ -1396,6 +1396,7 @@ function loop(ts) {
     if (frame % 4 !== 0) return;
   }
   const view = snapshot(sim, { maxEnemies: 420 });
+  view.alpha = Math.min(1, Math.max(0, acc / TICK)); // where between sim ticks this frame is (the renderer slides spells by it)
   if (view.fx.some((f) => f.k === 'die' && f.boss)) slowmo = 0.9;
   audio.onFx(view.fx, mode === 'play' ? view : null, sim.map.world && view.region ? MAP_BY_ID[view.region].music : sim.map.music);
   const flash = renderer.update(view, mode === 'play' || mode === 'levelup' ? dt : 0.001, PLAYER);

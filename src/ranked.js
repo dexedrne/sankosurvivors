@@ -69,7 +69,7 @@ export function rankedSim({ seed, mapId, adv, ground, week, mode = 'normal' } = 
   if (!a || a.special || !Object.hasOwn(MAP_BY_ID, mapId) || !Number.isInteger(week) || !isRace(week, mode)) throw new Error('bad ranked run');
   const endless = true; // every ranked run is endless from this build on (week 0 too); week 0 still ranks by time
   // the crowd: week 0 keeps the pace it started on (2 Nov), the denser one of 3 Nov from week 1, so a week is one contest
-  return createSim({ seed, map: MAP_BY_ID[mapId], hard: mode === 'hard', endless, endAt: endless ? RANKED.timeLimit : 0, meta: {}, ground, pace: kpmWeek(week) ? 2 : 1,
+  return createSim({ seed, map: MAP_BY_ID[mapId], hard: mode === 'hard', endless, endAt: endless ? RANKED.timeLimit : 0, meta: {}, ground, pace: kpmWeek(week) ? 2 : 1, ranked: true,
     players: [{ id: PID, name: 'You', adv, weapon: a.weapon, gear: {}, gearLv: {} }] });
 }
 
