@@ -181,7 +181,12 @@ export function passiveItem(id, level) {
 export function passiveTitle(id, level) { return id === 'armor' ? `${ARMOR_TIERS[Math.min(level, 5) - 1]} Armor` : PASSIVES[id].name; }
 // Real item name to show for a weapon at a level.
 const SHARDS = ['Air', 'Water', 'Earth', 'Fire', 'Spirit', 'Void'];
-export function weaponItem(id, level) {
+// Pace 2 (casual, ranked from week 1): the Katana, Axe, Short Swords, Pickaxe, Two-handed Sword and Bow look like the
+// metal (or wood) you put on them from a reward casket (`step`: 0 = Bronze / plain Bow). Without a step (pace 1, ranked
+// week 0) the name follows the level as before. The Kiteshield weapon always shows its level's tier.
+export function weaponItem(id, level, step = null) {
+  if (step != null && METAL_FAMILY[id]) return `${METAL_TIERS[clampStep(id, step)]} ${METAL_FAMILY[id]}`;
+  if (step != null && id === 'bow') return BOW_NAMES[clampStep('bow', step)];
   const t = METAL_TIERS[Math.min(level, 6) - 1];
   switch (id) {
     case 'katana': return `${t} Katana`;
@@ -196,8 +201,53 @@ export function weaponItem(id, level) {
     default: return 'Staff';
   }
 }
-export function weaponTitle(id, level) { return id === 'staff' ? `Staff · ${SHARDS[Math.min(level, 6) - 1]} Shard` : weaponItem(id, level); }
-export const itemIconFile = (name) => `item_${name.replace(' Short Sword', ' Sword').replace(/^Lighter$/, 'Lighter2').replace(/ /g, '_')}.png`;
+export function weaponTitle(id, level, step = null) { return id === 'staff' ? `Staff · ${SHARDS[Math.min(level, 6) - 1]} Shard` : weaponItem(id, level, step); }
+// icons: SankoQuest's file names (trimmed pieces share the plain icon, the Minion set is the Mystic robe and skirt,
+// "Magician's Amulet" is item_Magicians_Amulet.png)
+export const itemIconFile = (name) => `item_${name.replace(' Short Sword', ' Sword').replace(/ \(t\)$/, '').replace(/^Minion /, 'Mystic ').replace(/^Lighter$/, 'Lighter2').replace(/'/g, '').replace(/ /g, '_')}.png`;
+
+// ---- weapon metals: reward-casket items for a weapon you carry ------------------------------------------------------
+// Wearing one sets that weapon's metal for the run: more damage per step, and the new model in hand and in its attacks.
+// Arrows go on the Bow: more damage and pierce. Evolved weapons keep their own look (the metal still adds damage).
+export const METAL_FAMILY = { katana: 'Katana', axe: 'Axe', shortsword: 'Short Sword', pickaxe: 'Pickaxe', greatsword: '2hd Sword' };
+export const BOW_NAMES = ['Bow', 'Oak Bow', 'Cherry Bow', 'Glacial Bow'];
+const BOW_FILES = ['bow', 'oak_bow', 'cherry_bow', 'glacial_bow'];
+export const ARROW_TIERS = ['Bronze', 'Iron', 'Steel', 'Mithril', 'Adamantite'];
+export const METAL_DMG = [1, 1.1, 1.2, 1.32, 1.45, 1.6];   // damage × by tier (Bronze .. Runite)
+const BOW_TIER = [0, 1, 3, 4];                             // Bow, Oak, Cherry, Glacial: their tier for damage, odds and alch
+export const ARROW_DMG = [1, 1.06, 1.12, 1.18, 1.24];
+export const ARROW_PIERCE = [0, 1, 1, 2, 2];
+/** name -> { weapon, slot (the key in a player's `wm`: the weapon id, or 'arrow'), kind, step, tier } */
+export const WEAPON_ITEMS = {};
+for (const [id, fam] of Object.entries(METAL_FAMILY)) METAL_TIERS.forEach((t, i) => { WEAPON_ITEMS[`${t} ${fam}`] = { weapon: id, slot: id, kind: 'metal', step: i, tier: i }; });
+BOW_NAMES.forEach((n, i) => { WEAPON_ITEMS[n] = { weapon: 'bow', slot: 'bow', kind: 'bow', step: i, tier: BOW_TIER[i] }; });
+ARROW_TIERS.forEach((t, i) => { WEAPON_ITEMS[`${t} Arrow`] = { weapon: 'bow', slot: 'arrow', kind: 'arrow', step: i, tier: i }; });
+const STEPS = { bow: BOW_NAMES.length, arrow: ARROW_TIERS.length };
+function clampStep(slot, step) { const n = STEPS[slot] || METAL_TIERS.length; const v = Math.floor(Number(step) || 0); return v < 0 ? 0 : v >= n ? n - 1 : v; }
+export const isWeaponItem = (name) => typeof name === 'string' && Object.hasOwn(WEAPON_ITEMS, name);
+/** the item a weapon slot holds at a step ('katana' 3 -> Mithril Katana, 'arrow' 0 -> Bronze Arrow) */
+export function weaponSlotItem(slot, step = 0) {
+  const s = clampStep(slot, step);
+  return slot === 'arrow' ? `${ARROW_TIERS[s]} Arrow` : slot === 'bow' ? BOW_NAMES[s] : `${METAL_TIERS[s]} ${METAL_FAMILY[slot]}`;
+}
+/** what a player's weapon metals do to one weapon: damage multiplier and extra pierce */
+export function weaponMetal(id, wm = {}) {
+  if (METAL_FAMILY[id]) return { dmg: METAL_DMG[clampStep(id, wm[id])], pierce: 0 };
+  if (id === 'bow') { const a = clampStep('arrow', wm.arrow); return { dmg: METAL_DMG[BOW_TIER[clampStep('bow', wm.bow)]] * ARROW_DMG[a], pierce: ARROW_PIERCE[a] }; }
+  return { dmg: 1, pierce: 0 };
+}
+/** the model step a weapon shows: its metal, or the evolution's own look (Runite, the Glacial Bow) */
+export function weaponLook(id, wm = {}, evo = false) { if (id === 'arrow') return clampStep('arrow', wm.arrow); if (evo) return id === 'bow' ? 3 : 5; return clampStep(id, wm[id]); }
+/** the metal step to name and draw a weapon with: null on pace 1 (no metals, the level's look), else its metal */
+export const weaponStep = (id, wm) => (wm && (METAL_FAMILY[id] || id === 'bow') ? clampStep(id, wm[id]) : null);
+/** a weapon item's stats as short text (for the casket card, the bank and the end of a run) */
+export function weaponItemText(name) {
+  const w = WEAPON_ITEMS[name]; if (!w) return '';
+  const pct = (x) => `${Math.round((x - 1) * 100)}%`;
+  if (w.kind === 'arrow') return w.step ? `+${pct(ARROW_DMG[w.step])} bow damage, +${ARROW_PIERCE[w.step]} pierce` : 'Plain arrows';
+  const m = METAL_DMG[w.tier]; return m > 1 ? `+${pct(m)} ${WEAPONS[w.weapon].name} damage` : `${WEAPONS[w.weapon].name}, base damage`;
+}
+export const weaponItemLabel = (name) => { const w = WEAPON_ITEMS[name]; return !w ? '' : w.kind === 'arrow' ? 'Arrows · for the Bow' : `Weapon · ${WEAPONS[w.weapon].name}`; };
 // XP gems are shards: bigger kills drop rarer shards.
 // experience is always Air Shards; bigger ones are worth more and drawn larger
 export function gemItem() { return 'Air Shard'; }
@@ -217,9 +267,9 @@ export const EVOLUTIONS = {
   baseball: { passive: 'amount', name: 'Home Run',      item: 'Baseball',       blurb: 'Two balls at once that bounce eight times and knock monsters flying.' },
   lighter:  { passive: 'crit',   name: 'Inferno',       item: 'Fire Shard',     blurb: 'A wide blazing ring that burns twice as hard.' },
 };
-export function weaponDisplay(id, level, evo) {
+export function weaponDisplay(id, level, evo, step = null) {
   if (evo && EVOLUTIONS[id]) return { name: EVOLUTIONS[id].name, item: EVOLUTIONS[id].item };
-  return { name: weaponTitle(id, level), item: weaponItem(id, level) };
+  return { name: weaponTitle(id, level, step), item: weaponItem(id, level, step) };
 }
 export function evolveStats(id, s) {
   s = { ...s };
@@ -236,6 +286,31 @@ export function evolveStats(id, s) {
     case 'lighter': s.radius *= 1.5; s.dmg *= 2; s.tick *= 0.8; break;
   }
   return s;
+}
+
+// ---- rarity on level-up cards (pace 2: casual, ranked from week 1) -----------------------------------------------------
+// Every card rolls a rarity (sim.rng, so runs replay exactly). Rarer cards give more levels: Common +1, Rare +2, Epic +3,
+// Legendary +4 and a full heal. Never past a weapon's or passive's max level: a card that would overshoot is shown at the
+// rarity that fits (Legendary stays Legendary for its heal). The heal card heals more the rarer it is. Evolutions do not
+// roll. Pace 1 (ranked week 0) has no rarity: one level a card, as before.
+export const CARD_RARITIES = ['common', 'rare', 'epic', 'legendary'];
+export const CARD_RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary'];
+export const CARD_ODDS = [70, 22, 7, 1];          // percent at no luck
+export const CARD_GAIN = [1, 2, 3, 4];             // levels per rarity
+export const CARD_HEAL = [40, 60, 80, 9999];       // the heal card: health per rarity (Legendary = full)
+/** card luck from the Luck skill (+0.05 per rank) and the Rusty Key passive (+0.04 per level); ranked has no skills */
+export function cardLuck(meta = {}, passives = {}) { return 0.05 * (Number(meta.luck) || 0) + 0.04 * (Number(passives.greed) || 0); }
+/** percent odds [common, rare, epic, legendary]: luck lifts the rarer ones a little (Rare ×(1+luck), Epic ×(1+1.5 luck),
+ *  Legendary ×(1+2 luck)) */
+export function cardOdds(luck = 0) {
+  const L = Math.max(0, luck), r = CARD_ODDS[1] * (1 + L), e = CARD_ODDS[2] * (1 + 1.5 * L), l = CARD_ODDS[3] * (1 + 2 * L);
+  return [100 - r - e - l, r, e, l];
+}
+/** a rarity index from one roll in [0, 1) */
+export function rarityFromRoll(u, luck = 0) {
+  const odds = cardOdds(luck); let x = u * 100;
+  for (let i = odds.length - 1; i > 0; i--) { if (x < odds[i]) return i; x -= odds[i]; }
+  return 0;
 }
 
 // ---- permanent upgrades bought with coins: SankoQuest's skills ----------------------------------------------
@@ -297,9 +372,11 @@ export function tierName(level) {
   return METAL_TIERS[Math.min(level, MAX_WEAPON_LEVEL) - 1];
 }
 
-export function weaponModelPath(id, level, key = 'model') {
+// step: the weapon's metal (weaponLook); without it the model follows the level as before (the Kiteshield weapon)
+export function weaponModelPath(id, level, key = 'model', step = null) {
   const w = WEAPONS[id]; if (!w || !(w[key] || w.model)) return null;
-  const tier = tierName(level).toLowerCase().replace('adamantite', 'adamantite');
+  if (id === 'bow' && key === 'model') return `equipment/weapons/ranged/bow/${BOW_FILES[clampStep('bow', step)]}.glb`;
+  const tier = (step != null ? METAL_TIERS[clampStep(key === 'arrowModel' ? 'arrow' : id, step)] : tierName(level)).toLowerCase();
   return (w[key] || w.model).replace('{tier}', tier);
 }
 
@@ -389,10 +466,13 @@ export const MAPS = [
 export const MAP_BY_ID = Object.fromEntries(MAPS.map((m) => [m.id, m]));
 
 // ---- gear: worn items won from reward caskets and quests, kept between runs ---------------------------------------
-// Every piece is a real SankoQuest item with its own model on the character. Bonus keys: armor, dmg, haste (cooldown cut),
-// speed, magnet, growth (xp), hp, regen, coin (coin drop chance).
-export const GEAR_SLOTS = ['head', 'chest', 'hands', 'legs', 'feet', 'offhand', 'back'];
-export const GEAR_SLOT_NAMES = { head: 'Head', chest: 'Body', hands: 'Hands', legs: 'Legs', feet: 'Feet', offhand: 'Shield', back: 'Back' };
+// Every piece is a real SankoQuest item with its own model on the character (amulets and rings have none: they are not
+// drawn on the hero). Bonus keys: armor, dmg, haste (cooldown cut), speed, magnet, growth (xp), hp, regen, coin (coin drop
+// chance), magic (damage of the magic weapons: the Shard Staff and the Lighter).
+// `pace: 2` marks the pieces added with the 9 Nov rules (the trimmed pieces, the Minion set, the Wooden Shield, amulets and
+// rings): pace-1 runs (ranked week 0) neither roll them from caskets nor count them, so those runs play exactly as before.
+export const GEAR_SLOTS = ['head', 'chest', 'hands', 'legs', 'feet', 'offhand', 'back', 'neck', 'ring'];
+export const GEAR_SLOT_NAMES = { head: 'Head', chest: 'Body', hands: 'Hands', legs: 'Legs', feet: 'Feet', offhand: 'Shield', back: 'Back', neck: 'Neck', ring: 'Ring' };
 const METAL_PIECES = [['head', 'Helmet'], ['chest', 'Chestplate'], ['hands', 'Gauntlets'], ['legs', 'Leggings'], ['feet', 'Boots']];
 const METAL_ARMOR = [0.2, 0.3, 0.4, 0.5, 0.6, 0.75];
 export const GEAR = {};
@@ -406,7 +486,30 @@ ARMOR_TIERS.forEach((t, i) => {
   GEAR[`${t} Kiteshield`] = { slot: 'offhand', tier: i, model: `equipment/offhand/kiteshield/${low}_kiteshield.glb`, bonus: { armor: [0.3, 0.45, 0.6, 0.75, 0.9, 1.1][i], hp: [4, 6, 8, 10, 12, 15][i] } };
   GEAR[`${t} Shield`] = { slot: 'offhand', tier: i, model: `equipment/offhand/shield/${low}_shield.glb`, bonus: { armor: METAL_ARMOR[i], speed: 0.02 } };
 });
+// trimmed "(t)" Bronze, Iron and Steel pieces: gold trim, a little better than the plain ones, rarer; they count for
+// their metal's set. Their models are SankoQuest's `<name>_trimmed` clothing files; the icons are the plain ones.
+['Bronze', 'Iron', 'Steel'].forEach((t, i) => {
+  for (const [slot, piece] of METAL_PIECES) GEAR[`${t} ${piece} (t)`] = { slot, set: t, tier: i, rarity: 'rare', trim: true, pace: 2, file: `${t} ${piece}_trimmed`, bonus: { armor: Math.round(METAL_ARMOR[i] * 1.25 * 100) / 100, hp: 3 } };
+});
 Object.assign(GEAR, {
+  // the lowest shield (SankoQuest has no model for it, and its icon is not on the CDN: the Bronze Shield's model in wood
+  // brown, and a wooden icon of our own)
+  'Wooden Shield':      { slot: 'offhand', tier: 0, pace: 2, model: 'equipment/offhand/shield/bronze_shield.glb', tint: 0x8a5a2b, bonus: { armor: 0.1, speed: 0.02 } },
+  // the Minion set (SankoQuest's Mystic robe and skirt models): for magic weapons, the Shard Staff and the Lighter
+  'Minion Robe':        { slot: 'chest', set: 'Minion', tier: 3, pace: 2, file: 'Mystic Robe', bonus: { magic: 0.08, hp: 5 } },
+  'Minion Skirt':       { slot: 'legs',  set: 'Minion', tier: 3, pace: 2, file: 'Mystic Skirt', bonus: { magic: 0.06, haste: 0.02 } },
+  // SankoQuest's three amulets (Magician's: magic attack 10; Warrior's: melee strength 10; Power: +6 to every attack and
+  // defence), on the scale of our other pieces: an attack of ~10 is about +5% damage, a defence of 6 about +0.3 armor
+  "Magician's Amulet":  { slot: 'neck', tier: 2, pace: 2, rarity: 'rare', bonus: { magic: 0.12, haste: 0.02 } },
+  "Warrior's Amulet":   { slot: 'neck', tier: 2, pace: 2, rarity: 'rare', bonus: { dmg: 0.05 } },
+  'Power Amulet':       { slot: 'neck', tier: 3, pace: 2, rarity: 'rare', bonus: { dmg: 0.03, magic: 0.03, armor: 0.3, hp: 6 } },
+  // rings: SankoQuest has none, so these are ours (icons drawn for this game), one modest bonus each
+  'Ember Band':         { slot: 'ring', tier: 1, pace: 2, rarity: 'rare', bonus: { dmg: 0.04 } },
+  'Tidewater Ring':     { slot: 'ring', tier: 1, pace: 2, rarity: 'rare', bonus: { regen: 0.2 } },
+  'Featherstep Ring':   { slot: 'ring', tier: 1, pace: 2, rarity: 'rare', bonus: { speed: 0.04 } },
+  'Lodestone Ring':     { slot: 'ring', tier: 1, pace: 2, rarity: 'rare', bonus: { magnet: 0.15 } },
+  'Quickdraw Ring':     { slot: 'ring', tier: 2, pace: 2, rarity: 'rare', bonus: { haste: 0.04 } },
+  'Bulwark Band':       { slot: 'ring', tier: 2, pace: 2, rarity: 'rare', bonus: { armor: 0.3, hp: 6 } },
   'Ogre Shield':        { slot: 'offhand', tier: 4, rarity: 'unique', model: 'equipment/offhand/shield/ogre_shield.glb', bonus: { armor: 1.2, hp: 25 } },
   'Ranger Helmet':      { slot: 'head',  set: 'Ranger', tier: 2, bonus: { dmg: 0.03, magnet: 0.06 } },
   'Ranger Chestplate':  { slot: 'chest', set: 'Ranger', tier: 2, bonus: { dmg: 0.03, armor: 0.2 } },
@@ -435,6 +538,7 @@ export const GEAR_SETS = {
   Ranger:     { pieces: 5, bonus: { dmg: 0.12 },  text: '+12% damage' },
   Wizard:     { pieces: 3, bonus: { haste: 0.08 }, text: '-8% cooldowns' },
   Shape:      { pieces: 3, bonus: { dmg: 0.1 },   text: '+10% damage' },
+  Minion:     { pieces: 2, bonus: { magic: 0.15, haste: 0.04 }, text: '+15% magic damage, -4% cooldowns' },
   Bronze:     { pieces: 5, bonus: { hp: 15 },     text: '+15 max HP' },
   Iron:       { pieces: 5, bonus: { hp: 20 },     text: '+20 max HP' },
   Steel:      { pieces: 5, bonus: { hp: 25, armor: 0.5 }, text: '+25 max HP, +0.5 armor' },
@@ -443,14 +547,17 @@ export const GEAR_SETS = {
   Runite:     { pieces: 5, bonus: { hp: 50, armor: 1.5, dmg: 0.05 }, text: '+50 max HP, +1.5 armor, +5% damage' },
 };
 const BONUS_TEXT = { armor: (v) => `+${v} armor`, dmg: (v) => `+${Math.round(v * 100)}% damage`, haste: (v) => `-${Math.round(v * 100)}% cooldowns`, speed: (v) => `+${Math.round(v * 100)}% speed`,
-  magnet: (v) => `+${Math.round(v * 100)}% pickup range`, growth: (v) => `+${Math.round(v * 100)}% experience`, hp: (v) => `+${v} max HP`, regen: (v) => `+${v} HP/s`, coin: (v) => `+${Math.round(v * 100)}% coins` };
+  magnet: (v) => `+${Math.round(v * 100)}% pickup range`, growth: (v) => `+${Math.round(v * 100)}% experience`, hp: (v) => `+${v} max HP`, regen: (v) => `+${v} HP/s`, coin: (v) => `+${Math.round(v * 100)}% coins`,
+  magic: (v) => `+${Math.round(v * 100)}% magic damage` };
 export const bonusText = (b) => Object.entries(b).filter(([k]) => BONUS_TEXT[k]).map(([k, v]) => BONUS_TEXT[k](Math.round(v * 100) / 100)).join(', ');
 // one stat change as short text with its sign ("+0.3 armor", "-4% speed"); haste is a cut, so more haste reads as -x% cooldowns
-export const BONUS_NAMES = { armor: 'armor', dmg: 'damage', haste: 'cooldowns', speed: 'speed', magnet: 'pickup range', growth: 'experience', hp: 'max HP', regen: 'HP/s', coin: 'coins' };
+export const BONUS_NAMES = { armor: 'armor', dmg: 'damage', haste: 'cooldowns', speed: 'speed', magnet: 'pickup range', growth: 'experience', hp: 'max HP', regen: 'HP/s', coin: 'coins', magic: 'magic damage', wdmg: 'weapon damage', pierce: 'pierce' };
+// magic weapons: the Minion set's magic damage counts for these
+export const MAGIC_WEAPONS = ['staff', 'lighter'];
 export function deltaText(k, v) {
   const r = (x) => Math.round(x * 100) / 100, pct = (x) => `${Math.round(Math.abs(x) * 100)}%`;
   if (k === 'haste') return `${v > 0 ? '-' : '+'}${pct(v)} cooldowns`;
-  if (['dmg', 'speed', 'magnet', 'growth', 'coin'].includes(k)) return `${v > 0 ? '+' : '-'}${pct(v)} ${BONUS_NAMES[k]}`;
+  if (['dmg', 'speed', 'magnet', 'growth', 'coin', 'magic', 'wdmg'].includes(k)) return `${v > 0 ? '+' : '-'}${pct(v)} ${BONUS_NAMES[k]}`;
   return `${v > 0 ? '+' : '-'}${r(Math.abs(v))} ${BONUS_NAMES[k]}`;
 }
 // the Armoury: each piece can be reinforced three times with coins, +25% of its bonus each time
@@ -467,11 +574,37 @@ export function smithNext(name) {
   return Object.hasOwn(GEAR, next) ? { name: next, cost: SMITH_COST[i + 1] } : null;
 }
 export function smithPrev(name) { const m = METAL_NAME.exec(name), i = m ? ARMOR_TIERS.indexOf(m[1]) : -1; return i > 0 ? `${ARMOR_TIERS[i - 1]} ${m[2]}` : null; }
+// the Gear panel, organised: one slot's pieces in groups, each in order. The metal ladder first (Bronze to Runite, each
+// trimmed piece just above its plain one; shields from the Wooden Shield up, kiteshields on their own ladder), then the
+// sets (Ranger, Wizard, Shape, Minion), then the specials (hats, boots, the Cape, unique drops, amulets, rings).
+const LADDER = /^(Bronze|Iron|Steel|Mithril|Adamantite|Runite) (Helmet|Chestplate|Gauntlets|Leggings|Boots|Kiteshield|Shield)( \(t\))?$/;
+const SPECIAL_TITLE = { neck: 'Amulets', ring: 'Rings', back: 'Capes' };
+export function gearGroups(slot) {
+  const ladders = {}, sets = [], specials = [];
+  for (const n of Object.keys(GEAR)) {
+    const g = GEAR[n]; if (g.slot !== slot) continue;
+    const m = n === 'Wooden Shield' ? [n, null, 'Shield'] : LADDER.exec(n);
+    if (m) (ladders[m[2]] || (ladders[m[2]] = [])).push(n);
+    else if (g.set && GEAR_SETS[g.set] && !ARMOR_TIERS.includes(g.set)) sets.push(n);
+    else specials.push(n);
+  }
+  const rung = (n) => (n === 'Wooden Shield' ? -1 : ARMOR_TIERS.indexOf(n.split(' ')[0]) + (n.endsWith(' (t)') ? 0.5 : 0));
+  const setOrder = Object.keys(GEAR_SETS);
+  const out = [];
+  const LADDER_TITLE = { Shield: 'Shields', Kiteshield: 'Kiteshields' };
+  for (const kind of ['Shield', 'Kiteshield', 'Helmet', 'Chestplate', 'Gauntlets', 'Leggings', 'Boots']) if (ladders[kind]) out.push({ title: LADDER_TITLE[kind] || 'Metal', items: ladders[kind].sort((a, b) => rung(a) - rung(b)) });
+  if (sets.length) out.push({ title: 'Sets', items: sets.sort((a, b) => setOrder.indexOf(GEAR[a].set) - setOrder.indexOf(GEAR[b].set) || GEAR[a].tier - GEAR[b].tier || a.localeCompare(b)) });
+  if (specials.length) out.push({ title: SPECIAL_TITLE[slot] || 'Specials', items: specials.sort((a, b) => GEAR[a].tier - GEAR[b].tier || a.localeCompare(b)) });
+  return out;
+}
+/** is this a piece of gear at this pace? (pace 1 knows only the pieces from before the 9 Nov rules; unknown names and
+ *  prototype keys are never gear) */
+export const gearOn = (name, pace = 2) => typeof name === 'string' && Object.hasOwn(GEAR, name) && (GEAR[name].pace || 1) <= pace;
 /** total bonus of a gear loadout {slot: itemName} (with Armoury levels {itemName: 0..3}), with any completed set */
-export function gearBonus(gear = {}, levels = {}) {
+export function gearBonus(gear = {}, levels = {}, pace = 2) {
   const out = {}; const add = (b, m = 1) => { for (const [k, v] of Object.entries(b)) out[k] = (out[k] || 0) + v * m; };
   const sets = {};
-  for (const name of Object.values(gear)) { if (!Object.hasOwn(GEAR, name)) continue; const g = GEAR[name]; add(g.bonus, 1 + 0.25 * Math.min(GEAR_MAX_LV, levels[name] || 0)); if (g.set) sets[g.set] = (sets[g.set] || 0) + 1; }
+  for (const name of Object.values(gear)) { if (!gearOn(name, pace)) continue; const g = GEAR[name]; add(g.bonus, 1 + 0.25 * Math.min(GEAR_MAX_LV, levels[name] || 0)); if (g.set) sets[g.set] = (sets[g.set] || 0) + 1; }
   const done = [];
   for (const [s, c] of Object.entries(sets)) if (GEAR_SETS[s] && c >= GEAR_SETS[s].pieces) { add(GEAR_SETS[s].bonus); done.push(s); }
   out.sets = done;
@@ -480,30 +613,30 @@ export function gearBonus(gear = {}, levels = {}) {
 // ---- reward caskets: what a piece is worth, and how it compares with what you wear --------------------------------
 // rarity: metal armour and metal shields are common, the named pieces (Ranger, Wizard, Shape, hats, boots, Cape) rare,
 // the Pumpkin Head and the Ogre Shield unique
-export const gearRarity = (name) => GEAR[name].rarity || (ARMOR_TIERS.includes(GEAR[name].set) || / (Kite)?[Ss]hield$/.test(name) ? 'common' : 'rare');
+export const gearRarity = (name) => (isWeaponItem(name) ? 'common' : GEAR[name].rarity) || (ARMOR_TIERS.includes(GEAR[name].set) || / (Kite)?[Ss]hield$/.test(name) ? 'common' : 'rare');
 export const ALCH_BY_TIER = [25, 35, 50, 70, 100, 150];
 export const ALCH_RARITY = { common: 1, rare: 1.5, unique: 2 };
 // the big pieces are worth more, as in SankoQuest (a chestplate takes the most bars)
-const ALCH_PIECE = (name) => (/Chestplate$|Robe$/.test(name) ? 1.5 : /Leggings$|Skirt$|Kiteshield$/.test(name) ? 1.25 : 1);
-/** coins for high-alching a casket piece (added to this run's coins) */
+const ALCH_PIECE = (name) => (/Chestplate( \(t\))?$|Robe$|2hd Sword$/.test(name) ? 1.5 : /Leggings( \(t\))?$|Skirt$|Kiteshield$|Katana$|Axe$|Pickaxe$|Short Sword$|Bow$/.test(name) ? 1.25 : 1);
+/** coins for high-alching a casket piece or weapon item (added to this run's coins) */
 export function alchValue(name) {
-  const g = GEAR[name]; if (!g) return 0;
+  const g = isWeaponItem(name) ? WEAPON_ITEMS[name] : Object.hasOwn(GEAR, name) ? GEAR[name] : null; if (!g) return 0;
   return Math.round(ALCH_BY_TIER[Math.min(g.tier, ALCH_BY_TIER.length - 1)] * ALCH_RARITY[gearRarity(name)] * ALCH_PIECE(name) / 5) * 5;
 }
 // one number for "how good is this loadout", to recommend Wear or High alch (the card still shows every stat)
-export const GEAR_SCORE_W = { armor: 10, dmg: 100, haste: 100, speed: 80, magnet: 25, growth: 50, hp: 0.4, regen: 12, coin: 6 };
+export const GEAR_SCORE_W = { armor: 10, dmg: 100, haste: 100, speed: 80, magnet: 25, growth: 50, hp: 0.4, regen: 12, coin: 6, magic: 40 };
 export function gearScore(b) { let s = 0; for (const [k, v] of Object.entries(b)) if (GEAR_SCORE_W[k]) s += GEAR_SCORE_W[k] * v; return s; }
 /** what wearing `item` instead of what is in its slot would change: every stat, the sets, and a recommendation */
-export function compareGear(gear = {}, levels = {}, item) {
+export function compareGear(gear = {}, levels = {}, item, pace = 2) {
   const g = GEAR[item], slot = g.slot, old = gear[slot] || null;
-  const before = gearBonus(gear, levels), after = gearBonus({ ...gear, [slot]: item }, levels);
+  const before = gearBonus(gear, levels, pace), after = gearBonus({ ...gear, [slot]: item }, levels, pace);
   const delta = {};
   for (const k of new Set([...Object.keys(before), ...Object.keys(after)])) {
     if (k === 'sets') continue;
     const d = Math.round(((after[k] || 0) - (before[k] || 0)) * 1000) / 1000; if (d) delta[k] = d;
   }
   const sb = gearScore(before), sa = gearScore(after);
-  const set = g.set && GEAR_SETS[g.set] ? { name: g.set, have: Object.values({ ...gear, [slot]: item }).filter((n) => GEAR[n] && GEAR[n].set === g.set).length, need: GEAR_SETS[g.set].pieces } : null;
+  const set = g.set && GEAR_SETS[g.set] ? { name: g.set, have: Object.values({ ...gear, [slot]: item }).filter((n) => gearOn(n, pace) && GEAR[n].set === g.set).length, need: GEAR_SETS[g.set].pieces } : null;
   return {
     item, slot, old, delta, set, alch: alchValue(item),
     setsGained: after.sets.filter((s) => !before.sets.includes(s)), setsLost: before.sets.filter((s) => !after.sets.includes(s)),
@@ -511,9 +644,24 @@ export function compareGear(gear = {}, levels = {}, item) {
     anyUp: Object.values(delta).some((v) => v > 0), // false: nothing improves (a clear downgrade, or the same)
   };
 }
+/** what putting a weapon item on would change: the weapon's damage (and the Bow's pierce), and a recommendation */
+export function compareWeaponItem(wm = {}, item) {
+  const w = WEAPON_ITEMS[item], old = weaponSlotItem(w.slot, wm[w.slot]);
+  const before = weaponMetal(w.weapon, wm), after = weaponMetal(w.weapon, { ...wm, [w.slot]: w.step });
+  const delta = {}, d = Math.round((after.dmg / before.dmg - 1) * 1000) / 1000, pc = after.pierce - before.pierce;
+  if (d) delta.wdmg = d; if (pc) delta.pierce = pc;
+  return {
+    item, slot: 'weapon', wslot: w.slot, weapon: w.weapon, old, delta, set: null, alch: alchValue(item), setsGained: [], setsLost: [],
+    better: d > 1e-9 || (d >= 0 && pc > 0), anyUp: Object.values(delta).some((v) => v > 0),
+  };
+}
 /** what a reward casket holds. Higher tiers on later maps, later in the run and in hard mode; Runite only late on the
  *  later maps (or in hard mode), and rare. rank = map progress (0 = Greentown), t = seconds into the run. */
-export function casketWeights(rank = 0, hard = false, t = 0) {
+// Pace 2 (opts.pace, default): the pieces added on 9 Nov join the pool (trimmed pieces, amulets and rings rarer than the
+// rest), and weapon metals for the weapons the player carries (opts.weapons, { id: level }): a weapon item only ever
+// comes for one of them. Pace 1 (ranked week 0) rolls from exactly the pool it had before.
+const CASKET_BASE = { trim: 0.6, neck: 0.5, ring: 0.5 };
+export function casketWeights(rank = 0, hard = false, t = 0, { pace = 2, weapons = null } = {}) {
   const reach = 1 + rank + (hard ? 1 : 0);               // as before: Greentown reaches Iron, later maps further
   let top = Math.min(4, reach + (t >= 360 ? 1 : 0));     // past 6:00 one tier more
   if (t < 120) top = Math.min(top, 1 + (hard ? 1 : 0));  // the first two minutes stay low
@@ -521,16 +669,18 @@ export function casketWeights(rank = 0, hard = false, t = 0) {
   const lift = late + (hard ? 0.5 : 0);                  // and in hard mode
   const runite = t >= 480 && reach >= 3;
   const out = [];
-  for (const [n, g] of Object.entries(GEAR)) {
-    const base = ARMOR_TIERS.includes(g.set) ? 3 : g.slot === 'offhand' && g.rarity !== 'unique' ? 2 : 1.4;
+  const items = Object.entries(GEAR).filter(([n]) => gearOn(n, pace));
+  if (weapons && pace >= 2) for (const [n, w] of Object.entries(WEAPON_ITEMS)) if (Object.hasOwn(weapons, w.weapon)) items.push([n, w]);
+  for (const [n, g] of items) {
+    const base = g.weapon ? (g.kind === 'arrow' ? 1.5 : 2) : g.trim ? CASKET_BASE.trim : CASKET_BASE[g.slot] || (ARMOR_TIERS.includes(g.set) ? 3 : g.slot === 'offhand' && g.rarity !== 'unique' ? 2 : 1.4);
     if (g.tier === 5) { if (runite) out.push([n, base * 0.25 * (1 + lift)]); continue; }
     if (g.tier > top) continue;
     out.push([n, base * ((1 + top - g.tier) + lift * g.tier)]);
   }
   return out;
 }
-export function rollCasket(rng, rank = 0, hard = false, t = 0) {
-  const list = casketWeights(rank, hard, t);
+export function rollCasket(rng, rank = 0, hard = false, t = 0, opts = {}) {
+  const list = casketWeights(rank, hard, t, opts);
   let total = 0; for (const [, w] of list) total += w;
   let r = rng() * total; for (const [n, w] of list) { if ((r -= w) <= 0) return n; }
   return list[list.length - 1][0];

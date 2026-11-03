@@ -3,6 +3,8 @@ import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in e
 import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS,
   ADVENTURER_BY_ID, EVOLUTIONS, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
+  WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll,
+  weaponSlotItem,
 } from './content.js';
 
 export const TICK = 1 / 30;
@@ -48,8 +50,9 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       x: map.cx + dcos(a) * 1.5, z: map.cz + dsin(a) * 1.5,
       face: 0, moving: false, hp: PLAYER_BASE.hp, maxHp: PLAYER_BASE.hp, alive: true, inv: 0,
       meta, adv: p.adv || 'adventurer', weapons: { [p.weapon || (ADVENTURER_BY_ID[p.adv] ? ADVENTURER_BY_ID[p.adv].weapon : startWeapon)]: 1 }, passives: { ...((ADVENTURER_BY_ID[p.adv] || {}).startPassives || {}) }, evo: {}, buffs: {}, cd: {}, orbit: 0, kills: 0, coins: 0, regen: 0, hurt: 0,
-      gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}), rerolls: REROLLS_PER_RUN, belt: [],
+      gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}, pace), rerolls: REROLLS_PER_RUN, belt: [],
       casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
+      wm: {}, // weapon metals from caskets (pace 2): { katana: 0..5, bow: 0..3, arrow: 0..4, ... } (missing = Bronze / plain Bow)
     });
   });
   // veterans: skill ranks plus two for every piece of gear worn, 1.5% each, to +75% at 50 (pace 2 only; ranked has neither)
@@ -204,6 +207,7 @@ export function playerStats(p, meta = p.meta || {}) {
     critC: 0.08 + 0.05 * passiveLevel(p, 'crit'), critM: 1.8 + 0.1 * passiveLevel(p, 'crit'),
     thorns: 8 * passiveLevel(p, 'thorns'),
     heal: 1 + 0.12 * m('fishing'),
+    magic: 1 + (G.magic || 0), // the Minion set: magic weapons (Shard Staff, Lighter) hit harder
   };
 }
 
@@ -403,17 +407,31 @@ export function rollChoices(sim, p) {
     out.push(opts.splice(Math.min(i, opts.length - 1), 1)[0]);
   }
   if (!out.length) out.push({ kind: 'heal', id: 'fish', level: 1 });
-  return out.map(({ kind, id, level }) => ({ kind, id, level }));
+  // pace 1 (ranked week 0): no rarity, one level a card, and no extra rolls, exactly as before
+  if (!(sim.pace >= 2)) return out.map(({ kind, id, level }) => ({ kind, id, level }));
+  // each card rolls its rarity (evolutions are their own reward and do not roll)
+  const luck = cardLuck(p.meta || {}, p.passives);
+  return out.map(({ kind, id, level }) => {
+    if (kind === 'evolve') return { kind, id, level };
+    let r = rarityFromRoll(sim.rng(), luck);
+    if (kind === 'heal') return { kind, id, level, rarity: CARD_RARITIES[r] };
+    const from = level - 1, max = kind === 'weapon' ? MAX_WEAPON_LEVEL : MAX_PASSIVE_LEVEL;
+    if (r < 3) r = Math.min(r, max - from - 1); // Rare/Epic only when their levels fit under the max
+    return { kind, id, level: Math.min(max, from + CARD_GAIN[r]), from, rarity: CARD_RARITIES[r] };
+  });
 }
+// levels a card gives: a rarity card says how many (from -> level); a card without rarity (pace 1) gives one
+const cardGain = (c) => (c.rarity && typeof c.from === 'number' && c.level > c.from ? c.level - c.from : 1);
 
 export function applyChoice(sim, p, choice) {
   if (choice.kind === 'evolve') { p.evo[choice.id] = true; sim.evolves++; sim.fx.push({ k: 'evolve', id: choice.id }); return; }
-  if (choice.kind === 'weapon') p.weapons[choice.id] = Math.min(MAX_WEAPON_LEVEL, (p.weapons[choice.id] || 0) + 1);
+  if (choice.kind === 'weapon') p.weapons[choice.id] = Math.min(MAX_WEAPON_LEVEL, (p.weapons[choice.id] || 0) + cardGain(choice));
   else if (choice.kind === 'passive') {
-    p.passives[choice.id] = Math.min(MAX_PASSIVE_LEVEL, (p.passives[choice.id] || 0) + 1);
+    p.passives[choice.id] = Math.min(MAX_PASSIVE_LEVEL, (p.passives[choice.id] || 0) + cardGain(choice));
     const st = playerStats(p);
     if (!p.godMode) { const gain = st.maxHp - p.maxHp; p.maxHp = st.maxHp; p.hp = Math.min(p.maxHp, p.hp + Math.max(0, gain)); }
-  } else p.hp = Math.min(p.maxHp, p.hp + 40 * playerStats(p).heal);
+  } else { const r = Math.max(0, CARD_RARITIES.indexOf(choice.rarity)); p.hp = Math.min(p.maxHp, p.hp + CARD_HEAL[r] * playerStats(p).heal); return; }
+  if (choice.rarity === 'legendary' && !p.godMode) p.hp = p.maxHp; // a Legendary card also heals you to full
 }
 
 export function choose(sim, playerId, index) {
@@ -432,28 +450,33 @@ export function autoChoice(pend) { return pend && pend.casket ? pend.rec : 0; }
 
 // ---- reward caskets: an item for an empty slot goes straight on; otherwise the run pauses on a card: Wear or High alch --
 // put a piece on: a change in max HP adds to (or caps) your health, like the Cooked Meat passive
-function wearItem(p, item) {
+function wearItem(sim, p, item) {
   const before = p.maxHp;
-  p.gear = { ...p.gear, [GEAR[item].slot]: item }; p.gb = gearBonus(p.gear, p.gearLv || {});
+  p.gear = { ...p.gear, [GEAR[item].slot]: item }; p.gb = gearBonus(p.gear, p.gearLv || {}, sim.pace);
   if (!p.godMode) { const m = playerStats(p).maxHp; p.maxHp = m; p.hp = Math.min(m, p.hp + Math.max(0, m - before)); }
 }
 function gotCasket(sim, p, item) {
   sim.loot.push(item);
-  if (!p.gear[GEAR[item].slot]) { wearItem(p, item); sim.fx.push({ k: 'casket', item, worn: 1 }); return; }
+  if (isWeaponItem(item)) { p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1 }); return; } // a weapon always holds a metal: always a card
+  if (!p.gear[GEAR[item].slot]) { wearItem(sim, p, item); sim.fx.push({ k: 'casket', item, worn: 1 }); return; }
   p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1 });
 }
 export function openCasket(sim, p) {
   if (!p || !p.alive || sim.pending[p.id] || !p.casketQ.length || sim.over) return false;
   const item = p.casketQ.shift();
-  const card = compareGear(p.gear, p.gearLv || {}, item);
+  const card = isWeaponItem(item) ? compareWeaponItem(p.wm, item) : compareGear(p.gear, p.gearLv || {}, item, sim.pace);
   const rec = card.better ? 0 : 1;
   sim.pending[p.id] = { casket: card, choices: [{ kind: 'wear', id: item, level: 1 }, { kind: 'alch', id: item, level: card.alch }], rec, more: p.casketQ.length, left: 30 };
   return true;
 }
 function applyCasket(sim, p, c) {
-  if (c.kind === 'wear') {
+  if (c.kind === 'wear' && isWeaponItem(c.id)) {
+    const w = WEAPON_ITEMS[c.id], old = weaponSlotItem(w.slot, p.wm[w.slot]);
+    p.wm = { ...p.wm, [w.slot]: w.step };
+    sim.fx.push({ k: 'casket', item: c.id, worn: 1, old, weapon: w.weapon });
+  } else if (c.kind === 'wear') {
     const old = p.gear[GEAR[c.id].slot] || null;
-    wearItem(p, c.id);
+    wearItem(sim, p, c.id);
     sim.fx.push({ k: 'casket', item: c.id, worn: 1, old });
   } else {
     p.alch += c.level; sim.alched.push(c.id);
@@ -501,6 +524,7 @@ function withPassives(id, s, st) {
   if (st.amount && ['bow', 'axe', 'staff', 'shortsword', 'baseball', 'shield'].includes(id) && !s.ring) s.count = (s.count || 1) + st.amount;
   return s;
 }
+const NO_METAL = { dmg: 1, pierce: 0 };
 function fireWeapons(sim, p, dt, st) {
   p.orbit += dt;
   for (const id of Object.keys(p.weapons)) {
@@ -508,8 +532,11 @@ function fireWeapons(sim, p, dt, st) {
     let s = WEAPONS[id].stats(lvl);
     if (p.evo[id]) s = evolveStats(id, s);
     s = withPassives(id, s, st);
-    const dmg = (s.dmg || 0) * st.might;
     if (id === 'shield' || id === 'lighter') continue; // handled continuously
+    // weapon metals (pace 2): more damage, the Bow's arrows pierce more; mt is the look of the thrown axe or sword
+    const metal = sim.pace >= 2 ? weaponMetal(id, p.wm) : NO_METAL, mt = sim.pace >= 2 ? weaponLook(id, p.wm, p.evo[id]) : undefined;
+    const dmg = (s.dmg || 0) * st.might * metal.dmg * (MAGIC_WEAPONS.includes(id) ? st.magic : 1);
+    if (metal.pierce) s = { ...s, pierce: (s.pierce || 0) + metal.pierce };
     p.cd[id] = (p.cd[id] ?? 0.2) - dt;
     if (p.cd[id] > 0) continue;
     const reach = id === 'pickaxe' ? 7 : id === 'katana' || id === 'greatsword' ? s.range + 1.5 : id === 'shortsword' ? 20 : id === 'baseball' ? 14 : 18;
@@ -522,7 +549,7 @@ function fireWeapons(sim, p, dt, st) {
       p.face = a;
       const dirs = s.both ? [a, a + Math.PI] : [a];
       for (const dir of dirs) {
-        sim.fx.push({ k: 'slash', x: p.x, z: p.z, a: dir, range: s.range, arc: s.arc, lvl });
+        sim.fx.push({ k: 'slash', x: p.x, z: p.z, a: dir, range: s.range, arc: s.arc, lvl, mt });
         const half = (s.arc * Math.PI / 180) / 2;
         for (const e of sim.enemies) {
           const dx = e.x - p.x, dz = e.z - p.z, d = hyp(dx, dz);
@@ -539,12 +566,12 @@ function fireWeapons(sim, p, dt, st) {
         const tg = nearestEnemy(sim, p.x, p.z, 22, used) || target;
         used.add(tg.id);
         const a = datan2(tg.x - p.x, tg.z - p.z) + (i % 2 ? 1 : -1) * Math.floor((i + 1) / 2) * 0.06;
-        sim.proj.push({ id: sim.nextId++, art: 'arrow', evo: !!p.evo.bow, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: s.pierce, life: s.life, r: s.hit || 0.45, hit: [], lvl });
+        sim.proj.push({ id: sim.nextId++, art: 'arrow', evo: !!p.evo.bow, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: s.pierce, life: s.life, r: s.hit || 0.45, hit: [], lvl, mt: sim.pace >= 2 ? weaponLook('arrow', p.wm) : undefined });
       }
     } else if (id === 'axe') {
       for (let i = 0; i < s.count; i++) {
         const a = target ? datan2(target.x - p.x, target.z - p.z) + (sim.rng() - 0.5) * 0.9 + (i - (s.count - 1) / 2) * 0.35 : sim.rng() * 6.283;
-        sim.proj.push({ id: sim.nextId++, art: 'axe', evo: !!p.evo.axe, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: 99, life: s.life, r: s.r, hit: [], hitAt: {}, lvl });
+        sim.proj.push({ id: sim.nextId++, art: 'axe', evo: !!p.evo.axe, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: 99, life: s.life, r: s.r, hit: [], hitAt: {}, lvl, mt });
       }
     } else if (id === 'staff') {
       const used = new Set();
@@ -564,7 +591,7 @@ function fireWeapons(sim, p, dt, st) {
         // aimed at the nearest monster (the face direction only if there is none); evolved, a ring all round
         const aim = target ? datan2(target.x - p.x, target.z - p.z) : p.face;
         const a = s.ring ? aim + (i / n) * Math.PI * 2 : aim + (i - (n - 1) / 2) * 0.13;
-        sim.proj.push({ id: sim.nextId++, art: 'sword', evo: !!p.evo.shortsword, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: s.pierce, life: s.life, r: s.hit || 0.45, hit: [], lvl });
+        sim.proj.push({ id: sim.nextId++, art: 'sword', evo: !!p.evo.shortsword, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: s.pierce, life: s.life, r: s.hit || 0.45, hit: [], lvl, mt });
       }
     } else if (id === 'baseball') {
       const used = new Set();
@@ -588,7 +615,7 @@ function fireWeapons(sim, p, dt, st) {
     p.cd.lighter = (p.cd.lighter ?? 0) - dt;
     if (p.cd.lighter <= 0) {
       p.cd.lighter = s.tick; sim.src = 'lighter';
-      for (const e of sim.enemies) if (!e.dead && hyp(e.x - p.x, e.z - p.z) <= s.radius + ENEMIES[e.type].r * 0.5) damageEnemy(sim, e, s.dmg * st.might, p.id, 0.3, p.x, p.z);
+      for (const e of sim.enemies) if (!e.dead && hyp(e.x - p.x, e.z - p.z) <= s.radius + ENEMIES[e.type].r * 0.5) damageEnemy(sim, e, s.dmg * st.might * st.magic, p.id, 0.3, p.x, p.z);
     }
   } else p.fire = 0;
   // kiteshields: positions are derived from time, so hosts and clients agree
@@ -1016,7 +1043,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       if (BELT_KINDS.includes(k.kind) && p.belt.length < BELT_SIZE) p.belt.push(k.kind); // kept for later (1-4)
       else if (BELT_KINDS.includes(k.kind) || FOOD[k.kind]) useItem(sim, p, k.kind);
       else if (k.kind === 'chest') { if (!sim.pending[p.id]) sim.pending[p.id] = { choices: rollChoices(sim, p), left: 25 }; }
-      else if (k.kind === 'casket') gotCasket(sim, p, rollCasket(sim.rng, sim.casketRank, sim.hard, sim.t));
+      else if (k.kind === 'casket') gotCasket(sim, p, rollCasket(sim.rng, sim.casketRank, sim.hard, sim.t, { pace: sim.pace, weapons: p.weapons }));
       else p.coins++;
       sim.fx.push({ k: 'get', kind: k.kind, x: k.x, z: k.z });
     }
@@ -1044,11 +1071,11 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
   const fx = sim.fx; sim.fx = [];
   return {
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
-    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice() })),
+    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),
     hazards: sim.hazards.map((h) => [r1(h.x), r1(h.z), h.r, Math.round((1 - h.t / h.max) * 100) / 100, h.meteor ? 1 : 0]),
     eproj: sim.eproj.map((b) => [b.id, r1(b.x), r1(b.z), b.art]),
-    proj: sim.proj.map((p) => [p.id, p.art, r1(p.x), r1(p.z), Math.round(datan2(p.vx, p.vz) * 20) / 20, p.lvl, Math.round((p.spin || 0) * 10) / 10, p.evo ? 1 : 0]),
+    proj: sim.proj.map((p) => [p.id, p.art, r1(p.x), r1(p.z), Math.round(datan2(p.vx, p.vz) * 20) / 20, p.lvl, Math.round((p.spin || 0) * 10) / 10, p.evo ? 1 : 0, p.mt ?? -1]),
     gems: sim.gems.map((g) => [g.id, r1(g.x), r1(g.z), g.v]),
     pickups: sim.pickups.map((k) => [k.id, k.kind, r1(k.x), r1(k.z)]),
     shrines: sim.shrines.map((s) => [s.id, s.kind, r1(s.x), r1(s.z), Math.round(Math.min(1, s.charge / SHRINE.charge) * 100) / 100, Math.round(s.life)]),

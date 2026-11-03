@@ -12,7 +12,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR } from './content.js';
+import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, weaponLook, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR } from './content.js';
 import { createCharacterKit, armorSet } from './character.js';
 import { terrainFromTiles, WATER_Y } from './terrain.js';
 
@@ -923,9 +923,22 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const GEAR_FOLDER = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back' };
   // (a shield is a held item: its model loads with the other hand-held items)
   const isClothing = (n) => Object.hasOwn(GEAR, n) && GEAR_FOLDER[GEAR[n].slot];
-  async function preloadGear(names) { if (!kit) return; await Promise.all(names.filter(isClothing).map((n) => kit.load(`${GEAR_FOLDER[GEAR[n].slot]}/Clothing/${n}`))); }
+  const clothFile = (n) => GEAR[n].file || n; // trimmed "(t)" pieces and the Minion set use SankoQuest's own file names
+  const clothPath = (n) => `${GEAR_FOLDER[GEAR[n].slot]}/Clothing/${clothFile(n)}`;
+  async function preloadGear(names) { if (!kit) return; await Promise.all(names.filter(isClothing).map((n) => kit.load(clothPath(n)))); }
   const itemProtos = {};
-  async function item(url) { if (!itemProtos[url]) itemProtos[url] = loadGLB(A('models/' + url)).then((g) => ({ gltf: g })).catch(() => null); return itemProtos[url]; }
+  // tint: a colour laid over the model's own (the Wooden Shield is the Bronze Shield in wood brown)
+  async function item(url, tint) {
+    const key = tint ? `${url}#${tint}` : url;
+    if (!itemProtos[key]) itemProtos[key] = tint ? item(url).then((p) => p && { gltf: tinted(p.gltf, tint) }) : loadGLB(A('models/' + url)).then((g) => ({ gltf: g })).catch(() => null);
+    return itemProtos[key];
+  }
+  function tinted(g, tint) {
+    const scene = g.scene.clone(true), col = new THREE.Color(tint).multiplyScalar(1.6);
+    const one = (m) => { const c = m.clone(); if (c.color) c.color.copy(col); return c; };
+    scene.traverse((o) => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(one) : one(o.material); });
+    return { ...g, scene };
+  }
   onProgress('ready', 1);
 
   // ---- dynamic objects -------------------------------------------------------
@@ -987,8 +1000,18 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const head = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.105, 4).rotateX(Math.PI / 2).translate(0, 0, 0.21), new THREE.MeshBasicMaterial({ color: lin(0.55, 0.6, 0.63) }));
     const finGeo = new THREE.PlaneGeometry(0.048, 0.16).rotateX(Math.PI / 2).translate(0.024, 0, -0.145), finMat = new THREE.MeshBasicMaterial({ color: lin(0.76, 0.62, 0.33), side });
     g.add(shaft, head); for (let k = 0; k < 4; k++) { const f = new THREE.Mesh(finGeo, finMat); f.rotation.z = k * Math.PI / 2; g.add(f); }
+    g.userData.head = head;
     return g;
   })();
+  // arrowheads in the arrows' metal: Bronze, Iron, Steel, Mithril, Adamantite
+  const ARROW_HEADS = [lin(0.55, 0.32, 0.12), lin(0.42, 0.42, 0.44), lin(0.7, 0.74, 0.78), lin(0.22, 0.3, 0.75), lin(0.18, 0.5, 0.26)];
+  const arrowCache = [];
+  function arrowOf(mt = -1) {
+    if (!(mt >= 0)) return ARROW.clone(); // pace 1: the plain arrow
+    const i = Math.min(ARROW_HEADS.length - 1, mt | 0);
+    if (!arrowCache[i]) { const g = ARROW.clone(); const h = g.children[1]; h.material = new THREE.MeshBasicMaterial({ color: ARROW_HEADS[i] }); if (i >= 3) h.scale.setScalar(1.25); arrowCache[i] = g; }
+    return arrowCache[i].clone();
+  }
   const msQ = new THREE.Quaternion(), msObj = new THREE.Object3D(), msWp = new THREE.Vector3(), msTv = new THREE.Vector3();
   function stepMagicSphere(o, now) {
     const d = o.userData.ms, T = d.T, t = now - d.born;
@@ -1589,10 +1612,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         const lvl = p.ps.armor || 0;
         // worn: the adventurer's own look, then the armor passive's tier, then the gear you really wear (from caskets and the
         // bank) on top, so a casket's straw hat shows instead of hiding under the passive's helmet
-        const worn = {}; for (const [k, n] of Object.entries(p.gear || {})) if (isClothing(n)) worn[k] = n; // the shield goes in the hand, below
+        const worn = {}, wornNames = []; for (const [k, n] of Object.entries(p.gear || {})) if (isClothing(n)) { worn[k] = clothFile(n); wornNames.push(n); } // the shield goes in the hand, below
         const want = { ...a.baseArmor, ...armorSet(lvl), ...worn }, gsig = JSON.stringify(want);
         if (gsig !== a.gearSig) {
-          const missing = Object.values(worn).filter((n) => !kit.isLoaded(`${GEAR_FOLDER[GEAR[n].slot]}/Clothing/${n}`));
+          const missing = wornNames.filter((n) => !kit.isLoaded(clothPath(n)));
           if (!missing.length) { a.gearSig = gsig; a.kit.setArmor(want); }
           else if (!a.gearLoading) { a.gearLoading = true; preloadGear(missing).finally(() => { a.gearLoading = false; }); }
         }
@@ -1601,11 +1624,16 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         const wk = Object.keys(p.w); const rightId = wk.find((id) => !['bow', 'shield'].includes(id) && WEAPONS[id] && WEAPONS[id].model);
         const wornShield = p.gear && Object.hasOwn(GEAR, p.gear.offhand || '') && GEAR[p.gear.offhand].model ? p.gear.offhand : null;
         const leftId = wk.includes('bow') ? 'bow' : wornShield ? 'worn' : wk.includes('shield') ? 'shield' : null; // (the baseball and lighter have no hand model)
-        const sig = `${rightId}${rightId ? p.w[rightId] : ''}${p.evo[rightId] ? 'E' : ''}|${leftId}${leftId === 'worn' ? wornShield : leftId ? p.w[leftId] : ''}`;
+        // pace 2: the metal each weapon wears (from caskets), or its evolution's own look; pace 1 (no metals, p.wm null)
+        // and the Kiteshield weapon: the level's tier, as before
+        const step = (id) => (p.wm && id !== 'shield' ? weaponLook(id, p.wm, p.evo[id]) : null);
+        const look = (id) => (id === 'worn' ? wornShield : step(id) ?? `L${p.w[id]}`);
+        const sig = `${rightId}${rightId ? look(rightId) : ''}${p.evo[rightId] ? 'E' : ''}|${leftId}${leftId ? look(leftId) : ''}`;
         if (sig !== a.heldSig) {
           a.heldSig = sig;
-          const urlFor = (id) => (id === 'worn' ? GEAR[wornShield].model : id === 'katana' && p.evo.katana ? 'shadowfang.glb' : weaponModelPath(id, p.w[id]));
-          Promise.all([rightId ? item(urlFor(rightId)) : null, leftId ? item(urlFor(leftId)) : null]).then(([r, l]) => { if (a.heldSig === sig) a.kit.setHeld({ right: r && r.gltf, left: l && l.gltf, rightFix: heldFix(rightId, p.evo[rightId]), leftFix: heldFix(leftId === 'worn' ? 'shield' : leftId), rightAim: HELD_AIM[rightId], leftAim: HELD_AIM[leftId === 'worn' ? 'shield' : leftId], rightScale: HS ? Number(HS) : 1, leftScale: HS ? Number(HS) : 1 }); });
+          const urlFor = (id) => (id === 'worn' ? GEAR[wornShield].model : id === 'katana' && p.evo.katana ? 'shadowfang.glb' : weaponModelPath(id, p.w[id], 'model', step(id)));
+          const tintFor = (id) => (id === 'worn' ? GEAR[wornShield].tint : undefined);
+          Promise.all([rightId ? item(urlFor(rightId), tintFor(rightId)) : null, leftId ? item(urlFor(leftId), tintFor(leftId)) : null]).then(([r, l]) => { if (a.heldSig === sig) a.kit.setHeld({ right: r && r.gltf, left: l && l.gltf, rightFix: heldFix(rightId, p.evo[rightId]), leftFix: heldFix(leftId === 'worn' ? 'shield' : leftId), rightAim: HELD_AIM[rightId], leftAim: HELD_AIM[leftId === 'worn' ? 'shield' : leftId], rightScale: HS ? Number(HS) : 1, leftScale: HS ? Number(HS) : 1 }); });
         }
         a.kit.setMoving(!!p.mv, 1);
         a.mixer.update(dt);
@@ -1713,7 +1741,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     // projectiles
     const seenPr = new Set();
     for (const pr of view.proj) {
-      const [id, art, x, z, ang, lvl, spin, evo] = pr;
+      const [id, art, x, z, ang, lvl, spin, evo, mt] = pr;
       seenPr.add(id);
       let o = projObjs.get(id);
       if (!o) {
@@ -1722,10 +1750,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           const { col, tier } = staffSpell(lvl, evo);
           o.add(magicSphere(col, tier)); Object.assign(o.userData, { spell: { col, tier } });
         } else if (art === 'arrow') {
-          o.add(ARROW.clone()); // SankoQuest's flying arrow, as the live game draws it
+          o.add(arrowOf(mt)); // SankoQuest's flying arrow, as the live game draws it, with the head in the arrows' metal
           Object.assign(o.userData, evo ? { trail: 0x9fe6ff, every: 0.5 } : { trail: 0xb89a6a, every: 0.7 }); // the glacial bow's frost, or a little dust
         } else if (art === 'sword') { // a thrown short sword, point first, with a bright streak
-          item(weaponModelPath('shortsword', lvl)).then((p) => { if (p) o.add(orientedItem(p, 1.1)); });
+          item(weaponModelPath('shortsword', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) o.add(orientedItem(p, 1.1)); });
           o.add(new THREE.Mesh(new THREE.PlaneGeometry(0.14, 2.0).rotateX(-Math.PI / 2).translate(0, 0, -1.2), streakMat(evo ? 0x7fe0ff : 0xfff6dc, 0.55)));
           if (evo) Object.assign(o.userData, { trail: 0x7fe0ff, every: 0.4 });
         } else if (art === 'ball') { // a baseball, stitches and all, spinning as it flies
@@ -1735,7 +1763,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           if (evo) o.add(glowSprite(0xffd34d, 0.8, 0.5));
           o.add(ball); Object.assign(o.userData, { spinner: ball, trail: evo ? 0xffd34d : 0xfff6dc, every: 0.45 });
         } else if (art === 'axe') {
-          item(weaponModelPath('axe', lvl)).then((p) => { if (p) { const m = orientedItem(p, 1.5); o.userData.spinner2 = m; o.add(m); } });
+          item(weaponModelPath('axe', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) { const m = orientedItem(p, 1.5); o.userData.spinner2 = m; o.add(m); } });
           const blur = softRing(evo ? 0x7fe0ff : 0xffe2a0, 0.5, 0.95, { opacity: 0.32, arcs: 2 }); o.add(blur); o.userData.blur = blur; // a soft swoosh that turns with the axe
           Object.assign(o.userData, { trail: evo ? 0x7fe0ff : 0xffd38a, every: 0.35 });
         }

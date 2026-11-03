@@ -47,6 +47,11 @@ export const CHANGELOG = [
       'Townsfolk dress for their job: gravediggers by the graveyard and swamp, the priests in pale vestments, the elder in plain clothes, and the Shape Wizards in their own set. Only wizards wear wizard robes now.',
       'Food drops come in SankoQuest’s tiers: Cooked Crawdad (+15 health), Brown Trout (+25), Catfish (+35) and Bubba Bass (+50). Better fish later in a run and from elites; bosses drop a Bubba Bass.',
       'Softer effects: the throwing axe’s spin, elite halos, the fire ring, the DMT aura and enemy bolts glow and fade at the edges instead of hard flat rings.',
+      'Level-up cards have a rarity: Common, Rare, Epic or Legendary. Rare gives two levels at once, Epic three, Legendary four and heals you to full. A new weapon or upgrade can start higher, never past its last level. The odds are 70, 22, 7 and 1 in 100; the Luck skill and the Rusty Key raise them a little. In ranked from the Monday reset.',
+      'Weapon metals in reward caskets, for a weapon you carry: a Mithril Katana, an Adamantite Axe, an Oak or Cherry Bow, and arrows from Bronze to Adamantite. Wear one and that weapon hits harder and looks the part in your hand and in the air; better arrows also pierce more. They last the run. In ranked from the Monday reset.',
+      'More gear: the trimmed (t) Bronze, Iron and Steel pieces (gold trim, a little better), the Minion Robe and Minion Skirt (a set for the Shard Staff and the Lighter), and the Wooden Shield. In ranked caskets from the Monday reset.',
+      'Two new slots, Neck and Ring. SankoQuest’s Magician’s, Warrior’s and Power Amulets, and six rings of our own: Ember Band, Tidewater Ring, Featherstep Ring, Lodestone Ring, Quickdraw Ring and Bulwark Band. They drop from reward caskets now and then. In ranked from the Monday reset.',
+      'The Gear panel is organised by slot: a tab for each slot (Head, Body, Hands, Legs, Feet, Shield, Back, Neck, Ring) with how many pieces you have found, and inside it the metal ladder in order, then the sets, then the specials.',
     ],
   },
   {

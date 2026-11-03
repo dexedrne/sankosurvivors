@@ -18,6 +18,7 @@ import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
   GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, bonusText, QUESTS, deltaText, gearRarity, alchValue, ARMOR_TIERS,
+  gearGroups, isWeaponItem, WEAPON_ITEMS, weaponItemText, weaponItemLabel, weaponStep, CARD_RARITIES, CARD_RARITY_NAMES, CARD_HEAL,
 } from './content.js';
 
 const $ = (id) => document.getElementById(id);
@@ -71,9 +72,12 @@ const EMOJI = { baseball: '⚾', lighter: '🔥', area: '🧥', amount: '🪶', 
 const iconsAsked = new Set();
 function preloadIcons(names) { for (const n of names) { if (!n || iconsAsked.has(n)) continue; iconsAsked.add(n); const im = new Image(); im.src = `${asset('')}ui/items/${itemIconFile(n)}`; } }
 const preloadNextIcons = (p) => { if (!p) return; const out = []; for (const [w, l] of Object.entries(p.weapons || {})) out.push(weaponItem(w, l + 1), weaponItem(w, l + 2)); for (const [k, l] of Object.entries(p.passives || {})) out.push(passiveItem(k, l + 1)); preloadIcons(out); };
+// a weapon's metal in this run (pace 2; null on pace 1, where weapons look like their level)
+const stepOf = (id, p = sim && sim.players[0]) => (sim && sim.pace >= 2 && p ? weaponStep(id, p.wm || {}) : null);
 const imgTag = (name, fallback = '✦') => `<img src="${asset('')}ui/items/${itemIconFile(name)}" alt="${name}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'emoji',textContent:'${fallback}'}))">`;
-function iconHTML(kind, id, level, evo) {
-  if (kind === 'weapon') return imgTag(weaponDisplay(id, level || 1, evo).item, EMOJI[id]);
+// step: the weapon's metal on pace 2 (weaponStep), null on pace 1 (the level's look)
+function iconHTML(kind, id, level, evo, step = null) {
+  if (kind === 'weapon') return imgTag(weaponDisplay(id, level || 1, evo, step).item, EMOJI[id]);
   if (kind === 'passive') return imgTag(passiveItem(id, level || 1), EMOJI[id]);
   return imgTag(id);
 }
@@ -410,21 +414,30 @@ async function boot() {
 let gearSlotSel = 'head';
 function buildGear() {
   const gear = getGear(), bank = getBank(), lvs = getGearLv(), coins = getCoins();
-  $('gearslots').innerHTML = GEAR_SLOTS.map((sl) => `<div class="gslot${sl === gearSlotSel ? ' sel' : ''}" data-slot="${sl}">${gear[sl] ? imgTag(gear[sl]) : '<span class="empty"></span>'}<small>${GEAR_SLOT_NAMES[sl]}</small></div>`).join('');
-  for (const el of $('gearslots').children) el.onclick = () => { gearSlotSel = el.dataset.slot; buildGear(); };
-  // every piece for this slot (owner 3 Nov: "the gear menu is just a list of all the gear"): yours to wear, reinforce or
-  // smith into the next metal; the rest dim, with where it comes from
   const owned = new Set(bank);
-  const all = Object.keys(GEAR).filter((n) => GEAR[n].slot === gearSlotSel).sort((a, b) => (owned.has(b) - owned.has(a)) || GEAR[a].tier - GEAR[b].tier || a.localeCompare(b));
-  $('gearbank').innerHTML = all.map((n) => {
+  // the slots as labelled tabs (owner 3 Nov: "organize everything in gear by slot type"): what you wear there, its name,
+  // and how many of the slot's pieces you have found
+  $('gearslots').innerHTML = GEAR_SLOTS.map((sl) => {
+    const all = Object.keys(GEAR).filter((n) => GEAR[n].slot === sl), have = all.filter((n) => owned.has(n)).length;
+    return `<div class="gslot${sl === gearSlotSel ? ' sel' : ''}" data-slot="${sl}" role="tab" aria-selected="${sl === gearSlotSel}" title="${GEAR_SLOT_NAMES[sl]}${gear[sl] ? `: ${gear[sl]}` : ''}">${gear[sl] ? imgTag(gear[sl]) : '<span class="empty"></span>'}<small>${GEAR_SLOT_NAMES[sl]}</small><i>${have}/${all.length}</i></div>`;
+  }).join('');
+  for (const el of $('gearslots').children) el.onclick = () => { gearSlotSel = el.dataset.slot; buildGear(); };
+  // inside the slot, every piece in its group: the metal ladder in order, then the sets, then the specials. Yours to
+  // wear, reinforce or smith into the next metal; the rest dim, with where it comes from
+  const GROUP_NOTE = { Metal: 'Bronze to Runite. Smith a piece into the next metal with coins; trimmed (t) pieces are a little better.', Shields: 'From the Wooden Shield up. Light: a little speed.', Kiteshields: 'Heavy: more armor and a little health.', Sets: 'Wear every piece of a set for its bonus.', Amulets: 'From reward caskets, now and then.', Rings: 'From reward caskets, now and then.' };
+  const itemHTML = (n) => {
     if (!owned.has(n)) {
-      const prev = smithPrev(n), how = prev && owned.has(prev) ? `Smith it from your ${prev}` : prev ? `Smith it from a ${prev}, or find it in a reward casket` : GEAR[n].rarity === 'unique' ? 'A unique drop from reward caskets' : 'Found in reward caskets and quests';
+      const prev = smithPrev(n), how = prev && owned.has(prev) ? `Smith it from your ${prev}` : prev ? `Smith it from a ${prev}, or find it in a reward casket` : GEAR[n].rarity === 'unique' ? 'A unique drop from reward caskets' : GEAR[n].pace ? 'Found in reward caskets' : 'Found in reward caskets and quests';
       return `<div class="gitem locked" title="${n}">${imgTag(n)}<div><b>${n}</b><span>${bonusText(GEAR[n].bonus)}</span><span class="dim">${how}</span></div></div>`;
     }
     const lv = lvs[n] || 0, cost = gearUpgradeCost(n, lv), m = 1 + 0.25 * lv, b = Object.fromEntries(Object.entries(GEAR[n].bonus).map(([k, v]) => [k, v * m]));
     const up = smithNext(n), smith = up && !owned.has(up.name) ? `<button class="gsmith" data-n="${n}" ${coins < up.cost ? 'disabled' : ''}>Smith into ${up.name} · ${up.cost.toLocaleString()} coins</button>` : '';
-    return `<div class="gitem${gear[gearSlotSel] === n ? ' on' : ''}" data-n="${n}" title="${n}">${imgTag(n)}<div><b>${n}${lv ? ` +${lv}` : ''}</b><span>${bonusText(b)}${GEAR[n].set && GEAR_SETS[GEAR[n].set] ? ` · ${GEAR[n].set} set` : ''}</span>
+    return `<div class="gitem${gear[gearSlotSel] === n ? ' on' : ''}" data-n="${n}" title="${n}">${imgTag(n)}<div><b>${n}${lv ? ` +${lv}` : ''}</b><span>${bonusText(b)}${GEAR[n].set && GEAR_SETS[GEAR[n].set] && !ARMOR_TIERS.includes(GEAR[n].set) ? ` · ${GEAR[n].set} set` : ''}</span>
         ${smith}<button class="gup ghost" data-n="${n}" ${lv >= GEAR_MAX_LV || coins < cost ? 'disabled' : ''}>${lv >= GEAR_MAX_LV ? 'Fully reinforced' : `Reinforce +${lv + 1} · ${cost} coins`}</button></div></div>`;
+  };
+  $('gearbank').innerHTML = gearGroups(gearSlotSel).map((g) => {
+    const have = g.items.filter((n) => owned.has(n)).length;
+    return `<h4 class="ghead">${g.title} <span>${have}/${g.items.length}</span>${GROUP_NOTE[g.title] ? `<small>${GROUP_NOTE[g.title]}</small>` : ''}</h4>${g.items.map(itemHTML).join('')}`;
   }).join('') || '<p class="gempty">Nothing for this slot.</p>';
   for (const b of $('gearbank').querySelectorAll('.gup')) b.onclick = (e) => {
     e.stopPropagation(); const n = b.dataset.n, l = getGearLv(), lv = l[n] || 0, cost = gearUpgradeCost(n, lv);
@@ -913,6 +926,8 @@ function endRun() {
   const worn = sim.players[0].gear || {}, alched = [...(sim.alched || [])];
   const lootNotes = sim.loot.map((n) => {
     const ai = alched.indexOf(n), wasAlched = ai >= 0; if (wasAlched) alched.splice(ai, 1);
+    // weapon metals and arrows are for the run they dropped in: never banked, never sold
+    if (isWeaponItem(n)) return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}` : 'this run only'}</em>`;
     const fresh = bankItem(n, !wasAlched), on = Object.values(worn).includes(n);
     return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}${fresh ? ', new' : ''}` : on ? (fresh ? 'worn this run, new' : 'worn this run') : fresh ? 'new' : 'sold, +25 coins'}</em>`;
   });
@@ -936,8 +951,8 @@ function endRun() {
   save('sq-quests', [...done]);
   // damage by weapon, Run Escape style
   const dmgRows = Object.entries(sim.dmgBy || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6), top = dmgRows.length ? dmgRows[0][1] : 1;
-  const wname = (id) => (WEAPONS[id] ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id]).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other');
-  const wicon = (id) => (WEAPONS[id] ? iconHTML('weapon', id, p.weapons[id] || 1, p.evo[id]) : imgTag(id === 'pumpkin' ? 'Pumpkin' : 'Gold'));
+  const wname = (id) => (WEAPONS[id] ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other');
+  const wicon = (id) => (WEAPONS[id] ? iconHTML('weapon', id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)) : imgTag(id === 'pumpkin' ? 'Pumpkin' : 'Gold'));
   $('enddmg').innerHTML = dmgRows.map(([id, v]) => `<div class="drow">${wicon(id)}<span>${wname(id)}</span><div class="dbar"><i style="width:${(v / top) * 100}%"></i></div><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
   $('endloot').innerHTML = (lootNotes.length ? `<div class="lootline"><b>Caskets</b> ${lootNotes.join(' · ')}</div>` : '') + questNotes.map((x) => `<div class="questline">${x}</div>`).join('');
   buildMaps(); buildAdventurers(); showBest();
@@ -1093,20 +1108,27 @@ function showLevelUp() {
   const wrap = $('cards'); wrap.innerHTML = '';
   $('lutitle').textContent = pend.choices.some((c) => c.kind === 'evolve') ? 'Evolution!' : 'Level up!';
   pend.choices.forEach((c, i) => {
-    const el = document.createElement('div'); el.className = 'card' + (c.kind === 'evolve' ? ' evo' : ''); el.dataset.i = i;
+    // rarity (pace 2): Common grey, Rare blue, Epic purple, Legendary gold; a rarer card gives more levels at once
+    const ri = c.rarity ? Math.max(0, CARD_RARITIES.indexOf(c.rarity)) : -1;
+    const el = document.createElement('div'); el.className = 'card' + (c.kind === 'evolve' ? ' evo' : '') + (ri >= 0 ? ` rar r-${CARD_RARITIES[ri]}` : ''); el.dataset.i = i;
+    const from = typeof c.from === 'number' && c.rarity ? c.from : c.level - 1; // the level you have now
+    const lvTag = () => (from === 0 ? (c.level > 1 ? `NEW · Lv ${c.level}` : 'NEW') : c.level - from > 1 ? `Lv ${from} → ${c.level}` : `Lv ${c.level}`);
     let name, tag, text, icon;
     if (c.kind === 'evolve') {
-      const e = EVOLUTIONS[c.id]; name = e.name; tag = `EVOLVES ${weaponTitle(c.id, 6).toUpperCase()}`; text = e.blurb; icon = imgTag(e.item, EMOJI[c.id]);
+      const e = EVOLUTIONS[c.id]; name = e.name; tag = `EVOLVES ${weaponTitle(c.id, 6, stepOf(c.id)).toUpperCase()}`; text = e.blurb; icon = imgTag(e.item, EMOJI[c.id]);
     } else if (c.kind === 'weapon') {
-      const w = WEAPONS[c.id]; name = weaponTitle(c.id, c.level); tag = c.level === 1 ? 'NEW' : `Lv ${c.level}`; text = c.level === 1 ? w.blurb : 'Upgrade: ' + w.next(c.level - 1); icon = iconHTML('weapon', c.id, c.level);
+      const w = WEAPONS[c.id], ups = []; for (let l = Math.max(1, from); l < c.level; l++) ups.push(w.next(l));
+      name = weaponTitle(c.id, c.level, stepOf(c.id)); tag = lvTag(); text = from === 0 ? w.blurb + (ups.length ? ` Starts with ${ups.join(', ')}.` : '') : 'Upgrade: ' + ups.join(', '); icon = iconHTML('weapon', c.id, c.level, false, stepOf(c.id));
       const need = Object.entries(EVOLUTIONS).find(([id]) => id === c.id);
       if (need && c.level === 6) text += ` Evolves with ${PASSIVES[need[1].passive].name}.`;
     } else if (c.kind === 'passive') {
-      const p = PASSIVES[c.id]; name = passiveTitle(c.id, c.level); tag = c.level === 1 ? 'NEW' : `Lv ${c.level}`; text = p.blurb; icon = iconHTML('passive', c.id, c.level);
+      const p = PASSIVES[c.id]; name = passiveTitle(c.id, c.level); tag = lvTag(); text = p.blurb; icon = iconHTML('passive', c.id, c.level);
       const ev = Object.entries(EVOLUTIONS).find(([, e]) => e.passive === c.id);
-      if (ev) text += ` Evolves ${weaponTitle(ev[0], 6)}.`;
-    } else { name = 'Cooked Bubba Bass'; tag = 'Heal'; text = 'Restore 40 health.'; icon = iconHTML('item', 'Cooked Bubba Bass'); }
-    el.innerHTML = `${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p><div class="key">[${i + 1}]</div>`;
+      if (ev) text += ` Evolves ${weaponTitle(ev[0], 6, stepOf(ev[0]))}.`;
+    } else { const hp = CARD_HEAL[Math.max(0, ri)]; name = 'Cooked Bubba Bass'; tag = 'Heal'; text = hp >= 9999 ? 'Restore all your health.' : `Restore ${hp} health.`; icon = iconHTML('item', 'Cooked Bubba Bass'); }
+    if (ri === 3 && c.kind !== 'heal') text += ' Heals you to full.';
+    const rar = ri >= 0 ? `<div class="rarity">${CARD_RARITY_NAMES[ri]}</div>` : '';
+    el.innerHTML = `${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p><div class="key">[${i + 1}]</div>`;
     el.onclick = () => pick(i); wrap.appendChild(el);
   });
   const me = sim.players.find((q) => q.id === PLAYER);
@@ -1126,6 +1148,8 @@ function pick(i) {
 const RARITY_NAME = { common: '', rare: 'Rare', unique: 'Unique' };
 const tierLabel = (n) => { const g = GEAR[n]; const metal = ARMOR_TIERS.includes(g.set) || / (Kite)?[Ss]hield$/.test(n) && g.rarity !== 'unique'; return [GEAR_SLOT_NAMES[g.slot], metal ? '' : RARITY_NAME[gearRarity(n)]].filter(Boolean).join(' · '); };
 function casketItemHTML(n, cls, label) {
+  // a weapon metal or arrows: what it is for, and what it does to that weapon
+  if (isWeaponItem(n)) return `<div class="ckitem ${cls}"><div class="cklabel">${label}</div>${imgTag(n)}<div class="cktext"><b>${n}</b><small>${weaponItemLabel(n)}</small><span>${weaponItemText(n)}</span></div></div>`;
   const g = GEAR[n];
   return `<div class="ckitem ${cls}"><div class="cklabel">${label}</div>${imgTag(n)}<div class="cktext"><b>${n}</b><small>${tierLabel(n)}</small><span>${bonusText(g.bonus)}</span></div></div>`;
 }
@@ -1142,7 +1166,8 @@ function showCasket() {
   if (!rows.length) rows.push('<li class="same">No change</li>');
   const setLine = c.set ? `<div class="ckset${c.set.have >= c.set.need ? ' done' : ''}">${c.set.name} set ${Math.min(c.set.have, c.set.need)}/${c.set.need} · ${GEAR_SETS[c.set.name].text}</div>` : '';
   $('cktitle').textContent = 'Reward casket';
-  $('ckitems').innerHTML = casketItemHTML(c.item, 'new', 'New') + `<div class="ckvs">replaces</div>` + casketItemHTML(c.old, 'old', 'Worn');
+  const wpn = isWeaponItem(c.item), onBow = wpn && WEAPON_ITEMS[c.item].kind === 'arrow';
+  $('ckitems').innerHTML = casketItemHTML(c.item, 'new', 'New') + `<div class="ckvs">replaces</div>` + casketItemHTML(c.old, 'old', onBow ? 'On the Bow' : wpn ? 'In hand' : 'Worn');
   $('ckset').innerHTML = setLine;
   $('ckdelta').innerHTML = `<ul>${rows.join('')}</ul>`;
   $('ckwear').innerHTML = `<span class="kb">1</span><span class="kb">A</span>Wear`;
@@ -1188,8 +1213,8 @@ function updateHud(view) {
     $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i]; return `<div class="bslot${k ? '' : ' empty'}" data-i="${i}">${k ? imgTag(BELT_ICON[k]) : ''}<small>${i + 1}</small></div>`; }).join('');
     for (const el of $('belt').children) el.onclick = () => { pendingUse = Number(el.dataset.i); };
   }
-  const wk = JSON.stringify([me.w, me.evo]), pk = JSON.stringify(me.ps);
-  if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" title="${weaponDisplay(id, l, me.evo[id]).name}">${iconHTML('weapon', id, l, me.evo[id])}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
+  const wk = JSON.stringify([me.w, me.evo, me.wm]), pk = JSON.stringify(me.ps);
+  if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" title="${weaponDisplay(id, l, me.evo[id], weaponStep(id, me.wm)).name}">${iconHTML('weapon', id, l, me.evo[id], weaponStep(id, me.wm))}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
   if (pk !== slotCache.p) { slotCache.p = pk; $('prow').innerHTML = Object.entries(me.ps).map(([id, l]) => `<div class="slot" title="${passiveTitle(id, l)}">${iconHTML('passive', id, l)}<small>${l}</small></div>`).join(''); }
   for (const f of view.fx) {
     if (f.k === 'boss') banner(sim && !sim.endless && f.type === sim.map.finalBoss && sim.bossIndex >= sim.map.bosses.length ? `${bossName(sim.map, f.type)} approaches! Slay it to win the run.` : `${bossName(sim && sim.map, f.type)} approaches!`, 3500);
@@ -1206,6 +1231,7 @@ function updateHud(view) {
     else if (f.k === 'shrine-done' && SHRINES[f.kind] && f.id === PLAYER) banner(`${SHRINES[f.kind].name}: ${SHRINES[f.kind].text}`, 3200);
     else if (f.k === 'region' && sim.t > 1) banner(MAP_BY_ID[f.id].name, 1800);
     else if (f.k === 'escape') banner('The treasure goblin got away', 1600);
+    else if (f.k === 'casket' && f.worn && f.weapon) { toast(`${imgTag(f.item)} <span>${WEAPON_ITEMS[f.item] && WEAPON_ITEMS[f.item].kind === 'arrow' ? 'The Bow now shoots' : `${WEAPONS[f.weapon].name}, now`}<br><b>${f.item}</b></span>`); }
     else if (f.k === 'casket' && f.worn) { toast(`${imgTag(f.item)} <span>${f.old ? 'Now wearing' : 'Reward casket, now worn'}<br><b>${f.item}</b></span>`); }
     else if (f.k === 'alch' && !autoAlchOn()) { toast(`${imgTag('Gold')} <span>High alch<br><b>${f.item}</b> +${f.coins} coins</span>`); }
   }
@@ -1365,8 +1391,8 @@ const qaHooks = {
   drop(kind) { if (rankedRun) return; const p = sim.players[0]; sim.pickups.push({ id: sim.nextId++, x: p.x + 1.5, z: p.z, kind }); },
   // reward caskets: drop n at your feet (rolled by the sim), or queue given items as if a casket held them
   caskets(n = 1) { if (rankedRun) return; const p = sim.players[0]; for (let i = 0; i < n; i++) sim.pickups.push({ id: sim.nextId++, x: p.x, z: p.z, kind: 'casket' }); },
-  casketOf(...names) { if (rankedRun) return; const p = sim.players[0]; for (const n of names) if (GEAR[n]) { if (!p.gear[GEAR[n].slot]) continue; sim.loot.push(n); p.casketQ.push(n); } openCasket(sim, p); }, // as if caskets held them
-  wearNow(gear) { if (rankedRun) return; const p = sim.players[0]; p.gear = { ...p.gear, ...gear }; p.gb = gearBonus(p.gear, p.gearLv || {}); },
+  casketOf(...names) { if (rankedRun) return; const p = sim.players[0]; for (const n of names) if (isWeaponItem(n) || GEAR[n]) { if (!isWeaponItem(n) && !p.gear[GEAR[n].slot]) continue; sim.loot.push(n); p.casketQ.push(n); } openCasket(sim, p); }, // as if caskets held them
+  wearNow(gear) { if (rankedRun) return; const p = sim.players[0]; p.gear = { ...p.gear, ...gear }; p.gb = gearBonus(p.gear, p.gearLv || {}, sim.pace); },
 };
 
 if ((params.has('debug') || params.has('qa')) && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) Object.defineProperty(window, '__sq', { get: () => rankedRun || rankedLive() ? undefined : qaHooks });

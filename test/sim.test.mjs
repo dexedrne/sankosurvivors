@@ -220,7 +220,8 @@ test('gear, casket and quest items all exist with icons and models', () => {
   const F = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back' };
   for (const [n, g] of Object.entries(GEAR)) {
     assert.ok(existsSync(new URL(`../public/assets/ui/items/${itemIconFile(n)}`, import.meta.url)), 'icon ' + n);
-    const model = g.model ? `../public/assets/models/${g.model}` : `../public/assets/models/playerCharacter/${F[g.slot]}/Clothing/${n}.glb`; // shields are held items
+    if (!g.model && !F[g.slot]) continue; // amulets and rings are not drawn on the hero
+    const model = g.model ? `../public/assets/models/${g.model}` : `../public/assets/models/playerCharacter/${F[g.slot]}/Clothing/${g.file || n}.glb`; // shields are held items; trimmed pieces and the Minion set use SankoQuest's file names
     assert.ok(existsSync(new URL(model, import.meta.url)), 'model ' + n);
   }
   for (const q of QUESTS) if (q.item) assert.ok(GEAR[q.item], 'quest item ' + q.item);

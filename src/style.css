@@ -568,6 +568,36 @@ body.touch .ckbtns .kb { display: none; }
 /* Hard mode and Endless are always on show; greyed out until the map is cleared */
 #hardwrap.locked, #endlesswrap.locked { opacity: .55; cursor: default; } .lockhint { display: none; opacity: .85; margin-left: 4px; }
 #hardwrap.locked .lockhint, #endlesswrap.locked .lockhint { display: inline; }
+/* ---- level-up card rarity (pace 2): a coloured frame, a glow and a label; Common grey, Rare blue, Epic purple,
+   Legendary gold. The label sits in the corner so the phone layout (icon left, text right) is unchanged ---- */
+.card.rar { position: relative; --rar: #b9b4ac; --glow: rgba(185, 180, 172, 0); outline: 3px solid var(--rar); outline-offset: -3px; box-shadow: 0 0 12px var(--glow); }
+.card.r-common { --rar: #b9b4ac; --glow: rgba(185, 180, 172, 0); }
+.card.r-rare { --rar: #4aa3ff; --glow: rgba(74, 163, 255, .5); }
+.card.r-epic { --rar: #b56bff; --glow: rgba(181, 107, 255, .6); }
+.card.r-legendary { --rar: #ffc83a; --glow: rgba(255, 200, 58, .75); box-shadow: 0 0 20px var(--glow); animation: rarglow 1.6s ease-in-out infinite alternate; }
+@keyframes rarglow { from { box-shadow: 0 0 10px rgba(255, 200, 58, .45); } to { box-shadow: 0 0 26px rgba(255, 200, 58, .95); } }
+@media (prefers-reduced-motion: reduce) { .card.r-legendary { animation: none; } }
+.card .rarity { position: absolute; top: 3px; right: 7px; font-family: RSSmall, sans-serif; font-size: 16px; line-height: 1; color: var(--rar); text-shadow: 1px 1px 0 #000, 0 0 6px #000; pointer-events: none; }
+.card.r-common .rarity { opacity: .85; }
+.card.rar .tier { color: var(--rar); }
+.card.r-common .tier { color: var(--cream); }
+/* ---- the Gear panel, organised by slot: the slots as labelled tabs across the top (worn piece, name, found count),
+   the slot's pieces below in groups with small headers ---- */
+#gearwrap { grid-template-columns: 1fr; gap: 10px; min-height: 0; }
+#gearslots { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; }
+#gearslots .gslot { width: auto; height: 74px; }
+.gslot i { position: absolute; top: -2px; right: 2px; font-style: normal; font-family: RSSmall, sans-serif; font-size: 14px; color: var(--cream); opacity: .75; }
+.gslot.sel small { color: var(--gold); }
+#gearbank { max-height: 50vh; }
+.ghead { grid-column: 1 / -1; margin: 10px 0 0; padding: 0 2px 2px; border-bottom: 1px solid rgba(255, 255, 255, .14); color: var(--gold); font-family: RSQuill8, sans-serif; font-weight: 400; font-size: 18px; line-height: 1.1; }
+.ghead:first-child { margin-top: 0; }
+.ghead span { font-family: RSSmall, sans-serif; font-size: 16px; color: var(--cream); opacity: .8; margin-left: 6px; }
+.ghead small { display: block; font-family: RSPlain, sans-serif; font-size: 14px; color: var(--cream); opacity: .8; }
+@media (max-width: 760px) {
+  #gearslots { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  #gearslots .gslot { height: 58px; }
+  .gslot img { width: 32px; height: 32px; } .gslot .empty { width: 32px; height: 32px; }
+  #gearbank { max-height: 42vh; }
 /* ---- main menu clean-up (owner 3 Nov: "clean and organize menus on mobile", "desktop menu clean up", "the more section
    has too much stuff"): Settings and More sit in one even 2x3 grid with Gear, Skills, Quests and Leaderboard; Start at the
    top of its panel; the panels hug their content; on phones a padlock replaces the "clear this map first" lines */
