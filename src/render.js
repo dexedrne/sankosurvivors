@@ -385,11 +385,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     // roofs come off so you can see into the buildings: roof groups in the scene, and roof-like pieces anywhere
     // (dormers, chimneys, the little canopies over doors)
     const ROOFY = /roof|dormer|chimney|town_entry/i;
-    let nodeId = 0;
+    let nodeId = 0; const nodeNames = new Map();
     // each roof piece belongs to a building (the node its roof group sits in), so a building's roof can lift off as one
     const walk = (n, parent, underRoof = false, parentId = 0, roofOwner = 0) => {
       const o = new THREE.Object3D(); parent.add(o);
-      const myId = ++nodeId;
+      const myId = ++nodeId; nodeNames.set(myId, n.name || '');
       const startsRoof = !underRoof && ROOFY.test(n.name || '');
       const roofy = underRoof || startsRoof;
       if (startsRoof) roofOwner = parentId;
@@ -421,6 +421,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         allNodes.push({ file, roof, bldg, mw: new THREE.Matrix4().compose(off, pq, ps), x: off.x, y: off.y, z: off.z });
       }
     }
+    allNodes.names = nodeNames;
     allNodes.planes = planes.map(({ o, file, w, l }) => { v.setFromMatrixPosition(o.matrixWorld); return { file, w, l, mw: o.matrixWorld.clone(), x: v.x, y: v.y, z: v.z }; });
     return allNodes;
   }
@@ -608,7 +609,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     roofHidden.clear(); for (const k of want) roofHidden.add(k);
     for (const r of roofMeshes) {
       // roofs off (T): the roof tiles go, the walls under them stay; walking into a building lifts its whole roof group
-      for (let i = 0; i < r.mats.length; i++) r.im.setMatrixAt(i, (roofHidden.has('all') && !r.wall) || roofHidden.has(r.bldgs[i]) ? ZERO : r.mats[i]);
+      for (let i = 0; i < r.mats.length; i++) r.im.setMatrixAt(i, (roofHidden.has('all') && !(r.wall && keepsWalls(r.bldgs[i]))) || roofHidden.has(r.bldgs[i]) ? ZERO : r.mats[i]);
       r.im.instanceMatrix.needsUpdate = true;
     }
     // a picture hung up where the roof's walls are (the chapel's stained glass) lifts with that roof; floor rugs stay
@@ -616,6 +617,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (m.userData.bldg === undefined) m.userData.bldg = pictureBuilding(m);
       m.visible = !(m.userData.bldg && roofHidden.has(m.userData.bldg));
     }
+  }
+  // Roofs off: a roof's own walls stay only where they are the building's real walls: the chapel's tall nave, or walls
+  // standing on the ground (the wooden hut). Upper walls sitting on a ground floor (the strangehouse's gables, the guild's
+  // upper storey) go with the roof, or they stand around nothing like a broken second floor.
+  const KEEP_ROOF_WALLS = /^chapel$/i;
+  function keepsWalls(id) {
+    const b = roofBoxes.get(id); if (!b) return true;
+    if (b.keep === undefined) b.keep = KEEP_ROOF_WALLS.test(b.name) || (b.wy < 1e9 && b.wy - groundAt(b.wx, b.wz) < 0.5);
+    return b.keep;
   }
   function pictureBuilding(m) {
     const p = new THREE.Vector3().setFromMatrixPosition(m.matrix);
@@ -645,7 +655,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       for (const n of nodes) {
         const key = (n.roof ? 'R|' : '') + n.file;
         if (!byFile.has(key)) byFile.set(key, []); byFile.get(key).push(n);
-        if (n.roof) { const b = roofBoxes.get(n.bldg) || { x0: 1e9, x1: -1e9, z0: 1e9, z1: -1e9, y0: 1e9, pts: [] }; b.y0 = Math.min(b.y0, n.y); b.x0 = Math.min(b.x0, n.x); b.x1 = Math.max(b.x1, n.x); b.z0 = Math.min(b.z0, n.z); b.z1 = Math.max(b.z1, n.z); b.pts.push(n.x, n.z); roofBoxes.set(n.bldg, b); }
+        if (n.roof) { const b = roofBoxes.get(n.bldg) || { x0: 1e9, x1: -1e9, z0: 1e9, z1: -1e9, y0: 1e9, pts: [], name: (nodes.names && nodes.names.get(n.bldg)) || '', wy: 1e9, wx: 0, wz: 0 };
+          if (/wall/i.test(n.file) && n.y < b.wy) { b.wy = n.y; b.wx = n.x; b.wz = n.z; } b.y0 = Math.min(b.y0, n.y); b.x0 = Math.min(b.x0, n.x); b.x1 = Math.max(b.x1, n.x); b.z0 = Math.min(b.z0, n.z); b.z1 = Math.max(b.z1, n.z); b.pts.push(n.x, n.z); roofBoxes.set(n.bldg, b); }
       }
       let done = 0; const files = [...byFile.keys()], toBatch = [];
       await Promise.all(files.map(async (key) => {
@@ -826,6 +837,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
 
   const fallbackGeo = new THREE.CapsuleGeometry(0.4, 0.8, 4, 8);
   const fallbackMat = new THREE.MeshLambertMaterial({ color: 0xcc5544 });
+  // bare Mixamo rigs that need a fitted clip (see fitClip in character.js); Skelly walked with its arms locked straight
+  // out and leaned over
+  const FROM_REST = new Map([['skeleton', 'hips']]); // Skelly: the same rig, hips flipped
   function makeEnemy(type) {
     const def = ENEMIES[type];
     if (def.rig && kit) {
@@ -837,7 +851,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       } catch (e) { console.warn('rig enemy failed', type, e); }
     }
     const p = protos[type];
-    if (p && def.mixamo && kit) { try { const inst = kit.animate(p.gltf, def.h); if (def.yawFix && inst.kit) inst.kit.yaw0 += def.yawFix; return inst; } catch (e) { console.warn('mob anim failed', type, e); } }
+    if (p && def.mixamo && kit) { try { const inst = kit.animate(p.gltf, def.h, 'walk', { fromRest: FROM_REST.get(type) || false }); if (def.yawFix && inst.kit) inst.kit.yaw0 += def.yawFix; return inst; } catch (e) { console.warn('mob anim failed', type, e); } }
     if (!p) { const m = new THREE.Mesh(fallbackGeo, fallbackMat); const g = new THREE.Group(); m.position.y = 0.8; g.add(m); return { root: g, inner: m, mixer: null }; }
     return instantiate(p, ENEMIES[type].walk);
   }

@@ -63,3 +63,17 @@ test('sub-unit share dust goes to the last actual winner while missing places ro
   assert.deepEqual(plan.prizes.map(p=>p.amount),['3','2','3']);assert.equal(plan.rollover,'1');assert.equal(plan.house,'1');
   const tiny=makePlan({paid:'1',top:top.slice(0,1)});assert.equal(tiny.prizes[0].amount,'1');assert.equal(tiny.rollover,'0');
 });
+
+test('the developer wallet plays for no prize: its places pass down to the next players', async () => {
+  const { makePlan, HOUSE } = await import('../tools/payout/core.mjs');
+  const w = (n) => '0x' + n.toString(16).padStart(40, '0');
+  const top = [{ wallet: HOUSE }, ...Array.from({ length: 6 }, (_, i) => ({ wallet: w(i + 1) }))];
+  const plan = makePlan({ paid: '1000', top }, '0');
+  assert.deepEqual(plan.prizes.map((p) => p.wallet), [w(1), w(2), w(3), w(4), w(5)]);
+  assert.ok(!plan.prizes.some((p) => p.wallet === HOUSE));
+  assert.equal(plan.prizes[0].amount, '360'); // 40% of the 900 pool: first place went to the next player
+  assert.equal(plan.house, '100'); // the 10% house fee is unchanged
+  // checksummed spelling is caught too
+  const mixed = makePlan({ paid: '1000', top: [{ wallet: '0x9d506bA29843a232409d85E289edeCe8D6a7b452' }, { wallet: w(9) }] }, '0');
+  assert.deepEqual(mixed.prizes.map((p) => p.wallet), [w(9)]);
+});

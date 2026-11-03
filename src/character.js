@@ -228,13 +228,16 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
   // that rig's space. A rig whose bones rest differently (Survival Sankson: Z-up, legs turned another way) would fold up,
   // so it gets each bone's change from rest instead (target rest x clip rest^-1 x clip pose), and its hips stay put.
   const fitted = new WeakMap();
-  function fitClip(clip, bones) {
+  // fit 'hips': the same rig with only its hips bone turned (Skelly's is flipped 180 degrees): every other bone plays the
+  // clip as it is, the hips get their change from rest, and the hips stay in place
+  function fitClip(clip, bones, force = false) {
     const hip = bones.get('mixamorig_Hips'), track = clip && clip.tracks.find((t) => /Hips\.position$/.test(t.name));
     if (!hip || !track) return clip;
     const rest = hip.position.clone(), moved = new THREE.Vector3(track.values[0], track.values[1], track.values[2]);
     if (!(rest.length() > 0 && moved.length() > 0)) return clip;
     const k = rest.length() / moved.length(), cos = rest.normalize().dot(moved.normalize());
-    if (k > 0.5 && k < 2 && cos > 0.7) return clip; // the same kind of rig: play the clip as it is
+    if (!force && k > 0.5 && k < 2 && cos > 0.7) return clip; // the same kind of rig: play the clip as it is
+    const hipsOnly = force === 'hips';
     let byRig = fitted.get(clip); if (!byRig) fitted.set(clip, (byRig = new WeakMap()));
     if (byRig.has(hip)) return byRig.get(hip);
     const src = clipRest.get(clip) || new Map(), c = clip.clone(), q = new THREE.Quaternion(), inv = new THREE.Quaternion();
@@ -242,7 +245,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     for (const t of c.tracks) {
       if (!/\.quaternion$/.test(t.name)) continue;
       const key = boneKey(t.name.replace(/\.quaternion$/, '')), b = bones.get('mixamorig_' + key), s0 = src.get(key);
-      if (!b || !s0) continue;
+      if (!b || !s0 || (hipsOnly && key !== 'Hips')) continue;
       inv.copy(s0).invert(); const r = b.quaternion;
       for (let i = 0; i < t.values.length; i += 4) {
         q.fromArray(t.values, i); q.premultiply(inv).premultiply(r); q.toArray(t.values, i);
@@ -251,13 +254,13 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     byRig.set(hip, c);
     return c;
   }
-  function animate(gltf, h = 1.6, clipName = 'walk', { zUp = false } = {}) {
+  function animate(gltf, h = 1.6, clipName = 'walk', { zUp = false, fromRest = false } = {}) {
     const master = SkeletonUtils.clone(gltf.scene);
     const bones = new Map();
     master.traverse((o) => { o.frustumCulled = false; if (o.isBone) { if (/^mixamorig(?!_)/.test(o.name)) o.name = o.name.replace(/^mixamorig:?/, 'mixamorig_'); bones.set(o.name, o); } });
     const root = new THREE.Group(), holder = new THREE.Group(); holder.add(master); root.add(holder);
     const mixer = new THREE.AnimationMixer(master);
-    mixer.clipAction(fitClip(clips[clipName] || clips.run || clips.idle, bones)).play();
+    mixer.clipAction(fitClip(clips[clipName] || clips.run || clips.idle, bones, fromRest)).play();
     mixer.update(0); root.updateMatrixWorld(true);
     const hip = bones.get('mixamorig_Hips'), top = bones.get('mixamorig_HeadTop_End') || bones.get('mixamorig_Head');
     if (zUp) { holder.rotation.x = -Math.PI / 2; root.updateMatrixWorld(true); } // like the player rig: the clips are Z-up

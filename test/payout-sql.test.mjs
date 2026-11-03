@@ -34,6 +34,16 @@ test('payout SQL: idempotence, canonical plans, refunds, transitions, holds and 
       }
       await db.exec('truncate sqs_ranked_payouts,sqs_ranked_payout_weeks,sqs_ranked_entries restart identity;');
     });
+    await t.test('the developer wallet plays for no prize in SQL too: its first place passes down and the plan still matches',async()=>{
+      const dev='0x9d506ba29843a232409d85e289edece8d6a7b452';
+      for(const [n,wallet,time] of [[1,dev,899],[2,w(1),800],[3,w(2),700]]) await db.exec(`insert into sqs_ranked_entries(week,wallet,tx,paid,ip_hash,seed,verdict,t,kills,won,finished_at) values (0,'${wallet}','0x${n.toString(16).padStart(64,'0')}',1000,'${n}',1,'ok',${time},1,false,now());`);
+      const report=await rpc('sqs_ranked_settle',{p_key:'reports-key',p_week:0});
+      assert.equal(report.top[0].wallet,dev); // still on the board
+      assert.equal((await call('plan',{p_week:0,p_plan:makePlan(report)})).ok,true);
+      const prizes=(await call('read')).rows.filter(r=>r.kind.startsWith('prize'));
+      assert.deepEqual(prizes.map(r=>[r.kind,r.wallet]),[['prize1',w(1)],['prize2',w(2)]]);
+      await db.exec('truncate sqs_ranked_payouts,sqs_ranked_payout_weeks,sqs_ranked_entries restart identity;');
+    });
     await db.exec(`insert into sqs_ranked_entries (week,wallet,tx,paid,ip_hash,seed,verdict,t,kills,won,finished_at,name) values
       (0,'${w(1)}','0x${'1'.repeat(64)}',1001,'a',1,'ok',100,1,false,now(),'One'),
       (0,'${w(2)}','0x${'2'.repeat(64)}',1000,'b',2,'ok',90,1,false,now(),'Two');`);

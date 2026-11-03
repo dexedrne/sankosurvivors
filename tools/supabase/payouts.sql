@@ -77,6 +77,7 @@ begin
   select coalesce(jsonb_agg(x),'[]') into winners from (
     select id::text,name,wallet,t,kills,level,won,adv,log_sha from (
       select distinct on(wallet) * from sqs_ranked_entries where week=p_week and verdict='ok' and refund_reason is null
+        and wallet <> '0x9d506ba29843a232409d85e289edece8d6a7b452' -- the developer's wallet plays for no prize
       order by wallet,won desc,t desc,kills desc,finished_at asc,id asc) best
     order by won desc,t desc,kills desc,finished_at asc,id::bigint asc limit 5) x;
   select pool_total-sum(trunc(pool_total*weight/100)) into dust from unnest(weights) as weight;

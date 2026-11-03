@@ -5,7 +5,10 @@ import { createRenderer } from './render.js';
 import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, BELT_SIZE, TICK } from './sim.js';
 import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
-import { CREATOR, TIP_ETH } from './config.js';
+import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
+const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
+// prize place of each board row: the developer's wallet takes none, the places pass down to the next players
+const prizePlaces = (rows) => { let k = 0; return rows.map((r) => (noPrize(r.wallet) ? -1 : k++)); };
 import { wallets, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
 import { connect as walletConnect, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
@@ -158,7 +161,7 @@ function renderRanked() {
     const list = document.createElement('ol');
     for (const r of rankedWeek.rows) {
       const li = document.createElement('li');
-      li.textContent = `${r.name || 'Adventurer'} · ${short(r.wallet)} · ${fmtT(r.t)} · ${r.kills} kills${r.won ? ' · ★ Winner' : ''}`;
+      li.textContent = `${r.name || 'Adventurer'} · ${short(r.wallet)} · ${fmtT(r.t)} · ${r.kills} kills${r.won ? ' · ★ Winner' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`;
       list.appendChild(li);
     }
     $('rankedstandings').replaceChildren(list);
@@ -455,7 +458,7 @@ async function showRankedBoard() {
     const rows = d.rows || [], pays = d.payouts || [], pool = Number(d.poolDmt) || 0, myName = load('sq-name', '');
     const left = Math.max(0, (d.endsAt || 0) - Date.now()), dd = Math.floor(left / 86400000), hh = Math.floor((left % 86400000) / 3600000);
     const head = `<p class="lbweek">${esc((MAP_BY_ID[d.map] || {}).name || d.map)} · ${d.entries} entries · <b>${pool} DMT pot</b> · resets in ${dd}d ${hh}h</p>`;
-    const prize = (i) => (pays[i] ? `${Math.round(pool * pays[i] * 1000) / 1000} DMT` : '');
+    const place = prizePlaces(rows), prize = (i) => (place[i] < 0 ? '<span class="dim">no prize (dev)</span>' : pays[place[i]] ? `${Math.round(pool * pays[place[i]] * 1000) / 1000} DMT` : '');
     $('lblist').innerHTML = head + (rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}</td><td class="opt">${esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4))}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>` : '<p class="dim">No ranked runs yet this week. Enter from the Ranked button on the title screen.</p>');
   } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
 }

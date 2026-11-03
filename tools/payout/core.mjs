@@ -3,6 +3,9 @@ import { RANKED } from '../../src/ranked.js';
 export const DMT = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8';
 export const COLLECT = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0';
 export const HOUSE = '0x9d506ba29843a232409d85e289edece8d6a7b452';
+// the developer's own wallet (also the house fee wallet) plays ranked but is never paid a prize: its places go to the next
+// players. tools/supabase/payouts.sql applies the same rule, so the plan still matches the database's own settlement.
+export const NO_PRIZE = new Set([HOUSE]);
 export const EPOCH = RANKED.weekEpoch, WEEK = 7*86400000;
 export const weekOf = now => Math.floor((now-EPOCH)/WEEK);
 export const weekEnd = w => EPOCH+(w+1)*WEEK;
@@ -21,10 +24,11 @@ export function dmt(n) {
 export function makePlan(report, incoming = '0') {
   const paid = units(report.paid), house = paid/10n, pool = paid-house+units(incoming);
   const shares = RANKED.payouts.map(weight=>pool*BigInt(Math.round(weight*100))/100n);
-  const count = Math.min(report.top.length,shares.length);
+  const top = report.top.filter((winner)=>!NO_PRIZE.has(address(winner.wallet)));
+  const count = Math.min(top.length,shares.length);
   if(count) shares[count-1] += pool-shares.reduce((sum,share)=>sum+share,0n);
   const seen = new Set();
-  const prizes = report.top.slice(0,count).map((winner,i)=>{
+  const prizes = top.slice(0,count).map((winner,i)=>{
     const wallet = address(winner.wallet); if (seen.has(wallet)) throw new Error('duplicate winner'); seen.add(wallet);
     return {wallet,amount:shares[i].toString()};
   });
