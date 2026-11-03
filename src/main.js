@@ -83,9 +83,13 @@ function iconHTML(kind, id, level, evo, step = null) {
 }
 
 // ---- title screen --------------------------------------------------------------------------------------------
+// best runs kept per map and mode (hard, endless): the title screen shows the one for what you have picked
+const bestKey = (s) => `${s.map.id}:${s.hard ? 'h' : 'n'}:${s.endless ? 'e' : 'r'}`;
+const getBests = () => { const b = load('sq-bests', {}); return b && typeof b === 'object' && !Array.isArray(b) ? b : {}; };
 function showBest() {
-  const b = load('sq-best', null);
-  $('best').textContent = b ? `Best run: ${fmtT(b.t)} · level ${b.level} · ${b.kills} slain${b.won ? ' · victory' : ''}` : '';
+  const map = MAP_BY_ID[selMap], mb = map && getBests()[bestKey({ map, hard: hardOn, endless: endlessOn })], b = mb || load('sq-best', null);
+  const what = mb ? `Best on ${map.name}${hardOn ? ' (hard)' : ''}${endlessOn ? ' (endless)' : ''}` : 'Best run';
+  $('best').textContent = b ? `${what}: ${fmtT(b.t)} · level ${b.level} · ${b.kills} slain${b.won ? ' · victory' : ''}` : '';
   $('coins').textContent = getCoins(); $('coins2').textContent = getCoins();
 }
 // a label whose longest word is wider than its button shrinks until it fits ("Adventurer", "Swordsman")
@@ -127,7 +131,7 @@ function buildMaps() {
   const cleared = cl.has(m.id) || params.has('unlock');
   // always shown (owner 3 Nov: "where is hard mode"): greyed out with how to unlock until the map is cleared
   for (const [w, id] of [['hardwrap', 'hard'], ['endlesswrap', 'endless']]) { $(w).classList.remove('hidden'); $(w).classList.toggle('locked', !cleared); $(id).disabled = !cleared; $(w).title = cleared ? '' : `Clear ${m.name} to unlock`; }
-  if (!cleared) { hardOn = false; $('hard').checked = false; endlessOn = false; $('endless').checked = false; }
+  if (!cleared && (hardOn || endlessOn)) { hardOn = false; $('hard').checked = false; endlessOn = false; $('endless').checked = false; showBest(); }
 }
 async function pickMap(id) {
   if (mapLoading) return; selMap = id; save('sq-map', id); window.__idleSim = null;
@@ -136,10 +140,10 @@ async function pickMap(id) {
     mapLoading = true; $('start').disabled = true; $('loadtext').textContent = `Loading ${map.name}…`;
     try { await renderer.loadMap(map); loadedMapId = id; renderer.reset(); } finally { mapLoading = false; $('start').disabled = false; $('loadtext').textContent = ''; }
   }
-  buildMaps(); $('tagline').textContent = `${map.name}: ${map.blurb}`; window.__idleSim = null;
+  buildMaps(); showBest(); $('tagline').textContent = `${map.name}: ${map.blurb}`; window.__idleSim = null;
 }
-$('hard').onchange = (e) => { hardOn = e.target.checked; };
-$('endless').onchange = (e) => { endlessOn = e.target.checked; };
+$('hard').onchange = (e) => { hardOn = e.target.checked; showBest(); };
+$('endless').onchange = (e) => { endlessOn = e.target.checked; showBest(); };
 
 // ---- ranked: paid tickets, recovery and the holder-style panel ----
 const SIM_ID = import.meta.env.VITE_SIM;
@@ -629,8 +633,6 @@ async function showRankedBoard() {
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // ---- something to chase every run (owner: "we also want the game to be really addicting"): your best per map and mode,
 // and in ranked your place on this week's board as you play
-const bestKey = (s) => `${s.map.id}:${s.hard ? 'h' : 'n'}:${s.endless ? 'e' : 'r'}`;
-const getBests = () => { const b = load('sq-bests', {}); return b && typeof b === 'object' && !Array.isArray(b) ? b : {}; };
 let runBest = null, passedBest = false, chase = null; // chase: { rows (others' bests), week, kp }
 function chaseText(t, kills) {
   if (!chase || !chase.rows.length) return '';
