@@ -418,6 +418,50 @@ $('morenew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
 $('morebtn').onclick = () => $('more').classList.remove('hidden');
 $('moreclose').onclick = () => $('more').classList.add('hidden');
 $('more').addEventListener('click', (e) => { if (e.target.id === 'more') $('more').classList.add('hidden'); });
+// ---- move progress to another device: a code with the save (progress and settings only, never ranked tickets, a DMT
+// pass or a wallet), checked key by key on the way in like the old-address hand-off in index.html
+const XFER_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch', 'sq-roofs', 'sq-muted', 'sq-seen'];
+const b64 = (s) => btoa(unescape(encodeURIComponent(s))), unb64 = (s) => decodeURIComponent(escape(atob(s)));
+const xferSum = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return h.toString(36); };
+function xferCode() {
+  const d = {}; for (const k of XFER_KEYS) { try { const v = localStorage.getItem(k); if (v !== null) d[k] = v; } catch { /* storage blocked */ } }
+  const body = b64(JSON.stringify(d)); return `SQS1.${body}.${xferSum(body)}`;
+}
+function xferRead(code) {
+  const m = /^SQS1\.([A-Za-z0-9+/=]+)\.([a-z0-9]+)$/.exec(String(code).replace(/\s+/g, ''));
+  if (!m) return { error: 'That is not a progress code. It starts with SQS1.' };
+  if (xferSum(m[1]) !== m[2]) return { error: 'The code is cut short or changed. Copy it again.' };
+  let d; try { d = JSON.parse(unb64(m[1])); } catch { return { error: 'The code could not be read. Copy it again.' }; }
+  const out = {};
+  for (const k of XFER_KEYS) {
+    const v = d[k]; if (typeof v !== 'string' || v.length > 20000) continue;
+    if (k === 'sq-roofs') { if (v === 'off' || v === 'on' || v === 'auto') out[k] = v; continue; }
+    try { JSON.parse(v); out[k] = v; } catch { /* not a value the game saves */ }
+  }
+  if (!Object.keys(out).length) return { error: 'The code has no progress in it.' };
+  const j = (k, f) => { try { return out[k] ? JSON.parse(out[k]) : f; } catch { return f; } };
+  const skills = j('sq-skills', {}), ranks = Object.values(skills).reduce((a, b) => a + (Number(b) || 0), 0);
+  return { data: out, coins: Number(j('sq-coins', 0)) || 0, maps: (j('sq-cleared', []) || []).length, ranks, gear: (j('sq-bank', []) || []).length };
+}
+$('xferbtn').onclick = () => { $('more').classList.add('hidden'); $('xfermsg').textContent = ''; $('xferpeek').textContent = ''; $('xferin').value = ''; $('xferload').disabled = true; $('xfer').classList.remove('hidden'); };
+$('xferclose').onclick = () => $('xfer').classList.add('hidden');
+$('xfer').addEventListener('click', (e) => { if (e.target.id === 'xfer') $('xfer').classList.add('hidden'); });
+$('xferin').addEventListener('keydown', (e) => e.stopPropagation());
+$('xfercopy').onclick = async () => {
+  const code = xferCode();
+  try { await navigator.clipboard.writeText(code); $('xfermsg').textContent = 'Copied. Paste it in the game on your other device (More, Move progress).'; }
+  catch { $('xferin').value = code; $('xferin').select(); $('xfermsg').textContent = 'Copy the code from the box above.'; }
+};
+$('xferin').oninput = () => {
+  const r = xferRead($('xferin').value); $('xferload').disabled = !!r.error;
+  $('xferpeek').textContent = r.error || `${r.coins.toLocaleString()} coins · ${r.maps} map${r.maps === 1 ? '' : 's'} cleared · ${r.ranks} skill rank${r.ranks === 1 ? '' : 's'} · ${r.gear} gear found`;
+};
+$('xferload').onclick = () => {
+  const r = xferRead($('xferin').value); if (r.error) { $('xfermsg').textContent = r.error; return; }
+  if ($('xferload').dataset.sure !== '1') { $('xferload').dataset.sure = '1'; $('xferload').textContent = 'Replace this device\'s progress?'; $('xfermsg').textContent = `This device has ${getCoins().toLocaleString()} coins now. Click again to load the code.`; return; }
+  try { for (const [k, v] of Object.entries(r.data)) localStorage.setItem(k, v); } catch { $('xfermsg').textContent = 'This browser will not save (private mode?).'; return; }
+  $('xfermsg').textContent = 'Loaded. Restarting…'; setTimeout(() => location.reload(), 600);
+};
 for (const b of document.querySelectorAll('#more .morelist button')) b.addEventListener('click', () => $('more').classList.add('hidden'), true);
 $('updbtn').onclick = () => {
   $('updlist').innerHTML = CHANGELOG.map((u) => `<div class="upd"><div class="updhead"><b>${u.title}</b><span>${u.date} · v${u.version}</span></div><ul>${u.items.map((i) => `<li>${i}</li>`).join('')}</ul></div>`).join('');

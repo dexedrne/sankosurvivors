@@ -3,6 +3,8 @@ export const CHANGELOG = [
   {
     version: '0.35', date: '2 Nov 2026', title: 'New season: the Hidden Oasis, real casket gear, more slots and balance',
     items: [
+      'Move your progress to another computer or phone: More, Move progress, copy the code, paste it on the other device.',
+      'Monsters drop bones for experience, like in SankoQuest.',
       'New map: the Hidden Oasis, behind the locked door under Apache town. A dark cave of alligator pools, the old factory rooms and the high ground beyond, lit by its own lamps and the torch you carry.',
       'Jungle spiders, slimers, alligators and mutant slimers live down there, as in SankoQuest. A Lesser Giant, the Pumpkin Reaper and finally the Rime Colossus come for you.',
       'It opens when you clear Apache Desert.',

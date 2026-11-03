@@ -918,14 +918,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const blobTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, 'rgba(0,0,0,0.55)'); gr.addColorStop(0.6, 'rgba(0,0,0,0.3)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
   const blobMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), 520);
   blobMesh.frustumCulled = false; blobMesh.count = 0; blobMesh.renderOrder = 1; scene.add(blobMesh);
-  // experience drops are the Air Shard itself: its own item art, always facing you, in three sizes by value
+  // experience drops are bones (owner 11/2: "enemies should drop bones when they die"): SankoQuest's own Bones item art,
+  // always facing you, in three sizes by value
   const GEM_CAP = 600;
   const gemSets = [1.3, 1.8, 2.5].map((size) => { // owner 11/2: the shards on the ground were too small
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(GEM_CAP * 3), 3)); geo.setDrawRange(0, 0);
-    const mat = new THREE.PointsMaterial({ size, map: null, transparent: true, alphaTest: 0.35, depthWrite: true, sizeAttenuation: true, color: new THREE.Color(1.25, 1.25, 1.25), toneMapped: false });
+    const mat = new THREE.PointsMaterial({ size, map: null, transparent: true, alphaTest: 0.35, depthWrite: true, sizeAttenuation: true, color: new THREE.Color(1.05, 1.05, 1.05), toneMapped: false });
     const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; scene.add(pts); return pts;
   });
-  const shardTex = new THREE.TextureLoader().load(A('ui/items/item_Air_Shard.png'), (t) => { t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; for (const g of gemSets) { g.material.map = t; g.material.needsUpdate = true; } });
+  const shardTex = new THREE.TextureLoader().load(A('ui/items/item_Bones.png'), (t) => { t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; for (const g of gemSets) { g.material.map = t; g.material.needsUpdate = true; } });
   const pickupSprites = new Map(); const iconCache = new Map();
   const PICKUP_ICON = { coin: 'Gold', fish: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
   function iconTex(name) {
