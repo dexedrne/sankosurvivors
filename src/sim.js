@@ -266,6 +266,7 @@ function killEnemy(sim, e, owner) {
     if (e.treasure) { for (let i = 0; i < 2; i++) drop('casket'); for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283; sim.pickups.push({ id: sim.nextId++, x: e.x + dcos(a) * 1.6, z: e.z + dsin(a) * 1.6, kind: 'coin' }); } sim.fx.push({ k: 'treasure', x: e.x, z: e.z }); }
   }
   if (def.boss) {
+    if (sim.pace >= 2) sim.hazards = sim.hazards.filter((h) => h.by !== e.id);
     for (let i = 0; i < 8; i++) {
       const a = sim.rng() * 6.283;
       sim.gems.push({ id: sim.nextId++, x: e.x + dcos(a) * 1.5, z: e.z + dsin(a) * 1.5, v: Math.ceil(def.xp / 8), vx: 0, vz: 0 });
@@ -897,6 +898,7 @@ function hurtPlayer(sim, tp, dmg, src = 'contact') {
 const bossDmg = (sim, def, mul) => Math.round(def.dmg * mul * (1 + sim.t / 900) * (sim.hard ? 1.35 : 1));
 // returns a movement override (charging, or holding still while winding up), or null
 function bossAct(sim, e, def, tp, d, dx, dz, dt) {
+  if (sim.pace >= 2 && e.dead) return null;
   const c = e.charge;
   if (c) {
     if (c.wind > 0) { c.wind -= dt; return [0, 0]; }
@@ -909,7 +911,7 @@ function bossAct(sim, e, def, tp, d, dx, dz, dt) {
   e.atkCd = (4 + sim.rng() * 2.5) * (sim.hard ? 0.8 : 1);
   if (kind === 'slam') {
     const r = 3.5 + def.r * 1.2, t = 1.1 + r * 0.07; // bigger slams give more warning
-    sim.hazards.push({ x: tp.x, z: tp.z, r, t, max: t, dmg: bossDmg(sim, def, 1.6) });
+    sim.hazards.push({ x: tp.x, z: tp.z, r, t, max: t, dmg: bossDmg(sim, def, 1.6), ...(sim.pace >= 2 ? { by: e.id } : {}) });
   } else if (kind === 'charge') {
     const ux = dx / (d || 1), uz = dz / (d || 1);
     e.charge = { wind: 0.8, dash: 0.9, dx: ux, dz: uz };
@@ -1034,7 +1036,7 @@ export function step(sim, inputs = {}, dt = TICK) {
     const st = playerStats(p), d = hyp(p.x - g.x, p.z - g.z);
     if (d < st.magnet || g.pulled) {
       g.pulled = true;
-      const sp = 11 + (st.magnet - d) * 0.5;
+      const sp = 11 + (sim.pace >= 2 ? Math.abs(st.magnet - d) : st.magnet - d) * 0.5;
       g.x += ((p.x - g.x) / (d || 1)) * sp * dt; g.z += ((p.z - g.z) / (d || 1)) * sp * dt;
     }
     if (d < 0.8) { g.taken = true; gainXp(sim, g.v * st.growth); }

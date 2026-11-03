@@ -1,6 +1,14 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.38', date: '3 Nov 2026', title: 'Warp Shards and boss slams',
+    items: [
+      'Warp Shards and Shrines of Magic pull distant experience toward you instead of pushing it away.',
+      'Defeating a boss cancels its pending ground slams. Other bosses and meteor showers keep their attacks.',
+      'These fixes apply to casual runs and ranked from next week. This week’s ranked gameplay stays the same.',
+    ],
+  },
+  {
     version: '0.37', date: '3 Nov 2026', title: 'Security update',
     items: [
       'A security update: stronger protection for ranked runs, entry payments, prizes, the DMT buy and cloud saves.',
