@@ -588,7 +588,17 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     { hair: 'Shaggy', hairColor: 0x996f5f, skin: 0xbe8e60, armor: { head: 'Iron Helmet', chest: 'Iron Chestplate', legs: 'Iron Leggings', feet: 'Iron Boots' } },
     { hair: 'Pomp', hairColor: 0x4a3426, skin: 0xe2c4af, shirt: 0xb98a45, pants: 0x263040, armor: { head: 'Wizard Hat', chest: 'Wizard Robe', legs: 'Wizard Skirt' } },
   ];
-  const lookFor = (kind) => { if (/guard/i.test(kind)) return FOLK_LOOKS[4]; if (/priest|cemetary|wizard|elder/i.test(kind)) return FOLK_LOOKS[5]; let h = 0; for (const c of kind) h = (h * 31 + c.charCodeAt(0)) >>> 0; return FOLK_LOOKS[h % 4]; };
+  // each role its own look (owner 3 Nov: "theres wizard npcs out in the wilderness": the graveyard folk out by the swamp
+  // and the elder wore the wizard robes); only real wizards wear robes, the Shape Wizards their own set
+  const ROLE_LOOKS = [
+    [/shapewizard/i, { hair: 'Pomp', hairColor: 0x2a1c12, skin: 0xd8b08c, shirt: 0x5a3f7a, pants: 0x2c2440, armor: { head: 'Shape Wizard Hat', chest: 'Shape Robe', legs: 'Shape Skirt' } }],
+    [/wizard/i, FOLK_LOOKS[5]],
+    [/priest/i, { hair: 'Short', hairColor: 0xcfcfcf, skin: 0xe2c4af, shirt: 0xe8e0d0, pants: 0x3a3530, armor: {} }], // pale vestments
+    [/cemetary|cemetery|grave/i, { hair: 'Shaggy', hairColor: 0x4a3a2a, skin: 0xc9a07a, shirt: 0x4b4238, pants: 0x2e2a26, armor: { head: 'Straw Hat' } }], // gravediggers
+    [/elder/i, { hair: 'Long', hairColor: 0xe6e6e6, skin: 0xd9b48f, shirt: 0x6b5a45, pants: 0x4a4033, armor: {} }],
+    [/guard/i, FOLK_LOOKS[4]],
+  ];
+  const lookFor = (kind) => { for (const [re, look] of ROLE_LOOKS) if (re.test(kind)) return look; let h = 0; for (const c of kind) h = (h * 31 + c.charCodeAt(0)) >>> 0; return FOLK_LOOKS[h % 4]; };
   function updateFolk(dt) {
     if (!kit || !entData || !entData.folk) return;
     for (const a of folkActors.values()) a.mixer.update(dt);
