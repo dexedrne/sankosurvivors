@@ -26,10 +26,11 @@ let sim = null, renderer = null, mode = 'title', acc = 0, last = 0, frame = 0, s
 const keys = new Set();
 const audio = createAudio();
 const fmtT = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
-// A boss's own name on one map (screen only; the sim and ranked replays never see it). SankoQuest's swamp ogre is Fudna.
-const BOSS_TITLES = { swamp: { ogre: 'Fudna the Hoard Keeper' } };
-const bossName = (map, type) => BOSS_TITLES[map && map.id]?.[type] || ENEMIES[type].name;
-const slayName = (map, type) => BOSS_TITLES[map && map.id]?.[type] || `the ${ENEMIES[type].name}`;
+// A boss's own name (screen only; the sim and ranked replays never see it): SankoQuest's ogre is Fudna the Hoard Keeper.
+const BOSS_TITLES = { '*': { ogre: 'Fudna the Hoard Keeper' } }; // '*': every map
+const titled = (map, type) => BOSS_TITLES[map && map.id]?.[type] || BOSS_TITLES['*'][type];
+const bossName = (map, type) => titled(map, type) || ENEMIES[type].name;
+const slayName = (map, type) => titled(map, type) || `the ${ENEMIES[type].name}`;
 
 // ---- saved progress ------------------------------------------------------------------------------
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
