@@ -842,7 +842,7 @@ function toast(html) { const el = document.createElement('div'); el.className = 
 let runTicket = null;
 function runGround() {
   const T = renderer.terrain;
-  return T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null } : null;
+  return T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null, fences: T.fences || null } : null;
 }
 async function startRun(live = null) {
   if (!live?.run && (rankedLive() || rankedPlaying())) { openRanked(); return; }

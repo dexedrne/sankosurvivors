@@ -44,7 +44,10 @@ export function worldGround() {
   const height = new Float32Array(hb.buffer.slice(hb.byteOffset, hb.byteOffset + hb.byteLength));
   const nav = decodePng(readFileSync(path.join(tiles, 'nav.png')));
   const T = terrainFromTiles({ height, nav: nav.rgba, S: nav.w });
-  return { n: T.cells, blocked: T.blocked, cell: true, water: T.water, walls: T.walls };
+  // fences as walls (tools/build-fences.mjs writes fences.json; the browser reads the same file)
+  let fences = null;
+  try { const f = JSON.parse(readFileSync(path.join(tiles, 'fences.json'), 'utf8')); if (f.n === T.cells) { fences = new Uint8Array(f.n * f.n); for (const [k, b] of f.cells) fences[k] = b; } } catch { /* none */ }
+  return { n: T.cells, blocked: T.blocked, cell: true, water: T.water, walls: T.walls, fences };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

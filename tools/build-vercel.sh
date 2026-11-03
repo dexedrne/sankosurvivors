@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 BUILD=${BUILD:-$(git rev-parse --short HEAD)$(git diff --quiet || echo "+$(date +%s)")} # tools/remote-build.sh passes it in
 # ranked runs replay on the server with the rules of the version they were played on: keep every version's simulation
 # (bundled) and walk data under tools/vercel-api/sims/<id>/ (commit them), and tell the game its version id
+node tools/build-fences.mjs >/dev/null # fences as walls, read by build-ground and the browser
 node tools/build-ground.mjs >/dev/null
 SIMTMP=$(mktemp -d)
 node_modules/esbuild/bin/esbuild tools/vercel-api/ranked-entry.mjs --bundle --platform=node --format=cjs --target=node22 --log-level=error --outfile=$SIMTMP/ranked-bundle.cjs

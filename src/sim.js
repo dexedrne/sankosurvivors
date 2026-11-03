@@ -95,9 +95,20 @@ function crossOK(W, n, x0, z0, x1, z1) {
   }
   return true;
 }
+// the thin walls a run walks on: the buildings', plus the fences on pace 2 (owner 3 Nov: "fences on map dont register
+// as walls"; ranked week 0, pace 1, keeps walking through them so its runs replay as they were played)
+const fenceWallCache = new WeakMap();
+function wallsOf(sim) {
+  const g = sim.ground; if (!g || !g.walls) return null;
+  if (sim._wg !== g) {
+    sim._wg = g; sim._W = g.walls;
+    if (sim.pace >= 2 && g.fences) { let c = fenceWallCache.get(g); if (!c) { c = new Uint8Array(g.walls.length); for (let k = 0; k < c.length; k++) c[k] = g.walls[k] | g.fences[k]; fenceWallCache.set(g, c); } sim._W = c; }
+  }
+  return sim._W;
+}
 function noWall(sim, x0, z0, x1, z1) {
-  const g = sim.ground; if (!g || !g.walls || !g.cell) return true;
-  const W = g.walls, n = g.n;
+  const g = sim.ground, W = wallsOf(sim); if (!g || !W || !g.cell) return true;
+  const n = g.n;
   // the move itself must not go through a wall...
   if (!crossOK(W, n, x0, z0, x1, z1)) return false;
   // ...and the body keeps a gap to the wall ahead, checked along each axis on its own (a diagonal look-ahead could slip
@@ -117,6 +128,7 @@ const FLOW_R = 60, FLOW_W = FLOW_R * 2 + 1, FLOW_NONE = 65535;
 function updateFlow(sim) {
   const g = sim.ground; if (!g) { sim.flow = null; return; }
   const alive = sim.players.filter((p) => p.alive); if (!alive.length) return;
+  const W = wallsOf(sim);
   const x0 = gIdx(g, alive[0].x) - FLOW_R, z0 = gIdx(g, alive[0].z) - FLOW_R;
   const f = sim.flow && sim.flow.dist ? sim.flow : { dist: new Uint16Array(FLOW_W * FLOW_W), queue: new Int32Array(FLOW_W * FLOW_W) };
   f.x0 = x0; f.z0 = z0; f.dist.fill(FLOW_NONE);
@@ -130,7 +142,7 @@ function updateFlow(sim) {
       const nk = nj * FLOW_W + ni; if (f.dist[nk] !== FLOW_NONE) continue;
       const wi = ni + x0, wj = nj + z0;
       if (wi < 0 || wj < 0 || wi >= g.n || wj >= g.n || g.blocked[wj * g.n + wi]) continue;
-      if (g.walls && g.cell && !stepOK(g.walls, g.n, i + x0, j + z0, wi, wj)) continue; // monsters go round walls, through doors
+      if (W && g.cell && !stepOK(W, g.n, i + x0, j + z0, wi, wj)) continue; // monsters go round walls (and fences), through doors
       f.dist[nk] = d; f.queue[qt++] = nk;
     }
   }

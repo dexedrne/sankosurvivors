@@ -232,8 +232,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const texLoader = new THREE.TextureLoader();
   const loadImg = (url) => new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = url; });
   const pixels = (im) => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0); return x.getImageData(0, 0, im.width, im.height).data; };
-  const [heightBuf, diffImg, ovImg, navImg] = await Promise.all([
-    fetch(A('world/tiles/height.bin')).then((r) => r.arrayBuffer()), loadImg(A('world/tiles/diffuse.png')), loadImg(A('world/tiles/overlay.png')), loadImg(A('world/tiles/nav.png'))]);
+  const [heightBuf, diffImg, ovImg, navImg, fenceData] = await Promise.all([
+    fetch(A('world/tiles/height.bin')).then((r) => r.arrayBuffer()), loadImg(A('world/tiles/diffuse.png')), loadImg(A('world/tiles/overlay.png')), loadImg(A('world/tiles/nav.png')),
+    fetch(A('world/tiles/fences.json')).then((r) => (r.ok ? r.json() : null)).catch(() => null)]); // fences as walls (tools/build-fences.mjs)
   // the twelve ground textures, in the game's order (grass, rock, sand, tile, stone path, wood, wood 2, dirt, stone
   // interior, lab tile, cliff, haunted flagstone), packed into one texture array
   const LAYERS = [['grass-subtle-512-v2.jpg', 0, 1, 0], ['rock-512.jpg', 100, 1, 0], ['sand-512-color.jpg', 200, 1, 0], ['tile1-rpg-v3.png', 300, 0, 0], ['stone-path.jpg', 500, 1, 0], ['wood-floor.jpg', 600, 1, 0],
@@ -378,6 +379,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   let terrain = null; const groundPieces = [];
   function buildWorldGround() {
     terrain = terrainFromTiles({ height: new Float32Array(heightBuf), nav: pixels(navImg), S: MAP_SIZE });
+    if (fenceData && fenceData.n === terrain.cells) { const fa = new Uint8Array(fenceData.n * fenceData.n); for (const [k, b] of fenceData.cells) fa[k] = b; terrain.fences = fa; }
     F.data = terrain.h;
     for (let k = 0; k < 513 * 513; k++) hData[k] = THREE.DataUtils.toHalfFloat(terrain.h[k]);
     heightTex.needsUpdate = true;
@@ -1061,7 +1063,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         void main(){ vec2 p = vUv * 2.0 - 1.0; float r = length(p);
           float band = 1.0 - smoothstep(0.0, ${(half * 1.6).toFixed(4)}, abs(r - ${mid.toFixed(4)})); band *= band;
           float a = band + ${fill.toFixed(3)} * (1.0 - smoothstep(${(mid * 0.4).toFixed(4)}, ${mid.toFixed(4)}, r));
-          ${arcs ? `a *= pow(fract((atan(p.y, p.x) / 6.2831853 + 0.5) * ${arcs.toFixed(1)}), 1.8);` : ''}
+          ${arcs ? `a *= pow(fract((atan(p.y, p.x + 1e-5) / 6.2831853 + 0.5) * ${arcs.toFixed(1)}), 1.8);` : ''}
           a *= uOp * (1.0 - smoothstep(0.92, 1.0, r)); gl_FragColor = vec4(uColor * a, a); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     });
@@ -1081,7 +1083,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
       void main(){
-        vec2 p = (vUv * 2.0 - 1.0) * 1.15; float r = length(p), a = atan(p.y, p.x) / 6.2831853 + 0.5;
+        vec2 p = (vUv * 2.0 - 1.0) * 1.15; float r = length(p), a = atan(p.y, p.x + 1e-5) / 6.2831853 + 0.5;
         float flick = n(vec2(a * 18.0, uTime * 4.0)) * 0.6 + n(vec2(a * 41.0 + 3.0, uTime * 7.0)) * 0.4;
         float rim = 1.0 - smoothstep(0.0, 0.07 + 0.09 * flick, abs(r - (0.94 + 0.04 * flick)));
         float tongue = pow(n(vec2(a * 30.0, r * 4.0 - uTime * 3.2)), 2.2) * smoothstep(0.5, 0.95, r) * (1.0 - smoothstep(0.97, 1.06, r));
@@ -1121,7 +1123,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     vertexShader: 'varying vec2 vP; void main(){ vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: `uniform float uProg, uArc, uIn; uniform vec3 uColor; varying vec2 vP;
       void main(){
-        float r = length(vP); float ang = atan(-vP.y, vP.x); // ring angle 0 is +X
+        float r = length(vP); float ang = atan(-vP.y, vP.x + 1e-5); // ring angle 0 is +X
         float t = (ang + uArc * 0.5) / uArc;            // 0..1 across the swing
         float lead = uProg * 1.25;                        // the sweep front
         float trail = smoothstep(lead - 0.55, lead, t) * (1.0 - smoothstep(lead, lead + 0.04, t));
@@ -1162,7 +1164,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7)) + uSeed) * 43758.5453); }
       float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
       void main(){
-        vec2 p = vUv * 2.0 - 1.0; float r = length(p); float a = atan(p.y, p.x); float t = uProg;
+        vec2 p = vUv * 2.0 - 1.0; float r = length(p); float a = atan(p.y, p.x + 1e-5); float t = uProg;
         float front = mix(0.2, 0.97, 1.0 - pow(1.0 - t, 2.4));
         float rr = r + (n(vec2(a * 2.6 + 9.0, t * 1.5)) - 0.5) * 0.12;
         float rim = smoothstep(front - 0.18, front - 0.03, rr) * (1.0 - smoothstep(front - 0.03, front + 0.03, rr));
@@ -1208,7 +1210,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     fragmentShader: `uniform float uProg, uTime; uniform vec3 uCol; varying vec2 vP;
       void main(){
         float r = length(vP); if (r > 1.0) discard;
-        float ang = atan(vP.y, vP.x);
+        float ang = atan(vP.y, vP.x + 1e-5);
         vec3 hot = mix(uCol, vec3(1.0, 0.62, 0.22), smoothstep(0.72, 1.0, uProg) * 0.85); // red, heating to a hot orange just before the hit
         float rim = smoothstep(0.88, 0.97, r) * (1.0 - smoothstep(0.985, 1.0, r));
         float dash = step(0.45, fract(ang * 24.0 / 6.2832 - uTime * 0.8));
@@ -1310,6 +1312,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const gtao = new GTAOPass(scene, camera, 256, 256); gtao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.6, thickness: 1, scale: 1 }); gtao.blendIntensity = 0.85; gtao.enabled = false; composer.addPass(gtao);
   const bokeh = new BokehPass(scene, camera, { focus: 30, aperture: 0.0005, maxblur: 0.004 }); composer.addPass(bokeh);
   for (const pass of [gtao, bokeh]) { const render = pass.render.bind(pass); pass.render = (...a) => { camera.layers.disable(FX_LAYER); try { render(...a); } finally { camera.layers.enable(FX_LAYER); } }; }
+  // a pixel that is not a number (or infinite) would be blurred by the bloom into a black box on screen (owner 3 Nov:
+  // "black screen glitch box on my screen while playing"): clean them out first
+  const sanitize = new ShaderPass({ uniforms: { tDiffuse: { value: null } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); bool bad = !(c.r == c.r) || !(c.g == c.g) || !(c.b == c.b) || !(c.a == c.a) || c.r > 65000.0 || c.g > 65000.0 || c.b > 65000.0; gl_FragColor = bad ? vec4(0.0, 0.0, 0.0, 1.0) : min(c, vec4(64.0)); }' });
+  composer.addPass(sanitize);
   const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.32, 0.42, 0.86); composer.addPass(bloom);
   composer.addPass(new OutputPass());
   // colour grade after tone mapping: a touch more contrast and warmth, a soft vignette, and a red pulse when you are hurt
