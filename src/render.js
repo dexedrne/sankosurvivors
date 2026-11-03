@@ -1233,6 +1233,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         inst.adv = p.adv; dyn.add(inst.root); a = inst; playerActors.set(p.id, a);
       }
       if (a.px === undefined) { a.px = p.x; a.pz = p.z; }
+      if ((p.x - a.px) ** 2 + (p.z - a.pz) ** 2 > 9) { a.px = p.x; a.pz = p.z; } // a teleport (Warp Shard) snaps, never slides
       a.px += (p.x - a.px) * Math.min(1, dt * 24); a.pz += (p.z - a.pz) * Math.min(1, dt * 24);
       a.root.visible = !!p.al;
       a.root.position.set(a.px, groundAt(a.px, a.pz), a.pz);
@@ -1328,6 +1329,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         }
       }
       if (a.halo) a.halo.rotation.y += dt * 2;
+      // a monster moved back near you (left far behind) snaps there: easing it slid it across the map through walls
+      if ((x - a.px) ** 2 + (z - a.pz) ** 2 > 9) { a.px = x; a.pz = z; }
       a.px += (x - a.px) * Math.min(1, dt * 18); a.pz += (z - a.pz) * Math.min(1, dt * 18);
       a.root.position.set(a.px, groundAt(a.px, a.pz), a.pz);
       if (rising > 0) { a.riseMax = Math.max(a.riseMax || 0, rising); a.root.position.y -= (ENEMIES[type].h || 1.8) * 0.95 * (rising / a.riseMax); } // climbing out of the ground
