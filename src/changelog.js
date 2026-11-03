@@ -1,6 +1,14 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.40', date: '3 Nov 2026', title: 'More reliable cloud saves',
+    items: [
+      'Cloud saves retry temporary upload failures automatically while the game is open. Your progress stays saved on this device.',
+      'Save now confirms success only after your progress reaches the server. Failed initial uploads show that the save is still pending.',
+      'Open your wallet and turn on cloud save with a free signature on each device to sync your progress after runs.',
+    ],
+  },
+  {
     version: '0.39', date: '3 Nov 2026', title: 'Another security check',
     items: [
       'Casual leaderboards show your best run per name. Repeated attempts no longer fill the board.',

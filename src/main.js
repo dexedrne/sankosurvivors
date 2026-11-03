@@ -797,10 +797,10 @@ function cloudHTML(c) {
 function bindCloud(c, msg) {
   if ($('wlcloud')) $('wlcloud').onclick = async () => {
     $('wlcloud').disabled = true;
-    try { const r = await cloud.signIn(c, msg); msg(r === 'loaded' ? 'Loading the progress saved on this wallet…' : 'Cloud save is on.'); renderWallet(); }
+    try { const r = await cloud.signIn(c, msg); msg(r === 'loaded' ? 'Loading the progress saved on this wallet…' : r === 'pending' ? 'Progress is saved on this device. Upload is not confirmed yet; temporary failures retry automatically.' : 'Cloud save is on.'); renderWallet(); }
     catch (e) { msg(why(e)); $('wlcloud').disabled = false; }
   };
-  if ($('wlcloudnow')) $('wlcloudnow').onclick = async () => { msg('Saving…'); await cloud.push(true); msg('Saved to your wallet.'); };
+  if ($('wlcloudnow')) $('wlcloudnow').onclick = async () => { msg('Saving…'); const saved = await cloud.push(true); msg(saved ? 'Saved to your wallet.' : cloud.state() ? 'Progress is saved on this device. Upload is not confirmed yet; temporary failures retry automatically.' : 'Cloud save is signed out. Sign in again to upload your progress.'); };
   if ($('wlcloudoff')) $('wlcloudoff').onclick = () => { cloud.signOut(); msg('Cloud save is off on this device. Your saved progress stays on the wallet.'); renderWallet(); };
 }
 // open the game or come back to it: a newer save from another device loads (only between runs)

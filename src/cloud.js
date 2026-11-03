@@ -8,7 +8,7 @@
 // for anything else this device wins. Nothing one device earned is lost.
 
 export const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
-const ST = 'sq-cloud', BASE_KEY = 'sq-cloud-base';
+const ST = 'sq-cloud', BASE_KEY = 'sq-cloud-base', UPLOAD_KEY = 'sq-cloud-upload';
 
 const parse = (v, d) => { try { const x = JSON.parse(v); return x ?? d; } catch { return d; } };
 const num = (v) => { const n = Number(parse(v, 0)); return Number.isFinite(n) ? n : 0; };
@@ -58,7 +58,7 @@ const base = () => parse(get(BASE_KEY), null);
 const same = (a, b) => SAVE_KEYS.every((k) => (a[k] ?? null) === (b[k] ?? null));
 
 async function api(baseUrl, route, body) {
-  const r = await fetch(`${baseUrl}api/${route}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const r = await fetch(`${baseUrl}api/${route}`, { signal: AbortSignal.timeout(10000), ...(body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) });
   const d = await r.json().catch(() => ({}));
   return { status: r.status, d };
 }
@@ -77,45 +77,74 @@ export function createCloud(baseUrl, ui) {
     const r = await api(baseUrl, 'save-login', { nonce: n.d.nonce, signature, address: conn.address });
     if (r.status !== 200) throw new Error(r.d.error || 'the cloud save did not open');
     const mine = snapshot();
+    set(UPLOAD_KEY, null);
     setState({ a: r.d.address, key: r.d.key, rev: r.d.rev || 0 });
-    if (!r.d.rev || !r.d.data) { set(BASE_KEY, null); await push(true); return 'saved'; } // nothing there yet: this device's progress goes up
+    if (!r.d.rev || !r.d.data) { set(BASE_KEY, null); return await push(true) ? 'saved' : 'pending'; } // nothing there yet: this device's progress goes up
     if (same(mine, r.d.data)) { setState({ a: r.d.address, key: r.d.key, rev: r.d.rev }); set(BASE_KEY, JSON.stringify(r.d.data)); return 'same'; }
     const pick = isFresh(mine) ? 'cloud' : await ui.choose(summary(r.d.data), summary(mine));
     if (pick === 'cloud') { applySnapshot(r.d.data); ui.reload(); return 'loaded'; }
     set(BASE_KEY, JSON.stringify(r.d.data)); // keep this device's: it replaces the cloud one
-    await push(true, r.d.data);
-    return 'saved';
+    return await push(true, r.d.data) ? 'saved' : 'pending';
   }
   // save this device's progress (soon after a change; at once with now)
   function changed() { if (!cloudState()) return; clearTimeout(timer); timer = setTimeout(() => push(), 4000); }
   async function push(now = false, overwrite = null) {
-    const s = cloudState(); if (!s) return;
-    if (busy) { again = true; return; }
+    const s = cloudState(); if (!s) return false;
+    if (busy) { again = true; return false; }
     busy = true;
+    let upload;
     try {
-      const mine = snapshot(); if (!Object.keys(mine).length) return;
-      const b = base(); if (!overwrite && b && same(mine, b) && s.rev) return; // nothing new since the last save
+      const pending = parse(get(UPLOAD_KEY), null), current = snapshot(), b = base();
+      upload = pending?.a === s.a && pending.rev === s.rev ? pending : null;
+      if (!Object.keys(current).length) return false;
+      if (!upload && !overwrite && b && same(current, b) && s.rev) return true; // nothing new since the last save
+      upload ||= { a: s.a, rev: s.rev, data: current, overwrite: !!overwrite, uncertain: false };
+      set(UPLOAD_KEY, JSON.stringify({ ...upload, uncertain: true })); // a reload can lose the response even after the server saved
+      const mine = upload.data;
       const r = await api(baseUrl, 'save-put', { key: s.key, rev: s.rev, data: mine });
-      if (r.status === 200) { setState({ ...s, rev: r.d.rev }); set(BASE_KEY, JSON.stringify(mine)); return; }
-      if (r.status === 401) { setState(null); ui.note('Your cloud save signed out: open the wallet to sign in again.'); return; }
+      if (cloudState()?.key !== s.key) return false; // signing out or switching wallets wins over an old response
+      if (r.status === 200 && r.d.ok === true && Number.isSafeInteger(r.d.rev) && r.d.rev > s.rev) {
+        set(UPLOAD_KEY, null);
+        setState({ ...s, rev: r.d.rev }); set(BASE_KEY, JSON.stringify(mine));
+        again ||= !same(snapshot(), mine);
+        return !again;
+      }
+      if (r.status === 401) { signOut(); ui.note('Your cloud save signed out: open the wallet to sign in again.'); return false; }
       if (r.status === 409 && r.d.conflict) { // another device saved in between: join the two, then save that
-        const theirs = r.d.data || {}, merged = overwrite ? mine : mergeSaves(b, mine, theirs);
+        const theirs = r.d.data || {};
+        if (upload.uncertain && !same(theirs, mine)) {
+          signOut();
+          ui.note('Cloud save paused after an interrupted upload and another save. Your local progress is safe. Turn cloud save on again and choose which progress to keep.');
+          return false;
+        }
+        const merged = upload.overwrite ? snapshot() : mergeSaves(upload.uncertain ? mine : b, snapshot(), theirs);
+        set(UPLOAD_KEY, null);
         for (const k of SAVE_KEYS) set(k, typeof merged[k] === 'string' ? merged[k] : null);
         setState({ ...s, rev: r.d.rev || 0 }); set(BASE_KEY, JSON.stringify(theirs));
-        if (!overwrite) ui.note('Progress from your other device was added.');
-        again = true; return;
+        if (!upload.overwrite && !upload.uncertain) ui.note('Progress from your other device was added.');
+        again = true; return false;
       }
-      if (r.status === 429) again = true; // too soon: the next change (or the retry below) saves it
-    } catch { /* offline: the next change tries again */ } finally {
+      if (r.status === 429 || r.status >= 500 || r.status === 200) {
+        if (r.status !== 429) upload.uncertain = true;
+        set(UPLOAD_KEY, JSON.stringify(upload));
+        again = true;
+      } else { set(UPLOAD_KEY, null); ui.note('Progress is saved on this device but was not uploaded. Try Save now again; if it keeps failing, report it.'); }
+      return false;
+    } catch {
+      if (upload && cloudState()?.key === s.key) { upload.uncertain = true; set(UPLOAD_KEY, JSON.stringify(upload)); }
+      again = true; return false;
+    } finally {
       busy = false;
-      if (again) { again = false; clearTimeout(timer); timer = setTimeout(() => push(), now ? 1500 : 3000); }
+      if (again && cloudState()) { again = false; clearTimeout(timer); timer = setTimeout(() => push(), now ? 1500 : 3000); }
+      else again = false;
     }
   }
   // a newer save from another device: load it (returns true when this device's progress changed)
   async function pull() {
-    const s = cloudState(); if (!s || busy) return false;
+    const s = cloudState(); if (!s || busy || get(UPLOAD_KEY)) return false; // resolve an interrupted upload before merging a newer save
     try {
       const r = await api(baseUrl, 'save-get', { key: s.key });
+      if (busy || get(UPLOAD_KEY) || cloudState()?.key !== s.key || cloudState()?.rev !== s.rev) return false;
       if (r.status === 401) { setState(null); return false; }
       if (r.status !== 200 || !r.d.rev || r.d.rev <= s.rev || !r.d.data) return false;
       const mine = snapshot(), b = base(), merged = b && !same(mine, b) ? mergeSaves(b, mine, r.d.data) : r.d.data;
@@ -125,6 +154,6 @@ export function createCloud(baseUrl, ui) {
       return true;
     } catch { return false; }
   }
-  function signOut() { setState(null); set(BASE_KEY, null); }
+  function signOut() { clearTimeout(timer); again = false; setState(null); set(BASE_KEY, null); set(UPLOAD_KEY, null); }
   return { signIn, changed, push, pull, signOut, state: cloudState };
 }
