@@ -594,13 +594,14 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   function updateRoofs(px, pz) {
     const want = new Set();
     if (roofsOff) want.add('all');
-    else {
-      // indoors (the game's own map marks every interior): lift every roof with a piece close by; outdoors only a roof
-      // right overhead (porches, overhangs)
+    // indoors (the game's own map marks every interior): lift every roof with a piece close by; outdoors only a roof right
+    // overhead (porches, overhangs). With roofs off this still decides when a landmark (the chapel) lifts its roof.
+    {
       const ci = Math.floor(px), cj = Math.floor(pz);
       const inside = terrain && terrain.indoor && ci >= 0 && cj >= 0 && ci < 512 && cj < 512 && terrain.indoor[cj * 512 + ci];
       const reach = inside ? 8 : 2.2, r2 = reach * reach;
       for (const [id, b] of roofBoxes) {
+        if (roofsOff && !isLandmark(id)) continue; // roofs off: every other roof is already gone
         if (px < b.x0 - reach - 2 || px > b.x1 + reach + 2 || pz < b.z0 - reach - 2 || pz > b.z1 + reach + 2) continue;
         for (let k = 0; k < b.pts.length; k += 2) { const dx = b.pts[k] - px, dz = b.pts[k + 1] - pz; if (dx * dx + dz * dz < r2) { want.add(id); break; } }
       }
@@ -609,7 +610,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     roofHidden.clear(); for (const k of want) roofHidden.add(k);
     for (const r of roofMeshes) {
       // roofs off (T): the roof tiles go, the walls under them stay; walking into a building lifts its whole roof group
-      for (let i = 0; i < r.mats.length; i++) r.im.setMatrixAt(i, (roofHidden.has('all') && !(r.wall && keepsWalls(r.bldgs[i]))) || roofHidden.has(r.bldgs[i]) ? ZERO : r.mats[i]);
+      for (let i = 0; i < r.mats.length; i++) r.im.setMatrixAt(i, (roofHidden.has('all') && !isLandmark(r.bldgs[i]) && !(r.wall && keepsWalls(r.bldgs[i]))) || roofHidden.has(r.bldgs[i]) ? ZERO : r.mats[i]);
       r.im.instanceMatrix.needsUpdate = true;
     }
     // a picture hung up where the roof's walls are (the chapel's stained glass) lifts with that roof; floor rugs stay
@@ -622,6 +623,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // standing on the ground (the wooden hut). Upper walls sitting on a ground floor (the strangehouse's gables, the guild's
   // upper storey) go with the roof, or they stand around nothing like a broken second floor.
   const KEEP_ROOF_WALLS = /^chapel$/i;
+  // landmarks keep their roof even with roofs off, and lift it only when you walk in or right up to it like SankoQuest
+  // does (the chapel without its roof was a box of very tall walls)
+  const LANDMARK_ROOFS = /^chapel$/i;
+  const isLandmark = (id) => { const b = roofBoxes.get(id); return !!b && LANDMARK_ROOFS.test(b.name); };
   function keepsWalls(id) {
     const b = roofBoxes.get(id); if (!b) return true;
     if (b.keep === undefined) b.keep = KEEP_ROOF_WALLS.test(b.name) || (b.wy < 1e9 && b.wy - groundAt(b.wx, b.wz) < 0.5);
