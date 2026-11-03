@@ -6,6 +6,7 @@ const MODES = ['normal', 'hard'], FEE = { normal: '0.5', hard: '1.5' };
 export class RankedDB {
   constructor() { this.rows = []; this.next = 1; this.finishError = null; }
   async rpc(fn, p) {
+    if (fn === 'sqs_ranked_restart' && this.noRestart) throw new Error('rpc sqs_ranked_restart failed: 404 not found'); // before update7.sql
     const error = (error) => ({ error });
     const mode = p.p_mode ?? 'normal';
     const refund = (why, m = mode) => ({ error: why + `. Your ${FEE[m]} DMT will be sent back.`, refund: true });
@@ -67,6 +68,12 @@ export class RankedDB {
         this.rows.filter(x => x.week <= e.week && !keep.has(x.id)).forEach(x => { x.log = null; });
         return { ok: true, rank };
       }
+      case 'sqs_ranked_restart': // update7.sql
+        if (!e) return error('that run was already sent');
+        if ((e.restarts || 0) >= 3) return error('this entry was restarted 3 times already: tell the dev');
+        if (e.started_at == null || e.claimed_at != null || e.refund_reason != null) return error('that run was already sent');
+        Object.assign(e, { started_at: null, seed: Number(p.p_seed), restarts: (e.restarts || 0) + 1 });
+        return { ok: true, week: e.week, mode: e.mode };
       case 'sqs_ranked_void':
         if (!e || e.started_at == null || e.claimed_at != null) return error('that run was already sent');
         Object.assign(e, { claimed_at: Date.now(), finished_at: Date.now(), verdict: 'void', refund_reason: p.p_reason.slice(0, 120) });

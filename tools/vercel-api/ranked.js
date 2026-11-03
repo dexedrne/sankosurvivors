@@ -249,6 +249,17 @@ async function handle(route, req, res, ctx) {
     const b = await readBody(req); if (b.tooBig) return send(res, 413, { error: 'too big' });
     const r = unsign(b.run); if (!r || r.k !== 'rrun') return send(res, 400, { error: 'no run' });
     if (r.v === cur) return send(res, 400, { error: 'the game has not changed since this run started: resume it instead' });
+    // update 7: nothing is paid back. The same entry starts again, with a new seed, on the new version (an honest player
+    // loses nothing, and a run seen going badly cannot be turned into money). Cheap: no replay, at most 3 times an entry.
+    if (r.w !== week) return send(res, 400, { error: 'that run can no longer be restarted: its week is over' });
+    let again = null;
+    try { again = await rpc('sqs_ranked_restart', { p_server_key: SERVER_KEY, p_id: r.id, p_wallet: r.a, p_seed: crypto.randomInt(1, 2 ** 31 - 1), p_reason: `game updated during the run (${r.v} -> ${cur})` }); }
+    catch (e) { if (!/ 404 /.test(String(e.message))) throw e; } // before update7.sql: the checked refund below
+    if (again) {
+      if (again.error) return send(res, 400, again);
+      const mode = again.mode === 'hard' ? 'hard' : 'normal';
+      return send(res, 200, { ok: true, restart: true, entry: signed({ k: 'rentry', id: r.id, a: r.a, w: r.w, ...(mode === 'normal' ? {} : { m: mode }) }), id: r.id, week: r.w, mode });
+    }
     // only a run of this week, within the time it could still have been sent, that was still alive when its version was
     // replaced: its own log, replayed on its own version, must end with the player alive and reach the moment of the change
     // (a run that had ended is sent instead, so a bad run can no longer be refunded; a void after the week cannot double-pay)

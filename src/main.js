@@ -304,8 +304,16 @@ async function recoverRankedRun() {
     if (live.sim !== SIM_ID) {
       rankedMessage('The game changed during your run. Requesting your refund…');
       try {
-        try { await rankedApi(BASE, 'void', { run: live.run, log: live.log }); }
+        let d;
+        try { d = await rankedApi(BASE, 'void', { run: live.run, log: live.log }); }
         catch (e) { if (/send it instead/.test(String(e.message))) { rankedMessage('Your run had already ended: sending it…'); await submitRanked(); return; } throw e; }
+        if (d && d.restart && d.entry) { // the same entry, ready to start again on this version
+          const entries = readRanked('sq-ranked-entries', []).filter((x) => x.id !== d.id);
+          entries.push({ entry: d.entry, id: d.id, week: d.week, mode: d.mode === 'hard' ? 'hard' : 'normal' });
+          writeRanked('sq-ranked-entries', entries); localStorage.removeItem('sq-ranked-live');
+          rankedMessage('The game changed during your run, so it could not finish. Your entry is ready to start again.'); renderRanked();
+          return;
+        }
         localStorage.removeItem('sq-ranked-live');
         rankedMessage(`Your ${RACE[liveRace(live).mode].entryDmt} DMT will be sent back.`);
       } catch (e) {

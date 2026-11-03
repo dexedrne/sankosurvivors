@@ -13,6 +13,7 @@ test('security SQL: keys fail closed, refunds owed are real, settled weeks canno
     await db.exec('create role anon; create role authenticated;');
     for (const f of ['schema.sql', 'ranked.sql', 'payouts.sql', 'update4.sql']) await db.exec(await sql(f));
     const six = await sql('update6.sql'); await db.exec(six); await db.exec(six); // safe to paste again
+    const seven = await sql('update7.sql'); await db.exec(seven); await db.exec(seven);
     await db.exec("update sqs_admin set v = encode(sha256(convert_to('server-key', 'UTF8')), 'hex') where k = 'server_key_sha256';");
     const call = async (fn, args) => (await db.query(`select ${fn}(${Object.keys(args).map((k, i) => `${k} => $${i + 1}`).join(',')}) as r`, Object.values(args))).rows[0].r;
     const W = '0x' + 'ab'.repeat(20), tx = (n) => '0x' + n.toString(16).padStart(64, '0');
@@ -36,6 +37,17 @@ test('security SQL: keys fail closed, refunds owed are real, settled weeks canno
     const settled = (await db.query(`select count(*)::int n from sqs_ranked_payout_weeks where week = ${cur}`)).rows[0].n;
     if (settled) assert.match((await voidRun(await entryAt(12, cur))).error, /week is over/, 'settled this week');
 
+    // update 7: a started run restarts (new seed, not started) up to 3 times, never once the week is over; active runs counted
+    await db.exec("update sqs_admin set v = encode(sha256(convert_to('reports-key', 'UTF8')), 'hex') where k = 'reports_key_sha256';");
+    const restart = (id) => call('sqs_ranked_restart', { p_server_key: 'server-key', p_id: id, p_wallet: W, p_seed: 777, p_reason: 'game updated' });
+    const live = await entryAt(20, cur);
+    assert.equal((await call('sqs_ranked_active', { p_key: 'reports-key' })).active >= 1, true);
+    assert.deepEqual((await call('sqs_ranked_active', { p_key: 'wrong' })), { error: 'forbidden' });
+    for (let i = 0; i < 3; i++) { assert.equal((await restart(live)).ok, true); await db.exec(`update sqs_ranked_entries set started_at = now() where id = ${live}`); }
+    assert.match((await restart(live)).error, /restarted 3 times/);
+    const row = (await db.query(`select seed, restarts from sqs_ranked_entries where id = ${live}`)).rows[0];
+    assert.equal(Number(row.seed), 777); assert.equal(row.restarts, 3);
+    assert.match((await restart(await entryAt(21, cur - 2))).error, /week is over/);
     // 1: with the server key's row gone, guarded functions refuse everyone (they used to open)
     const put = (w, data, rev = 0, ip = 'ip-a', key = 'server-key') => call('sqs_save_put', { p_server_key: key, p_wallet: w, p_data: JSON.stringify(data), p_rev: rev, p_ip: ip });
     assert.deepEqual(await put(W, { 'sq-coins': '1' }), { ok: true, rev: 1 });

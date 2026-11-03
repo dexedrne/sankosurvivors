@@ -23,6 +23,22 @@ if [ -n "$BUILD_HOST" ]; then bash tools/remote-build.sh "$BUILD_HOST"; else bas
 # security pass, 3 Nov: previews get the production server and ticket keys until those are unticked for Preview in
 # Vercel, so a preview build would run any code with them; refuse unless that has been done (SQS_PREVIEW_KEYS_SPLIT=1)
 if [ -n "$PREVIEW" ] && [ "${SQS_PREVIEW_KEYS_SPLIT:-}" != 1 ]; then echo "deploy: previews are off until the production keys are removed from Preview in Vercel"; exit 1; fi
+# owner 3 Nov: "updates should be queued for when nobody is on a ranked run": a build that changes the ranked game version
+# waits until no ranked run is in progress (a run cannot finish on a version that is gone). Builds that keep the version
+# (page, art, sound, menus) go out at once. FORCE_DEPLOY=1 skips the wait; if the count cannot be read, it keeps waiting.
+if [ -z "$PREVIEW" ] && [ -z "$FORCE_DEPLOY" ]; then
+  NEW=$(cat tools/vercel-api/sims/current.txt)
+  LIVE=$(curl -s -m 20 https://sankosurvivors.quest/version.json | python3 -c 'import json,sys; print(json.load(sys.stdin).get("sim",""))' 2>/dev/null || true)
+  if [ -n "$LIVE" ] && [ "$NEW" != "$LIVE" ]; then
+    while :; do
+      N=$(bash tools/ranked-active.sh 2>/dev/null) || N="an unknown number of"
+      [ "$N" = 0 ] && break
+      echo "deploy: queued: this build changes the ranked game ($LIVE -> $NEW) and $N ranked run(s) are in progress; checking again in 2 minutes"
+      sleep 120
+    done
+    echo "deploy: no ranked run in progress, going live"
+  fi
+fi
 if [ -n "$PREVIEW" ]; then vercel deploy --prebuilt --yes 2>&1 | grep -E "Preview|Error|error|https://" | head -3
 else vercel deploy --prebuilt --prod --yes 2>&1 | grep -E "Production|Error|error" | head -3; fi
 # warm jsDelivr in the background so the first players after a change do not wait on it fetching from GitHub

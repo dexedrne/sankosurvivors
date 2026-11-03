@@ -243,7 +243,8 @@ copyFileSync(path.join(simsDir, SIM_TEST_ID, 'ranked-bundle.cjs'), path.join(sim
 copyFileSync(path.join(simsDir, SIM_TEST_ID, 'ground.bin'), path.join(simsDir, OLD_ID, 'ground.bin'));
 const history = (lines) => writeFileSync(path.join(simsDir, 'history.txt'), lines.map(([t, id]) => `${t} ${id}`).join('\n') + '\n');
 const alive = (ticks = 90) => ({ v: 1, runs: [[ticks, 0, 0]], uses: [], picks: [] }); // standing still for a few seconds: still alive
-test('void (security pass): only a run of this week, still alive when its version was replaced, is refunded', async () => {
+test('void before update7.sql (security pass): only a run of this week, still alive when its version was replaced, is refunded', async () => {
+  db.noRestart = true;
   const e = await enter(), run = await start(e), r0 = decode(run.run);
   expectError(await call('ranked-void', { run: run.run, log: alive() }), 400, 'the game has not changed since this run started: resume it instead');
   const oldRun = signed({ ...r0, v: OLD_ID });
@@ -251,7 +252,7 @@ test('void (security pass): only a run of this week, still alive when its versio
   expectError(await call('ranked-void', { run: oldRun, log: alive() }), 400, 'the game did not change during this run: resume or send it instead');
   history([[r0.s - 60000, OLD_ID], [r0.s + 2000, cur]]); // the new version went live 2 s into the run
   expectError(await call('ranked-void', { run: oldRun }), 400, 'send the run log with the refund: bad log');
-  expectError(await call('ranked-void', { run: signed({ ...r0, v: OLD_ID, w: r0.w + 1 }), log: alive() }), 400, 'that run can no longer be refunded');
+  expectError(await call('ranked-void', { run: signed({ ...r0, v: OLD_ID, w: r0.w + 1 }), log: alive() }), 400, 'that run can no longer be restarted: its week is over');
   history([[r0.s - 60000, OLD_ID], [r0.s + 3000 * 1000, cur]]); // the change came long after this log stops
   expectError(await call('ranked-void', { run: oldRun, log: alive() }), 400, 'this run stopped before the game changed: send it instead');
   history([[r0.s - 60000, OLD_ID], [r0.s + 2000, cur]]);
@@ -267,11 +268,28 @@ test('void (security pass): only a run of this week, still alive when its versio
   await call('ranked-submit', { run: run2.run, log: { v: 1, runs: [], uses: [], picks: [] } });
   expectError(await call('ranked-void', { run: signed({ ...decode(run2.run), v: OLD_ID }), log: alive() }), 400, 'that run was already sent');
 });
+test('update 7: a run cut short by a game update starts again on the same entry, with a new seed, nothing paid back', async () => {
+  const e = await enter(), run = await start(e), r0 = decode(run.run);
+  const oldRun = (r) => signed({ ...decode(r.run), v: OLD_ID });
+  const out = await call('ranked-void', { run: oldRun(run) });
+  assert.equal(out.code, 200); assert.equal(out.json.restart, true); assert.equal(out.json.id, r0.id);
+  assert.equal((await db.rpc('sqs_ranked_settle', { p_key: 'reports-key', p_week: 0 })).refunds.length, 0, 'no refund');
+  const again = await call('ranked-start', { entry: out.json.entry, adv: r0.adv, sim: cur });
+  assert.equal(again.code, 200); assert.notEqual(again.json.again, true, 'a fresh start, not the old run');
+  // three restarts at most
+  let r = again.json;
+  for (let i = 0; i < 2; i++) { const o = await call('ranked-void', { run: oldRun(r) }); assert.equal(o.code, 200); r = (await call('ranked-start', { entry: o.json.entry, adv: r0.adv, sim: cur })).json; }
+  expectError(await call('ranked-void', { run: oldRun(r) }), 400, 'this entry was restarted 3 times already: tell the dev');
+  // not once the week is over
+  const e2 = await enter(e.w), run2 = await start(e2);
+  expectError(await call('ranked-void', { run: signed({ ...decode(run2.run), v: OLD_ID, w: decode(run2.run).w + 1 }) }), 400, 'that run can no longer be restarted: its week is over');
+});
 test('a ranked run played in slow motion does not count (security pass)', async () => {
   const r = await ready(), d = decode(r.run.run);
   const t = r.log.runs.reduce((n, x) => n + x[0], 0) / 30;
   now = d.s + (t + 600 + 0.1 * t + 30) * 1000; // its game time plus the pause allowance, and then some
-  const out = await call('ranked-submit', { run: r.run.run, name: 'Slow', log: r.log });
+  slowRefusalOk = true; // refused only after the full replay, so it may take the replay's time
+  let out; try { out = await call('ranked-submit', { run: r.run.run, name: 'Slow', log: r.log }); } finally { slowRefusalOk = false; }
   assert.equal(out.code, 400); assert.match(out.json.error, /much slower than real time/);
 });
 
