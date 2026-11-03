@@ -17,7 +17,7 @@ export const CHANGELOG = [
       'Dropped items no longer show a dark box around them (ambient occlusion and depth of field now leave sprites out).',
       'Bones on the ground are 10% bigger.',
       'Mushrooms, daisies, grass and path stones are their real size again (the smaller-download change had made mushrooms huge and the rest too small).',
-      'The Star Wizard walks facing forward.',
+      'The Star Wizard and the Star townsman face the way they walk, shoes and all. The swamp’s dead trees and the old ruins no longer float above the ground.',
       'The baseball is baseball-sized in flight (it was drawn about twice too big; it hits the same).',
       'The Shard Staff casts SankoQuest’s own spells as it levels: Air, Water, Earth and Fire Missile, then Air and Water Blast, and Fire Blast once it evolves. Built from the game’s own spell code: the Blast glow with its white-hot core and pulsing ring, the impact flash and burst, the trail, and the flight height.',
       'The top right shows the GP a run has earned so far, next to monsters slain.',

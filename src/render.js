@@ -461,6 +461,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     // a model can be repeated in a row or grid (fences, wall runs, the castle's curtain walls): copies step along the
     // node's own X/Z axes by the given offsets, rotated but not scaled, exactly as the game lays them out
     allNodes = [];
+    // props the scene puts in the air (audit 3 Nov: the swamp's dead trees and the swamp battle's ruins floated 0.5-0.9
+    // above the ground): their height, measured against the ground under their footprint
+    const PROP_Y = { 'deadtree1.glb@214.8,296.4': 1.16, 'deadtree1.glb@202.0,272.4': 1.23, 'deadtree1.glb@192.1,271.4': 1.39,
+      'ruins_corner_2.glb@186.5,326.0': 0.96, 'ruins_corner_1.glb@183.4,325.2': 1.11, 'ruins_corner_3.glb@184.5,320.9': 1.3 };
     const pq = new THREE.Quaternion(), ps = new THREE.Vector3(), pp = new THREE.Vector3(), off = new THREE.Vector3();
     for (const { o, file, roof, bldg, m } of nodes) {
       o.matrixWorld.decompose(pp, pq, ps);
@@ -469,6 +473,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       for (let a = 0; a < cx; a++) for (let b = 0; b < cz; b++) {
         off.set(a * ox, 0, b * oz).applyQuaternion(pq).add(pp);
         if (off.x < 0 || off.z < 0 || off.x > MAP_SIZE || off.z > MAP_SIZE) continue; // past the edge of the ground (the haunted house)
+        { const fix = PROP_Y[`${file}@${off.x.toFixed(1)},${off.z.toFixed(1)}`]; if (fix !== undefined) off.y = fix; } // placed above the ground in the scene data
         allNodes.push({ file, roof, bldg, mw: new THREE.Matrix4().compose(off, pq, ps), x: off.x, y: off.y, z: off.z });
       }
     }
@@ -717,6 +722,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         try {
           const inst = kit ? kit.animate(p.gltf, FOLK_H[special] || (ENEMIES[special] && ENEMIES[special].h) || 1.6, 'idle', { fromRest: FROM_REST.get(special) || false }) : instantiate(p, 'idle'); // (Boaty stood in a T-pose)
           if (inst.kit && ENEMIES[special] && ENEMIES[special].yawFix) inst.kit.yaw0 += ENEMIES[special].yawFix;
+          if (STAR_BODY.has(special)) turnStarBody(inst.root); // the Star townsman's body, as the Star Wizard's
           inst.root.position.set(f[0], folkY(f), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - ((inst.kit && inst.kit.yaw0) || 0);
           if (!inst.mixer) inst.mixer = { update() {} };
           inst.kind = special; entGroup.add(inst.root); folkActors.set(i, inst);
@@ -1066,9 +1072,21 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // out and leaned over
   // Skelly (hips flipped 180), the Spiky Boatman and the Stars (hips turned -90 / -81): the clips' own rig otherwise
   const FROM_REST = new Map([['skeleton', 'hips'], ['boatman', 'hips'], ['star', 'hips'], ['starwiz', 'hips']]);
-  // drawing-only turn fixes, kept here (not in content.js) so the ranked game version does not change for a look fix:
-  // the Star Wizard's walk points its toes behind it, so it walked backwards (owner 3 Nov)
-  const YAW_FIX = new Map([['starwiz', Math.PI]]);
+  // drawing-only turn fixes, kept here (not in content.js) so the ranked game version does not change for a look fix
+  const YAW_FIX = new Map();
+  // the Stars' body (face, beard, pipe, hat) is a rigid piece on the hips bone, and the 'hips' fit leaves the hips turned
+  // half round from the walking legs: the body faced backwards (owner 3 Nov: the blue star walked backwards). Turn just
+  // the body half round about the hips' vertical, in the pose it stands in (audit 3 Nov: turning the whole figure put
+  // the shoes behind instead)
+  const STAR_BODY = new Set(['star', 'starwiz']);
+  function turnStarBody(root) {
+    let hips = null, body = null; root.traverse((o) => { if (o.name === 'mixamorig_Hips') hips = o; if (o.name === 'starbody') body = o; });
+    if (!hips || !body || body.userData.turned) return;
+    root.updateMatrixWorld(true);
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(hips.getWorldQuaternion(new THREE.Quaternion()).invert()).normalize();
+    const q = new THREE.Quaternion().setFromAxisAngle(up, Math.PI);
+    body.position.applyQuaternion(q); body.quaternion.premultiply(q); body.userData.turned = true;
+  }
   function makeEnemy(type) {
     const def = ENEMIES[type];
     if (def.rig && kit) {
@@ -1080,7 +1098,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       } catch (e) { console.warn('rig enemy failed', type, e); }
     }
     const p = protos[type];
-    if (p && def.mixamo && kit) { try { const inst = kit.animate(p.gltf, def.h, 'walk', { fromRest: FROM_REST.get(type) || false }); const fix = def.yawFix || YAW_FIX.get(type) || 0; if (fix && inst.kit) inst.kit.yaw0 += fix; return inst; } catch (e) { console.warn('mob anim failed', type, e); } }
+    if (p && def.mixamo && kit) { try { const inst = kit.animate(p.gltf, def.h, 'walk', { fromRest: FROM_REST.get(type) || false }); const fix = def.yawFix || YAW_FIX.get(type) || 0; if (fix && inst.kit) inst.kit.yaw0 += fix; if (STAR_BODY.has(type)) turnStarBody(inst.root); return inst; } catch (e) { console.warn('mob anim failed', type, e); } }
     if (!p) { const m = new THREE.Mesh(fallbackGeo, fallbackMat); const g = new THREE.Group(); m.position.y = 0.8; g.add(m); return { root: g, inner: m, mixer: null }; }
     return instantiate(p, ENEMIES[type].walk);
   }
