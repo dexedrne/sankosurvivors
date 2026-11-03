@@ -478,7 +478,7 @@ const recentErrors = [];
 addEventListener('error', (e) => { recentErrors.push(String(e.message || e).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 addEventListener('unhandledrejection', (e) => { recentErrors.push(String(e.reason && e.reason.message || e.reason).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 const ADV_NAME = (id) => (ADVENTURER_BY_ID[id] || {}).name || id;
-let lbMap = null, lbMode = 'casual';
+let lbMap = null, lbMode = 'casual', lbEndless = false;
 const rankedIsOpen = () => !$('rankedbtn').classList.contains('hidden');
 // the leaderboard: Ranked (this week's standings and pot) or Casual (one map at a time, picked from a list)
 async function showBoard(mapId, mode) {
@@ -486,16 +486,18 @@ async function showBoard(mapId, mode) {
   if (mapId === 'ranked') lbMode = 'ranked';
   if (lbMode === 'ranked' && !rankedIsOpen()) lbMode = 'casual';
   $('lbtabs').innerHTML = (rankedIsOpen() ? `<div class="lbmode"><button class="${lbMode === 'ranked' ? 'on' : 'ghost'} rankedtab" data-mode="ranked">Ranked</button><button class="${lbMode === 'casual' ? 'on' : 'ghost'}" data-mode="casual">Casual</button></div>` : '')
-    + (lbMode === 'casual' ? `<label class="lbpick">Map <select id="lbmapsel">${MAPS.map((m) => `<option value="${m.id}"${m.id === lbMap ? ' selected' : ''}>${m.name}</option>`).join('')}</select></label>` : '');
+    + (lbMode === 'casual' ? `<label class="lbpick">Map <select id="lbmapsel">${MAPS.map((m) => `<option value="${m.id}"${m.id === lbMap ? ' selected' : ''}>${m.name}</option>`).join('')}</select></label>`
+      + `<div class="lbmode lbsub"><button class="${!lbEndless ? 'on' : 'ghost'}" data-endless="0">15:00 runs</button><button class="${lbEndless ? 'on' : 'ghost'}" data-endless="1">Endless</button></div>` : '');
   for (const b of $('lbtabs').querySelectorAll('[data-mode]')) b.onclick = () => showBoard(null, b.dataset.mode);
   if ($('lbmapsel')) $('lbmapsel').onchange = (e) => showBoard(e.target.value, 'casual');
+  for (const b of $('lbtabs').querySelectorAll('[data-endless]')) b.onclick = () => { lbEndless = b.dataset.endless === '1'; showBoard(null, 'casual'); };
   $('lblist').innerHTML = '<p class="dim">Loading…</p>';
   if (lbMode === 'ranked') return showRankedBoard();
   try {
-    const r = await fetch(`${BASE}api/scores?map=${encodeURIComponent(lbMap)}`);
+    const r = await fetch(`${BASE}api/scores?map=${encodeURIComponent(lbMap)}${lbEndless ? '&endless=1' : ''}`);
     if (r.status === 503) { $('lblist').innerHTML = '<p class="dim">The shared leaderboard opens soon. Your best run: ' + localBest() + '</p>'; return; }
     const d = await r.json(); const rows = d.rows || []; const myName = load('sq-name', ''); // your own runs stand out
-    $('lblist').innerHTML = rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Adventurer</th><th>Time</th><th class="opt">Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td class="opt">${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : '<p class="dim">No runs on this map yet. Be the first.</p>';
+    $('lblist').innerHTML = rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Adventurer</th><th>Time</th><th class="opt">Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td class="opt">${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : (lbEndless ? '<p class="dim">No endless runs on this map yet. Clear the map, then tick Endless on the title screen and see how long you last.</p>' : '<p class="dim">No runs on this map yet. Be the first.</p>');
   } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach the leaderboard.</p>'; }
 }
 // this week's ranked standings: each wallet's best run, and what the top places would win if the week ended now
@@ -536,7 +538,7 @@ $('sharex').onclick = () => {
   if (!lastRun) return;
   const m = MAP_BY_ID[lastRun.map].name;
   const stats = `${fmtT(lastRun.t)}, level ${lastRun.level}, ${lastRun.kills} monsters slain`;
-  const text = lastRun.ranked && lastRun.rank ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ranked on ${m} (${stats}). Top 3 split the $DMT pot. Can you knock me off?`
+  const text = lastRun.ranked && lastRun.rank ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ranked on ${m} (${stats}). The top 5 split the $DMT pot. Can you knock me off?`
     : lastRun.won ? `I cleared ${m} in SankoQuest Survivors in ${fmtT(lastRun.t)} (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you beat it?`
     : `I survived ${fmtT(lastRun.t)} in ${m} in SankoQuest Survivors (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you last longer?`;
   const url = location.origin + '/';
@@ -724,11 +726,12 @@ function endRun() {
     if (cl.size > before && next) unlockNote = ` · ${next.name} unlocked`;
     for (const a of ADVENTURERS) if (a.unlock === cl.size && cl.size > before) unlockNote += ` · ${a.name} unlocked`;
   }
-  lastRun = { map: sim.map.id, t: Math.floor(sim.t), kills: sim.kills, level: sim.level, adv: sim.players[0].adv, won, hard: !!sim.hard, v: LATEST, sent: false, ticket: runTicket };
+  lastRun = { map: sim.map.id, t: Math.floor(sim.t), kills: sim.kills, level: sim.level, adv: sim.players[0].adv, won, hard: !!sim.hard, endless: !!sim.endless, v: LATEST, sent: false, ticket: runTicket };
   $('lbsubmit').disabled = wasRanked; $('lbmsg').textContent = '';
   $('endlb').classList.toggle('hidden', wasRanked || $('lbbtn').classList.contains('hidden'));
   $('rankedresult').textContent = ''; $('rankedretry').classList.add('hidden');
   if (wasRanked) { lastRun.sent = true; lastRun.ranked = true; }
+  $('again').textContent = wasRanked ? 'Next ranked run' : 'Run it back'; // after ranked, play again goes back to Ranked (a free casual run was mistaken for ranked)
   if (!wasRanked && load('sq-name', '') && sim.t >= 30) setTimeout(submitScore, 300); // named players send runs of 30 s or more automatically
   const endlessBonus = sim.endless ? Math.floor(Math.max(0, sim.t - sim.map.length) / 10) : 0;
   const dmtOn = !!savedPass(); // DMT holders: +25% coins
@@ -813,7 +816,7 @@ addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => { keys.clear(); if (mode === 'play') pause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') pause(true); });
 function pause(on) { touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden'); audio.duck(on); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); }
-$('start').onclick = startRun; $('again').onclick = startRun; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
+$('start').onclick = startRun; $('again').onclick = () => { if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
 $('quit').onclick = () => { if (rankedPlaying()) return; pause(false); sim.over = 'dead'; };
 
 // touch: drag anywhere on the field to move (a stick appears under your thumb); the II button pauses

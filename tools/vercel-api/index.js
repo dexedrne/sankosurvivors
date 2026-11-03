@@ -56,7 +56,7 @@ function readTicket(t) {
   try { const d = JSON.parse(Buffer.from(body, 'base64url').toString()); return typeof d.s === 'number' && typeof d.n === 'string' ? d : null; } catch { return null; }
 }
 const KEY = process.env.SUPABASE_KEY || '';
-const MAPS = new Set(['greentown', 'apache', 'duel', 'graves', 'swamp', 'goblins', 'paya', 'tutorial', 'world']);
+let MAPS = null; // every map with win rules below (the list was kept by hand and missed the Hidden Oasis)
 async function rpc(fn, args) {
   const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
   if (!r.ok) throw new Error(`${fn} ${r.status} ${(await r.text()).slice(0, 200)}`);
@@ -75,6 +75,7 @@ const int = (v) => Math.min(1e6, Math.max(0, Math.floor(Number(v)) || 0));
 // a run is won by surviving the map's length or by killing its final boss (the last one on the schedule), which cannot
 // appear before these times (src/content.js: each map's bosses and length; test/api.test.mjs checks they still match)
 const WIN = { greentown: [720, 900], apache: [720, 900], duel: [720, 900], graves: [720, 900], swamp: [720, 900], goblins: [780, 900], paya: [720, 900], oasis: [720, 900], tutorial: [480, 600], world: [1560, 1800] };
+MAPS = new Set(Object.keys(WIN));
 module.exports = async function handler(req, res) {
   if (!SB || !KEY || !TICKET_KEY || !SERVER_KEY) return send(res, 503, { error: 'leaderboard not set up yet' });
   const u = new URL(req.url, 'http://x'), path = u.searchParams.get('route') || u.pathname.replace(/^\/api\/?/, '');
@@ -85,8 +86,11 @@ module.exports = async function handler(req, res) {
     if (path.startsWith('ranked-')) return await require('./ranked.js').handle(path, req, res, { rpc, send, signed, unsign, recoverSigner, clean, ip, SERVER_KEY, TICKET_KEY });
     if (req.method === 'GET' && path === 'scores') {
       const map = u.searchParams.get('map'); if (!MAPS.has(map)) return send(res, 400, { error: 'bad map' });
-      const rows = await rpc('sqs_top', { p_map: map });
-      return send(res, 200, { map, rows }, 'public, s-maxage=10, stale-while-revalidate=30');
+      const endless = u.searchParams.get('endless') === '1';
+      let rows;
+      if (endless) { try { rows = await rpc('sqs_top', { p_map: map, p_endless: true }); } catch (e) { if (!/ 404 /.test(String(e.message))) throw e; rows = []; } } // before update3.sql: no endless boards yet
+      else rows = await rpc('sqs_top', { p_map: map });
+      return send(res, 200, { map, endless, rows }, 'public, s-maxage=10, stale-while-revalidate=30');
     }
     if (req.method === 'GET' && path === 'nonce') {
       const nonce = signed({ k: 'nonce', s: Date.now(), n: crypto.randomBytes(9).toString('base64url') });
@@ -110,15 +114,21 @@ module.exports = async function handler(req, res) {
     if (req.method === 'POST' && path === 'score') {
       const b = await body(req);
       const tk = readTicket(b.ticket); if (!tk) return send(res, 400, { error: 'no ticket' });
-      const map = String(b.map || ''), won = b.won === true, t = int(b.t);
+      const map = String(b.map || ''), endless = b.endless === true, won = b.won === true && !endless, t = int(b.t);
       if (!MAPS.has(map)) return send(res, 400, { error: 'bad map' });
       if (won && (t < WIN[map][0] || t > WIN[map][1] + 10)) return send(res, 400, { error: 'bad score' });
       const real = (Date.now() - tk.s) / 1000, claimed = Number(b.t) || 0;
       if (real < claimed * 0.97 - 5 || real > 4 * 3600) return send(res, 400, { error: 'bad ticket' });
       const args = { p_ip: ip, p_map: map, p_name: clean(b.name, 16), p_t: t, p_kills: int(b.kills), p_level: int(b.level), p_adv: clean(b.adv, 16), p_won: won, p_hard: b.hard === true, p_ticket: tk.n, p_server_key: SERVER_KEY };
+      if (endless) args.p_endless = true;
       let out;
       try { out = await rpc('sqs_submit_score', { ...args, p_holder: !!holderFromPass(b.pass) }); }
-      catch (e) { if (!/ 404 /.test(String(e.message))) throw e; out = await rpc('sqs_submit_score', args); } // database not updated for holders yet
+      catch (e) { // an older database: no endless boards yet (update3.sql), or no holder badges (update2.sql)
+        if (!/ 404 /.test(String(e.message))) throw e;
+        const { p_endless, ...older } = args;
+        try { out = await rpc('sqs_submit_score', { ...older, p_holder: !!holderFromPass(b.pass) }); }
+        catch (e2) { if (!/ 404 /.test(String(e2.message))) throw e2; out = await rpc('sqs_submit_score', older); }
+      }
       if (out && out.error) return send(res, out.error === 'slow down' ? 429 : 400, out);
       return send(res, 200, out);
     }

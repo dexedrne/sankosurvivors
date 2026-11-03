@@ -63,3 +63,18 @@ test('POSTs must be JSON (another site cannot submit from a visitor\'s browser)'
   assert.equal((await call('POST', 'score', JSON.stringify({ map: 'greentown' }), { 'content-type': 'text/plain' })).code, 415);
   assert.equal((await call('POST', 'report', JSON.stringify({ text: 'x' }), {})).code, 415);
 });
+
+test('endless runs: their own boards, never a win, and an old database (before update3.sql) still takes the score', async () => {
+  calls.length = 0;
+  assert.equal((await call('POST', 'score', { map: 'greentown', t: 1500, kills: 6000, level: 60, won: true, endless: true, ticket: ticket(1510) })).code, 200);
+  let saved = calls.at(-1).body; assert.equal(saved.p_endless, true); assert.equal(saved.p_won, false, 'an endless run is never a win');
+  assert.equal((await call('POST', 'score', { map: 'oasis', t: 300, kills: 400, level: 12, ticket: ticket(310) })).code, 200, 'the Hidden Oasis has a board');
+  assert.equal(calls.at(-1).body.p_endless, undefined, 'a normal run says nothing about endless');
+  // the database has no endless boards yet: the endless mark is dropped and the score still saves
+  const real = globalThis.fetch; calls.length = 0;
+  globalThis.fetch = async (url, opts) => { const b = JSON.parse(opts.body); calls.push({ url: String(url), body: b }); return b.p_endless ? new Response('{"message":"no function"}', { status: 404 }) : new Response(JSON.stringify({ ok: true, rank: 3 }), { status: 200 }); };
+  try {
+    assert.equal((await call('POST', 'score', { map: 'greentown', t: 1200, kills: 5000, level: 50, endless: true, ticket: ticket(1210) })).code, 200);
+    assert.equal(calls.at(-1).body.p_endless, undefined);
+  } finally { globalThis.fetch = real; }
+});
