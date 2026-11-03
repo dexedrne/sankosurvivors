@@ -1699,16 +1699,16 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const seenEp = new Set();
     for (const b of view.eproj || []) {
       seenEp.add(b[0]); let o = eprojObjs.get(b[0]);
-      if (!o) {
-        const col = b[3] === 'ice' ? 0x9fe6ff : 0xff7a30; o = new THREE.Group();
-        o.add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(col).multiplyScalar(2.2), toneMapped: false })));
-        o.add(glowSprite(col, 2.2, 0.55));
-        o.userData.col = col; dyn.add(o); eprojObjs.set(b[0], o);
+      if (!o) { // a boss's volley is a SankoQuest Blast spell (owner 3 Nov: "collosues projectile just a ball"): ice or fire
+        const col = b[3] === 'ice' ? 0x9fe6ff : SPELL_ELEMENT.fire; o = new THREE.Group();
+        o.add(magicSphere(col, 'blast')); o.userData.spell = { col, tier: 'blast' }; o.userData.col = col; dyn.add(o); eprojObjs.set(b[0], o);
       }
-      o.position.set(b[1], groundAt(b[1], b[2]) + 1.1, b[2]);
-      if (Math.random() < 0.8) emit(b[1], o.position.y, b[2], 1, 0.4, { s: 0.8, life: 0.35, color: o.userData.col, up: 0.4, g: 0 });
+      const ny = groundAt(b[1], b[2]) + 1.3, dx = b[1] - o.position.x, dz = b[2] - o.position.z;
+      if (o.userData.placed && dx * dx + dz * dz > 1e-6) o.rotation.y = Math.atan2(dx, dz); // the head points where it flies
+      o.position.set(b[1], ny, b[2]); o.userData.placed = true; o.updateMatrixWorld(); stepMagicSphere(o.children[0], performance.now());
+      if (Math.random() < 0.5) emit(b[1], ny, b[2], 1, 0.4, { s: 0.6, life: 0.3, color: o.userData.col, up: 0.3, g: 0 });
     }
-    for (const [id, o] of eprojObjs) if (!seenEp.has(id)) { dyn.remove(o); eprojObjs.delete(id); }
+    for (const [id, o] of eprojObjs) if (!seenEp.has(id)) { if (o.userData.spell) magicBurst(o.position.x, o.position.y, o.position.z, o.userData.spell.col, 'blast'); dyn.remove(o); eprojObjs.delete(id); }
 
     // projectiles
     const seenPr = new Set();

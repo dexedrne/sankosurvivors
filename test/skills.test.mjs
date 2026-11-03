@@ -134,7 +134,9 @@ test('ranked ignores supplied upgrades, remains 4/4, and never revives', () => {
 test('base health and enemy HP and speed scaling follow the new season rules', () => {
   assert.equal(createSim().players[0].hp, 100);
   const s = createSim(); s.t = 300; spawnEnemy(s, 'giant', 0, 0);
-  close(s.enemies[0].hp, C.ENEMIES.giant.hp * (1 + 300 / 270)); // pace 2 (3 Nov): health grows a little faster
+  close(s.enemies[0].hp, C.ENEMIES.giant.hp * (1 + 300 / 240)); // pace 2 (3 Nov): health grows faster
+  const v = createSim({ meta: { might: 1, haste: 1 } }); v.t = 300; spawnEnemy(v, 'giant', 0, 0);
+  close(v.enemies[0].hp, C.ENEMIES.giant.hp * (1 + 300 / 240) * (1 + 0.015 * Object.values(v.meta).reduce((a, b) => a + b, 0)), 'veterans meet tougher monsters (1.5% a skill rank)');
   const s1 = createSim({ pace: 1 }); s1.t = 300; spawnEnemy(s1, 'giant', 0, 0);
   close(s1.enemies[0].hp, C.ENEMIES.giant.hp * 2); // pace 1 (ranked week 0) as before
   close(s.enemies[0].speed, C.ENEMIES.giant.speed * .95 * 1.2); // speed-up capped at +20%, reached at 5:00
@@ -153,8 +155,8 @@ test('spawn crowd grows smoothly toward the last third; hard and co-op keep thei
   assert.equal(crowd(0, 2), 145);
   assert.equal(crowd(0, 1, true), 75);
   // pace 2 (casual from 3 Nov, ranked from week 1): back to the old crowd by mid-run, growing evenly
-  assert.deepEqual([0, 180, 540, 900].map((t) => crowd(t, 1, false, 2)), [115, 143, 199, 255]);
-  assert.equal(crowd(0, 2, false, 2), 185);
+  assert.deepEqual([0, 180, 540, 900].map((t) => crowd(t, 1, false, 2)), [125, 155, 215, 275]);
+  assert.equal(crowd(0, 2, false, 2), 195);
 });
 
 test('each rank adds exactly its advertised skill bonus', () => {

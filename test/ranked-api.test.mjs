@@ -182,7 +182,8 @@ test('start rejects forged, wrong-wallet, old-week, stale-version and special ad
 });
 
 test('parallel submissions count and replay only once', async t => {
-  const r = await ready(), results = await Promise.all([submit(r), submit(r)]);
+  // the CPU clock is the process's: the refused one is charged for the other's replay, so no budget here
+  const r = await ready(); slowRefusalOk = true; let results; try { results = await Promise.all([submit(r), submit(r)]); } finally { slowRefusalOk = false; }
   assert.deepEqual(results.map(x => x.code).sort(), [200, 400]);
   expectError(results.find(x => x.code === 400), 400, 'that run was already sent');
   assert.equal((await call('ranked-week')).json.rows.length, 1);

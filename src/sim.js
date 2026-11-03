@@ -23,7 +23,10 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
   const sim = {
-    seed, rng, map, hard, meta, endless, endAt, pace, t: 0, tick: 0, nextId: 1, // pace: 2 the denser crowd of 3 Nov, 1 the 2 Nov one (ranked week 0)
+    seed, rng, map, hard, meta, endless, endAt, pace, t: 0, tick: 0, nextId: 1,
+    // veterans (owner 3 Nov: "regular mode feels too easy"): each permanent skill rank makes casual monsters 1.5% tougher
+    // and harder-hitting, to +60% at 40 ranks, with a few more of them. A new player is untouched; ranked has no skills.
+    vet: 1, // set below once the players (and the gear they wear) are in // pace: 2 the denser crowd of 3 Nov, 1 the 2 Nov one (ranked week 0)
     mapIndex: Math.max(0, MAPS.findIndex((m) => m.id === map.id)), casketRank: casketRank(map),
     killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], endlessBossT: 0, endlessCycle: 0,
     players: [], enemies: [], proj: [], gems: [], pickups: [], fx: [],
@@ -49,6 +52,8 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
     });
   });
+  // veterans: skill ranks plus two for every piece of gear worn, 1.5% each, to +75% at 50 (pace 2 only; ranked has neither)
+  { const ranks = Object.values(meta).reduce((a, v) => a + (Number(v) || 0), 0) + 2 * Math.max(0, ...sim.players.map((p) => Object.keys(p.gear || {}).length)); sim.vet = 1 + 0.015 * Math.min(50, ranks); }
   for (const p of sim.players) { const st = playerStats(p); p.maxHp = st.maxHp; p.hp = st.maxHp; p.rerolls = st.rerolls; p.revives = st.revives; const w = findWalkable(sim, p.x, p.z); p.x = w[0]; p.z = w[1]; }
   return sim;
 }
@@ -273,7 +278,7 @@ function killEnemy(sim, e, owner) {
 export function spawnEnemy(sim, type, x, z, scaleHp = 1) {
   const def = ENEMIES[type];
   const t = sim.t;
-  const hp = def.hp * (1 + t / (sim.pace >= 2 ? 270 : 300)) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
+  const hp = def.hp * (1 + t / (sim.pace >= 2 ? 240 : 300)) * (sim.pace >= 2 ? sim.vet : 1) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
   // now and then a golden elite: much tougher, a little slower, and it always carries a reward casket
   const elite = !def.boss && scaleHp === 1 && t > 60 && sim.rng() < 0.012;
   sim.enemies.push({
@@ -316,8 +321,8 @@ function spawnTick(sim, dt) {
   // 2 Nov crowd (pace 1) thinned a run to two thirds of before (balance bot, 72 runs: average crowd 102 -> 68, damage
   // taken by 5:00 44 -> 19). Pace 2: the cap is back to the old 190 by 8:00, spawns ~4.8/s there (old 6.1, pace 1 3.7),
   // health and contact damage grow faster; the first two minutes stay gentle
-  const cap = sim.pace >= 2 ? 115 + 70 * (sim.spawnCount - 1) + 140 * progress : 75 + 70 * (sim.spawnCount - 1) + 155 * progress * progress;
-  const rate = ((sim.pace >= 2 ? 1.0 + 5.5 * progress + 3.0 * progress * progress : 1.05 + 1.6 * progress + 6.4 * progress * progress) + Math.max(0, t - M.length) / 92)
+  const cap = sim.pace >= 2 ? 125 + 70 * (sim.spawnCount - 1) + 150 * progress : 75 + 70 * (sim.spawnCount - 1) + 155 * progress * progress;
+  const rate = ((sim.pace >= 2 ? (1.15 + 6.0 * progress + 3.0 * progress * progress) * (1 + 0.55 * (sim.vet - 1)) : 1.05 + 1.6 * progress + 6.4 * progress * progress) + Math.max(0, t - M.length) / 92)
     * (0.7 + 0.45 * sim.spawnCount) * (sim.hard ? 1.35 : 1); // enemies per second
   sim.spawnAcc += rate * dt;
   if (sim.event && sim.event.kind === 'duel') sim.spawnAcc = Math.min(sim.spawnAcc, 0.5); // the crowd holds back while you duel
@@ -975,7 +980,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       e.face = datan2(dx, dz);
       if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure) {
         const st = playerStats(tp);
-        const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? 0.7 : 1) * (1 + sim.t / (sim.pace >= 2 ? 900 : 1200)) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
+        const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? (sim.pace >= 2 ? 0.8 : 0.7) : 1) * (1 + sim.t / (sim.pace >= 2 ? 750 : 1200)) * (sim.pace >= 2 ? sim.vet : 1) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
         hurtPlayer(sim, tp, dmg, def.boss ? 'boss-contact' : 'contact');
         if (st.thorns > 0) { sim.src = 'thorns'; damageEnemy(sim, e, st.thorns * (1 + sim.t / 600), tp.id, 2.2, tp.x, tp.z); } // Scorpion Carapace
       }
