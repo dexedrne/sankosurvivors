@@ -163,11 +163,26 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       out.push({ im, idx });
     }    return out;
   }
-  async function prepare(url, targetH) {
+  async function prepare(url, targetH, walkClip = null) {
     const gltf = await loadGLB(url);
     const box = boxOf(gltf.scene), size = box.getSize(new THREE.Vector3());
     const k = size.y > 0.0001 ? targetH / size.y : 1;
-    return { gltf, k, minY: box.min.y * k, cx: (box.min.x + box.max.x) / 2 * k, cz: (box.min.z + box.max.z) / 2 * k };
+    // stand a monster on the lowest point of its walk, not of its rest pose (owner 3 Nov: "scorpions walk floating kinda
+    // above the ground"): measured, the scorpion's walk was 40-54% of its height above its rest pose's feet, the
+    // alligator's 25-30%, and the spiders' legs reached 38-48% below theirs (they sank)
+    let minY = box.min.y; const clips = gltf.animations || [];
+    const clip = walkClip !== null && clips.length ? (clips.find((c) => c.name.toLowerCase() === String(walkClip).toLowerCase()) || clips.find((c) => /walk|run/i.test(c.name)) || clips[0]) : null;
+    if (clip) {
+      try {
+        const probe = SkeletonUtils.clone(gltf.scene), mx = new THREE.AnimationMixer(probe); mx.clipAction(clip).play(); let lo = Infinity;
+        for (let i = 0; i < 8; i++) {
+          mx.setTime(clip.duration * i / 8); probe.updateMatrixWorld(true); probe.traverse((o) => { if (o.isSkinnedMesh) o.skeleton.update(); });
+          lo = Math.min(lo, boxOf(probe).min.y);
+        }
+        mx.stopAllAction(); if (Number.isFinite(lo)) minY = lo;
+      } catch (e) { /* the rest pose, then */ }
+    }
+    return { gltf, k, minY: minY * k, cx: (box.min.x + box.max.x) / 2 * k, cz: (box.min.z + box.max.z) / 2 * k };
   }
   function instantiate(proto, pickClip) {
     const root = new THREE.Group();
@@ -803,7 +818,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const protos = {};
   const types = Object.keys(ENEMIES).filter((t) => ENEMIES[t].model); let loaded = 0;
   await Promise.all(types.map(async (t) => {
-    try { protos[t] = await prepare(A('models/' + ENEMIES[t].model), ENEMIES[t].h); } catch (e) { console.warn('model failed', t, e); }
+    try { protos[t] = await prepare(A('models/' + ENEMIES[t].model), ENEMIES[t].h, ENEMIES[t].mixamo ? null : (ENEMIES[t].walk || '')); } catch (e) { console.warn('model failed', t, e); }
     onProgress('monsters', 0.6 + 0.3 * (++loaded / types.length));
   }));
   let playerProto = null;

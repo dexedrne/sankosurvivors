@@ -37,6 +37,8 @@ const slayName = (map, type) => titled(map, type) || `the ${ENEMIES[type].name}`
 
 // ---- saved progress ------------------------------------------------------------------------------
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
+// one time: clear the worn loadout that casket gear used to carry over by itself (the collection and levels are kept)
+try { if (!localStorage.getItem('sq-gear-reset1')) { localStorage.setItem('sq-gear', '{}'); localStorage.setItem('sq-gear-reset1', '1'); } } catch { /* storage blocked */ }
 let onSaved = null; // the cloud save hears about every progress change (set up with the wallet below)
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } if (onSaved) onSaved(k); };
 const clearedMaps = () => new Set(load('sq-cleared', []));
@@ -829,6 +831,11 @@ async function startRun(live = null) {
 let bannerT = 0;
 function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; b.classList.add('on'); clearTimeout(bannerT); bannerT = setTimeout(() => b.classList.remove('on'), ms); }
 
+// the coins (GP) a run has earned so far; the HUD shows it live and the end screen adds the 120 for holding the map
+function runCoins(s, won = false) {
+  const p = s.players[0], endlessBonus = s.endless ? Math.floor(Math.max(0, s.t - s.map.length) / 10) : 0, dmtOn = !!savedPass();
+  return Math.round((Math.floor(s.kills / 6) + p.coins * 3 + (won ? 120 : 0) + endlessBonus) * playerStats(p).coinBonus * (s.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1)) + Math.max(0, Math.floor(p.alch || 0));
+}
 function endRun() {
   mode = 'end';
   const wasRanked = !!rankedRun;
@@ -850,11 +857,10 @@ function endRun() {
   if (wasRanked) { lastRun.sent = true; lastRun.ranked = true; lastRun.race = sim.hard ? 'hard' : 'normal'; if (sim.endless && kpmWeek(liveRace(rankedRun).week)) lastRun.kpm = kpm(sim.kills, Math.floor(sim.t)); } // week 0 ranks by time
   $('again').textContent = wasRanked ? 'Next ranked run' : 'Run it back'; // after ranked, play again goes back to Ranked (a free casual run was mistaken for ranked)
   if (!wasRanked && load('sq-name', '') && sim.t >= 30) setTimeout(submitScore, 300); // named players send runs of 30 s or more automatically
-  const endlessBonus = sim.endless ? Math.floor(Math.max(0, sim.t - sim.map.length) / 10) : 0;
   const dmtOn = !!savedPass(); // DMT holders: +25% coins
   // high alch coins are added as the casket card promised them, after the multipliers
   const alchCoins = Math.max(0, Math.floor(p.alch || 0));
-  const earned = Math.round((Math.floor(sim.kills / 6) + p.coins * 3 + (won ? 120 : 0) + endlessBonus) * playerStats(p).coinBonus * (sim.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1)) + alchCoins;
+  const earned = runCoins(sim, won);
   save('sq-coins', getCoins() + earned);
   // caskets opened this run go to the bank (the collection), worn or high alched; a duplicate you kept is sold, one you
   // high alched already paid its coins
@@ -862,9 +868,10 @@ function endRun() {
   const lootNotes = sim.loot.map((n) => {
     const ai = alched.indexOf(n), wasAlched = ai >= 0; if (wasAlched) alched.splice(ai, 1);
     const fresh = bankItem(n, !wasAlched), on = Object.values(worn).includes(n);
-    return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}${fresh ? ', new' : ''}` : on ? 'now worn' : fresh ? 'new' : 'sold, +25 coins'}</em>`;
+    return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}${fresh ? ', new' : ''}` : on ? (fresh ? 'worn this run, new' : 'worn this run') : fresh ? 'new' : 'sold, +25 coins'}</em>`;
   });
-  if (sim.map.forceAdv !== sim.players[0].adv) { const g = getGear(); for (const [slot, n] of Object.entries(worn)) if (getBank().includes(n)) g[slot] = n; save('sq-gear', g); }
+  // casket gear stays in your collection (the Gear panel) but is not worn next run: every run starts with only what you
+  // chose in the Gear panel (owner 3 Nov: "my casket gear from the last run is still on my character should be reset every run")
   // lifetime stats, then quests
   const st = getStats(), add = (k, v) => { st[k] = (st[k] || 0) + v; };
   add('kills', sim.kills); add('bosses', sim.bossKills); add('evolves', sim.evolves); add('caskets', sim.loot.length);
@@ -1122,6 +1129,7 @@ function updateHud(view) {
   const t = Math.floor(view.t); $('clock').textContent = fmtT(t);
   const goal = sim && sim.endAt ? sim.endAt : sim && !sim.endless && sim.map.length ? sim.map.length : 0; $('clockgoal').textContent = goal ? `of ${fmtT(goal)}` : '';
   $('kills').textContent = view.kills;
+  if (sim && sim.players[0] && (frame % 10 === 0 || !$('gp').textContent)) $('gp').textContent = runCoins(sim).toLocaleString();
   const boss = view.enemies.find((e) => ENEMIES[e[1]].boss);
   $('bossbar').classList.toggle('hidden', !boss);
   if (boss) { $('bossname').textContent = bossName(sim && sim.map, boss[1]); $('bossfill').style.width = boss[5] + '%'; }

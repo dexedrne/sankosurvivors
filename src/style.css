@@ -24,6 +24,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #1c1814; col
 #clock { position: absolute; left: 50%; top: 36px; transform: translateX(-50%); font-size: 30px; font-weight: 800; text-shadow: 0 2px 4px #000; }
 #killcount { position: absolute; right: 12px; top: 38px; text-shadow: 0 1px 3px #000; }
 #killcount b { color: var(--gold); font-size: 20px; }
+#killcount #gp { margin-left: 8px; } /* GP earned this run, next to the kills (owner 3 Nov) */
 #bossbar { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: min(520px, 70vw); text-align: center; text-shadow: 0 1px 3px #000; font-weight: 800; }
 #bossbar div { height: 12px; background: rgba(20,16,12,.85); border: 2px solid var(--line); margin-top: 3px; }
 #bossfill { display: block; height: 100%; background: linear-gradient(#e0574a,#a42c24); width: 100%; }
