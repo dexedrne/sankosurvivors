@@ -21,7 +21,7 @@ for f in sorted(glob.glob(os.path.join(ROOT, 'reference/entities/dump-*.txt'))):
             if key in seen: continue
             seen.add(key)
             if kind == 'npc_combat_dummy': nodes.setdefault('practice_dummy.glb', []).append([round(x, 2), round(z, 2), yaw, 1.0]); continue
-            if re.search(r'guard', kind, re.I): continue  # Greentown's guards just stood about; left out
+            # guards stand at their posts (owner 3 Nov: "fix guard npcs by duel arena"): Green Town's, the north road's, the Sphinx's
             if kind.startswith('npc_player') or kind in ('npc_tutorial', 'npc_elder', 'npc_fighting', 'npc_apache', 'npc_paya', 'npc_sphinxguard') or re.match(r'^[0-9a-f]{8}_', kind):
                 folk.append([x, z, yaw, kind]); continue
             if kind.startswith('npc_'): continue  # animals and monsters: the game spawns those itself

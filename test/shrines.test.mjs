@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSim, step, spawnEnemy, TICK, JUMP_USE, JUMP, SHRINE, SHRINES } from '../src/sim.js';
+import { createSim, step, TICK, SHRINE, SHRINES } from '../src/sim.js';
 import { MAP_BY_ID } from '../src/content.js';
 
 const run = (s, sec, inp = () => ({})) => { for (let i = 0; i < sec / TICK; i++) { step(s, { p1: inp(s) }, TICK); for (const id of Object.keys(s.pending)) delete s.pending[id]; } };
@@ -23,16 +23,4 @@ test('a shrine left alone fades, and stepping out drains its charge', () => {
   const s = createSim({ seed: 7, map: MAP_BY_ID.greentown }); s.spawnAcc = -1e9; s.bossIndex = 99; s.eventT = 1e9; s.players[0].hp = 1e9;
   run(s, SHRINE.first + 1); assert.equal(s.shrines.length, 1);
   run(s, SHRINE.life + 1); assert.equal(s.shrines.length, 0, 'gone');
-});
-test('jump: in the air no monster touches you; then a second to recover; pace 1 (ranked week 0) has no jump', () => {
-  const s = createSim({ seed: 3, map: MAP_BY_ID.greentown }); s.spawnAcc = -1e9; s.bossIndex = 99; s.eventT = 1e9;
-  const p = s.players[0]; spawnEnemy(s, 'giant', p.x + 0.5, p.z); const hp0 = p.hp;
-  step(s, { p1: { mx: 0, mz: 0, use: JUMP_USE } }, TICK); assert.ok(p.air > 0);
-  for (let i = 0; i < (JUMP.air - 0.05) / TICK; i++) step(s, { p1: { mx: 0, mz: 0 } }, TICK);
-  assert.equal(p.hp, hp0, 'no contact damage in the air');
-  step(s, { p1: { mx: 0, mz: 0 } }, TICK); step(s, { p1: { mx: 0, mz: 0 } }, TICK);
-  assert.equal(p.air, 0); assert.ok(p.jumpCd > 0);
-  step(s, { p1: { mx: 0, mz: 0, use: JUMP_USE } }, TICK); assert.equal(p.air, 0, 'no new jump while recovering');
-  const s1 = createSim({ seed: 3, map: MAP_BY_ID.greentown, pace: 1 });
-  step(s1, { p1: { mx: 0, mz: 0, use: JUMP_USE } }, TICK); assert.equal(s1.players[0].air, 0);
 });

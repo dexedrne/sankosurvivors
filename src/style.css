@@ -565,10 +565,6 @@ body.touch .ckbtns .kb { display: none; }
 .wlbuy p { margin: 4px 0; } .wlbuy .lurow { flex-wrap: wrap; gap: 6px; justify-content: flex-start; }
 .wlbuyamt { padding: 4px 10px; } .wlbuyamt small { opacity: .75; margin-left: 4px; } .wlbuyamt.on { outline: 2px solid var(--gold); }
 #wlbuygo { margin-top: 6px; }
-/* the JUMP button on phones and tablets (Space or A on a keyboard or controller) */
-#jumpbtn { display: none; position: absolute; right: 18px; bottom: 120px; width: 76px; height: 76px; border-radius: 50%; padding: 0; margin: 0; font-size: 16px; pointer-events: auto; opacity: .85; touch-action: none; }
-body.touch #jumpbtn { display: block; }
-#hud.nojump #jumpbtn { display: none; }
 /* Hard mode and Endless are always on show; greyed out until the map is cleared */
 #hardwrap.locked, #endlesswrap.locked { opacity: .55; cursor: default; } .lockhint { display: none; opacity: .85; margin-left: 4px; }
 #hardwrap.locked .lockhint, #endlesswrap.locked .lockhint { display: inline; }

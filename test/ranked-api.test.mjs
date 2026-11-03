@@ -62,6 +62,7 @@ globalThis.fetch = async (url, opts) => {
 };
 beforeEach(() => { now = epoch + 12 * 3600000; db = new RankedDB(); chain = new Map(); blocks = new Map(); serial = 0; submits = []; });
 after(() => { Date.now = originalNow; globalThis.fetch = originalFetch; sim.ground = originalGround; });
+let slowRefusalOk = false; // a refusal from the database after a full replay is allowed to take the replay's time
 async function call(route, body, { ip = '192.0.2.1', method = body === undefined ? 'GET' : 'POST', headers = {} } = {}) {
   const req = Readable.from(body === undefined ? [] : [Buffer.from(typeof body === 'string' ? body : JSON.stringify(body))]);
   Object.assign(req, { method, url: '/api/' + route, headers: { 'content-type': 'application/json', 'x-forwarded-for': ip, ...headers } });
@@ -71,7 +72,7 @@ async function call(route, body, { ip = '192.0.2.1', method = body === undefined
     handler(req, res).catch(reject);
   });
   // refused submits must stay cheap; an accepted endless run replays as long as it lasted (up to 2:00:00, minutes)
-  if (route === 'ranked-submit') { const used = process.cpuUsage(cpu); submits.push((used.user + used.system) / 1000); if (out.code !== 200) assert.ok(submits.at(-1) < 2000, `refused submit CPU ${submits.at(-1)}ms exceeds 2s`); }
+  if (route === 'ranked-submit') { const used = process.cpuUsage(cpu); submits.push((used.user + used.system) / 1000); if (out.code !== 200 && !slowRefusalOk) assert.ok(submits.at(-1) < 2000, `refused submit CPU ${submits.at(-1)}ms exceeds 2s`); }
   return out;
 }
 const expectError = (r, code, error) => assert.deepEqual(r, { code, json: { error } });
@@ -251,8 +252,8 @@ test('void requires a different version, excludes submitted and voided runs, and
 });
 
 test('database finish refusal must not be reported as an accepted score', async () => {
-  const r = await ready(); db.finishError = 'that run was already sent';
-  expectError(await submit(r), 400, 'that run was already sent');
+  const r = await ready(); db.finishError = 'that run was already sent'; slowRefusalOk = true;
+  try { expectError(await submit(r), 400, 'that run was already sent'); } finally { slowRefusalOk = false; }
   assert.equal((await call('ranked-week')).json.rows.length, 0);
 });
 

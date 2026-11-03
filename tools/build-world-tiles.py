@@ -43,6 +43,12 @@ for j in RAMP_Z:
     h0, h1 = H[j * 513 + RAMP_X[0]], H[j * 513 + RAMP_X[1]]
     for i in range(RAMP_X[0], RAMP_X[1] + 1):
         t = (i - RAMP_X[0]) / (RAMP_X[1] - RAMP_X[0]); H[j * 513 + i] = h0 + (h1 - h0) * t * t * (3 - 2 * t)
+# The bridge over the strait (x 256-271, z 171-174): SankoQuest's walk map opens it, but the heightmap has the seabed
+# there, so the crossing read as water and the desert half of The Whole World could not be reached (audit 3 Nov). A flat
+# deck at the banks' height (~5.1); render.js draws the planks on it.
+BRIDGE_X, BRIDGE_Z, BRIDGE_Y = range(256, 272), range(171, 175), 5.12
+for j in BRIDGE_Z:
+    for i in BRIDGE_X: H[j * 513 + i] = max(H[j * 513 + i], BRIDGE_Y)
 # Outside its walls an underground area is nothing (black, blocked cells): in SankoQuest you see darkness there, so our
 # copy drops into a deep pit the fog swallows. Only vertices whose four cells are all nothing go down; the floor's edge stays.
 VOID_Y = -40
@@ -66,4 +72,5 @@ for kind in ('diffuse', 'overlay', 'nav'):
     if kind == 'nav':
         for c in OPEN_CELLS: big.putpixel(c, (0, 0, 0, 255))
     big.save(os.path.join(OUT, f'{kind}.png'))
+import importlib.util as _u; _s = _u.spec_from_file_location('rh', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'remove-halloween.py')); _m = _u.module_from_spec(_s); _s.loader.exec_module(_m); _m.run(OUT)  # the Halloween ruin's floor and walls (owner 3 Nov)
 print('heights from', len(grids), 'tiles; maps written to', OUT)

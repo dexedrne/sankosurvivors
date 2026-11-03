@@ -379,6 +379,14 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   let terrain = null; const groundPieces = [];
   function buildWorldGround() {
     terrain = terrainFromTiles({ height: new Float32Array(heightBuf), nav: pixels(navImg), S: MAP_SIZE });
+    // the bridge over the strait: its deck is in the heightmap (tools/build-world-tiles.py), planks and railings here
+    { const wood = new THREE.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 0.9 }), dark = new THREE.MeshStandardMaterial({ color: 0x5e4329, roughness: 0.9 }), g = new THREE.Group(); g.name = 'bridge';
+      const planks = new THREE.InstancedMesh(new THREE.BoxGeometry(0.46, 0.12, 3.3), wood, 30), dm = new THREE.Matrix4();
+      for (let k = 0; k < 30; k++) planks.setMatrixAt(k, dm.makeTranslation(256.25 + k * 0.5, 5.18, 172.5));
+      planks.receiveShadow = true; planks.castShadow = true; g.add(planks);
+      for (const z of [170.9, 174.1]) { const r = new THREE.Mesh(new THREE.BoxGeometry(15.2, 0.1, 0.1), dark); r.position.set(263.6, 5.95, z); g.add(r);
+        for (let x = 256.1; x <= 271.2; x += 2.5) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.95, 0.14), dark); post.position.set(x, 5.6, z); post.castShadow = true; g.add(post); } }
+      scene.add(g); }
     if (fenceData && fenceData.n === terrain.cells) { const fa = new Uint8Array(fenceData.n * fenceData.n); for (const [k, b] of fenceData.cells) fa[k] = b; terrain.fences = fa; }
     F.data = terrain.h;
     for (let k = 0; k < 513 * 513; k++) hData[k] = THREE.DataUtils.toHalfFloat(terrain.h[k]);
@@ -402,6 +410,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
 
   onProgress('props', 0.15);
   const worldProps = new THREE.Group(); worldProps.name = 'props'; scene.add(worldProps);
+  const propMixers = []; const stepPropMixers = (dt) => { for (const m of propMixers) m.update(dt); };
   // batching only pays off where the browser can draw many pieces in one call (WEBGL_multi_draw); elsewhere three.js
   // would fall back to one call per piece, so those browsers keep the per-area instancing
   const BATCH = !new URLSearchParams(location.search).has('nobatch') && renderer.extensions.has('WEBGL_multi_draw');
@@ -459,6 +468,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const cx = rx ? m.repeatCountX : 1, cz = rz ? m.repeatCountZ : 1, ox = rx ? (m.repeatOffsetX ?? 1) : 0, oz = rz ? (m.repeatOffsetZ ?? 1) : 0;
       for (let a = 0; a < cx; a++) for (let b = 0; b < cz; b++) {
         off.set(a * ox, 0, b * oz).applyQuaternion(pq).add(pp);
+        if (off.x < 0 || off.z < 0 || off.x > MAP_SIZE || off.z > MAP_SIZE) continue; // past the edge of the ground (the haunted house)
         allNodes.push({ file, roof, bldg, mw: new THREE.Matrix4().compose(off, pq, ps), x: off.x, y: off.y, z: off.z });
       }
     }
@@ -499,9 +509,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       folMeshes[v] = [];
       g.scene.traverse((m) => {
         if (!m.isMesh) return;
-        let mat = m.material; if (cfg.yellowTint) { mat = mat.clone(); mat.color = (mat.color || new THREE.Color(1, 1, 1)).clone().multiply(new THREE.Color(0xe8c86a)); }
+        let mat = m.material; if (cfg.yellowTint) { mat = mat.clone(); mat.color = (mat.color || new THREE.Color(1, 1, 1)).clone().multiplyScalar(0.95).lerp(new THREE.Color(0xd8c66a), 0.55); } // the game's straw yellow
+        if (mat.transparent && mat.map) { mat = mat.clone(); mat.transparent = false; mat.alphaTest = 0.2; mat.depthWrite = true; mat.needsUpdate = true; } // drawn solid, as the game does
         const im = new THREE.InstancedMesh(m.geometry, mat, FOL_MAX); im.count = 0; im.frustumCulled = false; im.receiveShadow = true; scene.add(im);
-        folMeshes[v].push({ im, base: new THREE.Matrix4() }); // the game places the bare geometry (no node transform)
+        folMeshes[v].push({ im, base: m.matrixWorld.clone() }); // each part where it sits in the model, as the live game merges them (audit 3 Nov: a grass tuft's 22 blades were stacked on one spot)
       });
     } catch (e) { console.warn('foliage model failed', v, e); }
   }));
@@ -516,6 +527,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (dx * dx + dz * dz > R * R || x < 0 || z < 0 || x >= 512 || z >= 512) continue;
       const q = (Math.floor(z) * 512 + Math.floor(x)) * 4, y = groundAt(x, z), rot = o() * Math.PI * 2;
       const v = folPick(ovPx[q], diffPx[q], diffPx[q + 1], diffPx[q + 2], diffPx[q + 3], o); if (!v) continue;
+      { const fx = Math.abs(x - 340), fz = Math.abs(z - 222); if (fx <= 15.5 && fz <= 15.5 && fx + fz <= 15.5 * Math.SQRT2) continue; } // the SankSwap floor (the game skips it too)
       const c = FOLIAGE[v]; list.push({ v, x, y: y + c.heightOffset, z, rot, s: c.minScale + o() * c.scaleVariation, d: Math.hypot(dx, dz) });
     }
     list.sort((p, q) => p.d - q.d);
@@ -579,7 +591,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     await Promise.all(Object.entries(entData.nodes).map(async ([file, list]) => {
       try {
         const g = await loadGLB(A('world/nodes/' + encodeURIComponent(file))); g.scene.updateMatrixWorld(true);
-        const mats = list.map(([x, z, yaw, s]) => new THREE.Matrix4().compose(P.set(x, groundAt(x, z), z), q.setFromAxisAngle(UP, yaw * Math.PI / 180), S.set(s, s, s)));
+        const mats = list.map(([x, z, yaw, s]) => new THREE.Matrix4().compose(P.set(x, F.data ? F.data[Math.floor(z) * F.n + Math.floor(x)] : groundAt(x, z), z), q.setFromAxisAngle(UP, yaw * Math.PI / 180), S.set(s, s, s))); // the cell's corner vertex, as the game places them (no floating on slopes)
         g.scene.traverse((m) => {
           if (!m.isMesh) return;
           const full = mats.map((mm) => new THREE.Matrix4().multiplyMatrices(mm, m.matrixWorld));
@@ -608,6 +620,20 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // each role its own look (owner 3 Nov: "theres wizard npcs out in the wilderness": the graveyard folk out by the swamp
   // and the elder wore the wizard robes); only real wizards wear robes, the Shape Wizards their own set
   const ROLE_LOOKS = [
+    // SankSwap staff in the game's own colours (its getSankSwapStaffProfile), bankers in ivory, the farmer's straw hat
+    [/sankswap_broker/i, { hair: 'Middle Part', hairColor: 0xe7e4d9, skin: 0xe2c4af, shirt: 0x253e5b, pants: 0x1e2a3a, armor: {} }],
+    [/sankswap_clerk|sales_associate/i, { hair: 'Short', hairColor: 0x3b2a1d, skin: 0xd8b08c, shirt: 0xeeeadd, pants: 0x365b49, armor: {} }],
+    [/sankswap_guide/i, { hair: 'Sideswept', hairColor: 0x4a3426, skin: 0xc79a73, shirt: 0x69826b, pants: 0x2f3a30, armor: {} }],
+    [/sankswap_runner/i, { hair: 'Shaggy', hairColor: 0xa8562a, skin: 0xe2c4af, shirt: 0x8da48c, pants: 0x3a4a3a, armor: {} }],
+    [/sankswap_boardkeeper/i, { hair: 'Buns', hairColor: 0x2a1c12, skin: 0xdfaa8b, shirt: 0xf0eadc, pants: 0x2e2a30, armor: {} }],
+    [/sankswap_partner/i, { hair: 'Sideswept', hairColor: 0x999d97, skin: 0xd0a173, shirt: 0x323c3f, pants: 0x26292b, armor: {} }],
+    [/banker/i, { hair: 'Short', hairColor: 0xd8d5c9, skin: 0xdfaa8b, shirt: 0xe8e1ce, pants: 0x3a3530, armor: {} }],
+    [/farm_house_farmer/i, { hair: 'Middle Part', hairColor: 0x996f5f, skin: 0xd0a173, shirt: 0x7a6a4a, pants: 0x4a4f63, armor: { head: 'Straw Hat' } }],
+    // guards (owner 3 Nov: "fix guard npcs by duel arena"): the Fighting Forum's (npc_player there), Green Town's and the
+    // north road's in iron, the Sphinx's in bronze
+    [/sphinxguard/i, { hair: 'Short', hairColor: 0x1e140c, skin: 0xb07a50, armor: { head: 'Bronze Helmet', chest: 'Bronze Chestplate', legs: 'Bronze Leggings', feet: 'Bronze Boots' } }],
+    [/guard|^npc_player$/i, { hair: 'Shaggy', hairColor: 0x996f5f, skin: 0xbe8e60, armor: { head: 'Iron Helmet', chest: 'Iron Chestplate', legs: 'Iron Leggings', feet: 'Iron Boots' } }],
+    [/sankowarrior/i, { hair: 'Shaggy', hairColor: 0x2a1c12, skin: 0xc4926b, armor: { head: 'Steel Helmet', chest: 'Steel Chestplate', legs: 'Steel Leggings', feet: 'Steel Boots' } }],
     [/shapewizard/i, { hair: 'Pomp', hairColor: 0x2a1c12, skin: 0xd8b08c, shirt: 0x5a3f7a, pants: 0x2c2440, armor: { head: 'Shape Wizard Hat', chest: 'Shape Robe', legs: 'Shape Skirt' } }],
     [/wizard/i, FOLK_LOOKS[5]],
     [/priest/i, { hair: 'Short', hairColor: 0xcfcfcf, skin: 0xe2c4af, shirt: 0xe8e0d0, pants: 0x3a3530, armor: {} }], // pale vestments
@@ -618,9 +644,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // Apache Village: Sanko's own Buns stand at the first five spots, in the game's order (live capture 2 Nov:
   // cdn.sankoquest.com/assets/sanko/buns/{remilio,Detec,Kev,Orange,milady}.glb; npc_apache_5 runs Remilio's General
   // Store); owner 3 Nov: "fix npcs in apache village they are the buns". The other spots are desert villagers.
+  // Detec's tall hat counted in his height, so his body came out 79% of the others' (audit 3 Nov): his box is taller
+  const BUN_HS = { Detec: 1.58 };
   const BUNS = ['Kev', 'Detec', 'Orange', 'milady', 'remilio'], BUN_H = 1.25, bunOf = new Map(), bunLoading = new Set();
   const bunFor = (i) => {
-    if (!bunOf.size && entData) { let k = 0; entData.folk.forEach((f, j) => { if (f[3] === 'npc_apache' && k < BUNS.length) bunOf.set(j, BUNS[k++]); }); bunOf.set(-1, null); }
+    if (!bunOf.size && entData) { // Remilio keeps his own store (npc_apache_5 at 199.5, 73.5); the others in the game's order
+      const rest = BUNS.filter((b) => b !== 'remilio'); let k = 0;
+      entData.folk.forEach((f, j) => { if (f[3] !== 'npc_apache') return; if (f[0] === 199.5 && f[1] === 73.5) bunOf.set(j, 'remilio'); else if (k < rest.length) bunOf.set(j, rest[k++]); });
+      bunOf.set(-1, null);
+    }
     return bunOf.get(i) || null;
   };
   // a townsfolk model of the game's own loads the first time you come near (Remilio and Milady are about 1 MB each)
@@ -633,9 +665,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // owner 3 Nov: "payasan village doesnt have the payasans in it"
   const PAYA_H = 1.4;
   const ownFolk = (kind, i) => {
-    if (kind === 'npc_paya') return { key: 'paya', path: 'models/mobs/payasan/payasan.glb', h: PAYA_H };
+    if (kind === 'npc_paya' || kind === 'npc_payasan') return { key: 'paya', path: 'models/mobs/payasan/payasan.glb', h: PAYA_H };
+    if (kind === 'npc_buns_shapey') return { key: 'shapey', path: 'world/scene-models/buns/shapey_rigged.glb', h: BUN_H }; // the Shape Temple's Shapey Buns
     const bun = kind === 'npc_apache' ? bunFor(i) : null;
-    return bun ? { key: 'bun:' + bun, path: 'models/buns/' + bun + '.glb', h: BUN_H } : null;
+    return bun ? { key: 'bun:' + bun, path: 'models/buns/' + bun + '.glb', h: BUN_HS[bun] || BUN_H } : null;
   };
   const APACHE_LOOKS = [
     { hair: 'Long', hairColor: 0x1e140c, skin: 0xb57e55, shirt: 0xc28a4a, pants: 0x6b4a2e, armor: {} },
@@ -643,9 +676,20 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     { hair: 'Middle Part', hairColor: 0x3b2a1d, skin: 0xc48a5c, shirt: 0x9c4a2a, pants: 0x4a3324, armor: {} },
     { hair: 'Sideswept', hairColor: 0x1e140c, skin: 0xb07a50, shirt: 0xe0c08a, pants: 0x7a5a3a, armor: {} },
   ];
-  const lookFor = (kind, i = 0) => { if (kind === 'npc_apache') return APACHE_LOOKS[i % APACHE_LOOKS.length]; for (const [re, look] of ROLE_LOOKS) if (re.test(kind)) return look; let h = 0; for (const c of kind) h = (h * 31 + c.charCodeAt(0)) >>> 0; return FOLK_LOOKS[h % 4]; };
+  const GREENTOWN_LOOKS = [FOLK_LOOKS[0], FOLK_LOOKS[1], FOLK_LOOKS[2], FOLK_LOOKS[3],
+    { hair: 'Sideswept', hairColor: 0x6b4a2a, skin: 0xe2c4af, shirt: 0x8a6a3a, pants: 0x3a3a42, armor: {} },
+    { hair: 'Pomp', hairColor: 0x1e140c, skin: 0xb57e55, shirt: 0x5a7a9a, pants: 0x4a3f33, armor: { head: 'Beret' } }];
+  const lookFor = (kind, i = 0, f = null) => {
+    if (kind === 'npc_apache') return APACHE_LOOKS[i % APACHE_LOOKS.length];
+    if (kind === 'npc_player_greentown') return f && f[0] === 374.5 && f[1] === 280.5 ? ROLE_LOOKS.find(([re]) => re.test('npc_elder'))[1] : GREENTOWN_LOOKS[i % GREENTOWN_LOOKS.length]; // the Wise Old Man; the rest no longer all alike
+    for (const [re, look] of ROLE_LOOKS) if (re.test(kind)) return look; let h = 0; for (const c of kind) h = (h * 31 + c.charCodeAt(0)) >>> 0; return FOLK_LOOKS[h % 4]; };
+  const FOLK_H = { sankson: 1.6 }; // townsfolk heights where the monster table holds a boss of the same name
+  const folkY = (f) => Math.max(groundAt(f[0], f[1]), f[4] ?? -Infinity); // the live spot's height (shop steps, the bridge deck)
+  let hopReq = false; // a hop asked for (Space or A): the next frame starts it
+  let bossSankson = false; // while Survival Sankson fights you on Tutorial Island, the townsman of the same name steps away
   function updateFolk(dt) {
     if (!kit || !entData || !entData.folk) return;
+    if (bossSankson) for (const [i, a] of folkActors) if (entData.folk[i] && entData.folk[i][3] === 'npc_survival_sankson') { entGroup.remove(a.root); folkActors.delete(i); }
     for (const a of folkActors.values()) a.mixer.update(dt);
     const now = performance.now(); if (now < folkT) return; folkT = now + 700; // by the clock, so slow frames do not delay it
     const want = entData.folk.map((f, i) => ({ i, f, d: (f[0] - cam.x) ** 2 + (f[1] - cam.z) ** 2 })).filter((o) => o.d < 42 * 42).sort((a, b) => a.d - b.d).slice(0, low ? 4 : 8);
@@ -653,12 +697,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const [i, a] of folkActors) if (!keep.has(i)) { entGroup.remove(a.root); folkActors.delete(i); }
     for (const { i, f } of want) {
       if (folkActors.has(i)) continue;
+      if (bossSankson && f[3] === 'npc_survival_sankson') continue;
       const own = ownFolk(f[3], i);
       if (own) { // the game's own townsfolk models: Apache's Buns, the Payasans
         const p = folkProto(own.key, own.path, own.h); if (!p) continue; // still loading: placed on a later pass
         try {
           const inst = kit ? kit.animate(p.gltf, own.h, 'idle', { fromRest: 'hips' }) : instantiate(p, 'idle');
-          inst.root.position.set(f[0], groundAt(f[0], f[1]), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - ((inst.kit && inst.kit.yaw0) || 0);
+          inst.root.position.set(f[0], folkY(f), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - ((inst.kit && inst.kit.yaw0) || 0);
           inst.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
           if (!inst.mixer) inst.mixer = { update() {} };
           inst.kind = own.key; entGroup.add(inst.root); folkActors.set(i, inst);
@@ -670,17 +715,17 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         const p = protos[special] || (special === 'sankson' ? playerProto : null);
         if (!p) continue;
         try {
-          const inst = kit ? kit.animate(p.gltf, (ENEMIES[special] && ENEMIES[special].h) || 1.6, 'idle', { fromRest: FROM_REST.get(special) || false }) : instantiate(p, 'idle'); // (Boaty stood in a T-pose)
+          const inst = kit ? kit.animate(p.gltf, FOLK_H[special] || (ENEMIES[special] && ENEMIES[special].h) || 1.6, 'idle', { fromRest: FROM_REST.get(special) || false }) : instantiate(p, 'idle'); // (Boaty stood in a T-pose)
           if (inst.kit && ENEMIES[special] && ENEMIES[special].yawFix) inst.kit.yaw0 += ENEMIES[special].yawFix;
-          inst.root.position.set(f[0], groundAt(f[0], f[1]), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - ((inst.kit && inst.kit.yaw0) || 0);
+          inst.root.position.set(f[0], folkY(f), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - ((inst.kit && inst.kit.yaw0) || 0);
           if (!inst.mixer) inst.mixer = { update() {} };
           inst.kind = special; entGroup.add(inst.root); folkActors.set(i, inst);
         } catch (e) { /* skip */ }
         continue;
       }
       try {
-        const inst = kit.build({ ...lookFor(f[3], i), h: 1.85 }); inst.setMoving(false);
-        inst.root.position.set(f[0], groundAt(f[0], f[1]), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - inst.yaw0;
+        const inst = kit.build({ ...lookFor(f[3], i, f), h: 1.6 }); inst.setMoving(false); // as tall as the hero (it was 1.85)
+        inst.root.position.set(f[0], folkY(f), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - inst.yaw0;
         inst.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
         entGroup.add(inst.root); folkActors.set(i, inst);
       } catch (e) { /* a missing part just skips this one */ }
@@ -790,6 +835,17 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           const gltf = await loadGLB(A('world/scene-models/' + file.split('/').map(encodeURIComponent).join('/')));
           gltf.scene.updateMatrixWorld(true);
           const list = byFile.get(key);
+          // a skinned prop (the Payasan banners' flags, the Shapey idol) cannot be instanced: one posed copy per placement,
+          // playing its own animation (audit 3 Nov: only the banners' poles showed and Shapey was missing)
+          let skinned = false; gltf.scene.traverse((o) => { if (o.isSkinnedMesh) skinned = true; });
+          if (skinned) {
+            for (const n of list) {
+              const c = SkeletonUtils.clone(gltf.scene); c.matrixAutoUpdate = false; c.matrix.copy(n.mw); c.traverse((o) => { o.frustumCulled = false; if (o.isMesh) o.castShadow = true; });
+              worldProps.add(c);
+              if (gltf.animations && gltf.animations.length) { const mx = new THREE.AnimationMixer(c); mx.clipAction(gltf.animations[0]).play(); mx.update(Math.random() * 3); propMixers.push(mx); }
+            }
+            progress(0.45 * (++done / files.length)); return;
+          }
           gltf.scene.traverse((mesh) => {
             if (!mesh.isMesh || mesh.isSkinnedMesh) return;
             const mats = list.map((n) => new THREE.Matrix4().multiplyMatrices(n.mw, mesh.matrixWorld));
@@ -818,9 +874,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
 
   // ---- models --------------------------------------------------------------
   const protos = {};
+  // the rest-pose height to scale a model to, where its rest pose is not its walking height: the spiders crouch at rest and
+  // stand up to walk, so they came out about 1.6x their live size (audit 3 Nov)
+  const DRAW_H = { spider: 0.47, jspider: 0.47, pspider: 0.47 };
   const types = Object.keys(ENEMIES).filter((t) => ENEMIES[t].model); let loaded = 0;
   await Promise.all(types.map(async (t) => {
-    try { protos[t] = await prepare(A('models/' + ENEMIES[t].model), ENEMIES[t].h, ENEMIES[t].mixamo ? null : (ENEMIES[t].walk || '')); } catch (e) { console.warn('model failed', t, e); }
+    try { protos[t] = await prepare(A('models/' + ENEMIES[t].model), DRAW_H[t] || ENEMIES[t].h, ENEMIES[t].mixamo ? null : (ENEMIES[t].walk || '')); } catch (e) { console.warn('model failed', t, e); }
     onProgress('monsters', 0.6 + 0.3 * (++loaded / types.length));
   }));
   let playerProto = null;
@@ -1419,9 +1478,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const amb = new THREE.Points(ambGeo, ambMat); amb.frustumCulled = false; fxOnly(amb); scene.add(amb);
   const AMB = { leaves: { color: 0xc8b04a, size: 0.32, fall: 0.6, sway: 1.2, glow: false }, dust: { color: 0xf0d8a0, size: 0.18, fall: -0.05, sway: 1.8, glow: false },
     snow: { color: 0xffffff, size: 0.3, fall: 1.4, sway: 0.6, glow: false }, blizzard: { color: 0xffffff, size: 0.42, fall: 4.2, sway: 3.2, glow: false }, sandstorm: { color: 0xe0b878, size: 0.3, fall: 0.6, sway: 4.5, glow: false }, fireflies: { color: 0xd8ff7a, size: 0.42, fall: 0, sway: 0.8, glow: true } };
-  const AMB_BY_MAP = { greentown: 'leaves', tutorial: 'leaves', apache: 'dust', duel: 'dust', paya: 'snow', swamp: 'fireflies', graves: 'fireflies', goblins: 'leaves', world: 'leaves' };
+  const AMB_BY_MAP = { greentown: 'leaves', tutorial: 'leaves', apache: 'dust', duel: 'dust', paya: 'snow', swamp: 'fireflies', graves: 'fireflies', goblins: 'leaves', world: 'leaves', oasis: 'dust' };
   function ambientStep(dt) {
-    const kind = weatherNow ? weatherNow : settings.time === 'night' ? 'fireflies' : AMB_BY_MAP[curMap.id] || 'leaves', a = AMB[kind];
+    const kind = weatherNow ? weatherNow : settings.time === 'night' && !curMap.under ? 'fireflies' : AMB_BY_MAP[curMap.id] || 'leaves', a = AMB[kind];
     if (amb.userData.kind !== kind) { amb.userData.kind = kind; ambMat.color.set(a.color); if (a.glow) ambMat.color.multiplyScalar(2); ambMat.size = a.size; ambMat.blending = a.glow ? THREE.AdditiveBlending : THREE.NormalBlending; ambMat.toneMapped = !a.glow; ambMat.needsUpdate = true; }
     amb.visible = (settings.foliage !== false && !rainOn()) || !!weatherNow;
     if (!amb.visible) return;
@@ -1457,7 +1516,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'shrine-done') { const c = SHRINE_COLORS[f.kind] || 0xffffff; ringFx(f.x, f.z, 4, c, 1, 0.7); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 50, 6, { s: 1, life: 1.1, color: c, up: 9 }); cam.shake = Math.max(cam.shake, 0.2); }
       else if (f.k === 'shrine') emit(f.x, groundAt(f.x, f.z) + 0.5, f.z, 24, 3, { s: 0.8, life: 1, color: SHRINE_COLORS[f.kind] || 0xffffff, up: 6 });
-      else if (f.k === 'land') emit(f.x, groundAt(f.x, f.z) + 0.1, f.z, 8, 2.2, { s: 0.6, life: 0.4, color: 0xc9b38a, up: 1.2, g: 6 });
+      else if (f.k === 'land-hop') emit(f.x, groundAt(f.x, f.z) + 0.1, f.z, 8, 2.2, { s: 0.6, life: 0.4, color: 0xc9b38a, up: 1.2, g: 6 });
       else if (f.k === 'revive') { ringFx(f.x, f.z, 5, 0x8bffd0); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 45, 5, { s: 1.1, life: 1.2, color: 0x8bffd0, up: 8 }); }
       else if (f.k === 'treasure') { ringFx(f.x, f.z, 5, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 60, 7, { s: 1.1, life: 1.1, color: 0xffd34d, up: 8 }); cam.shake = Math.max(cam.shake, 0.3); }
       else if (f.k === 'surface') { ringFx(f.x, f.z, 1.4, 0x9fd8e8); emit(f.x, Math.max(groundAt(f.x, f.z), WATER_Y) + 0.2, f.z, 16, 2.2, { s: 1.1, life: 0.8, color: 0xcfeef8, up: 4 }); }
@@ -1498,10 +1557,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       a.px += (p.x - a.px) * Math.min(1, dt * 24); a.pz += (p.z - a.pz) * Math.min(1, dt * 24);
       a.root.visible = !!p.al;
       a.root.position.set(a.px, groundAt(a.px, a.pz), a.pz);
-      // a jump: an arc 1.2 high over the half second, timed here so it is smooth between the sim's ticks; the ring stays
-      // on the ground under you
-      if (p.j > 0 && !(a.jt >= 0)) a.jt = p.j * 0.5; else if (!(p.j > 0) && a.jt >= 0 && a.jt > 0.45) a.jt = undefined;
-      if (a.jt >= 0) { a.jt = Math.min(0.5, a.jt + dt); const u = a.jt / 0.5, lift = 1.2 * 4 * u * (1 - u); a.root.position.y += lift; if (a.ring) a.ring.position.y = 0.05 - lift; if (u >= 1) a.jt = undefined; }
+      // a hop (Space or A, a look only): an arc 1.2 high over half a second; the ring stays on the ground under you
+      if (p.id === localId && hopReq) { hopReq = false; if (!(a.jt >= 0)) a.jt = 0; }
+      if (a.jt >= 0) { a.jt = Math.min(0.5, a.jt + dt); const u = a.jt / 0.5, lift = 1.2 * 4 * u * (1 - u); a.root.position.y += lift; if (a.ring) a.ring.position.y = 0.05 - lift; if (u >= 1) { a.jt = undefined; emit(a.px, groundAt(a.px, a.pz) + 0.1, a.pz, 8, 2.2, { s: 0.6, life: 0.4, color: 0xc9b38a, up: 1.2, g: 6 }); } }
       else if (a.ring) a.ring.position.y = 0.05;
       // turn smoothly instead of snapping, and hold the swing's direction for a moment so a strike reads as a strike
       // (the run direction and the swing direction alternate every frame otherwise)
@@ -1578,7 +1636,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
 
     updateRoofs(me ? me.x : cam.x, me ? me.z : cam.z);
     updateFoliage(cam.x, cam.z);
-    updateFolk(dt);
+    bossSankson = view.enemies.some((e) => e[1] === 'sankson'); updateFolk(dt); stepPropMixers(dt);
     updateTreeFade(me ? me.x : cam.x, me ? me.z : cam.z, dt);
     if ((frameN = (frameN + 1) % 15) === 0) updateSmallProps(cam.x, cam.z);
     // enemies
@@ -1804,7 +1862,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const o of eprojObjs.values()) dyn.remove(o); eprojObjs.clear(); for (const h of hazardPool) h.visible = false;
     cam.x = curMap.cx; cam.z = curMap.cz;
   }
-  return { update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v) { cam.shift = v; }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
+  return { hop: () => { hopReq = true; }, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v) { cam.shift = v; }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
     preloadGear,
     // QA hooks
     setAura(on) { dmtAura = !!on; },

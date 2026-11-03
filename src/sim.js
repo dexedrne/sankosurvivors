@@ -45,7 +45,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       x: map.cx + dcos(a) * 1.5, z: map.cz + dsin(a) * 1.5,
       face: 0, moving: false, hp: PLAYER_BASE.hp, maxHp: PLAYER_BASE.hp, alive: true, inv: 0,
       meta, adv: p.adv || 'adventurer', weapons: { [p.weapon || (ADVENTURER_BY_ID[p.adv] ? ADVENTURER_BY_ID[p.adv].weapon : startWeapon)]: 1 }, passives: { ...((ADVENTURER_BY_ID[p.adv] || {}).startPassives || {}) }, evo: {}, buffs: {}, cd: {}, orbit: 0, kills: 0, coins: 0, regen: 0, hurt: 0,
-      gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}), rerolls: REROLLS_PER_RUN, belt: [], air: 0, jumpCd: 0,
+      gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}), rerolls: REROLLS_PER_RUN, belt: [],
       casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
     });
   });
@@ -655,11 +655,15 @@ function stepProjectiles(sim, dt) {
 
 // ---- main step ----------------------------------------------------------
 // ---- regions of the whole-world map: the nearest map centre decides which monsters roam -------------------------
-const REGIONS = MAPS.filter((m) => !m.special);
+// the whole-world map's regions: the surface maps (the Hidden Oasis is underground: its centre made the mainland's south
+// tip go dark), nearest centre on your own side of the strait (the desert's Payasan centre claimed mainland across the
+// water). Audit 3 Nov; The Whole World only, so ranked is untouched.
+const REGIONS = MAPS.filter((m) => !m.special && !m.under);
+const DESERT = new Set(['apache', 'duel', 'paya']), onDesert = (x, z) => x < 258 && z < 204;
 export function regionOf(sim, p) {
-  let best = REGIONS[0], bd = 1e18;
-  for (const m of REGIONS) { const dx = m.cx - p.x, dz = m.cz - p.z, d = dx * dx + dz * dz; if (d < bd) { bd = d; best = m; } }
-  return best;
+  const side = onDesert(p.x, p.z); let best = null, bd = 1e18;
+  for (const m of REGIONS) { if (DESERT.has(m.id) !== side) continue; const dx = m.cx - p.x, dz = m.cz - p.z, d = dx * dx + dz * dz; if (d < bd) { bd = d; best = m; } }
+  return best || REGIONS[0];
 }
 
 // ---- the belt: beer, pumpkins and warp shards can be saved and used when it counts ------------------------------
@@ -683,7 +687,6 @@ function useItem(sim, p, kind) {
   else if (kind === 'warp') { for (const g of sim.gems) g.pulled = true; for (const o of sim.pickups) if (o.kind === 'coin') o.pulled = true; }
   sim.fx.push({ k: 'use', kind, x: p.x, z: p.z });
 }
-export const JUMP_USE = 4, JUMP = { air: 0.5, cd: 1.0 };
 export function useBelt(sim, playerId, slot) {
   const p = sim.players.find((q) => q.id === playerId);
   if (!p || !p.alive || slot < 0 || slot >= p.belt.length) return false;
@@ -763,7 +766,7 @@ function eventTick(sim, dt) {
     g.treasure = true; g.elite = true; g.speed = PLAYER_BASE.speed * 0.82 * 0.95;
     sim.event = { kind, t: 25, id: g.id };
   } else if (kind === 'swarm') {
-    const pool = sim.map.pool.filter((s) => sim.t >= s.t), type = (pool[pool.length - 1] || pool[0]).type;
+    const pool = here.pool.filter((s) => sim.t >= s.t), type = (pool[pool.length - 1] || pool[0]).type; // the region's own monsters on The Whole World
     for (let i = 0, n = N(20); i < n; i++) { const a = (i / n) * 6.283, w = findWalkable(sim, p.x + dcos(a) * 16, p.z + dsin(a) * 16); spawnEnemy(sim, type, w[0], w[1], 0.5); }
     sim.event = { kind, t: 1 };
   } else if (kind === 'blizzard') {
@@ -886,7 +889,7 @@ function stepBossAttacks(sim, dt) {
     h.t -= dt;
     if (h.t <= 0) {
       h.done = true; sim.fx.push({ k: 'slam', x: h.x, z: h.z, r: h.r, meteor: h.meteor ? 1 : 0 });
-      for (const p of sim.players) if (p.alive && p.inv <= 0 && !(p.air > 0) && hyp(p.x - h.x, p.z - h.z) < h.r) hurtPlayer(sim, p, Math.max(1, h.dmg - playerStats(p).armor), h.meteor ? 'meteor' : 'slam');
+      for (const p of sim.players) if (p.alive && p.inv <= 0 && hyp(p.x - h.x, p.z - h.z) < h.r) hurtPlayer(sim, p, Math.max(1, h.dmg - playerStats(p).armor), h.meteor ? 'meteor' : 'slam');
     }
   }
   sim.hazards = sim.hazards.filter((h) => !h.done);
@@ -916,12 +919,8 @@ export function step(sim, inputs = {}, dt = TICK) {
     if (!p.alive) continue;
     const st = playerStats(p);
     const inp = inputs[p.id] || { mx: 0, mz: 0 };
-    // jump (owner 3 Nov: "can we have jumping lol"): input use 4. Half a second in the air clears monsters and boss slams
-    // (not aimed fireballs), then a second to recover. Pace 1 (ranked week 0) has no jump: use 4 does nothing there.
-    if (inp.use === JUMP_USE && sim.pace >= 2) { if (!(p.air > 0) && !(p.jumpCd > 0)) { p.air = JUMP.air; sim.fx.push({ k: 'jump', id: p.id, x: p.x, z: p.z }); } }
-    else if (inp.use != null) useBelt(sim, p.id, inp.use);
-    if (p.air > 0) { p.air -= dt; if (p.air <= 0) { p.air = 0; p.jumpCd = JUMP.cd; sim.fx.push({ k: 'land', id: p.id, x: p.x, z: p.z }); } }
-    else if (p.jumpCd > 0) p.jumpCd -= dt;
+    // (the jump is a look only, owner 3 Nov: "jump is a vanity thing": the renderer hops the hero; nothing here)
+    if (inp.use != null) useBelt(sim, p.id, inp.use);
     const len = hyp(inp.mx, inp.mz);
     p.moving = len > 0.01;
     if (p.moving) {
@@ -974,7 +973,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       moveTo(sim, e, e.x + (mx + e.kx) * dt, e.z + (mz + e.kz) * dt);
       e.kx *= 0.86; e.kz *= 0.86;
       e.face = datan2(dx, dz);
-      if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure && !(tp.air > 0)) { // a jump clears them
+      if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure) {
         const st = playerStats(tp);
         const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? 0.7 : 1) * (1 + sim.t / (sim.pace >= 2 ? 900 : 1200)) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
         hurtPlayer(sim, tp, dmg, def.boss ? 'boss-contact' : 'contact');
@@ -1040,7 +1039,7 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
   const fx = sim.fx; sim.fx = [];
   return {
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
-    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), j: p.air > 0 ? Math.round((1 - p.air / JUMP.air) * 100) / 100 : 0, jcd: p.jumpCd > 0 ? 1 : 0, f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice() })),
+    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice() })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),
     hazards: sim.hazards.map((h) => [r1(h.x), r1(h.z), h.r, Math.round((1 - h.t / h.max) * 100) / 100, h.meteor ? 1 : 0]),
     eproj: sim.eproj.map((b) => [b.id, r1(b.x), r1(b.z), b.art]),

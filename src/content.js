@@ -355,7 +355,7 @@ export const MAPS = [
   },
   {
     id: 'paya', name: 'Payasan Village', blurb: 'The snowy village east of the desert lake: stars, wizards, snowmen and a yeti.',
-    cx: 243, cz: 106, r: 1000, sky: 0xcfe0f0, fog: 0xcfe0f0, light: 1, music: 'boss', length: RUN_LENGTH, finalBoss: 'dragon',
+    cx: 240, cz: 144, r: 1000, sky: 0xcfe0f0, fog: 0xcfe0f0, light: 1, music: 'boss', length: RUN_LENGTH, finalBoss: 'dragon', // the village proper (243,106 was a blocked gap on a ridge; audit 3 Nov)
     pool: [P(0, 'dog', 5), P(0, 'chicken', 4), P(50, 'bandit', 4), P(90, 'snowman', 4), P(180, 'camel', 3), P(260, 'dwarf', 4), P(340, 'shapewiz', 4), P(420, 'yeti', 1), P(430, 'starwiz', 3), P(520, 'boatman', 3), P(620, 'lildragon', 3)],
     retire: { chicken: 240, dog: 360 },
     events: ['blizzard', 'blizzard', 'treasure', 'swarm', 'meteors'], // snow country

@@ -3,7 +3,7 @@ import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
 import { asset, pickAssetHost } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, JUMP_USE, SHRINES } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
@@ -868,7 +868,7 @@ async function startRun(live = null) {
   } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
   renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
   for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden');
-  $('hud').classList.remove('hidden'); $('hud').classList.toggle('nojump', !canJump()); mode = 'play'; shownPending = false;
+  $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
   $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
   if (isRanked && sim.pending[PLAYER]) showLevelUp();
   const goalText = isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills per minute' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
@@ -979,7 +979,7 @@ addEventListener('keydown', (e) => {
   }
   if (k === 'm') { audio.setMuted(!audio.muted); banner(audio.muted ? 'Sound off' : 'Sound on', 900); }
   if (mode === 'play' && k >= '1' && k <= '4') pendingUse = Number(k) - 1;
-  if (mode === 'play' && k === ' ') { if (canJump()) pendingUse = JUMP_USE; e.preventDefault(); } // jump
+  if (mode === 'play' && k === ' ') { hop(); e.preventDefault(); } // a hop, just for the look (owner 3 Nov: "jump is a vanity thing")
   if (k === 'escape') { if (mode === 'play') pause(true); else if (mode === 'pause') pause(false); else for (const id of ['skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden'); }
   if ((k === 'enter' || k === ' ') && mode === 'title' && !$('start').disabled && ['skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked'].every((id) => $(id).classList.contains('hidden'))) startRun();
   if ((k === 'enter' || k === ' ') && mode === 'end') startRun();
@@ -1046,9 +1046,8 @@ addEventListener('pointermove', (e) => {
 const endTouch = (e) => { if (e.pointerId !== touch.id) return; touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden'); };
 addEventListener('pointerup', endTouch); addEventListener('pointercancel', endTouch);
 $('pausebtn').onclick = () => { if (mode === 'play') pause(true); };
-$('jumpbtn').addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); if (mode === 'play' && canJump()) pendingUse = JUMP_USE; }); // phones: the JUMP button
-// jumping comes with the denser pace (casual now, ranked from week 1); a ranked week 0 run has none
-function canJump() { return !!sim && sim.pace >= 2; }
+const hop = () => { if (!renderer || !renderer.hop) return; renderer.hop(); audio.play('choose', { minGap: 0.3, vol: 0.3, rate: 1.6 }); }; // Space or A, just for the look
+
 
 let padPrev = [], pendingUse = null, slowmo = 0, stickDir = null, stickNext = 0; // belt slot to use on the next tick (1-4, a tap, or LB/RB/X/Y)
 function readInput() {
@@ -1312,7 +1311,7 @@ function loop(ts) {
     if (edges.start) pause(true);
     acc += dt * (slowmo > 0 ? 0.3 : 1); slowmo -= dt; // a moment of slow motion when a boss falls
     let n = 0;
-    if (edges.lb) pendingUse = 0; if (edges.rb) pendingUse = 1; if (edges.x) pendingUse = 2; if (edges.y) pendingUse = 3; if (edges.a && canJump()) pendingUse = JUMP_USE; // A jumps
+    if (edges.lb) pendingUse = 0; if (edges.rb) pendingUse = 1; if (edges.x) pendingUse = 2; if (edges.y) pendingUse = 3; if (edges.a) hop(); // A hops (a look only)
     while (acc >= TICK && n++ < 4) {
       if (rankedRec) {
         if (sim.pending[PLAYER] || sim.over) { acc = 0; break; }
