@@ -30,6 +30,7 @@ export const CHANGELOG = [
       'Grass grows in proper tufts (each tuft’s blades were stacked on one spot), yellow grass is straw-coloured, and no grass grows on the SankSwap floor.',
       'Spiders are their real size (they were drawn 1.6 times too big). Trees sit on slopes properly, the practice dummies are full size, and the haunted house no longer floats past the edge of the world.',
       'The Rime Colossus and the Pumpkin Reaper throw SankoQuest Blast spells (ice and fire) instead of plain balls.',
+      'Something to chase every run: your best time on each map and mode shows next to the clock, with a banner when you beat it, and the end screen says how close you came. In ranked the clock shows your place on this week’s board as you play and what it takes to pass the next player.',
       'A tidier main menu: Start at the top, Gear, Skills, Quests, Leaderboard, Settings and More in one even grid, maps four across on a computer, a padlock on Hard mode and Endless until you clear the map on a phone. More is down to What’s new, Move progress, Report a bug and Install the app (DMT perks live in the wallet).',
       'Fences are walls: you and the monsters go round them (63 fence pieces across the world). In ranked from the Monday reset.',
       'Fixed a black box that could flash up on screen during a run (one bad pixel from an effect got blown up by the glow).',

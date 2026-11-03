@@ -525,7 +525,7 @@ $('moreclose').onclick = () => $('more').classList.add('hidden');
 $('more').addEventListener('click', (e) => { if (e.target.id === 'more') $('more').classList.add('hidden'); });
 // ---- move progress to another device: a code with the save (progress and settings only, never ranked tickets, a DMT
 // pass or a wallet), checked key by key on the way in like the old-address hand-off in index.html
-const XFER_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch', 'sq-roofs', 'sq-muted', 'sq-vol', 'sq-seen'];
+const XFER_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch', 'sq-roofs', 'sq-muted', 'sq-vol', 'sq-seen'];
 const b64 = (s) => btoa(unescape(encodeURIComponent(s))), unb64 = (s) => decodeURIComponent(escape(atob(s)));
 const xferSum = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return h.toString(36); };
 function xferCode() {
@@ -627,6 +627,25 @@ async function showRankedBoard() {
   } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
 }
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// ---- something to chase every run (owner: "we also want the game to be really addicting"): your best per map and mode,
+// and in ranked your place on this week's board as you play
+const bestKey = (s) => `${s.map.id}:${s.hard ? 'h' : 'n'}:${s.endless ? 'e' : 'r'}`;
+const getBests = () => { const b = load('sq-bests', {}); return b && typeof b === 'object' && !Array.isArray(b) ? b : {}; };
+let runBest = null, passedBest = false, chase = null; // chase: { rows (others' bests), week, kp }
+function chaseText(t, kills) {
+  if (!chase || !chase.rows.length) return '';
+  const min = RANKED.minSeconds, mine = kpm(kills, t);
+  // the board's order (one best run per wallet, top 25): time then kills, or in kills-per-minute weeks only runs of 3:00 place
+  const ahead = chase.rows.filter((r) => (chase.kp
+    ? r.t >= min && (t < min || kpm(r.kills, r.t) > mine || (kpm(r.kills, r.t) === mine && r.kills >= kills))
+    : r.t > t || (r.t === t && r.kills >= kills)));
+  if (!ahead.length) return chase.kp && t < min ? ` · #1 pace · places from ${fmtT(min)}` : ' · #1 this week!';
+  const full = chase.rows.length >= 25, place = ahead.length + 1, next = ahead[ahead.length - 1];
+  const where = place > 25 || (full && place > chase.rows.length) ? 'not top 25 yet' : `#${place} this week`, to = place > 25 ? 'the top 25' : `#${place - 1}`;
+  if (chase.kp && t < min) return ` · places from ${fmtT(min)}`;
+  if (chase.kp) { const n = Math.max(1, Math.floor(kpm(next.kills, next.t) * t / 60) - kills + 1); return ` · ${where} · ${n} kill${n === 1 ? '' : 's'} to ${to}`; }
+  return ` · ${where} · ${fmtT(Math.max(1, next.t - t))} to ${to}`;
+}
 const localBest = () => { const b = load('sq-best', null); return b ? `${fmtT(Number(b.t) || 0)}, level ${Number(b.level) || 0}, ${Number(b.kills) || 0} slain` : 'none yet'; };
 $('lbbtn').onclick = () => { $('board').classList.remove('hidden'); showBoard(selMap, rankedIsOpen() ? 'ranked' : 'casual'); };
 $('lbclose').onclick = () => $('board').classList.add('hidden');
@@ -884,6 +903,11 @@ async function startRun(live = null) {
   $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
   $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
   if (isRanked && sim.pending[PLAYER]) showLevelUp();
+  runBest = isRanked ? null : (getBests()[bestKey(sim)] || null); passedBest = false; chase = null;
+  if (isRanked && rankedWeek) { // the board as it stood when you entered, without your own wallet's run
+    const race = raceOf(rankedWeek, liveRace(live).mode), me = (walletNow() && walletNow().address || '').toLowerCase();
+    chase = { rows: ((race && race.rows) || []).filter((r) => String(r.wallet || '').toLowerCase() !== me).map((r) => ({ t: Number(r.t) || 0, kills: Number(r.kills) || 0 })), kp: kpmWeek(liveRace(live).week) };
+  }
   const goalText = isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills per minute' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
   banner(`${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'} ${map.name}${!isRanked && hardOn ? ' (hard)' : ''}${goalText}`, 4500);
 }
@@ -958,7 +982,13 @@ function endRun() {
   buildMaps(); buildAdventurers(); showBest();
   $('endtitle').textContent = won ? `${sim.map.name} holds!` : sim.over === 'time' ? `The hunt is over at ${fmtT(sim.endAt)}` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
   const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
-  $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${kpmNote}${unlockNote}`;
+  let bestNote = '';
+  if (!wasRanked) {
+    const all = getBests(), k = bestKey(sim), b = all[k];
+    if (!b || sim.t > b.t || (won && !b.won)) { all[k] = { t: Math.floor(sim.t), kills: sim.kills, level: sim.level, won }; save('sq-bests', all); bestNote = b ? ` · new best (was ${fmtT(b.t)})!` : ''; }
+    else bestNote = ` · ${fmtT(b.t - sim.t)} short of your best (${fmtT(b.t)})`;
+  }
+  $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${kpmNote}${bestNote}${unlockNote}`;
   $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
   $('end').classList.remove('hidden');
   if (wasRanked) { rankedRun.ended = true; persistRanked(); submitRanked(); }
@@ -1201,7 +1231,9 @@ function updateHud(view) {
   $('xpfill').style.width = Math.min(100, (view.xp / view.xpNeed) * 100) + '%';
   $('lvl').textContent = 'Lv ' + view.level;
   const t = Math.floor(view.t); $('clock').textContent = fmtT(t);
-  const goal = sim && sim.endAt ? sim.endAt : sim && !sim.endless && sim.map.length ? sim.map.length : 0; $('clockgoal').textContent = goal ? `of ${fmtT(goal)}` : '';
+  const goal = sim && sim.endAt ? sim.endAt : sim && !sim.endless && sim.map.length ? sim.map.length : 0;
+  if (runBest && !passedBest && t > runBest.t) { passedBest = true; banner(`New best on ${sim.map.name}!`, 2200); audio.play('level', { vol: 0.8 }); }
+  $('clockgoal').textContent = (goal ? `of ${fmtT(goal)}` : '') + (runBest ? (passedBest ? ' · new best!' : ` · best ${fmtT(runBest.t)}`) : '') + chaseText(t, view.kills);
   $('kills').textContent = view.kills;
   if (sim && sim.players[0] && (frame % 10 === 0 || !$('gp').textContent)) $('gp').textContent = runCoins(sim).toLocaleString();
   const boss = view.enemies.find((e) => ENEMIES[e[1]].boss);

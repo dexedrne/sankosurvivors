@@ -9,7 +9,7 @@
 //   POST /api/save-put   {key, rev, data}        -> {ok, rev} | 409 {conflict, rev, data, at}
 const crypto = require('node:crypto');
 
-const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
+const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
 const MAX_VALUE = 40000, MAX_SAVE = 100000, MAX_BODY = 150000, KEY_DAYS = 90;
 const saveMessage = (nonce) => `SankoQuest Survivors\n\nSign to keep your progress on this wallet, so it follows you to any device. This is free: no transaction, no gas, nothing leaves your wallet.\n\nNonce: ${nonce}`;
 

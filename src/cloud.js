@@ -7,7 +7,7 @@
 // cleared maps, finished quests and found gear are joined, skill ranks keep the higher, the best run keeps the better;
 // for anything else this device wins. Nothing one device earned is lost.
 
-export const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
+export const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
 const ST = 'sq-cloud', BASE_KEY = 'sq-cloud-base';
 
 const parse = (v, d) => { try { const x = JSON.parse(v); return x ?? d; } catch { return d; } };
