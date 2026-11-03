@@ -961,9 +961,42 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     m.position.set(x, groundAt(x, z) + 0.06, z); m.rotation.y = Math.random() * 6.28; addEffect(m, 0.9, 0);
     for (let i = 0; i < 22; i++) { const ang = (i / 22) * 6.283; emit(x + Math.cos(ang) * r * 0.6, groundAt(x, z) + 0.3, z + Math.sin(ang) * r * 0.6, 1, 2.2, { s: 1.6, life: 0.7, color: 0x9c8466, up: 1.5, g: 1.5 }); }
   }
-  function ringFx(x, z, r, color) {
-    const m = new THREE.Mesh(new THREE.RingGeometry(r * 0.85, r, 48).rotateX(-Math.PI / 2), ringMat(color));
-    m.position.set(x, groundAt(x, z) + 0.15, z); addEffect(m, 0.35, 0.3);
+  // a painted splash on the ground instead of a flat ring: a broken wave front that races out and slows, a hot white flash
+  // in the middle, a soft fill, sparkling flecks, and for blasts radial streaks (kind 1). Drawn in a shader, so no sprites.
+  const splashMat = (color, kind) => new THREE.ShaderMaterial({
+    uniforms: { uProg: { value: 0 }, uColor: { value: new THREE.Color(color).multiplyScalar(1.35) }, uKind: { value: kind }, uSeed: { value: Math.random() * 50 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform float uProg, uKind, uSeed; uniform vec3 uColor; varying vec2 vUv;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7)) + uSeed) * 43758.5453); }
+      float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
+      void main(){
+        vec2 p = vUv * 2.0 - 1.0; float r = length(p); float a = atan(p.y, p.x); float t = uProg;
+        float front = mix(0.2, 0.97, 1.0 - pow(1.0 - t, 2.4));
+        float rr = r + (n(vec2(a * 2.6 + 9.0, t * 1.5)) - 0.5) * 0.12;
+        float rim = smoothstep(front - 0.18, front - 0.03, rr) * (1.0 - smoothstep(front - 0.03, front + 0.03, rr));
+        float fill = (1.0 - smoothstep(0.0, front, rr)) * 0.28 * (1.0 - t);
+        float spikes = pow(n(vec2(a * 6.5, 3.0)), 3.0) * 1.6;
+        float streak = uKind > 0.5 ? spikes * smoothstep(front * 0.15, front * 0.75, rr) * (1.0 - smoothstep(front * 0.75, front + 0.02, rr)) : 0.0;
+        float fleck = step(0.982, h(floor(p * 22.0) + floor(t * 7.0))) * (1.0 - smoothstep(front - 0.15, front, r));
+        float core = (1.0 - smoothstep(0.0, 0.32, r)) * (1.0 - smoothstep(0.0, 0.3, t));
+        float alpha = (rim * 1.15 + fill + streak * 0.7 + fleck * 0.7 + core * 1.1) * (1.0 - smoothstep(0.5, 1.0, t)) * step(r, 1.0);
+        vec3 col = mix(uColor, vec3(1.0), clamp(core * 0.85 + rim * 0.3 * (1.0 - t), 0.0, 1.0));
+        gl_FragColor = vec4(col * alpha, alpha);
+      }`,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  });
+  function ringFx(x, z, r, color, kind = 0, life = 0.45) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2.1, r * 2.1).rotateX(-Math.PI / 2), splashMat(color, kind));
+    m.position.set(x, groundAt(x, z) + 0.14, z); m.userData.shader = true; addEffect(m, life, 0);
+  }
+  // a dark scorch left on the ground by slams, meteors and blasts, fading slower than the flash
+  const scorchTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    for (let i = 0; i < 26; i++) { const a = Math.random() * 6.283, d = Math.random() * 34, x = 64 + Math.cos(a) * d, y = 64 + Math.sin(a) * d, rr = 14 + Math.random() * 22;
+      const gr = g.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, 'rgba(25,18,12,0.32)'); gr.addColorStop(1, 'rgba(25,18,12,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
+    return new THREE.CanvasTexture(c); })();
+  function scorchFx(x, z, r) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 1.9, r * 1.9).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: scorchTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    m.position.set(x, groundAt(x, z) + 0.05, z); m.rotation.y = Math.random() * 6.28; addEffect(m, 1.4, 0);
   }
   const SHARD_COLORS = [0xb8e4ff, 0x4aa8ff, 0x7bd04f, 0xff7a30, 0xffe066, 0xb25cff]; // Air, Water, Earth, Fire, Spirit, Void
   // a soft streak that fades toward its tail (for bolts and arrows)
@@ -1209,7 +1242,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const f of view.fx) {
       if (f.k === 'dmg') { number(f.x, f.z, f.v, f.c, f.c ? '#ffd34d' : '#ffffff'); spark(f.x, f.z, f.c); }
       else if (f.k === 'hurt') { number(f.x, f.z, '-' + f.v, 0, '#ff5a4d'); cam.shake = 0.35; cam.flash = 0.3; }
-      else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8); ringFx(f.x, f.z, 16, 0xff9a3c); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; }
+      else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; }
       else if (f.k === 'die') { pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
       else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'treasure') { ringFx(f.x, f.z, 5, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 60, 7, { s: 1.1, life: 1.1, color: 0xffd34d, up: 8 }); cam.shake = Math.max(cam.shake, 0.3); }
@@ -1219,13 +1252,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'escape') emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 3, { s: 1.2, life: 0.8, color: 0xd9d2c0, up: 3 });
       else if (f.k === 'use') { ringFx(f.x, f.z, f.kind === 'pumpkin' ? 20 : 3, f.kind === 'pumpkin' ? 0xff9a3c : f.kind === 'warp' ? 0xb25cff : 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 16, 3, { s: 0.8, life: 0.6, color: f.kind === 'warp' ? 0xb25cff : 0xffd34d, up: 4 }); }
       else if (f.k === 'spin') { slashFx(f.x, f.z, 0, f.range, 360, f.evo ? 6 : f.lvl); ringFx(f.x, f.z, f.range, f.evo ? 0xff5a4a : 0xfff0b8); const pa = playerActors.get(localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
-      else if (f.k === 'slam') { ringFx(f.x, f.z, f.r, f.meteor ? 0xff9a3c : 0xff6a3a); ringFx(f.x, f.z, f.r * 0.6, 0xffc06a); emit(f.x, groundAt(f.x, f.z) + 0.3, f.z, 40, 7, { s: 1.4, life: 0.7, color: 0xb8a58a, up: 3 }); cam.shake = Math.max(cam.shake, 0.45); }
+      else if (f.k === 'slam') { ringFx(f.x, f.z, f.r, f.meteor ? 0xff9a3c : 0xff6a3a, 1, 0.5); ringFx(f.x, f.z, f.r * 0.6, 0xffc06a, 0, 0.35); scorchFx(f.x, f.z, f.r); emit(f.x, groundAt(f.x, f.z) + 0.3, f.z, 40, 7, { s: 1.4, life: 0.7, color: 0xb8a58a, up: 3 }); cam.shake = Math.max(cam.shake, 0.45); }
       else if (f.k === 'aim') aimFx(f.x, f.z, f.a, f.len, f.t);
       else if (f.k === 'volley') emit(f.x, groundAt(f.x, f.z) + 2, f.z, 14, 4, { s: 1, life: 0.4, color: f.art === 'ice' ? 0x9fe6ff : 0xff8a3a, up: 2 });
       else if (f.k === 'quake') { ringFx(f.x, f.z, f.r, 0xd9b36a); crackFx(f.x, f.z, f.r); cam.shake = Math.max(cam.shake, 0.18); }
-      else if (f.k === 'burst') { const c = f.evo ? 0xb25cff : 0x8fd8ff; ringFx(f.x, f.z, f.r, c); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 12, 4, { s: 0.8, life: 0.4, color: c, up: 2.5, g: 3 }); }
+      else if (f.k === 'burst') { const c = f.evo ? 0xb25cff : 0x8fd8ff; ringFx(f.x, f.z, f.r, c, 1); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 12, 4, { s: 0.8, life: 0.4, color: c, up: 2.5, g: 3 }); }
       else if (f.k === 'boss') cam.shake = 0.5;
-      else if (f.k === 'nuke') { ringFx(f.x, f.z, f.r, 0xff9a3c); cam.shake = 0.4; }
+      else if (f.k === 'nuke') { ringFx(f.x, f.z, f.r, 0xff9a3c, 1, 0.7); ringFx(f.x, f.z, f.r * 0.55, 0xfff2a8, 0, 0.45); scorchFx(f.x, f.z, f.r * 0.8); cam.shake = 0.4; }
       else if (f.k === 'evolve') { cam.shake = 0.3; if (me) levelFx(me.x, me.z); }
       else if (f.k === 'level') { if (me) levelFx(me.x, me.z); }
       else if (f.k === 'get') emit(f.x, groundAt(f.x, f.z) + 0.8, f.z, f.kind === 'casket' || f.kind === 'chest' ? 24 : 8, 2.5, { s: 0.6, life: 0.6, color: f.kind === 'coin' ? 0xffd34d : 0xbfe8ff, up: 4, g: 3 });
