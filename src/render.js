@@ -31,7 +31,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   renderer.setPixelRatio(low ? 0.75 : Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   // a filmic curve that keeps SankoQuest's bright colours, plus real sun shadows (off with ?low)
-  renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 1.05;
+  renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 0.93; // a little under neutral: 1.05 felt too bright
   renderer.shadowMap.enabled = !low; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9ac7e8);
@@ -491,12 +491,19 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   let entData = null; const entGroup = new THREE.Group(); entGroup.name = 'ents'; scene.add(entGroup);
   // a tree between you and the camera turns see-through (a fine screen-door pattern, so there is nothing to sort) and fades
   // back when you move on, so trees never hide your character and never pop in or out
+  // leaves come blended (glTF BLEND); instanced trees cannot be sorted leaf by leaf, so far trees looked see-through.
+  // A cut-out writes depth and always draws right; textures keep a soft edge from their own alpha.
+  function solidLeaves(m) {
+    if (m && m.transparent && m.map && (m.opacity ?? 1) > 0.99) { m.transparent = false; m.alphaTest = 0.4; m.depthWrite = true; m.needsUpdate = true; }
+    return m;
+  }
+  const LEAFY = /leaf|leaves|foliage|pine|bush|fern|ivy|plant|hedge|vine/i;
   const TREES = /tree|oak|pine|cherry|dracaena/i, treeMeshes = [], TREE_NEAR = 3, TREE_FAR = 5, TREE_GHOST = 0.45, TREE_RATE = 2.5;
   const fadeMats = new Map();
   function fadeMaterial(mat) {
     if (Array.isArray(mat)) return mat.map(fadeMaterial);
     if (fadeMats.has(mat)) return fadeMats.get(mat);
-    const m = mat.clone();
+    const m = solidLeaves(mat.clone());
     m.onBeforeCompile = (sh) => {
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aFade;\nvarying float vFade;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFade = aFade;');
@@ -570,7 +577,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         const p = protos[special] || (special === 'sankson' ? playerProto : null);
         if (!p) continue;
         try {
-          const inst = kit ? kit.animate(p.gltf, (ENEMIES[special] && ENEMIES[special].h) || 1.6, 'idle') : instantiate(p, 'idle');
+          const inst = kit ? kit.animate(p.gltf, (ENEMIES[special] && ENEMIES[special].h) || 1.6, 'idle', { fromRest: FROM_REST.get(special) || false }) : instantiate(p, 'idle'); // (Boaty stood in a T-pose)
           if (inst.kit && ENEMIES[special] && ENEMIES[special].yawFix) inst.kit.yaw0 += ENEMIES[special].yawFix;
           inst.root.position.set(f[0], groundAt(f[0], f[1]), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - ((inst.kit && inst.kit.yaw0) || 0);
           if (!inst.mixer) inst.mixer = { update() {} };
@@ -602,6 +609,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const reach = inside ? 8 : 2.2, r2 = reach * reach;
       for (const [id, b] of roofBoxes) {
         if (roofsOff && !isLandmark(id)) continue; // roofs off: every other roof is already gone
+        if (isLandmark(id) && b.geo && px > b.geo.min.x && px < b.geo.max.x && pz > b.geo.min.z && pz < b.geo.max.z) { want.add(id); continue; } // under it
         if (px < b.x0 - reach - 2 || px > b.x1 + reach + 2 || pz < b.z0 - reach - 2 || pz > b.z1 + reach + 2) continue;
         for (let k = 0; k < b.pts.length; k += 2) { const dx = b.pts[k] - px, dz = b.pts[k + 1] - pz; if (dx * dx + dz * dz < r2) { want.add(id); break; } }
       }
@@ -625,7 +633,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const KEEP_ROOF_WALLS = /^chapel$/i;
   // landmarks keep their roof even with roofs off, and lift it only when you walk in or right up to it like SankoQuest
   // does (the chapel without its roof was a box of very tall walls)
-  const LANDMARK_ROOFS = /^chapel$/i;
+  const LANDMARK_ROOFS = /^chapel$|^starterIslandHouse/i; // the chapel, Tutorial Island's big house (its roof posts stood up in the air)
   const isLandmark = (id) => { const b = roofBoxes.get(id); return !!b && LANDMARK_ROOFS.test(b.name); };
   function keepsWalls(id) {
     const b = roofBoxes.get(id); if (!b) return true;
@@ -673,6 +681,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           gltf.scene.traverse((mesh) => {
             if (!mesh.isMesh || mesh.isSkinnedMesh) return;
             const mats = list.map((n) => new THREE.Matrix4().multiplyMatrices(n.mw, mesh.matrixWorld));
+            if (TREES.test(file) || LEAFY.test(file) || LEAFY.test((mesh.material && mesh.material.name) || '')) solidLeaves(mesh.material);
+            if (isRoof) { // the roof's real footprint, for landmarks that lift when you stand under them
+              if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+              list.forEach((n, i) => { const b = roofBoxes.get(n.bldg); if (!b) return; const bb = mesh.geometry.boundingBox.clone().applyMatrix4(mats[i]); b.geo = b.geo ? b.geo.union(bb) : bb; });
+            }
             const batchable = !isRoof && BATCH && !Array.isArray(mesh.material) && !mesh.geometry.morphAttributes.position && !Object.values(mesh.geometry.attributes).some((x) => x.isInterleavedBufferAttribute);
             if (batchable) { toBatch.push({ geometry: mesh.geometry, material: mesh.material, matrices: mats }); return; }
             for (const { im, idx } of chunkedInstances(mesh.geometry, mesh.material, mats, worldProps)) {
@@ -844,7 +857,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const fallbackMat = new THREE.MeshLambertMaterial({ color: 0xcc5544 });
   // bare Mixamo rigs that need a fitted clip (see fitClip in character.js); Skelly walked with its arms locked straight
   // out and leaned over
-  const FROM_REST = new Map([['skeleton', 'hips']]); // Skelly: the same rig, hips flipped
+  // Skelly (hips flipped 180), the Spiky Boatman and the Stars (hips turned -90 / -81): the clips' own rig otherwise
+  const FROM_REST = new Map([['skeleton', 'hips'], ['boatman', 'hips'], ['star', 'hips'], ['starwiz', 'hips']]);
   function makeEnemy(type) {
     const def = ENEMIES[type];
     if (def.rig && kit) {
@@ -876,7 +890,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const pickupSprites = new Map(); const iconCache = new Map();
   const PICKUP_ICON = { coin: 'Gold', fish: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
   function iconTex(name) {
-    if (!iconCache.has(name)) { const t = new THREE.TextureLoader().load(A(`ui/items/item_${name.replace(/ /g, '_')}.png`)); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; iconCache.set(name, t); }
+    if (!iconCache.has(name)) { const t = new THREE.TextureLoader().load(A(`ui/items/item_${name.replace(/ /g, '_')}.png`)); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; iconCache.set(name, t); } // no mipmaps: they blended the icons' black see-through pixels into a dark box
     return iconCache.get(name);
   }
   const dummy = new THREE.Object3D(); const gemColor = new THREE.Color();
@@ -1443,7 +1457,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         loadGLB(A('world/scene-models/chest.glb')).then((g) => { const m = g.scene.clone(true); const b = boxOf(m), z = b.getSize(new THREE.Vector3()), kk = 0.9 / Math.max(z.x, z.y, z.z, 1e-3); m.scale.setScalar(kk); m.position.set(-(b.min.x + b.max.x) / 2 * kk, -b.min.y * kk, -(b.min.z + b.max.z) / 2 * kk); m.traverse((o) => { if (o.isMesh) o.castShadow = true; }); sp.add(m); }).catch(() => {});
         dyn.add(sp); pickupSprites.set(k[0], sp);
       }
-      if (!sp) { sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(PICKUP_ICON[k[1]] || 'Gold'), transparent: true, depthWrite: false })); sp.scale.setScalar(k[1] === 'chest' ? 1.5 : 0.95); dyn.add(sp); pickupSprites.set(k[0], sp); }
+      if (!sp) { sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(PICKUP_ICON[k[1]] || 'Gold'), transparent: true, alphaTest: 0.3, depthWrite: false })); sp.scale.setScalar(k[1] === 'chest' ? 1.5 : k[1] === 'coin' ? 0.855 : 0.95); dyn.add(sp); pickupSprites.set(k[0], sp); }
       if (sp.userData.casket) { sp.position.set(k[2], groundAt(k[2], k[3]), k[3]); sp.rotation.y = time * 0.8; }
       else sp.position.set(k[2], groundAt(k[2], k[3]) + 0.8 + Math.sin(time * 4 + k[0]) * 0.1, k[3]);
     }
@@ -1476,7 +1490,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     if (blizzardK < 0.002) fogBase.copy(scene.fog.color); // remember the map's own haze while the sky is clear
     else scene.fog.color.copy(fogBase).lerp(stormKind === 'sandstorm' ? SAND_HAZE : SNOW_HAZE, blizzardK * 0.85);
     const vd = VIEW[settings.view] || 1;
-    scene.fog.near = 38 * cam.zoom * vd * (1 - 0.6 * blizzardK); scene.fog.far = 78 * cam.zoom * vd * (1 - 0.5 * blizzardK); camera.far = 170 * cam.zoom * vd; camera.updateProjectionMatrix();
+    // the fog never closes in when you zoom in (the title screen's close camera fogged out 20 units away)
+    const fz = Math.max(1, cam.zoom);
+    scene.fog.near = 38 * fz * vd * (1 - 0.6 * blizzardK); scene.fog.far = 78 * fz * vd * (1 - 0.5 * blizzardK); camera.far = 170 * fz * vd; camera.updateProjectionMatrix();
     cam.yaw += ((rotKeys.e ? 1 : 0) - (rotKeys.q ? 1 : 0)) * dt * 1.8;
     const L = Math.hypot(21, 17) * cam.zoom, cp = Math.cos(cam.pitch) * L;
     camera.position.set(cam.x + sx + Math.sin(cam.yaw) * cp, gy + Math.sin(cam.pitch) * L, cam.z + sz + Math.cos(cam.yaw) * cp + cam.shift);
@@ -1516,7 +1532,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const o of eprojObjs.values()) dyn.remove(o); eprojObjs.clear(); for (const h of hazardPool) h.visible = false;
     cam.x = curMap.cx; cam.z = curMap.cz;
   }
-  return { update, reset, resize, propCount, groundAt, renderer, loadMap, setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v) { cam.shift = v; }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
+  return { update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v) { cam.shift = v; }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
     preloadGear,
     // QA hooks
     setAura(on) { dmtAura = !!on; },
