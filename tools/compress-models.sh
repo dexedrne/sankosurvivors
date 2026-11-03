@@ -7,6 +7,7 @@ Q="--level medium --quantize-position 16 --quantize-normal 12 --quantize-texcoor
 T=$(mktemp -d); trap "rm -rf $T" EXIT; before=0; after=0; n=0; kept=0
 while IFS= read -r -d '' f; do
   case "$f" in */models/playerCharacter/*) continue;; esac # the hero is assembled from part files on one skeleton: quantized parts break it
+  case "$f" in */world/foliage/*) continue;; esac # foliage is drawn as bare geometry (the game's rule, no node transform): quantizing moves its scale into the node and the mushrooms came out 10x too big
   n=$((n+1)); s0=$(stat -c%s "$f"); before=$((before+s0))
   if grep -q "EXT_meshopt_compression" <(head -c 4000 "$f"); then after=$((after+s0)); continue; fi
   if npx --no-install gltf-transform meshopt "$f" "$T/a.glb" $Q >/dev/null 2>&1 && npx --no-install gltf-transform webp "$T/a.glb" "$T/b.glb" --lossless true >/dev/null 2>&1; then

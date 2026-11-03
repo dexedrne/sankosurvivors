@@ -1,14 +1,25 @@
 -- Ranked payout ledger. Paste this whole script after schema.sql and ranked.sql.
--- Reapplying preserves keys, plans, nonce assignments and transfer history.
+-- Reapplying preserves keys, plans, nonce assignments and transfer history. It also upgrades an older ledger in place:
+-- each week now has one plan per race ('normal', and 'hard' from week 1), and each payout row says which pot it is from.
 insert into public.sqs_admin(k,v) values ('payout_key_sha256','UNCONFIGURED') on conflict (k) do nothing;
 
 create table if not exists public.sqs_ranked_payout_weeks (
-  week int primary key check(week >= 0),
+  week int not null check(week >= 0),
+  mode text not null default 'normal' check(mode in ('normal','hard')),
   paid numeric not null, house numeric not null, pool numeric not null,
   incoming numeric not null, rollover numeric not null,
   top jsonb not null, created_at timestamptz not null default now(),
-  pay_at timestamptz not null
+  pay_at timestamptz not null,
+  primary key(week, mode)
 );
+-- upgrade: older ledgers had one plan per week (all Normal) keyed by week alone
+alter table public.sqs_ranked_payout_weeks add column if not exists mode text not null default 'normal' check(mode in ('normal','hard'));
+do $$ begin
+  if (select array_length(conkey, 1) from pg_constraint where conrelid = 'public.sqs_ranked_payout_weeks'::regclass and contype = 'p') = 1 then
+    alter table public.sqs_ranked_payout_weeks drop constraint sqs_ranked_payout_weeks_pkey;
+    alter table public.sqs_ranked_payout_weeks add constraint sqs_ranked_payout_weeks_pkey primary key (week, mode);
+  end if;
+end $$;
 create table if not exists public.sqs_ranked_payouts (
   id bigserial primary key,
   week int not null,
@@ -24,10 +35,14 @@ create table if not exists public.sqs_ranked_payouts (
   error text,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
   sent_at timestamptz, confirmed_at timestamptz,
+  mode text not null default 'normal' check(mode in ('normal','hard')), -- the pot a row is paid from (a refund: its entry's race)
   check((kind = 'refund') = (source_entry_id is not null))
 );
--- Refunds must allow several entries from the same wallet, including late arrivals.
-create unique index if not exists sqs_payout_unique_transfer on public.sqs_ranked_payouts(week,kind,wallet) where kind <> 'refund';
+alter table public.sqs_ranked_payouts add column if not exists mode text not null default 'normal' check(mode in ('normal','hard'));
+-- One prize/house/rollover row per week, race, kind and wallet. Refunds must allow several entries from the same wallet,
+-- including late arrivals.
+drop index if exists public.sqs_payout_unique_transfer;
+create unique index if not exists sqs_payout_unique_transfer_mode on public.sqs_ranked_payouts(week,mode,kind,wallet) where kind <> 'refund';
 create table if not exists public.sqs_ranked_holds (
   week int not null, wallet text not null check(wallet ~ '^0x[0-9a-f]{40}$'),
   reason text not null, at timestamptz not null default now(), primary key(week,wallet)
@@ -44,42 +59,52 @@ revoke all on public.sqs_ranked_payouts, public.sqs_ranked_payout_weeks, public.
   public.sqs_ranked_payout_notices, public.sqs_ranked_payout_runner from public, anon, authenticated;
 revoke all on sequence public.sqs_ranked_payouts_id_seq from public, anon, authenticated;
 
+drop function if exists public.sqs_payout_plan(text,int,jsonb); -- gained p_mode
 create or replace function public.sqs_payout_read(p_key text, p_week int default null)
 returns jsonb language plpgsql stable security definer set search_path = pg_catalog, public, pg_temp as $$
 begin
   if sqs_key_ok('payout_key_sha256',p_key) is not true then return jsonb_build_object('error','forbidden'); end if;
   return jsonb_build_object(
-    'weeks',coalesce((select jsonb_agg(to_jsonb(w) || jsonb_build_object('paid',paid::text,'house',house::text,'pool',pool::text,'incoming',incoming::text,'rollover',rollover::text) order by week) from sqs_ranked_payout_weeks w where p_week is null or week=p_week),'[]'),
+    'weeks',coalesce((select jsonb_agg(to_jsonb(w) || jsonb_build_object('paid',paid::text,'house',house::text,'pool',pool::text,'incoming',incoming::text,'rollover',rollover::text) order by week,mode desc) from sqs_ranked_payout_weeks w where p_week is null or week=p_week),'[]'),
     'rows',coalesce((select jsonb_agg(to_jsonb(p) || jsonb_build_object('id',id::text,'amount',amount::text,'nonce',nonce::text,'scan_block',scan_block::text,'source_entry_id',source_entry_id::text) order by week,id) from sqs_ranked_payouts p where p_week is null or week=p_week),'[]'),
     'holds',coalesce((select jsonb_agg(h) from sqs_ranked_holds h where p_week is null or week=p_week),'[]'));
 end $$;
 
-create or replace function public.sqs_payout_plan(p_key text, p_week int, p_plan jsonb)
+-- The canonical plan of one race's pot for one week. The payout bot computes the same plan (tools/payout/core.mjs makePlan)
+-- and this refuses it unless both agree. Each race has its own pot and its own rollover chain: Normal from week 0, Hard
+-- from week 1 (its first week starts from nothing). The week's rules pick the winners: week 0 by time, kills (endless); from
+-- week 1 by kills per minute among runs of 3:00 or more (sqs_ranked_score/sqs_ranked_placeable in ranked.sql).
+create or replace function public.sqs_payout_plan(p_key text, p_week int, p_plan jsonb, p_mode text default 'normal')
 returns jsonb language plpgsql security definer set search_path = pg_catalog, public, pg_temp as $$
 declare paid_total numeric; house_total numeric; pool_total numeric; incoming_total numeric := 0; rolled numeric; dust numeric;
   weights int[] := array[40,25,15,12,8]; -- src/ranked.js RANKED.payouts
   winners jsonb; prizes jsonb := '[]'; winner jsonb; share numeric; idx int := 0; expected jsonb; end_at timestamptz;
+  first_week int := case when p_mode = 'hard' then 1 else 0 end; -- src/ranked.js RANKED.kpmWeek opens the Hard race
 begin
   if sqs_key_ok('payout_key_sha256',p_key) is not true then return jsonb_build_object('error','forbidden'); end if;
   perform pg_advisory_xact_lock(hashtext('sqs_payout_plan'));
   perform pg_advisory_xact_lock(hashtext('sqs_ranked_' || p_week));
   if p_week is null or p_week < 0 then return jsonb_build_object('error','bad week'); end if;
-  if exists(select 1 from sqs_ranked_payout_weeks where week=p_week) then return jsonb_build_object('ok',true,'again',true); end if;
+  if p_mode is null or p_mode not in ('normal','hard') or p_week < first_week then return jsonb_build_object('error','no such race that week'); end if;
+  if exists(select 1 from sqs_ranked_payout_weeks where week=p_week and mode=p_mode) then return jsonb_build_object('ok',true,'again',true); end if;
   end_at := '2026-11-02T00:00:00Z'::timestamptz + (p_week+1)*interval '7 days';
-  if now() < end_at + interval '56 minutes' then return jsonb_build_object('error','submission grace'); end if;
-  if p_week > 0 then
-    select rollover into incoming_total from sqs_ranked_payout_weeks where week=p_week-1;
+  -- the last run started before the reset may be sent up to 46 + 40 minutes later (src/ranked.js runSeconds +
+  -- LATE_SECONDS), and its replay can take up to the API's 800 s: 3 hours (runs last up to 2:00:00)
+  if now() < end_at + interval '180 minutes' then return jsonb_build_object('error','submission grace'); end if;
+  if p_week > first_week then
+    select rollover into incoming_total from sqs_ranked_payout_weeks where week=p_week-1 and mode=p_mode;
     if not found then return jsonb_build_object('error','previous week missing'); end if;
   end if;
-  select coalesce(sum(paid),0) into paid_total from sqs_ranked_entries where week=p_week and refund_reason is null;
+  select coalesce(sum(paid),0) into paid_total from sqs_ranked_entries where week=p_week and mode=p_mode and refund_reason is null;
   if paid_total < 0 or paid_total <> trunc(paid_total) then return jsonb_build_object('error','invalid paid total'); end if;
   house_total := trunc(paid_total/10); pool_total := paid_total-house_total+incoming_total; rolled := pool_total;
   select coalesce(jsonb_agg(x),'[]') into winners from (
     select id::text,name,wallet,t,kills,level,won,adv,log_sha from (
-      select distinct on(wallet) * from sqs_ranked_entries where week=p_week and verdict='ok' and refund_reason is null
-        and wallet <> '0x9d506ba29843a232409d85e289edece8d6a7b452' -- the developer's wallet plays for no prize
-      order by wallet,won desc,t desc,kills desc,finished_at asc,id asc) best
-    order by won desc,t desc,kills desc,finished_at asc,id::bigint asc limit 5) x;
+      select distinct on(wallet) * from sqs_ranked_entries where week=p_week and mode=p_mode and verdict='ok' and refund_reason is null
+        and wallet <> '0x9d506ba29843a232409d85e289edece8d6a7b452' -- the developer's wallet plays for no prize (both races)
+      order by wallet,sqs_ranked_score(week,won,t,kills) desc,finished_at asc,id asc) best
+    where sqs_ranked_placeable(p_week,t) -- week 1 on: a run under 3:00 never wins
+    order by sqs_ranked_score(p_week,won,t,kills) desc,finished_at asc,id::bigint asc limit 5) x;
   select pool_total-sum(trunc(pool_total*weight/100)) into dust from unnest(weights) as weight;
   for winner in select value from jsonb_array_elements(winners) loop
     idx := idx+1;
@@ -90,18 +115,18 @@ begin
   end loop;
   expected := jsonb_build_object('house',house_total::text,'pool',pool_total::text,'rollover',rolled::text,'prizes',prizes);
   if p_plan is distinct from expected then return jsonb_build_object('error','plan differs from settlement'); end if;
-  insert into sqs_ranked_payout_weeks(week,paid,house,pool,incoming,rollover,top,pay_at)
-    values(p_week,paid_total,house_total,pool_total,incoming_total,rolled,winners,end_at+interval '24 hours');
+  insert into sqs_ranked_payout_weeks(week,mode,paid,house,pool,incoming,rollover,top,pay_at)
+    values(p_week,p_mode,paid_total,house_total,pool_total,incoming_total,rolled,winners,end_at+interval '24 hours');
   idx := 0;
   for winner in select value from jsonb_array_elements(prizes) loop
     idx := idx+1;
     if (winner->>'amount')::numeric > 0 then
-      insert into sqs_ranked_payouts(week,kind,wallet,amount,status) values(p_week,'prize'||idx,winner->>'wallet',(winner->>'amount')::numeric,
+      insert into sqs_ranked_payouts(week,mode,kind,wallet,amount,status) values(p_week,p_mode,'prize'||idx,winner->>'wallet',(winner->>'amount')::numeric,
         case when exists(select 1 from sqs_ranked_holds where week=p_week and wallet=winner->>'wallet') then 'held' else 'planned' end);
     end if;
   end loop;
-  if house_total>0 then insert into sqs_ranked_payouts(week,kind,wallet,amount) values(p_week,'house','0x9d506ba29843a232409d85e289edece8d6a7b452',house_total); end if;
-  insert into sqs_ranked_payouts(week,kind,wallet,amount,status) values(p_week,'rollover-note','0xa1e6e6ee71300c238935b7d59c8983b06e991be0',rolled,'confirmed');
+  if house_total>0 then insert into sqs_ranked_payouts(week,mode,kind,wallet,amount) values(p_week,p_mode,'house','0x9d506ba29843a232409d85e289edece8d6a7b452',house_total); end if;
+  insert into sqs_ranked_payouts(week,mode,kind,wallet,amount,status) values(p_week,p_mode,'rollover-note','0xa1e6e6ee71300c238935b7d59c8983b06e991be0',rolled,'confirmed');
   return jsonb_build_object('ok',true);
 end $$;
 
@@ -110,8 +135,8 @@ returns jsonb language plpgsql security definer set search_path = pg_catalog, pu
 declare n int;
 begin
   if sqs_key_ok('payout_key_sha256',p_key) is not true then return jsonb_build_object('error','forbidden'); end if;
-  insert into sqs_ranked_payouts(week,kind,wallet,amount,source_entry_id)
-    select week,'refund',wallet,paid,id from sqs_ranked_entries where refund_reason is not null
+  insert into sqs_ranked_payouts(week,mode,kind,wallet,amount,source_entry_id)
+    select week,mode,'refund',wallet,paid,id from sqs_ranked_entries where refund_reason is not null
     on conflict(source_entry_id) do nothing;
   get diagnostics n=row_count;
   return jsonb_build_object('ok',true,'added',n);
@@ -125,8 +150,9 @@ begin
   p_wallet := lower(p_wallet);
   if p_week is null or p_week<0 or p_wallet is null or p_wallet !~ '^0x[0-9a-f]{40}$' then return jsonb_build_object('error','bad hold'); end if;
   perform pg_advisory_xact_lock(hashtext('sqs_payout_nonce'));
+  -- prizes already sending or sent cannot be held back; the hold still covers the wallet's other prizes that week (with
+  -- two races, one race's prize can be on its way while the other's is still planned)
   select count(*) into n from sqs_ranked_payouts where week=p_week and wallet=p_wallet and kind like 'prize%' and status in ('sending','sent','confirmed','failed');
-  if n>0 then return jsonb_build_object('ok',true,'unchanged',n,'message','already sending or sent; hold does nothing'); end if;
   if p_reason is null then
     delete from sqs_ranked_holds where week=p_week and wallet=p_wallet;
     update sqs_ranked_payouts set status='planned',updated_at=now() where week=p_week and wallet=p_wallet and kind like 'prize%' and status='held';
@@ -135,6 +161,7 @@ begin
     insert into sqs_ranked_holds(week,wallet,reason) values(p_week,p_wallet,left(p_reason,500)) on conflict(week,wallet) do update set reason=excluded.reason,at=now();
     update sqs_ranked_payouts set status='held',updated_at=now() where week=p_week and wallet=p_wallet and kind like 'prize%' and status='planned';
   end if;
+  if n>0 then return jsonb_build_object('ok',true,'unchanged',n,'message','already sending or sent; hold does nothing for those'); end if;
   return jsonb_build_object('ok',true,'unchanged',0);
 end $$;
 
@@ -147,7 +174,7 @@ begin
   perform pg_advisory_xact_lock(hashtext('sqs_payout_nonce'));
   select * into r from sqs_ranked_payouts where id=p_id for update;
   if not found or r.status<>'planned' or r.kind='rollover-note' or r.amount<=0 then return jsonb_build_object('error','not claimable'); end if;
-  if r.kind<>'refund' and not exists(select 1 from sqs_ranked_payout_weeks where week=r.week and pay_at<=now()) then return jsonb_build_object('error','not due'); end if;
+  if r.kind<>'refund' and not exists(select 1 from sqs_ranked_payout_weeks where week=r.week and mode=r.mode and pay_at<=now()) then return jsonb_build_object('error','not due'); end if;
   if r.kind like 'prize%' and exists(select 1 from sqs_ranked_holds where week=r.week and wallet=r.wallet) then return jsonb_build_object('error','held'); end if;
   select greatest(p_pending,coalesce(max(nonce)+1,0)) into chosen from sqs_ranked_payouts;
   update sqs_ranked_payouts set status='sending',nonce=chosen,scan_block=p_block,updated_at=now() where id=p_id;
@@ -206,9 +233,10 @@ begin
   return jsonb_build_object('ok',n=1);
 end $$;
 
-revoke all on function public.sqs_payout_read(text,int), public.sqs_payout_plan(text,int,jsonb), public.sqs_payout_refunds(text),
+revoke all on function public.sqs_payout_read(text,int), public.sqs_payout_plan(text,int,jsonb,text), public.sqs_payout_refunds(text),
   public.sqs_payout_hold(text,int,text,text), public.sqs_payout_claim(text,bigint,numeric,numeric),
   public.sqs_payout_mark(text,bigint,text,text,text,text), public.sqs_payout_lease(text,text,boolean), public.sqs_payout_notice(text,text) from public, anon, authenticated;
-grant execute on function public.sqs_payout_read(text,int), public.sqs_payout_plan(text,int,jsonb), public.sqs_payout_refunds(text),
+grant execute on function public.sqs_payout_read(text,int), public.sqs_payout_plan(text,int,jsonb,text), public.sqs_payout_refunds(text),
   public.sqs_payout_hold(text,int,text,text), public.sqs_payout_claim(text,bigint,numeric,numeric),
   public.sqs_payout_mark(text,bigint,text,text,text,text), public.sqs_payout_lease(text,text,boolean), public.sqs_payout_notice(text,text) to anon;
+notify pgrst, 'reload schema';

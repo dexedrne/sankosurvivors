@@ -41,6 +41,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   scene.background = new THREE.Color(0x9ac7e8);
   scene.fog = new THREE.Fog(0x9ac7e8, 38, 78);
   const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 140);
+  // sprites, glows, particles and flashes live on their own layer: the camera draws it, but the passes that redraw the
+  // scene for depth (ambient occlusion, depth of field) leave it out. They draw every object as a solid shape there,
+  // so each floating item came out as a dark box around it (owner 3 Nov: "dropped items still doing that black box")
+  const FX_LAYER = 1; camera.layers.enable(FX_LAYER);
+  const fxOnly = (o) => { o.traverse((c) => c.layers.set(FX_LAYER)); return o; };
   const hemi = new THREE.HemisphereLight(0xfff6e6, 0x5d6f4a, 1.55); scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xffe9c4, 2.6); sun.position.set(-30, 60, 20); scene.add(sun); scene.add(sun.target);
   const SUN_OFF = new THREE.Vector3(-22, 40, 14);
@@ -924,14 +929,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // experience drops are bones (owner 11/2: "enemies should drop bones when they die"): SankoQuest's own Bones item art,
   // always facing you, in three sizes by value
   const GEM_CAP = 600;
-  const gemSets = [1.3, 1.8, 2.5].map((size) => { // owner 11/2: the shards on the ground were too small
+  const gemSets = [1.43, 1.98, 2.75].map((size) => { // owner 11/2: the shards on the ground were too small; 3 Nov: bones 10% bigger
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(GEM_CAP * 3), 3)); geo.setDrawRange(0, 0);
     const mat = new THREE.PointsMaterial({ size, map: null, transparent: true, alphaTest: 0.35, depthWrite: true, sizeAttenuation: true, color: new THREE.Color(1.05, 1.05, 1.05), toneMapped: false });
-    const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; scene.add(pts); return pts;
+    const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; fxOnly(pts); scene.add(pts); return pts;
   });
   const shardTex = new THREE.TextureLoader().load(A('ui/items/item_Bones.png'), (t) => { t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; for (const g of gemSets) { g.material.map = t; g.material.needsUpdate = true; } });
   const pickupSprites = new Map(); const iconCache = new Map();
-  const PICKUP_ICON = { coin: 'Gold', fish: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
+  const PICKUP_ICON = { coin: 'Gold', crawdad: 'Cooked Crawdad', trout: 'Cooked Brown Trout', catfish: 'Cooked Catfish', bass: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
+  const PICKUP_SIZE = { chest: 1.5, coin: 0.855, crawdad: 0.8, trout: 0.95, catfish: 1.0, bass: 1.1 };
   function iconTex(name) {
     if (!iconCache.has(name)) { const t = new THREE.TextureLoader().load(A(`ui/items/item_${name.replace(/ /g, '_')}.png`)); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; iconCache.set(name, t); } // no mipmaps: they blended the icons' black see-through pixels into a dark box
     return iconCache.get(name);
@@ -942,7 +948,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const PN = 700;
   const partMesh = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }), PN);
   partMesh.setColorAt(0, new THREE.Color(1, 1, 1));
-  partMesh.frustumCulled = false; scene.add(partMesh);
+  partMesh.frustumCulled = false; fxOnly(partMesh); scene.add(partMesh);
   const parts = Array.from({ length: PN }, () => ({ life: 0, max: 1, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, s: 1, g: 9, c: new THREE.Color() }));
   let partCursor = 0;
   function emit(x, y, z, n, speed, { s = 1, life = 0.6, up = 2.5, g = 9, color = 0xffffff, spread = 1 } = {}) {
@@ -964,8 +970,29 @@ export async function createRenderer(canvas, onProgress = () => {}) {
 
   // flat effects (slash arcs, quakes, bursts) glow and fade
   const ringMat = (c, add = true) => new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(add ? 1.4 : 1), transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending });
+  // soft rings and glows (owner 3 Nov: the flat hard-edged rings looked like cut-out discs): a band that fades at both
+  // edges, an optional faint fill, and optional arcs (a motion blur that sweeps round). uOp is its opacity.
+  const softRing = (color, inner, outer, { fill = 0, opacity = 0.8, arcs = 0 } = {}) => {
+    const R = outer * 1.2, mid = (inner + outer) / 2 / R, half = Math.max(0.02, (outer - inner) / 2 / R);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color(color).multiplyScalar(1.3) }, uOp: { value: opacity } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: `uniform vec3 uColor; uniform float uOp; varying vec2 vUv;
+        void main(){ vec2 p = vUv * 2.0 - 1.0; float r = length(p);
+          float band = 1.0 - smoothstep(0.0, ${(half * 1.6).toFixed(4)}, abs(r - ${mid.toFixed(4)})); band *= band;
+          float a = band + ${fill.toFixed(3)} * (1.0 - smoothstep(${(mid * 0.4).toFixed(4)}, ${mid.toFixed(4)}, r));
+          ${arcs ? `a *= pow(fract((atan(p.y, p.x) / 6.2831853 + 0.5) * ${arcs.toFixed(1)}), 1.8);` : ''}
+          a *= uOp * (1.0 - smoothstep(0.92, 1.0, r)); gl_FragColor = vec4(uColor * a, a); }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    });
+    return fxOnly(new THREE.Mesh(new THREE.PlaneGeometry(R * 2, R * 2).rotateX(-Math.PI / 2), mat));
+  };
+  const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  const glowSprite = (color, size, opacity = 0.6) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(color).multiplyScalar(1.3), transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending })); sp.scale.setScalar(size); return fxOnly(sp); };
   const effects = [];
-  function addEffect(mesh, life, grow) { Object.assign(mesh.userData, { life, max: life, grow, base: mesh.scale.x }); dyn.add(mesh); effects.push(mesh); }
+  function addEffect(mesh, life, grow) { Object.assign(mesh.userData, { life, max: life, grow, base: mesh.scale.x }); fxOnly(mesh); dyn.add(mesh); effects.push(mesh); }
   // a sword swing: a crescent that sweeps across the arc, brightest at its leading edge and the blade's tip
   const slashMat = (color) => new THREE.ShaderMaterial({
     uniforms: { uProg: { value: 0 }, uColor: { value: new THREE.Color(color).multiplyScalar(1.6) }, uArc: { value: 1 }, uIn: { value: 0.25 } },
@@ -1160,6 +1187,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // soft contact shadows where things meet (ambient occlusion)
   const gtao = new GTAOPass(scene, camera, 256, 256); gtao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.6, thickness: 1, scale: 1 }); gtao.blendIntensity = 0.85; gtao.enabled = false; composer.addPass(gtao);
   const bokeh = new BokehPass(scene, camera, { focus: 30, aperture: 0.0005, maxblur: 0.004 }); composer.addPass(bokeh);
+  for (const pass of [gtao, bokeh]) { const render = pass.render.bind(pass); pass.render = (...a) => { camera.layers.disable(FX_LAYER); try { render(...a); } finally { camera.layers.enable(FX_LAYER); } }; }
   const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.32, 0.42, 0.86); composer.addPass(bloom);
   composer.addPass(new OutputPass());
   // colour grade after tone mapping: a touch more contrast and warmth, a soft vignette, and a red pulse when you are hurt
@@ -1258,7 +1286,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const ambGeo = new THREE.BufferGeometry(); ambGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(AMB_N * 3), 3));
   const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'); const gr = g.createRadialGradient(16, 16, 0, 16, 16, 15); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,0.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })();
   const ambMat = new THREE.PointsMaterial({ size: 0.35, map: dotTex, transparent: true, depthWrite: false, color: 0xffffff, sizeAttenuation: true });
-  const amb = new THREE.Points(ambGeo, ambMat); amb.frustumCulled = false; scene.add(amb);
+  const amb = new THREE.Points(ambGeo, ambMat); amb.frustumCulled = false; fxOnly(amb); scene.add(amb);
   const AMB = { leaves: { color: 0xc8b04a, size: 0.32, fall: 0.6, sway: 1.2, glow: false }, dust: { color: 0xf0d8a0, size: 0.18, fall: -0.05, sway: 1.8, glow: false },
     snow: { color: 0xffffff, size: 0.3, fall: 1.4, sway: 0.6, glow: false }, blizzard: { color: 0xffffff, size: 0.42, fall: 4.2, sway: 3.2, glow: false }, sandstorm: { color: 0xe0b878, size: 0.3, fall: 0.6, sway: 4.5, glow: false }, fireflies: { color: 0xd8ff7a, size: 0.42, fall: 0, sway: 0.8, glow: true } };
   const AMB_BY_MAP = { greentown: 'leaves', tutorial: 'leaves', apache: 'dust', duel: 'dust', paya: 'snow', swamp: 'fireflies', graves: 'fireflies', goblins: 'leaves', world: 'leaves' };
@@ -1349,19 +1377,18 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (p.id === localId && dmtAura !== !!a.aura) {
         if (dmtAura) {
           const g = new THREE.Group();
-          const outer = new THREE.Mesh(new THREE.RingGeometry(0.82, 1.02, 40).rotateX(-Math.PI / 2), ringMat(0xffd34d)); outer.material.opacity = 0.55;
-          const inner = new THREE.Mesh(new THREE.RingGeometry(0.88, 0.94, 6).rotateX(-Math.PI / 2), ringMat(0x5ff2d8)); inner.material.opacity = 0.6;
+          const outer = softRing(0xffd34d, 0.8, 1.04, { opacity: 0.6, fill: 0.08 });
+          const inner = softRing(0x5ff2d8, 0.86, 0.96, { opacity: 0.55, arcs: 3 });
           g.add(outer, inner); g.position.y = 0.07; a.root.add(g); a.aura = g;
         } else { a.root.remove(a.aura); a.aura = null; }
       }
       if (p.fire > 0 && !a.fireRing) {
-        const ringG = new THREE.RingGeometry(0.92, 1.0, 48).rotateX(-Math.PI / 2), fill = new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2);
-        const g = new THREE.Group(), edge = new THREE.Mesh(ringG, ringMat(0xff7a2a)), glow = new THREE.Mesh(fill, ringMat(0xff5a1f));
-        edge.material.opacity = 0.75; glow.material.opacity = 0.12; g.add(glow, edge); g.position.y = 0.09; a.root.add(g); a.fireRing = g;
+        const g = new THREE.Group(), glow = softRing(0xff5a1f, 0, 0.9, { opacity: 0.12, fill: 0.6 }), edge = softRing(0xff7a2a, 0.88, 1.02, { opacity: 0.75 });
+        g.add(glow, edge); g.position.y = 0.09; a.root.add(g); a.fireRing = g;
       } else if (!(p.fire > 0) && a.fireRing) { a.root.remove(a.fireRing); a.fireRing = null; }
       if (a.fireRing) {
         a.fireRing.scale.setScalar(p.fire); a.fireRing.rotation.y = -a.root.rotation.y;
-        a.fireRing.children[1].material.opacity = 0.6 + 0.25 * Math.sin(time * 9); a.fireRing.children[0].material.opacity = 0.1 + 0.05 * Math.sin(time * 5);
+        a.fireRing.children[1].material.uniforms.uOp.value = 0.6 + 0.25 * Math.sin(time * 9); a.fireRing.children[0].material.uniforms.uOp.value = 0.1 + 0.05 * Math.sin(time * 5);
         if (a.root.visible && Math.random() < dt * 14) { const ang = Math.random() * 6.283; emit(a.px + Math.cos(ang) * p.fire, a.root.position.y + 0.2, a.pz + Math.sin(ang) * p.fire, 1, 0.6, { s: 0.7, life: 0.55, color: Math.random() < 0.5 ? 0xff7a2a : 0xffc04d, up: 2.2, g: 0 }); }
       }
       if (a.aura) { a.aura.rotation.y = -a.root.rotation.y + time * 0.6; a.aura.children[1].rotation.y = -time * 1.4; if (a.root.visible && Math.random() < dt * 2.2) emit(a.px + (Math.random() - 0.5) * 1.6, a.root.position.y + 0.2, a.pz + (Math.random() - 0.5) * 1.6, 1, 0.4, { s: 0.6, life: 0.9, color: Math.random() < 0.5 ? 0xffd34d : 0x5ff2d8, up: 1.6, g: 0 }); }
@@ -1429,7 +1456,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (!a) {
         a = makeEnemy(type); a.px = x; a.pz = z; a.base = 1; dyn.add(a.root); actors.set(id, a);
         if (elite) { // golden elite: bigger, with a gold halo on the ground
-          a.base = 1.35; const halo = new THREE.Mesh(new THREE.RingGeometry(0.75, 1.0, 32).rotateX(-Math.PI / 2), ringMat(0xffd34d)); halo.position.y = 0.06; a.root.add(halo); a.halo = halo;
+          a.base = 1.35; const halo = softRing(0xffd34d, 0.72, 1.02, { opacity: 0.75, fill: 0.1, arcs: 2 }); halo.position.y = 0.06; a.root.add(halo); a.halo = halo;
         }
       }
       if (a.halo) a.halo.rotation.y += dt * 2;
@@ -1482,7 +1509,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (!o) {
         const col = b[3] === 'ice' ? 0x9fe6ff : 0xff7a30; o = new THREE.Group();
         o.add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(col).multiplyScalar(2.2), toneMapped: false })));
-        const halo = new THREE.Mesh(new THREE.SphereGeometry(0.85, 12, 8), ringMat(col)); halo.material.opacity = 0.35; o.add(halo);
+        o.add(glowSprite(col, 2.2, 0.55));
         o.userData.col = col; dyn.add(o); eprojObjs.set(b[0], o);
       }
       o.position.set(b[1], groundAt(b[1], b[2]) + 1.1, b[2]);
@@ -1511,16 +1538,16 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         } else if (art === 'ball') { // a baseball, stitches and all, spinning as it flies
           const ball = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 10), new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.7 }));
           const seam = new THREE.Mesh(new THREE.TorusGeometry(0.325, 0.025, 6, 24), new THREE.MeshBasicMaterial({ color: 0xc8322a })); seam.rotation.x = 0.6; ball.add(seam);
-          if (evo) { const halo = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 8), ringMat(0xffd34d)); halo.material.opacity = 0.3; o.add(halo); }
+          if (evo) o.add(glowSprite(0xffd34d, 1.5, 0.5));
           o.add(ball); Object.assign(o.userData, { spinner: ball, trail: evo ? 0xffd34d : 0xfff6dc, every: 0.45 });
         } else if (art === 'axe') {
           item(weaponModelPath('axe', lvl)).then((p) => { if (p) { const m = orientedItem(p, 1.5); o.userData.spinner2 = m; o.add(m); } });
-          const blur = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.8, 24).rotateX(-Math.PI / 2), ringMat(evo ? 0x7fe0ff : 0xffe2a0)); blur.material.opacity = 0.28; o.add(blur);
+          const blur = softRing(evo ? 0x7fe0ff : 0xffe2a0, 0.5, 0.95, { opacity: 0.32, arcs: 2 }); o.add(blur); o.userData.blur = blur; // a soft swoosh that turns with the axe
           Object.assign(o.userData, { trail: evo ? 0x7fe0ff : 0xffd38a, every: 0.35 });
         }
       }
       o.position.set(x, groundAt(x, z) + 1.0, z);
-      if (art === 'axe') { if (o.userData.spinner2) o.userData.spinner2.rotation.y = spin; o.rotation.y = 0; } else o.rotation.y = ang;
+      if (art === 'axe') { if (o.userData.spinner2) o.userData.spinner2.rotation.y = spin; if (o.userData.blur) o.userData.blur.rotation.y = spin; o.rotation.y = 0; } else o.rotation.y = ang;
       if (o.userData.spinner) o.userData.spinner.rotation.z += dt * 12;
       if (o.userData.spell) { o.updateMatrixWorld(); stepMagicSphere(o.children[0], performance.now()); }
       if (o.userData.trail && Math.random() < o.userData.every) emit(x, o.position.y, z, 1, 0.3, { s: art === 'bolt' ? 0.7 : 0.45, life: 0.35, color: o.userData.trail, up: 0.25, g: 0 });
@@ -1543,11 +1570,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (!sp && k[1] === 'casket') { // reward casket: the world's own treasure chest model, with a light beam over it
         sp = new THREE.Group(); sp.userData.casket = true;
         const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.6, 7, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
-        beam.position.y = 3.2; sp.add(beam);
+        beam.position.y = 3.2; fxOnly(beam); sp.add(beam);
         loadGLB(A('world/scene-models/chest.glb')).then((g) => { const m = g.scene.clone(true); const b = boxOf(m), z = b.getSize(new THREE.Vector3()), kk = 0.9 / Math.max(z.x, z.y, z.z, 1e-3); m.scale.setScalar(kk); m.position.set(-(b.min.x + b.max.x) / 2 * kk, -b.min.y * kk, -(b.min.z + b.max.z) / 2 * kk); m.traverse((o) => { if (o.isMesh) o.castShadow = true; }); sp.add(m); }).catch(() => {});
         dyn.add(sp); pickupSprites.set(k[0], sp);
       }
-      if (!sp) { sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(PICKUP_ICON[k[1]] || 'Gold'), transparent: true, alphaTest: 0.3, depthWrite: false })); sp.scale.setScalar(k[1] === 'chest' ? 1.5 : k[1] === 'coin' ? 0.855 : 0.95); dyn.add(sp); pickupSprites.set(k[0], sp); }
+      if (!sp) { sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(PICKUP_ICON[k[1]] || 'Gold'), transparent: true, alphaTest: 0.3, depthWrite: false })); sp.scale.setScalar(PICKUP_SIZE[k[1]] || 0.95); fxOnly(sp); dyn.add(sp); pickupSprites.set(k[0], sp); }
       if (sp.userData.casket) { sp.position.set(k[2], groundAt(k[2], k[3]), k[3]); sp.rotation.y = time * 0.8; }
       else sp.position.set(k[2], groundAt(k[2], k[3]) + 0.8 + Math.sin(time * 4 + k[0]) * 0.1, k[3]);
     }

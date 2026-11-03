@@ -168,7 +168,7 @@ test('auto high alch skips the card only for pieces that improve nothing', () =>
 
 // a ranked bot that meets casket cards: wears, alches, lets one time out, and never rerolls or skips a casket card
 function rankedRun(seed, mapId, adv, { cap = 1e9, autoOn = false } = {}) {
-  const params = { seed, mapId, adv, ground: null };
+  const params = { seed, mapId, adv, ground: null, week: 0 };
   const sim = rankedSim(params), rec = new RunRecorder(), p = sim.players[0], rnd = mulberry32(seed * 7);
   let cards = 0, wears = 0, alchs = 0;
   // drop extra caskets on a schedule, part of the deterministic run (a test of the card, not of the drop rate)
@@ -197,7 +197,7 @@ test('a ranked run with casket choices replays to the exact result (and resumes 
   // the sim's own drops only (bosses and elites always drop one), so the replay sees the same caskets
   let total = 0;
   for (const [seed, map, adv] of [[42, 'apache', 'ranger'], [44, 'apache', 'knight']]) {
-    const params = { seed, mapId: map, adv, ground: null };
+    const params = { seed, mapId: map, adv, ground: null, week: 0 };
     let sim = rankedSim(params), rec = new RunRecorder(), cut = false;
     const rnd = mulberry32(seed);
     let cards = 0;
@@ -227,7 +227,7 @@ test('a ranked run with casket choices replays to the exact result (and resumes 
 });
 
 test('casket choices are part of the replay: a different choice gives a different run, a bad one is refused', () => {
-  const params = { seed: 44, mapId: 'apache', adv: 'knight', ground: null };
+  const params = { seed: 44, mapId: 'apache', adv: 'knight', ground: null, week: 0 };
   const sim = rankedSim(params), rec = new RunRecorder(), p = sim.players[0];
   let first = -1;
   while (!sim.over) {
@@ -247,7 +247,7 @@ test('casket choices are part of the replay: a different choice gives a differen
 });
 
 test('ranked: no starting gear, caskets still drop and the card works', () => {
-  const sim = rankedSim({ seed: 3, mapId: 'greentown', adv: 'adventurer', ground: null });
+  const sim = rankedSim({ seed: 3, mapId: 'greentown', adv: 'adventurer', ground: null, week: 0 });
   assert.deepEqual(sim.players[0].gear, {});
   const { cards } = rankedRun(45, 'greentown', 'adventurer', { cap: 500, autoOn: true });
   assert.ok(cards > 0);
@@ -256,7 +256,7 @@ test('ranked: no starting gear, caskets still drop and the card works', () => {
 test('random ranked runs with casket cards replay exactly', () => {
   for (let seed = 50; seed < 54; seed++) {
     const map = ['greentown', 'apache', 'duel', 'graves'][seed % 4];
-    const params = { seed, mapId: map, adv: 'adventurer', ground: null };
+    const params = { seed, mapId: map, adv: 'adventurer', ground: null, week: 0 };
     const sim = rankedSim(params), rec = new RunRecorder(), p = sim.players[0], rnd = mulberry32(seed);
     let hold = 0, mx = 0, mz = 0;
     while (!sim.over) {

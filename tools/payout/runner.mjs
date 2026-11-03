@@ -1,12 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { makePlan, units, dmt, DMT, HOUSE, COLLECT, weekOf, weekEnd } from './core.mjs';
+import { makePlan, units, dmt, DMT, HOUSE, COLLECT, weekOf, weekEnd, GRACE_MS, racesOf, firstWeek } from './core.mjs';
+import { kpmWeek, kpm } from '../../src/ranked.js';
 import { address, sign1559, decode1559, transferData } from './crypto.mjs';
 import { quantity, quantityBigInt } from './ports.mjs';
 const TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const short=w=>w.slice(0,6)+'…'+w.slice(-4);
 const clean=s=>String(s??'Adventurer').replace(/[\x00-\x1f\x7f]/g,'').slice(0,32);
 const sum=rows=>rows.reduce((s,r)=>s+units(r.amount),0n);
+// rows and plans written before the Hard race have no mode: they are all Normal
+const modeOf=x=>x.mode??'normal';
+const planOf=(state,row)=>state.weeks.find(w=>w.week===row.week&&modeOf(w)===modeOf(row));
+const RACE={normal:'Normal',hard:'Hard'};
 
 export function validateState(state) {
   if(!Array.isArray(state.rows)||!Array.isArray(state.weeks))throw Error('invalid payout ledger');
@@ -14,22 +19,26 @@ export function validateState(state) {
   for(const row of state.rows) {
     if(!/^\d+$/.test(row.id)||ids.has(row.id)||!Number.isInteger(row.week)||row.week< -1)throw Error('invalid payout identity');ids.add(row.id);
     address(row.wallet);units(row.amount);
-    if(!['prize1','prize2','prize3','prize4','prize5','house','refund','rollover-note'].includes(row.kind)||!['planned','held','sending','sent','confirmed','failed'].includes(row.status))throw Error('invalid payout row');
+    if(!['prize1','prize2','prize3','prize4','prize5','house','refund','rollover-note'].includes(row.kind)||!['planned','held','sending','sent','confirmed','failed'].includes(row.status)||!['normal','hard'].includes(modeOf(row)))throw Error('invalid payout row');
     if(row.nonce!=null){units(row.nonce);if(nonces.has(row.nonce))throw Error('duplicate nonce');nonces.add(row.nonce);}
     if(['sending','sent'].includes(row.status)&&row.nonce==null)throw Error('missing nonce');
     if(row.kind==='refund') {if(!/^\d+$/.test(row.source_entry_id))throw Error('invalid refund source');continue;}
-    const week=state.weeks.find(w=>w.week===row.week);if(!week)throw Error('missing weekly plan');
-    const expected=makePlan({paid:week.paid,top:week.top},week.incoming);
+    const week=planOf(state,row);if(!week)throw Error('missing weekly plan');
+    const expected=makePlan({paid:week.paid,top:week.top},week.incoming,week.week);
     if(expected.pool!==week.pool||expected.rollover!==week.rollover||expected.house!==week.house)throw Error('invalid weekly totals');
     const prize=expected.prizes[Number(row.kind.slice(-1))-1];
     const amount=row.kind==='house'?week.house:row.kind==='rollover-note'?week.rollover:prize?.amount;
     const destination=row.kind==='house'?HOUSE:row.kind==='rollover-note'?COLLECT:prize?.wallet;
     if(row.amount!==amount||row.wallet!==destination)throw Error('row differs from weekly plan');
   }
+  const plans=new Set();
   for(const week of state.weeks) {
-    const refund=sum(state.rows.filter(r=>r.week===week.week&&r.kind==='refund'));
+    if(!['normal','hard'].includes(modeOf(week))||week.week<firstWeek(modeOf(week))||plans.has(week.week+':'+modeOf(week)))throw Error('invalid weekly plan');
+    plans.add(week.week+':'+modeOf(week));
+    const mine=r=>r.week===week.week&&modeOf(r)===modeOf(week);
+    const refund=sum(state.rows.filter(r=>mine(r)&&r.kind==='refund'));
     const budget=units(week.pool)+units(week.house)+refund;
-    if(state.rows.some(r=>r.week===week.week&&units(r.amount)>budget))throw Error('transfer exceeds weekly funds');
+    if(state.rows.some(r=>mine(r)&&units(r.amount)>budget))throw Error('transfer exceeds weekly funds');
     if(!Number.isFinite(Date.parse(week.pay_at)))throw Error('invalid payout time');
   }
 }
@@ -58,24 +67,28 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
   try {
     await call('refunds');
     let state=await call('read');
+    // Each race is its own pot: plan it from its own settlement, carrying its own previous week's rollover.
     for(let w=0;w<weekOf(now());w++) {
-      if(state.weeks.some(p=>p.week===w))continue;
-      if(now()<weekEnd(w)+56*60000)break;
-      const report=await rpc('sqs_ranked_settle',{p_key:config.reportsKey,p_week:w});
-      if(report.error)throw Error('settlement unavailable');
-      const incoming=w===0?'0':state.weeks.find(p=>p.week===w-1)?.rollover;
-      if(incoming==null)throw Error('previous plan missing');
-      await call('plan',{p_week:w,p_plan:makePlan(report,incoming)});
-      state=await call('read');await renew();
+      if(now()<weekEnd(w)+GRACE_MS)break;
+      for(const mode of racesOf(w)) {
+        if(state.weeks.some(p=>p.week===w&&modeOf(p)===mode))continue;
+        const report=await rpc('sqs_ranked_settle',{p_key:config.reportsKey,p_week:w,p_mode:mode});
+        if(report.error)throw Error('settlement unavailable');
+        const incoming=w===firstWeek(mode)?'0':state.weeks.find(p=>p.week===w-1&&modeOf(p)===mode)?.rollover;
+        if(incoming==null)throw Error('previous plan missing');
+        await call('plan',{p_week:w,p_mode:mode,p_plan:makePlan(report,incoming,w)});
+        state=await call('read');await renew();
+      }
     }
-    // The notice claim is durable, so a retry cannot announce the same week twice.
+    // The notice claim is durable, so a retry cannot announce the same week twice. (Normal keeps its older notice name.)
     for(const week of state.weeks) {
-      const rows=state.rows.filter(r=>r.week===week.week),refunds=rows.filter(r=>r.kind==='refund');
+      const mode=modeOf(week),rows=state.rows.filter(r=>r.week===week.week&&modeOf(r)===mode),refunds=rows.filter(r=>r.kind==='refund');
+      const score=p=>kpmWeek(week.week)?`${kpm(p.kills,p.t).toFixed(2)} KPM (${p.kills} kills in ${Math.floor(p.t/60)}m ${p.t%60}s)`:`${Math.floor(p.t/60)}m ${p.t%60}s`;
       const winners=week.top.slice(0,5).map((p,i)=>{
         const amount=rows.find(r=>r.kind==='prize'+(i+1))?.amount??'0';
-        return `${i+1}. ${clean(p.name)} ${short(p.wallet)} ${Math.floor(p.t/60)}m ${p.t%60}s: ${dmt(amount)} DMT`;
+        return `${i+1}. ${clean(p.name)} ${short(p.wallet)} ${score(p)}: ${dmt(amount)} DMT`;
       }).join('\n')||'No ranked finishers.';
-      await notice('week:'+week.week,`${config.live?'':'DRY RUN — ' }Week ${week.week} ranked results\nWinners\n${winners}\nHouse: ${dmt(week.house)} DMT. Rollover: ${dmt(week.rollover)} DMT.\nRefunds: ${refunds.length}, ${dmt(sum(refunds))} DMT; due immediately.\nPrizes/house due ${week.pay_at} (24 hours after week end).${config.live?'':' Sending is disabled.'}\nHold a winner before sending:\nnode tools/payout/hold.mjs ${week.week} <wallet> "<reason>"\nUse the full wallet from the ledger. A hold after sending does nothing.`);
+      await notice('week:'+week.week+(mode==='normal'?'':':'+mode),`${config.live?'':'DRY RUN — ' }Week ${week.week} ${RACE[mode]} ranked results\nWinners\n${winners}\nHouse: ${dmt(week.house)} DMT. Rollover: ${dmt(week.rollover)} DMT.\nRefunds: ${refunds.length}, ${dmt(sum(refunds))} DMT; due immediately.\nPrizes/house due ${week.pay_at} (24 hours after week end).${config.live?'':' Sending is disabled.'}\nHold a winner before sending (holds cover both races):\nnode tools/payout/hold.mjs ${week.week} <wallet> "<reason>"\nUse the full wallet from the ledger. A hold after sending does nothing.`);
     }
     try{validateState(state);}catch{await alert('invalid ledger');return;}
     const outstanding=state.rows.filter(r=>r.kind!=='rollover-note'&&r.status!=='confirmed');
@@ -117,7 +130,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       }
     }catch{await alert('chain recovery unavailable');return;}
     if(outstanding.some(r=>r.status==='failed')){await alert('failed transfer requires review');return;}
-    const due=outstanding.filter(r=>r.status==='planned'&&(r.kind==='refund'||Date.parse(state.weeks.find(w=>w.week===r.week)?.pay_at)<=now()));
+    const due=outstanding.filter(r=>r.status==='planned'&&(r.kind==='refund'||Date.parse(planOf(state,r)?.pay_at)<=now()));
     const work=[...recover,...due];
     if(!work.length){log('No transfers due.');return;}
     let fees,gasById;
@@ -127,8 +140,9 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
         if(sum(weekRows)>config.weekCap||weekRows.some(r=>units(r.amount)>config.transferCap))throw Error('DMT cap');
       }
       const balances=await chain.balances(config.wallet);
-      // Reserve held awards and the latest rollover as well as every unsettled week.
-      const latest=state.weeks.at(-1),reserve=latest?units(latest.rollover):0n;
+      // Reserve held awards and each race's latest rollover as well as every unsettled week.
+      let reserve=0n;
+      for(const mode of ['normal','hard']){const latest=state.weeks.filter(w=>modeOf(w)===mode).sort((a,b)=>a.week-b.week).at(-1);if(latest)reserve+=units(latest.rollover);}
       if(balances.dmt<sum(outstanding.filter(r=>r.status!=='confirmed'))+reserve)throw Error('DMT balance');
       fees=await chain.fees(config.maxFee);gasById=new Map();let gasCost=0n;
       for(const row of outstanding.filter(r=>r.status!=='confirmed')) {

@@ -10,8 +10,8 @@ test('ranked frames stop at choices; resumed logs replay across maps with items,
   assert.equal(typeof play.rankedChoice, 'function');
   assert.equal(typeof play.resumeRanked, 'function');
   let choices = 0, rerolls = 0, skips = 0;
-  for (const [seed, mapId, adv] of [[11, 'greentown', 'adventurer'], [12, 'apache', 'knight'], [13, 'goblins', 'ranger']]) {
-    const params = { seed, mapId, adv, ground: null };
+  for (const [seed, mapId, adv, week, mode] of [[11, 'greentown', 'adventurer', 0, 'normal'], [12, 'apache', 'knight', 0, 'normal'], [13, 'goblins', 'ranger', 0, 'normal'], [14, 'apache', 'knight', 1, 'normal'], [15, 'swamp', 'ranger', 1, 'hard']]) {
+    const params = { seed, mapId, adv, ground: null, week, mode };
     let sim = rankedSim(params), rec = new RunRecorder(), cut = false;
     const random = mulberry32(seed);
     while (!sim.over) {
@@ -20,7 +20,7 @@ test('ranked frames stop at choices; resumed logs replay across maps with items,
         for (let i = 0; i < 1000; i++) play.rankedStep(sim, rec, .137, -.289, 0);
         assert.equal(sim.tick, tick); assert.equal(sim.pending.p1.left, before);
         // Cut with a choice still open, as well as with already-recorded rerolls.
-        if (!cut && sim.t > 20) {
+        if (!cut && sim.t > 8) { // early food is crawdads now (+15), so a random walker can fall soon after 20 s
           const copy = JSON.parse(JSON.stringify(rec.log()));
           ({ sim, rec } = play.resumeRanked(copy, params)); cut = true;
           assert.deepEqual(rec.log(), copy);
@@ -47,7 +47,8 @@ test('ranked frames stop at choices; resumed logs replay across maps with items,
 });
 
 test('a run cut at its halfway tick resumes and finishes with the uninterrupted result', () => {
-  const params = { seed: 55, mapId: 'greentown', adv: 'adventurer', ground: null };
+  for (const [week, mode] of [[0, 'normal'], [1, 'hard']]) {
+  const params = { seed: 55, mapId: 'greentown', adv: 'adventurer', ground: null, week, mode };
   const full = rankedSim(params), original = new RunRecorder();
   const drive = (s, rec) => {
     if (s.pending.p1) play.rankedChoice(s, rec, s.players[0].rerolls ? 'r' : 1);
@@ -63,4 +64,9 @@ test('a run cut at its halfway tick resumes and finishes with the uninterrupted 
   assert.equal(JSON.stringify(rec.log()), JSON.stringify(original.log()));
   const r = replay(rec.log(), params); assert.ok(!r.error, r.error);
   assert.deepEqual([r.t, r.kills, r.level, r.won], result(full));
+  }
+});
+
+test('a saved run without a week cannot be resumed (it would replay under the wrong rules)', () => {
+  assert.throws(() => play.resumeRanked({ v: 1, runs: [], uses: [], picks: [] }, { seed: 1, mapId: 'greentown', adv: 'adventurer', ground: null }), /bad ranked run/);
 });

@@ -16,7 +16,7 @@ test('Vercel output preserves the site/API and exposes an authenticated CommonJS
   assert.equal(config.routes.at(-1).handle,'filesystem');
   assert.ok(config.routes.some(r=>r.dest==='/preview'));
   assert.deepEqual(await json('functions/payout.func/.vc-config.json'),{runtime:'nodejs22.x',handler:'index.js',launcherType:'Nodejs',shouldAddHelpers:false,maxDuration:300});
-  assert.deepEqual(await json('functions/api.func/.vc-config.json'),{runtime:'nodejs22.x',handler:'index.js',launcherType:'Nodejs',shouldAddHelpers:false,maxDuration:60,memory:1024});
+  assert.deepEqual(await json('functions/api.func/.vc-config.json'),{runtime:'nodejs22.x',handler:'index.js',launcherType:'Nodejs',shouldAddHelpers:false,maxDuration:300,memory:1024});
   for(const file of ['index.js','ranked.js','noble-crypto.cjs'])assert.deepEqual(await readFile(join(out,'functions/api.func',file)),await readFile(new URL('../tools/vercel-api/'+file,import.meta.url)));
   const files=async dir=>{const paths=[];for(const e of await readdir(dir,{withFileTypes:true})){const p=join(dir,e.name);if(e.isDirectory())paths.push(...await files(p));else paths.push(p);}return paths;};
   const sims=new URL('../tools/vercel-api/sims/',import.meta.url);

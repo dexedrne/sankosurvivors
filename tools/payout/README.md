@@ -1,17 +1,49 @@
 # Ranked payouts on Vercel
 
 The game's **sankoquest-survivors** Vercel project runs `/api/payout-cron` every
-15 minutes in Production. It announces finished weeks after the 56-minute submit
-grace, then pays prizes/house 24 hours after Monday 00:00 UTC. Refunds are due
-immediately. The prize pool goes to five wallets: **40% / 25% / 15% / 12% / 8%**.
-Missing places roll over; the last actual winner gets rounding dust. Default is
-**dry run**: plans and Telegram previews, no key loading, signing or sending.
+15 minutes in Production. It announces finished weeks after the 95-minute submit
+grace (the longest ranked run, 46 minutes, plus the API's 40 late minutes and up to 5 minutes of replay), then
+pays prizes/house 24 hours after Monday 00:00 UTC. Refunds are due immediately.
+Each prize pool goes to five wallets: **40% / 25% / 15% / 12% / 8%**. Missing
+places roll over; the last actual winner gets rounding dust. Default is **dry
+run**: plans and Telegram previews, no key loading, signing or sending.
+
+## Two pots from week 1
+
+Week 0 (to Mon 9 Nov 00:00 UTC) has one race, Normal, ranked by won, then time,
+then kills. From week 1 every week has **two races with two pots**: **Normal**
+(0.5 DMT a run) and **Hard** (1.5 DMT a run, hard rules on the same map), both
+ranked by kills per minute among runs of 3:00 or more. Each pot is planned on its
+own (`sqs_payout_plan(key, week, plan, mode)`): its own 10% house fee (both to the
+same house wallet), its own top 5, its own rollover into **the same race** next
+week. The Hard chain starts at week 1 from nothing. The developer wallet wins
+nothing in either race. Every payout row has a `mode` (`normal`/`hard`); refunds
+take their entry's race. Holds are per week and wallet and cover both races. The
+`WEEK_DMT_CAP` counts both pots of a week together. Telegram gets one results
+message per pot (`Week N Normal ranked results`, `Week N Hard ranked results`).
+
+### Upgrading the live install (paste order)
+
+In Supabase's SQL editor, paste in this order, each file whole:
+
+1. [tools/supabase/ranked.sql](../supabase/ranked.sql): adds the `mode` column
+   (every existing entry becomes Normal), the scoring helpers and the per-race
+   functions, and drops the old function signatures.
+2. [tools/supabase/payouts.sql](../supabase/payouts.sql): adds `mode` to the
+   payout rows and weekly plans, changes the weekly plan key to (week, mode) and the
+   transfer uniqueness to (week, mode, kind, wallet). Existing plans, nonces, sent
+   transfers and refunds are kept.
+
+Both are safe to paste again, any number of times, in the same order. Paste them
+**before deploying** the new game build: the new API calls the new signatures.
+Do not reapply the older `schema.sql` placeholders. A fresh install pastes
+`schema.sql`, then `ranked.sql`, then `payouts.sql`.
 
 ## Owner setup
 
 1. In Supabase's SQL editor, paste all of
    [tools/supabase/payouts.sql](../supabase/payouts.sql). The existing game schema
-   and ranked SQL must already be installed. Reapplying this payout script keeps
+   and ranked SQL must already be installed (upgrading: see the paste order above). Reapplying this payout script keeps
    configured hashes/history; do not reapply the older `schema.sql` placeholders.
 2. On your own trusted computer, run this one-line command **twice** to make two
    independent keys and their hashes. Keep the generated values private:
@@ -65,7 +97,8 @@ Missing places roll over; the last actual winner gets rounding dust. Default is
    `./tools/deploy.sh`). Wait for the next Production cron. View the function
    logs for `/api/payout-cron` and Telegram. Expect `DRY RUN: sending disabled`,
    then `WOULD SEND` rows with full destinations and amounts. Telegram shows all
-   five eligible winners, names/times, awards, refunds, rollover and due time.
+   five eligible winners, names/times (from week 1 kills per minute), awards,
+   refunds, rollover and due time, once per pot.
    With no finished/due week, `No transfers due.` is expected; a preview cannot
    show future winners. Missing config returns 503 with a fixed configuration log.
    Cron auth without the correct secret returns 401. The scheduled header is sent

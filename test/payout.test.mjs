@@ -77,3 +77,16 @@ test('the developer wallet plays for no prize: its places pass down to the next 
   const mixed = makePlan({ paid: '1000', top: [{ wallet: '0x9d506bA29843a232409d85E289edeCe8D6a7b452' }, { wallet: w(9) }] }, '0');
   assert.deepEqual(mixed.prizes.map((p) => p.wallet), [w(9)]);
 });
+
+test('week rules in the bot: week 0 pays by board order with no minimum; from week 1 runs under 3:00 never win', async () => {
+  const { makePlan, HOUSE } = await import('../tools/payout/core.mjs');
+  const top = [{ wallet: wallet(1), t: 120, kills: 900 }, { wallet: HOUSE, t: 600, kills: 600 }, { wallet: wallet(2), t: 180, kills: 60 }, { wallet: wallet(3), t: 900, kills: 30 }];
+  assert.deepEqual(makePlan({ paid: '1000', top }, '0', 0).prizes.map((p) => p.wallet), [wallet(1), wallet(2), wallet(3)]);
+  assert.deepEqual(makePlan({ paid: '1000', top }, '0', 1).prizes.map((p) => p.wallet), [wallet(2), wallet(3)]);
+  assert.deepEqual(makePlan({ week: 1, paid: '1000', top }).prizes.map((p) => p.wallet), [wallet(2), wallet(3)], 'the report says its week');
+  // same split, house fee and rollover maths in both races: 1.5 DMT Hard entries just make a bigger pot
+  const hard = makePlan({ week: 1, paid: (15n * 10n ** 17n * 10n).toString(), top: Array.from({ length: 5 }, (_, i) => ({ wallet: wallet(i + 1), t: 300, kills: 100 - i })) }, '0');
+  assert.equal(hard.house, '1500000000000000000');
+  assert.deepEqual(hard.prizes.map((p) => p.amount), ['5400000000000000000', '3375000000000000000', '2025000000000000000', '1620000000000000000', '1080000000000000000']);
+  assert.equal(hard.rollover, '0');
+});

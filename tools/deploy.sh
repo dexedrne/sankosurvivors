@@ -17,7 +17,8 @@ if [ -z "$PREVIEW" ] && [ -z "$NO_CDN" ]; then
     else echo "assets: jsDelivr not reachable, served by Vercel"; fi
   else echo "assets: not published (see above), served by Vercel"; fi
 fi
-bash tools/build-vercel.sh
+# BUILD_HOST=alexbl: build on a job box and copy the result back (the laptop only orchestrates; it overheats)
+if [ -n "$BUILD_HOST" ]; then bash tools/remote-build.sh "$BUILD_HOST"; else bash tools/build-vercel.sh; fi
 # PREVIEW=1 ./tools/deploy.sh -> a private preview link (team login) instead of the live site
 if [ -n "$PREVIEW" ]; then vercel deploy --prebuilt --yes 2>&1 | grep -E "Preview|Error|error|https://" | head -3
 else vercel deploy --prebuilt --prod --yes 2>&1 | grep -E "Production|Error|error" | head -3; fi

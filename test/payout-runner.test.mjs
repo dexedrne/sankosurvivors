@@ -138,3 +138,63 @@ test('Telegram timeout is claimed once and cannot repeat the weekly announcement
   await run(f.config,f.ports);await run(f.config,f.ports);
   assert.equal(attempts,1);assert.equal(f.chain.broadcasts.length,5);
 });
+
+// ---- two pots from week 1: Normal and Hard, each with its own house fee, prizes and rollover ----
+test('week 1 settles the Normal and Hard pots separately (KPM rules, 3:00 minimum, dev wallet excluded) and pays both',async()=>{
+  const { HOUSE, COLLECT, dmt } = await import('../tools/payout/core.mjs');
+  const f=fixture(3); f.db.now=f.ports.now=Date.UTC(2026,10,16,3,5), f.ports.now=()=>f.db.now;
+  const e18=n=>(BigInt(Math.round(n*1000))*10n**15n).toString();
+  // Normal week 1: 4 entries (2 DMT); one run is too short and the best rate, it must not win
+  f.db.reports.set(1,{week:1,mode:'normal',paid:e18(2),top:[
+    {id:'11',wallet:wallet(21),name:'Speedy',t:120,kills:400},
+    {id:'12',wallet:wallet(22),name:'Steady',t:600,kills:300},
+    {id:'13',wallet:wallet(23),name:'Slow',t:900,kills:200}],refunds:[]});
+  // Hard week 1: 3 entries (4.5 DMT); the developer's wallet is first and plays for no prize
+  f.db.reports.set('1:hard',{week:1,mode:'hard',paid:e18(4.5),top:[
+    {id:'21',wallet:HOUSE,name:'Dev',t:800,kills:900},
+    {id:'22',wallet:wallet(31),name:'Brave',t:400,kills:200}],refunds:[]});
+  f.db.refunds.push({id:'101',week:1,mode:'hard',wallet:wallet(32),paid:e18(1.5)});
+  await run(f.config,f.ports); // plans both pots 2 hours after the reset; the refund goes out at once
+  assert.ok(f.db.rows.some(r=>r.week===1&&r.kind==='prize1'&&r.status==='planned'),'prizes wait 24 hours after the week');
+  f.db.now=Date.UTC(2026,10,17,1); await run(f.config,f.ports); // prizes and house fees are due
+  const plan=(w,m)=>f.db.weeks.find(x=>x.week===w&&x.mode===m);
+  assert.deepEqual(f.db.weeks.map(x=>x.week+':'+x.mode),['0:normal','1:normal','1:hard']);
+  // Normal: 2 DMT paid → 0.2 house, 1.8 pool + week 0's rollover; two winners (Steady 30/min, Slow 13.3/min)
+  const n1=plan(1,'normal'), n0=plan(0,'normal');
+  assert.equal(n1.house,e18(0.2)); assert.equal(n1.incoming,n0.rollover); assert.equal(BigInt(n1.pool),BigInt(e18(1.8))+BigInt(n0.rollover));
+  assert.deepEqual(f.db.rows.filter(r=>r.week===1&&r.mode==='normal'&&r.kind.startsWith('prize')).map(r=>r.wallet),[wallet(22),wallet(23)]);
+  // Hard: 4.5 DMT → 0.45 house to the same house wallet, 4.05 pool, only Brave can win (1st place, 40%); the four
+  // unclaimed places (60%) roll into week 2's Hard pot
+  const h1=plan(1,'hard');
+  assert.deepEqual([h1.house,h1.pool,h1.incoming],[e18(0.45),e18(4.05),'0']);
+  const hp=f.db.rows.filter(r=>r.week===1&&r.mode==='hard');
+  assert.deepEqual(hp.filter(r=>r.kind.startsWith('prize')).map(r=>[r.kind,r.wallet,r.amount]),[['prize1',wallet(31),e18(1.62)]]);
+  assert.equal(h1.rollover,e18(2.43));
+  assert.deepEqual(hp.filter(r=>r.kind==='house').map(r=>[r.wallet,r.amount]),[[HOUSE,e18(0.45)]]);
+  assert.equal(hp.find(r=>r.kind==='rollover-note').wallet,COLLECT);
+  assert.ok(!f.db.rows.some(r=>r.wallet===HOUSE&&r.kind.startsWith('prize')));
+  assert.equal(hp.find(r=>r.kind==='refund').amount,e18(1.5));
+  assert.ok(f.db.rows.filter(r=>r.kind!=='rollover-note').every(r=>r.status==='confirmed'),'both pots paid');
+  // one announcement per pot, with kills per minute from week 1
+  const hard=f.messages.find(s=>s.includes('Week 1 Hard ranked results')), normal=f.messages.find(s=>s.includes('Week 1 Normal ranked results'));
+  assert.ok(hard&&normal&&f.messages.some(s=>s.includes('Week 0 Normal ranked results')));
+  assert.match(normal,/Steady \S+ 30\.00 KPM \(300 kills in 10m 0s\): /);
+  assert.match(hard,new RegExp('House: '+dmt(e18(0.45)).replace('.','\\.')+' DMT'));
+  const sent=f.chain.broadcasts.length; await run(f.config,f.ports); assert.equal(f.chain.broadcasts.length,sent,'repeat-safe');
+  assert.equal(f.messages.filter(s=>s.includes('Week 1 Hard ranked results')).length,1);
+});
+test('the Hard rollover chain is its own: an empty Hard week rolls its whole pool into the next Hard week only',async()=>{
+  const f=fixture(0); f.db.now=Date.UTC(2026,10,23,3,5); f.ports.now=()=>f.db.now; f.config.live=false;
+  const e18=n=>(BigInt(Math.round(n*1000))*10n**15n).toString();
+  f.db.reports.set('1:hard',{week:1,mode:'hard',paid:e18(3),top:[{id:'1',wallet:wallet(41),t:100,kills:500}],refunds:[]}); // too short: no winner
+  f.db.reports.set('2:hard',{week:2,mode:'hard',paid:e18(1.5),top:[{id:'2',wallet:wallet(42),t:200,kills:20}],refunds:[]});
+  await run(f.config,f.ports);
+  const plan=(w,m)=>f.db.weeks.find(x=>x.week===w&&x.mode===m);
+  assert.deepEqual([plan(1,'hard').rollover,plan(2,'hard').incoming],[e18(2.7),e18(2.7)]);
+  assert.equal(plan(2,'hard').pool,(BigInt(e18(1.35))+BigInt(e18(2.7))).toString());
+  assert.equal(plan(2,'normal').incoming,plan(1,'normal').rollover);
+  // week 2 Hard: 1.35 new + 2.7 rolled = 4.05; its one winner takes 1st place (40%), the rest rolls on into week 3's Hard pot
+  assert.equal(f.db.rows.find(r=>r.week===2&&r.mode==='hard'&&r.kind==='prize1').amount,e18(1.62));
+  assert.equal(plan(2,'hard').rollover,e18(2.43));
+  assert.equal(f.db.weeks.some(x=>x.week===0&&x.mode==='hard'),false,'no Hard race in week 0');
+});

@@ -1,4 +1,5 @@
 import { hex } from './dmt.js';
+import { RANKED } from './ranked.js';
 const PAYMENT = 'sq-ranked-payment', ENTRIES = 'sq-ranked-entries';
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 export const readRanked = (key, fallback = null) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
@@ -20,7 +21,7 @@ export async function recoverPayment(base, onStep) {
     try {
       const d = await rankedApi(base, 'enter', payment);
       const entries = readRanked(ENTRIES, []);
-      if (!entries.some((e) => e.id === d.id)) entries.push({ entry: d.entry, id: d.id, week: d.week });
+      if (!entries.some((e) => e.id === d.id)) entries.push({ entry: d.entry, id: d.id, week: d.week, mode: d.mode === 'hard' ? 'hard' : 'normal' });
       writeRanked(ENTRIES, entries);
       localStorage.removeItem(PAYMENT);
       onStep('Entry ready. Pick an adventurer and start when ready.');
@@ -34,8 +35,11 @@ export async function recoverPayment(base, onStep) {
   }
 }
 
-// onTx(hash) hears about the payment as soon as the wallet sends it (for an Arbiscan link while it confirms)
-export async function payEntry(wallet, base, onStep, onTx = () => {}) {
+// onTx(hash) hears about the payment as soon as the wallet sends it (for an Arbiscan link while it confirms).
+// mode: the race, 'normal' (0.5 DMT) or 'hard' (1.5 DMT). The wallet is only ever asked for that race's exact price.
+export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'normal') {
+  const race = Object.hasOwn(RANKED.races, mode) ? RANKED.races[mode] : null;
+  if (!race) throw new Error('Pick a ranked race first.');
   if (readRanked(PAYMENT)) throw new Error('Check your saved payment before entering again.');
   // Check persistence before asking for any money.
   writeRanked(ENTRIES, readRanked(ENTRIES, []));
@@ -44,8 +48,8 @@ export async function payEntry(wallet, base, onStep, onTx = () => {}) {
   const [address] = await p.request({ method: 'eth_requestAccounts' });
   if (!/^0x[\da-f]{40}$/i.test(address || '')) throw new Error('No account was shared.');
   onStep('Checking your entries for this week…');
-  const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}`);
-  if (!n.message || !n.nonce || n.chainId !== 42161 || !/^0x[\da-f]{40}$/i.test(n.dmt) || !/^0x[\da-f]{40}$/i.test(n.collect) || n.amountWei !== '500000000000000000') throw new Error('Invalid entry details. No payment was requested.');
+  const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}`);
+  if (!n.message || !n.nonce || n.chainId !== 42161 || !/^0x[\da-f]{40}$/i.test(n.dmt) || !/^0x[\da-f]{40}$/i.test(n.collect) || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
   onStep('Switch to Arbitrum One in your wallet…');
   const chain = { chainId: '0xa4b1' };
   try { await p.request({ method: 'wallet_switchEthereumChain', params: [chain] }); }
@@ -58,7 +62,7 @@ export async function payEntry(wallet, base, onStep, onTx = () => {}) {
   if (String(await p.request({ method: 'eth_chainId' })).toLowerCase() !== chain.chainId) throw new Error('Switch to Arbitrum One before paying.');
   onStep('Sign the message in your wallet (free)…');
   const signature = await p.request({ method: 'personal_sign', params: [hex(n.message), address] });
-  onStep('Approve the 0.5 DMT entry in your wallet. Arbitrum gas is paid in ETH…');
+  onStep(`Approve the ${race.entryDmt} DMT ${race.name} entry in your wallet. Arbitrum gas is paid in ETH…`);
   const data = '0xa9059cbb' + n.collect.slice(2).toLowerCase().padStart(64, '0') + BigInt(n.amountWei).toString(16).padStart(64, '0');
   const tx = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: n.dmt, data, value: '0x0' }] });
   writeRanked(PAYMENT, { tx, signature, nonce: n.nonce });

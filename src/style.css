@@ -300,6 +300,8 @@ body.touch #pausebtn { top: 258px; }
 .upd ul { margin: 4px 0 2px; padding-left: 18px; color: var(--cream); } .upd li { margin: 2px 0; line-height: 1.15; }
 #updbtn { margin-top: 4px; } #updnew { color: var(--gold); margin-left: 4px; }
 .gup { display: block; margin: 4px 0 0; padding: 0 8px; font-size: 16px; } .gup:disabled { opacity: .5; }
+.gsmith { display: block; margin: 4px 0 0; padding: 2px 8px; font-size: 16px; } .gsmith:disabled { opacity: .5; }
+.gitem.locked { opacity: .5; filter: grayscale(.6); cursor: default; } .gitem.locked img { filter: brightness(.7); } .gitem span.dim { display: block; font-size: 14px; }
 #apick.forced { opacity: .45; pointer-events: none; }
 /* controller / keyboard focus in menus */
 .navfocus { outline: 3px solid #ffff00 !important; outline-offset: 2px; box-shadow: 0 0 14px rgba(255, 255, 0, .55) !important; }
@@ -423,6 +425,16 @@ body.touch .seg button { min-height: 38px; min-width: 44px; }
 #rankedstandings:empty { display: none; }
 #rankedstandings ol { padding-left: 24px; margin: 4px 0; }
 #rankedstandings li { margin: 6px 0; overflow-wrap: anywhere; }
+#rankedstandings li.noprize { color: #b8a48a; }
+/* the Normal / Hard race switch: each race has its own price, pot and standings */
+.rkraces { display: flex; gap: 8px; margin: 4px 0 8px; }
+.rkraces:empty { display: none; }
+.rkraces button { flex: 1; min-height: 44px; }
+/* the price sits on its own line under the race name, so the buttons stay tidy on phones */
+.rkraces button span, .lbrace button span { display: block; font-size: .8em; opacity: .85; }
+.lbrace { display: flex; gap: 6px; justify-content: center; margin: 2px 0 6px; }
+.lbrace button { flex: 0 1 220px; margin: 0; }
+.lbtable tr.short td { color: #b8a48a; }
 #ranked p { margin: 8px 0; }
 #rankedready button, #rankedwallets button { white-space: normal; }
 
@@ -526,3 +538,13 @@ body.touch .ckbtns .kb { display: none; }
   #menu h3 { font-size: var(--fs-m); }
   .fine { font-size: var(--fs-s); padding-top: 6px; }
 }
+/* cloud save: the wallet panel line and the which-progress choice */
+.wlcloud { margin: 10px 0; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.wlcloud p { margin: 0; }
+.cloudopts { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.cloudopts button { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; text-align: left; }
+.cloudopts button span { font-family: RSPlain, sans-serif; font-size: var(--fs-s); opacity: .85; }
+/* volume sliders (Settings, Sound): bronze on dark, big enough for a thumb */
+.volrow { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 260px; justify-content: flex-end; }
+.volrow input[type=range] { flex: 1; min-width: 120px; height: 28px; accent-color: #c9a25a; cursor: pointer; background: transparent; }
+.volrow b { min-width: 44px; text-align: right; color: var(--gold); font-weight: 400; }

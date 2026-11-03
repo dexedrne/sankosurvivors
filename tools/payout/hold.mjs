@@ -9,6 +9,6 @@ export async function main(args=process.argv.slice(2)) {
   const config=await loadConfig(rest[1]??DEFAULT_ENV);
   const result=await database(config)('sqs_payout_hold',{p_key:config.payoutKey,p_week:Number(week),p_wallet:address(wallet),p_reason:reason==='--clear'?null:reason});
   if(result.error)throw Error('hold rejected');
-  console.log(result.unchanged?'Already sending or sent: hold does nothing.':reason==='--clear'?'Hold cleared.':'Winner held.');
+  console.log((reason==='--clear'?'Hold cleared':'Winner held')+(result.unchanged?` (${result.unchanged} prize(s) already sending or sent: unchanged).`:'.'));
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)main().catch(()=>{console.error('Hold failed. Check arguments, env file and database access.');process.exitCode=1;});

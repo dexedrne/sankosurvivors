@@ -84,6 +84,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'POST' && !/^application\/json/i.test(String(req.headers['content-type'] || ''))) return send(res, 415, { error: 'send JSON' });
   try {
     if (path.startsWith('ranked-')) return await require('./ranked.js').handle(path, req, res, { rpc, send, signed, unsign, recoverSigner, clean, ip, SERVER_KEY, TICKET_KEY });
+    if (path.startsWith('save-')) return await require('./cloud.js').handle(path, req, res, { rpc, send, signed, unsign, recoverSigner, SERVER_KEY });
     if (req.method === 'GET' && path === 'scores') {
       const map = u.searchParams.get('map'); if (!MAPS.has(map)) return send(res, 400, { error: 'bad map' });
       const endless = u.searchParams.get('endless') === '1';

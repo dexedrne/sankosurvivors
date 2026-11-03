@@ -61,7 +61,7 @@ test('ranked SQL: real PostgreSQL lifecycle, permissions, ranking, retention and
       assert.deepEqual(await invoke('sqs_ranked_owe', p), { error: 'that payment was already used for an entry' });
       assert.equal((await db.query('select refund_reason from sqs_ranked_entries where id=1')).rows[0].refund_reason, null);
     });
-    await t.test('ranking selects one best run per wallet and orders wins before survival, with stable ties', async () => {
+    await t.test('ranking selects one best run per wallet and orders by time survived (a win no longer counts, runs are endless), with stable ties', async () => {
       for (const [n, wallet, time, won] of [[4, w, 200, false], [5, b, 10, true], [6, '0x' + '3'.repeat(40), 200, false]]) {
         const { id } = await invoke('sqs_ranked_enter', entry(n, wallet, 0, 'ip' + n));
         await invoke('sqs_ranked_start', { ...ident(id, wallet), p_adv: 'adventurer' });
@@ -69,12 +69,12 @@ test('ranked SQL: real PostgreSQL lifecycle, permissions, ranking, retention and
         await invoke('sqs_ranked_finish', finish(id, time, won));
       }
       const board = await invoke('sqs_ranked_board', { p_week: 0 });
-      assert.deepEqual(board.rows.map(e => e.wallet), [b, w, '0x' + '3'.repeat(40)]);
+      assert.deepEqual(board.rows.map(e => e.wallet), [w, '0x' + '3'.repeat(40), b]);
       // A weaker repeat must return the wallet's actual board rank.
       const { id } = await invoke('sqs_ranked_enter', entry(7, w));
       await invoke('sqs_ranked_start', { ...ident(id), p_adv: 'adventurer' });
       await invoke('sqs_ranked_claim', ident(id));
-      assert.equal((await invoke('sqs_ranked_finish', finish(id, 50))).rank, 2);
+      assert.equal((await invoke('sqs_ranked_finish', finish(id, 50))).rank, 1);
     });
     await t.test('logs retain only the best ten wallets per week for the current and previous week', async () => {
       for (let n = 8; n <= 20; n++) {

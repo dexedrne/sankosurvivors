@@ -5,11 +5,22 @@ import { createSim, step, choose, reroll, skipLevel, autoChoice, TICK } from './
 import { MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID } from './content.js';
 
 export const RANKED = {
-  entryDmt: '0.5',               // DMT per ranked run
-  houseShare: 0.10,              // to the house wallet; the rest is the players' prize pool
-  payouts: [0.40, 0.25, 0.15, 0.12, 0.08], // of the prize pool, to the week's top 5 wallets
-  maxEntriesPerWallet: 20,       // per week
+  entryDmt: '0.5',               // DMT per Normal ranked run (kept for older readers; see races)
+  // two races each week from week 1: their own entry price, pot and board; the same map, split, house fee and rules
+  races: {
+    normal: { name: 'Normal', entryDmt: '0.5', entryWei: '500000000000000000', hard: false },
+    hard: { name: 'Hard', entryDmt: '1.5', entryWei: '1500000000000000000', hard: true },
+  },
+  houseShare: 0.10,              // to the house wallet; the rest is the race's prize pool
+  payouts: [0.40, 0.25, 0.15, 0.12, 0.08], // of a race's prize pool, to its week's top 5 wallets
+  maxEntriesPerWallet: 1000000,  // no real cap (owner 3 Nov: "let people play as much as they want, we want volume"); the SQL takes a number
   weekEpoch: Date.UTC(2026, 10, 2), // a Monday, 00:00 UTC: weeks run Monday to Sunday (UTC)
+  // From this week on runs are scored by kills per minute and the Hard race is open. Runs are endless from this build on
+  // (owner 2 Nov: "ranked should be endless mode from now on"), so week 0 ranks by time survived, then kills; its earlier
+  // 15:00 runs replay on their own version. tools/supabase/*.sql and the payout bot use the same switch.
+  kpmWeek: 1,
+  minSeconds: 180,               // a kills-per-minute run must last 3:00 to place (shorter runs are listed as too short)
+  timeLimit: 2 * 3600,           // owner 2 Nov: "no 45 mins cap, can go 2 hours": the run stops here with its score counted
   maps: MAPS.filter((m) => !m.special).map((m) => m.id), // one map per week, in turn
   advs: ADVENTURERS.filter((a) => !a.special).map((a) => a.id), // every regular adventurer is open in ranked
 };
@@ -17,12 +28,47 @@ export const weekOf = (ms = Date.now()) => Math.floor((ms - RANKED.weekEpoch) / 
 export const weekStart = (w) => RANKED.weekEpoch + w * 7 * 24 * 3600 * 1000;
 export const weekMap = (w) => RANKED.maps[((w % RANKED.maps.length) + RANKED.maps.length) % RANKED.maps.length];
 
+// ---- the week's rules: one switch, used by the game, the server, the boards and the payout bot ----
+export const kpmWeek = (w) => Number.isInteger(w) && w >= RANKED.kpmWeek;
+export const racesOf = (w) => (kpmWeek(w) ? ['normal', 'hard'] : ['normal']);
+export const isRace = (w, mode) => racesOf(w).includes(mode);
+// the longest a run of that week can last, in game seconds (a little slack for the end screen)
+export const runSeconds = () => RANKED.timeLimit + 60; // every run of this build is endless
+// kills per minute in millionths, exact and identical in JS and SQL: floor(kills * 60,000,000 / seconds)
+export const kpmMicro = (kills, t) => {
+  const k = Math.max(0, Math.floor(Number(kills) || 0)), s = Math.floor(Number(t) || 0);
+  return s > 0 ? Number((BigInt(k) * 60000000n) / BigInt(s)) : 0;
+};
+export const kpm = (kills, t) => kpmMicro(kills, t) / 1e6;
+// can this run place (and win) in its week? Too-short runs stay on the board but never win.
+export const placeable = (w, r) => !kpmWeek(w) || (Number(r.t) || 0) >= RANKED.minSeconds;
+// the ranking key, highest first. Week 0: time, kills (endless runs never "win"). From week 1: long enough, kills per minute, kills.
+// Ties: the earlier finish, then the earlier entry. Same order as sqs_ranked_score() in tools/supabase/ranked.sql.
+export const scoreKey = (w, r) => (kpmWeek(w)
+  ? [placeable(w, r) ? 1 : 0, kpmMicro(r.kills, r.t), Number(r.kills) || 0]
+  : [0, Number(r.t) || 0, Number(r.kills) || 0]);
+export function compareRuns(w) {
+  return (a, b) => {
+    const ka = scoreKey(w, a), kb = scoreKey(w, b);
+    for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return kb[i] - ka[i];
+    return (Number(a.at ?? a.finished_at) || 0) - (Number(b.at ?? b.finished_at) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0);
+  };
+}
+// which prize place each board row (already in board order) is playing for: -1 for no prize (the developer's wallet, or
+// a run too short to place)
+export function prizePlaces(rows, w, noPrize = () => false) {
+  let k = 0;
+  return rows.map((r) => (noPrize(r.wallet) || !placeable(w, r) ? -1 : k++));
+}
+
 const PID = 'p1';
-export function rankedSim({ seed, mapId, adv, ground } = {}) {
+// week: the ranked week the run's entry belongs to (it picks the rules); mode: 'normal' or 'hard'
+export function rankedSim({ seed, mapId, adv, ground, week, mode = 'normal' } = {}) {
   // own-property lookups: 'constructor' and '__proto__' are truthy keys of a plain object
   const a = Object.hasOwn(ADVENTURER_BY_ID, adv) ? ADVENTURER_BY_ID[adv] : null;
-  if (!a || a.special || !Object.hasOwn(MAP_BY_ID, mapId)) throw new Error('bad ranked run');
-  return createSim({ seed, map: MAP_BY_ID[mapId], hard: false, endless: false, meta: {}, ground,
+  if (!a || a.special || !Object.hasOwn(MAP_BY_ID, mapId) || !Number.isInteger(week) || !isRace(week, mode)) throw new Error('bad ranked run');
+  const endless = true; // every ranked run is endless from this build on (week 0 too); week 0 still ranks by time
+  return createSim({ seed, map: MAP_BY_ID[mapId], hard: mode === 'hard', endless, endAt: endless ? RANKED.timeLimit : 0, meta: {}, ground,
     players: [{ id: PID, name: 'You', adv, weapon: a.weapon, gear: {}, gearLv: {} }] });
 }
 
@@ -50,7 +96,7 @@ export class RunRecorder {
 }
 
 // Replays a recorded run from the same start. Returns what really happened, or { error }.
-export function replay(log, params, { maxTicks = 40 * 60 * 30 } = {}) {
+export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.week) * 30) } = {}) {
   if (!log || log.v !== 1 || !Array.isArray(log.runs) || !Array.isArray(log.uses) || !Array.isArray(log.picks)) return { error: 'bad log' };
   // cheap checks first: nothing malformed or oversized reaches the simulation (which is the expensive part)
   let total = 0;
@@ -97,5 +143,5 @@ export function replay(log, params, { maxTicks = 40 * 60 * 30 } = {}) {
   const err = resolve(); if (err && !sim.over) return { error: err };
   if (ui !== log.uses.length) return { error: 'item uses out of order' };
   if (!sim.over) return { error: 'the run had not ended' };
-  return { t: Math.floor(sim.t), kills: sim.kills, level: sim.level, won: sim.over === 'win', ticks: tick, picksUsed: pi };
+  return { t: Math.floor(sim.t), kills: sim.kills, level: sim.level, won: sim.over === 'win', timeUp: sim.over === 'time', ticks: tick, picksUsed: pi };
 }

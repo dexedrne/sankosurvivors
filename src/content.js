@@ -454,6 +454,17 @@ export function deltaText(k, v) {
 // the Armoury: each piece can be reinforced three times with coins, +25% of its bonus each time
 export const GEAR_MAX_LV = 3;
 export const gearUpgradeCost = (name, lv) => Math.round((50 + 35 * ((GEAR[name] && GEAR[name].tier) || 0)) * (lv + 1) ** 1.6);
+// the Smithy: a metal piece is smithed into the next metal's piece for coins (owner 3 Nov: "when you get bronze helm
+// upgraded gives you iron helm"). SMITH_COST[i] makes a piece of ARMOR_TIERS[i] from the one below.
+export const SMITH_COST = [0, 400, 900, 1800, 3500, 7000];
+const METAL_NAME = /^(Bronze|Iron|Steel|Mithril|Adamantite|Runite) (Helmet|Chestplate|Gauntlets|Leggings|Boots|Kiteshield|Shield)$/;
+export function smithNext(name) {
+  const m = METAL_NAME.exec(name); if (!m) return null;
+  const i = ARMOR_TIERS.indexOf(m[1]); if (i < 0 || i >= ARMOR_TIERS.length - 1) return null;
+  const next = `${ARMOR_TIERS[i + 1]} ${m[2]}`;
+  return Object.hasOwn(GEAR, next) ? { name: next, cost: SMITH_COST[i + 1] } : null;
+}
+export function smithPrev(name) { const m = METAL_NAME.exec(name), i = m ? ARMOR_TIERS.indexOf(m[1]) : -1; return i > 0 ? `${ARMOR_TIERS[i - 1]} ${m[2]}` : null; }
 /** total bonus of a gear loadout {slot: itemName} (with Armoury levels {itemName: 0..3}), with any completed set */
 export function gearBonus(gear = {}, levels = {}) {
   const out = {}; const add = (b, m = 1) => { for (const [k, v] of Object.entries(b)) out[k] = (out[k] || 0) + v * m; };

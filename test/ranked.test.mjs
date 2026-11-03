@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { step, choose, reroll, TICK } from '../src/sim.js';
-import { rankedSim, RunRecorder, replay, RANKED, weekOf, weekMap } from '../src/ranked.js';
-import { ENEMIES } from '../src/content.js';
+import { rankedSim, RunRecorder, replay, RANKED, weekOf, weekMap, kpm, kpmMicro, kpmWeek, racesOf, compareRuns, prizePlaces, placeable, runSeconds, scoreKey } from '../src/ranked.js';
+import { mulberry32 } from '../src/sim.js';
+import { ENEMIES, MAP_BY_ID } from '../src/content.js';
 
 // a quick bot: backs off from close monsters, circles slowly, picks the first card (sometimes rerolls)
-function play(seed, mapId, adv, { maxT = 400, rerollAt = 3 } = {}) {
-  const sim = rankedSim({ seed, mapId, adv, ground: null }), rec = new RunRecorder(), p = sim.players[0];
+function play(seed, mapId, adv, { maxT = 400, rerollAt = 3, week = 0, mode = 'normal' } = {}) {
+  const sim = rankedSim({ seed, mapId, adv, ground: null, week, mode }), rec = new RunRecorder(), p = sim.players[0];
   let levels = 0;
   while (!sim.over) {
     if (sim.pending.p1) {
@@ -29,14 +30,14 @@ function play(seed, mapId, adv, { maxT = 400, rerollAt = 3 } = {}) {
 test('a recorded ranked run replays to exactly the same result', () => {
   for (const [seed, map, adv] of [[11, 'greentown', 'adventurer'], [12, 'apache', 'knight'], [13, 'goblins', 'ranger']]) {
     const { sim, log } = play(seed, map, adv, { maxT: 1e9 });
-    const r = replay(log, { seed, mapId: map, adv, ground: null });
+    const r = replay(log, { seed, mapId: map, adv, ground: null, week: 0 });
     assert.ok(!r.error, r.error);
     assert.deepEqual([r.t, r.kills, r.level, r.won], [Math.floor(sim.t), sim.kills, sim.level, sim.over === 'win'], `${map} seed ${seed}`);
   }
 });
 
 test('tampered runs do not replay to the claimed result', () => {
-  const seed = 21, params = { seed, mapId: 'greentown', adv: 'adventurer', ground: null };
+  const seed = 21, params = { seed, mapId: 'greentown', adv: 'adventurer', ground: null, week: 0 };
   const { sim, log } = play(seed, 'greentown', 'adventurer', { maxT: 1e9 });
   const honest = { t: Math.floor(sim.t), kills: sim.kills, level: sim.level };
   const same = (r) => !r.error && r.t === honest.t && r.kills === honest.kills && r.level === honest.level;
@@ -71,7 +72,7 @@ test('weeks run Monday to Monday (UTC) and each week has one ranked map', () => 
 });
 
 test('a level-up left open until the timer runs out (auto-pick) replays when recorded with auto()', () => {
-  const seed = 31, params = { seed, mapId: 'greentown', adv: 'adventurer', ground: null };
+  const seed = 31, params = { seed, mapId: 'greentown', adv: 'adventurer', ground: null, week: 0 };
   const sim = rankedSim(params), rec = new RunRecorder(), p = sim.players[0]; let autos = 0, levels = 0;
   while (!sim.over) {
     if (sim.pending.p1) {
@@ -93,8 +94,116 @@ test('a level-up left open until the timer runs out (auto-pick) replays when rec
 });
 
 test('replay() answers malformed logs and params with an error instead of throwing', () => {
-  const ok = { seed: 1, mapId: 'greentown', adv: 'adventurer', ground: null };
+  const ok = { seed: 1, mapId: 'greentown', adv: 'adventurer', ground: null, week: 0 };
   const base = { v: 1, runs: [[1, 0, 0]], uses: [], picks: [] };
   for (const log of [{ ...base, uses: [null] }, { ...base, uses: [[]] }, { ...base, uses: [[0, 9]] }, { ...base, runs: [null] }, { ...base, runs: [[2 ** 53, 0, 0]] }]) assert.ok(replay(log, ok).error);
-  for (const params of [null, undefined, {}, { ...ok, mapId: 'constructor' }, { ...ok, mapId: '__proto__' }, { ...ok, adv: 'constructor' }, { ...ok, adv: 'alex' }, { ...ok, mapId: 'nope' }]) assert.equal(replay(base, params).error, 'bad ranked run');
+  for (const params of [null, undefined, {}, { ...ok, mapId: 'constructor' }, { ...ok, mapId: '__proto__' }, { ...ok, adv: 'constructor' }, { ...ok, adv: 'alex' }, { ...ok, mapId: 'nope' }, { ...ok, week: undefined }, { ...ok, week: '1' }, { ...ok, mode: 'hard' }, { ...ok, week: 1, mode: 'nightmare' }, { ...ok, week: 1, mode: 'constructor' }]) assert.equal(replay(base, params).error, 'bad ranked run');
+});
+
+// ---- week 1 rules: endless runs scored by kills per minute, and the Hard race ----
+
+test('every run is endless with the 2:00:00 limit (week 0 too, owner 2 Nov); the Hard race from week 1', () => {
+  const base = { seed: 3, mapId: 'apache', adv: 'adventurer', ground: null };
+  const w0 = rankedSim({ ...base, week: 0 });
+  assert.deepEqual([w0.endless, w0.hard, w0.endAt], [true, false, RANKED.timeLimit]);
+  assert.equal(RANKED.timeLimit, 7200, 'no 45-minute cap: runs can go 2 hours');
+  const n1 = rankedSim({ ...base, week: 1 }), h1 = rankedSim({ ...base, week: 1, mode: 'hard' });
+  assert.deepEqual([n1.endless, n1.hard, n1.endAt], [true, false, RANKED.timeLimit]);
+  assert.deepEqual([h1.endless, h1.hard, h1.endAt], [true, true, RANKED.timeLimit]);
+  assert.throws(() => rankedSim({ ...base, week: 0, mode: 'hard' }), /bad ranked run/, 'no Hard race in week 0');
+  assert.deepEqual([racesOf(0), racesOf(1), racesOf(7)], [['normal'], ['normal', 'hard'], ['normal', 'hard']]);
+  assert.deepEqual([kpmWeek(-1), kpmWeek(0), kpmWeek(1)], [false, false, true]);
+  assert.deepEqual([runSeconds(0), runSeconds(1)], [RANKED.timeLimit + 60, RANKED.timeLimit + 60]);
+  assert.deepEqual([RANKED.races.normal.entryWei, RANKED.races.hard.entryWei], ['500000000000000000', '1500000000000000000']);
+  assert.equal(RANKED.races.normal.entryDmt, RANKED.entryDmt);
+});
+
+test('endless Normal and Hard runs (week 1) replay exactly, and a different race or week does not', () => {
+  for (const [seed, map, adv, mode] of [[41, 'apache', 'adventurer', 'normal'], [42, 'apache', 'knight', 'hard'], [43, 'greentown', 'ranger', 'hard']]) {
+    const { sim, log } = play(seed, map, adv, { maxT: 1e9, week: 1, mode });
+    assert.equal(sim.over, 'dead', 'an endless run only ends at death (or the time limit)');
+    const params = { seed, mapId: map, adv, ground: null, week: 1, mode };
+    const r = replay(log, params);
+    assert.ok(!r.error, r.error);
+    assert.deepEqual([r.t, r.kills, r.level, r.won, r.timeUp], [Math.floor(sim.t), sim.kills, sim.level, false, false], `${map} ${mode}`);
+    const other = replay(log, { ...params, mode: mode === 'hard' ? 'normal' : 'hard' });
+    assert.ok(other.error || other.kills !== r.kills || other.t !== r.t, 'the other race is another run');
+    // week 0 rules only differ from 15:00 on (the run would have ended there); a Normal run that fell earlier is the same
+    const old = replay(log, { ...params, week: 0, mode: 'normal' });
+    if (mode === 'hard' || sim.t >= MAP_BY_ID[map].length) assert.ok(old.error || old.kills !== r.kills || old.t !== r.t, 'week 0 rules are another run');
+    else assert.deepEqual([old.t, old.kills], [r.t, r.kills]);
+  }
+});
+
+test('random inputs and choices replay exactly in both races (fuzz)', () => {
+  for (let k = 0; k < 4; k++) {
+    const mode = k % 2 ? 'hard' : 'normal', seed = 900 + k, rnd = mulberry32(seed), params = { seed, mapId: RANKED.maps[k % RANKED.maps.length], adv: RANKED.advs[k % RANKED.advs.length], ground: null, week: 1 + k, mode };
+    const sim = rankedSim(params), rec = new RunRecorder();
+    while (!sim.over) {
+      if (sim.pending.p1) {
+        const c = sim.pending.p1, roll = rnd();
+        if (!c.casket && roll < 0.1 && sim.players[0].rerolls > 0) { rec.reroll(); reroll(sim, 'p1'); continue; }
+        const i = Math.floor(rnd() * c.choices.length); rec.pick(i); choose(sim, 'p1', i); continue;
+      }
+      // a jittery stick held for a few ticks, now and then a belt item
+      const x = Math.round((rnd() * 2 - 1) * 100) / 100, z = Math.round((rnd() * 2 - 1) * 100) / 100, hold = 1 + Math.floor(rnd() * 20);
+      for (let h = 0; h < hold && !sim.over && !sim.pending.p1; h++) {
+        const before = sim.tick;
+        step(sim, { p1: rec.input(x, z, rnd() < 0.002 ? Math.floor(rnd() * 4) : null) }, TICK);
+        rec.after(sim.tick !== before); sim.fx.length = 0;
+      }
+    }
+    const r = replay(rec.log(), params);
+    assert.ok(!r.error, r.error);
+    assert.deepEqual([r.t, r.kills, r.level], [Math.floor(sim.t), sim.kills, sim.level], `fuzz ${k} ${mode}`);
+  }
+});
+
+test('the time limit ends an endless run with its score counted (replays to the same end)', () => {
+  const saved = RANKED.timeLimit; RANKED.timeLimit = 70; // a short hunt so the test stays quick; the rule is the same
+  try {
+    const sim = rankedSim({ seed: 5, mapId: 'greentown', adv: 'adventurer', ground: null, week: 1 });
+    assert.equal(sim.endAt, 70);
+    const { sim: done, log } = play(5, 'greentown', 'adventurer', { maxT: 1e9, week: 1 });
+    assert.equal(done.over, 'time'); assert.ok(done.t >= 70 && done.t < 70.1);
+    const r = replay(log, { seed: 5, mapId: 'greentown', adv: 'adventurer', ground: null, week: 1 });
+    assert.ok(!r.error, r.error);
+    assert.deepEqual([r.t, r.kills, r.timeUp, r.won], [70, done.kills, true, false]);
+    const longer = structuredClone(log); longer.runs.push([30, 0, 0]);
+    assert.match(replay(longer, { seed: 5, mapId: 'greentown', adv: 'adventurer', ground: null, week: 1 }).error, /after the run ended|run too long/);
+  } finally { RANKED.timeLimit = saved; }
+});
+
+test('kills per minute is exact integer maths (the same in SQL) and orders week 1 boards', () => {
+  assert.equal(kpmMicro(100, 200), 30000000);
+  assert.equal(kpmMicro(1, 7), 8571428); // floor(60/7 * 1e6)
+  assert.equal(kpmMicro(5, 0), 0); assert.equal(kpmMicro(-3, 100), 0);
+  assert.equal(kpm(452, 600), 45.2);
+  // equal rates tie exactly, then more kills, then the earlier finish, then the earlier entry
+  assert.equal(kpmMicro(60, 180), kpmMicro(120, 360));
+  const rows = [
+    { id: 1, wallet: 'a', t: 179, kills: 900, at: 1 },  // the best rate, but under 3:00: listed, never wins
+    { id: 2, wallet: 'b', t: 180, kills: 60, at: 5 },   // 20/min
+    { id: 3, wallet: 'c', t: 360, kills: 120, at: 9 },  // 20/min, more kills
+    { id: 4, wallet: 'd', t: 2700, kills: 900, at: 2 }, // 20/min, the most kills
+    { id: 5, wallet: 'e', t: 600, kills: 300, at: 3 },  // 30/min
+    { id: 6, wallet: 'f', t: 180, kills: 60, at: 4 },   // ties b exactly, finished earlier
+    { id: 7, wallet: 'g', t: 900, kills: 0, at: 0, won: true }, // a win means nothing from week 1
+  ];
+  const w1 = [...rows].sort(compareRuns(1)).map((r) => r.wallet);
+  assert.deepEqual(w1, ['e', 'd', 'c', 'f', 'b', 'g', 'a']);
+  // week 0 (endless now): time survived, then kills; a win from the 15:00 runs counts only as its time
+  const w0 = [...rows].sort(compareRuns(0)).map((r) => r.wallet);
+  assert.deepEqual(w0, ['d', 'g', 'e', 'c', 'f', 'b', 'a']);
+  assert.deepEqual(scoreKey(0, rows[6]), [0, 900, 0]);
+  assert.deepEqual(scoreKey(1, rows[0]), [0, kpmMicro(900, 179), 900]);
+});
+
+test('the 3:00 minimum: too-short runs and the dev wallet take no prize place (week 1); week 0 had no minimum', () => {
+  const dev = '0x9d506ba29843a232409d85e289edece8d6a7b452', noPrize = (w) => w === dev;
+  assert.equal(RANKED.minSeconds, 180);
+  assert.deepEqual([placeable(1, { t: 179 }), placeable(1, { t: 180 }), placeable(0, { t: 10 })], [false, true, true]);
+  const board = [{ wallet: 'x', t: 400 }, { wallet: dev, t: 500 }, { wallet: 'y', t: 300 }, { wallet: 'z', t: 100 }];
+  assert.deepEqual(prizePlaces(board, 1, noPrize), [0, -1, 1, -1]);
+  assert.deepEqual(prizePlaces(board, 0, noPrize), [0, -1, 1, 2]);
 });

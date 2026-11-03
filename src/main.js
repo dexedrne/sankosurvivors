@@ -1,5 +1,5 @@
-import { RunRecorder } from './ranked.js';
-import { rankedStep, rankedChoice, resumeRanked } from './ranked-play.js';
+import { RunRecorder, RANKED, kpm, kpmWeek, prizePlaces as racePlaces, placeable } from './ranked.js';
+import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
 import { asset, pickAssetHost } from './assets.js';
@@ -8,14 +8,15 @@ import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
 const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
-// prize place of each board row: the developer's wallet takes none, the places pass down to the next players
-const prizePlaces = (rows) => { let k = 0; return rows.map((r) => (noPrize(r.wallet) ? -1 : k++)); };
+// prize place of each board row: the developer's wallet and (from week 1) runs under 3:00 take none, the places pass down
+const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
 import { wallets, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
+import { createCloud, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
 import { connect as walletConnect, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
-  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, gearBonus, bonusText, QUESTS, deltaText, gearRarity, alchValue, ARMOR_TIERS,
+  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, bonusText, QUESTS, deltaText, gearRarity, alchValue, ARMOR_TIERS,
 } from './content.js';
 
 const $ = (id) => document.getElementById(id);
@@ -26,7 +27,8 @@ const PLAYER = 'p1';
 let sim = null, renderer = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0;
 const keys = new Set();
 const audio = createAudio();
-const fmtT = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+const p2 = (n) => String(Math.floor(n)).padStart(2, '0');
+const fmtT = (t) => (t >= 3600 ? `${Math.floor(t / 3600)}:${p2((t % 3600) / 60)}:${p2(t % 60)}` : `${Math.floor(t / 60)}:${p2(t % 60)}`); // 2:00:00 past an hour
 // A boss's own name (screen only; the sim and ranked replays never see it): SankoQuest's ogre is Fudna the Hoard Keeper.
 const BOSS_TITLES = { '*': { ogre: 'Fudna the Hoard Keeper' } }; // '*': every map
 const titled = (map, type) => BOSS_TITLES[map && map.id]?.[type] || BOSS_TITLES['*'][type];
@@ -35,7 +37,8 @@ const slayName = (map, type) => titled(map, type) || `the ${ENEMIES[type].name}`
 
 // ---- saved progress ------------------------------------------------------------------------------
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
-const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
+let onSaved = null; // the cloud save hears about every progress change (set up with the wallet below)
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } if (onSaved) onSaved(k); };
 const clearedMaps = () => new Set(load('sq-cleared', []));
 const getCoins = () => Number(load('sq-coins', 0)) || 0;
 const clampLv = (o, max) => { const out = {}; if (o && typeof o === 'object' && !Array.isArray(o)) for (const k of Object.keys(o)) out[k] = Math.max(0, Math.min(max, Math.floor(Number(o[k])) || 0)); return out; }; // saved levels can be edited or arrive in a #carry= link: never trust them as numbers
@@ -133,6 +136,23 @@ $('endless').onchange = (e) => { endlessOn = e.target.checked; };
 // ---- ranked: paid tickets, recovery and the holder-style panel ----
 const SIM_ID = import.meta.env.VITE_SIM;
 let rankedWeek = null, rankedRun = null, rankedRec = null, rankedBusy = false;
+// the race shown in the Ranked panel and the leaderboard: 'normal' or 'hard' (from week 1)
+let rankedMode = load('sq-ranked-mode', 'normal') === 'hard' ? 'hard' : 'normal';
+const RACE = RANKED.races;
+const raceList = (d) => (d && d.races ? ['normal', 'hard'].filter((m) => d.races[m]) : ['normal']);
+// one race's numbers from /api/ranked-week (an older server only sends the Normal race, at the top level)
+const raceOf = (d, m) => (d && d.races && d.races[m]) || (m === 'normal' && d ? { mode: 'normal', name: 'Normal', entryDmt: d.entryDmt, entries: d.entries, poolDmt: d.poolDmt, rows: d.rows || [] } : null);
+const kpmRules = (d) => !!d && d.rules === 'kpm';
+const fmtKpm = (r) => kpm(r.kills, r.t).toFixed(2);
+const setRace = (m) => { rankedMode = m === 'hard' ? 'hard' : 'normal'; save('sq-ranked-mode', rankedMode); };
+// the week and race a saved run belongs to, from the run ticket itself if an older save lacks them (display data only:
+// the server checks the signed ticket)
+function liveRace(live) {
+  let tk = {};
+  try { tk = JSON.parse(atob(String(live.run).split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))) || {}; } catch { /* keep {} */ }
+  return { week: Number.isInteger(live.week) ? live.week : tk.w, mode: (live.mode || tk.m) === 'hard' ? 'hard' : 'normal' };
+}
+const raceBadge = (m) => (m === 'hard' ? ' (Hard)' : '');
 let walletBal = null; // the connected wallet's DMT and ETH on Arbitrum, last read
 const rankedLive = () => readRanked('sq-ranked-live');
 const rankedPlaying = () => !!rankedRun && !!sim && !sim.over;
@@ -157,18 +177,29 @@ function renderRanked() {
   if (pending || live?.ended) button('Retry ranked submission', () => submitRanked());
   else if (live) button(live.sim === SIM_ID ? 'Resume your ranked run' : 'Game updated: request your refund', () => recoverRankedRun());
   if (readRanked('sq-ranked-payment')) button('Check payment', () => rankedAction(() => recoverPayment(BASE, rankedMessage)));
-  if (!live && rankedWeek) for (const e of readRanked('sq-ranked-entries', []).filter((e) => e.week === rankedWeek.week)) button(`Entry ${e.id} ready · Start`, () => startRankedEntry(e));
+  if (!live && rankedWeek) for (const e of readRanked('sq-ranked-entries', []).filter((e) => e.week === rankedWeek.week)) button(`Entry ${e.id}${raceBadge(e.mode)} ready · Start`, () => startRankedEntry(e));
   if (rankedWeek) {
-    $('rankedweek').textContent = `This week: ${MAP_BY_ID[rankedWeek.map]?.name || rankedWeek.map}`;
-    $('rankedpool').textContent = `${rankedWeek.entries} entries · ${rankedWeek.poolDmt} DMT pool. ` + rankedWeek.payouts.map((p, i) => `${['1st', '2nd', '3rd', '4th', '5th'][i] || `${i + 1}th`}: ${Number((rankedWeek.poolDmt * p).toFixed(3))} DMT`).join(' · ');
-    const list = document.createElement('ol');
-    for (const r of rankedWeek.rows) {
-      const li = document.createElement('li');
-      li.textContent = `${r.name || 'Adventurer'} · ${short(r.wallet)} · ${fmtT(r.t)} · ${r.kills} kills${r.won ? ' · ★ Winner' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`;
+    const races = raceList(rankedWeek); if (!races.includes(rankedMode)) rankedMode = 'normal';
+    const race = raceOf(rankedWeek, rankedMode), kp = kpmRules(rankedWeek), two = races.length > 1;
+    // the race switch: each race's own price, pot and standings
+    $('rankedraces').innerHTML = two ? races.map((m) => `<button role="tab" data-race="${m}" aria-selected="${m === rankedMode}" class="${m === rankedMode ? 'on' : 'ghost'}">${RACE[m].name} <span>${esc(raceOf(rankedWeek, m).entryDmt)} DMT</span></button>`).join('') : '';
+    for (const b of $('rankedraces').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); renderRanked(); };
+    $('rankedweek').textContent = `This week: ${MAP_BY_ID[rankedWeek.map]?.name || rankedWeek.map}${two ? ` · ${race.name} race${rankedMode === 'hard' ? ' (hard rules)' : ''}` : ''}`;
+    $('rankedpool').textContent = `${race.entries} entries · ${race.poolDmt} DMT pool. ` + rankedWeek.payouts.map((p, i) => `${['1st', '2nd', '3rd', '4th', '5th'][i] || `${i + 1}th`}: ${Number((race.poolDmt * p).toFixed(3))} DMT`).join(' · ');
+    const list = document.createElement('ol'), place = prizePlaces(race.rows, rankedWeek.week);
+    race.rows.forEach((r, i) => {
+      const li = document.createElement('li'), short3 = kp && !placeable(rankedWeek.week, r);
+      li.textContent = kp ? `${r.name || 'Adventurer'} · ${short(r.wallet)} · ${fmtKpm(r)} kills/min · ${fmtT(r.t)} · ${r.kills} kills${short3 ? ' · too short' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`
+        : `${r.name || 'Adventurer'} · ${short(r.wallet)} · ${fmtT(r.t)} · ${r.kills} kills${r.won ? ' · ★ Winner' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`;
+      if (place[i] < 0) li.classList.add('noprize');
       list.appendChild(li);
-    }
+    });
     $('rankedstandings').replaceChildren(list);
-    if (!list.children.length) $('rankedstandings').textContent = 'No runs yet this week.';
+    if (!list.children.length) $('rankedstandings').textContent = `No ${two ? race.name + ' ' : ''}runs yet this week.`;
+    $('rankedrules').textContent = kp
+      ? `${rankedMode === 'hard' ? 'Hard rules: tougher, faster monsters and harder bosses. ' : ''}Runs are endless: your score is kills per minute (kills × 60 ÷ seconds survived), and the hunt is over at ${fmtT(rankedWeek.timeLimit || RANKED.timeLimit)}. A run under ${fmtT(rankedWeek.minSeconds || RANKED.minSeconds)} is listed as too short and cannot win. Ties go to more kills, then the earlier finish. Entry is ${race.entryDmt} DMT on Arbitrum: 10% house fee, 90% to the ${race.name} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's ${race.name} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input.`
+      : rankedWeek.rules === 'time' ? `Runs are endless: your score is how long you survive, then kills, and the hunt is over at ${fmtT(rankedWeek.timeLimit || RANKED.timeLimit)}. Ties go to more kills, then the earlier finish. Entry is ${race.entryDmt} DMT on Arbitrum: 10% house fee, 90% to the ${race.name} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's ${race.name} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input.`
+      : 'Entry is 0.5 DMT on Arbitrum: 10% house fee, 90% prize pool split 40/25/15/12/8 between the top five wallets. Monday to Monday UTC, one map, as many entries as you like, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input.';
     rankedTime();
   }
   renderRankedFrom();
@@ -206,15 +237,17 @@ async function rankedAction(fn) {
   finally { rankedBusy = false; $('rankedwallets').replaceChildren(); renderRanked(); }
 }
 // the wallet the entry is paid from, its balances, and what is missing before you can pay
+// the selected race's entry price, in DMT
+const racePrice = () => Number((raceOf(rankedWeek, rankedMode) || RACE.normal).entryDmt) || 0.5;
 function renderRankedFrom() {
-  const c = walletNow(), el = $('rankedfrom'), enter = $('rankedenter');
+  const c = walletNow(), el = $('rankedfrom'), enter = $('rankedenter'), price = racePrice(), two = raceList(rankedWeek).length > 1;
   if (!c) { el.innerHTML = '<p class="dim">Connect a wallet to enter. Prizes are paid to the wallet that entered.</p>'; enter.textContent = 'Connect wallet'; return; }
   const b = walletBal && walletBal.address.toLowerCase() === c.address.toLowerCase() ? walletBal : null;
   el.innerHTML = `<div class="rkfrom">${walletIcon(c.w)}<span>Paying from <b>${esc(short(c.address))}</b></span>${b ? `<span>${esc(fmtDmt(b.dmt))} DMT · ${esc(fmtEth(b.eth))} ETH</span>` : '<span class="dim">checking balance…</span>'}<button id="rkchange" class="linkbtn">Change</button></div>`
-    + (b && b.dmt < 0.5 ? `<p class="rkwarn">You need 0.5 DMT on Arbitrum. <a href="${GET_DMT}" target="_blank" rel="noopener">Get DMT</a></p>` : '')
+    + (b && b.dmt < price ? `<p class="rkwarn">You need ${price} DMT on Arbitrum. <a href="${GET_DMT}" target="_blank" rel="noopener">Get DMT</a></p>` : '')
     + (b && b.eth < ETH_FOR_GAS ? `<p class="rkwarn">You need a little ETH on Arbitrum for the network fee (well under a cent). <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a></p>` : '');
   $('rkchange').onclick = () => openWallet();
-  enter.textContent = 'Enter for 0.5 DMT';
+  enter.textContent = two ? `Enter ${RACE[rankedMode].name} for ${price} DMT` : `Enter for ${price} DMT`;
 }
 const plain = (text) => Object.assign(new Error(text), { plain: true });
 $('rankedenter').onclick = () => {
@@ -224,13 +257,14 @@ $('rankedenter').onclick = () => {
     wrap.innerHTML = ch.html; ch.bind(wrap); rankedMessage(wallets().length ? 'Pick your wallet.' : '');
     return;
   }
+  const mode = raceList(rankedWeek).includes(rankedMode) ? rankedMode : 'normal', price = Number(RACE[mode].entryDmt);
   rankedAction(async () => {
     rankedMessage('Checking your balance on Arbitrum…');
     const b = await refreshBalances(true); // unreadable balances never block: the wallet itself has the last word
-    if (b && b.dmt < 0.5) throw plain('You need 0.5 DMT on Arbitrum to enter.');
+    if (b && b.dmt < price) throw plain(`You need ${price} DMT on Arbitrum to enter${mode === 'hard' ? ' the Hard race' : ''}.`);
     if (b && b.eth < ETH_FOR_GAS) throw plain('You need a little ETH on Arbitrum for the network fee.');
     $('rankedtx').replaceChildren();
-    await payEntry(c.w, BASE, rankedMessage, (tx) => { $('rankedtx').innerHTML = `<a href="${arbiscanTx(tx)}" target="_blank" rel="noopener">See your payment on Arbiscan</a>`; });
+    await payEntry(c.w, BASE, rankedMessage, (tx) => { $('rankedtx').innerHTML = `<a href="${arbiscanTx(tx)}" target="_blank" rel="noopener">See your payment on Arbiscan</a>`; }, mode);
     refreshBalances(true);
   });
 };
@@ -245,7 +279,7 @@ async function startRankedEntry(entry) {
     await pickMap(rankedWeek.map);
     rankedMessage('Starting your ranked run…');
     const d = await rankedApi(BASE, 'start', { entry: entry.entry, adv, sim: SIM_ID });
-    const live = { run: d.run, adv, seed: d.seed, map: d.map, sim: SIM_ID, name: $('rankedname').value.trim().slice(0, 16) || 'Adventurer', log: new RunRecorder().log() };
+    const live = { run: d.run, adv, seed: d.seed, map: d.map, week: d.week, mode: d.mode === 'hard' ? 'hard' : 'normal', sim: SIM_ID, name: $('rankedname').value.trim().slice(0, 16) || 'Adventurer', log: new RunRecorder().log() };
     writeRanked('sq-ranked-live', live);
     writeRanked('sq-ranked-entries', readRanked('sq-ranked-entries', []).filter((e) => e.id !== entry.id));
     await startRun(live);
@@ -259,12 +293,17 @@ async function recoverRankedRun() {
       try {
         await rankedApi(BASE, 'void', { run: live.run });
         localStorage.removeItem('sq-ranked-live');
-        rankedMessage('Your 0.5 DMT will be sent back.');
+        rankedMessage(`Your ${RACE[liveRace(live).mode].entryDmt} DMT will be sent back.`);
       } catch (e) {
         if (e.status) localStorage.removeItem('sq-ranked-live');
         throw e;
       }
-    } else await startRun(live);
+    } else {
+      // a long endless run is replayed from its start in this browser: say so, and let the message paint first
+      const ticks = (live.log?.runs || []).reduce((n, r) => n + (Number(r[0]) || 0), 0);
+      if (ticks > 10 * 60 * 30) { rankedMessage(`Restoring your ranked run at ${fmtT(ticks / 30)}. Long runs take a little while…`); await new Promise((r) => setTimeout(r, 60)); }
+      await startRun(live);
+    }
   });
 }
 async function submitRanked() {
@@ -273,10 +312,12 @@ async function submitRanked() {
   const body = { run: saved.run, name: saved.name, log: saved.log };
   writeRanked('sq-ranked-submit', body);
   rankedBusy = true; renderRanked(); $('rankedretry').classList.add('hidden');
-  $('rankedresult').textContent = 'Checking your ranked run…'; rankedMessage('Checking your ranked run…');
+  const checking = `Checking your ranked run…${(saved.log?.runs || []).reduce((n, r) => n + (r[0] || 0), 0) > 30 * 60 * 30 ? ' Long runs take a few minutes: keep this page open.' : ''}`;
+  $('rankedresult').textContent = checking; rankedMessage(checking);
   try {
     const d = await rankedApi(BASE, 'submit', body);
-    const message = d.rank ? `Ranked run accepted. You are #${d.rank} this week.` : 'Ranked run accepted.';
+    const race = d.mode === 'hard' ? ' in the Hard race' : '';
+    const message = d.rank ? `Ranked run accepted. You are #${d.rank}${race} this week.` : 'Ranked run accepted.';
     if (lastRun && lastRun.ranked && d.rank) lastRun.rank = d.rank; // for Share on X
     $('rankedresult').textContent = message; rankedMessage(message);
     localStorage.removeItem('sq-ranked-submit'); localStorage.removeItem('sq-ranked-live');
@@ -350,18 +391,35 @@ function buildGear() {
   const gear = getGear(), bank = getBank(), lvs = getGearLv(), coins = getCoins();
   $('gearslots').innerHTML = GEAR_SLOTS.map((sl) => `<div class="gslot${sl === gearSlotSel ? ' sel' : ''}" data-slot="${sl}">${gear[sl] ? imgTag(gear[sl]) : '<span class="empty"></span>'}<small>${GEAR_SLOT_NAMES[sl]}</small></div>`).join('');
   for (const el of $('gearslots').children) el.onclick = () => { gearSlotSel = el.dataset.slot; buildGear(); };
-  const mine = bank.filter((n) => GEAR[n] && GEAR[n].slot === gearSlotSel).sort((a, b) => GEAR[a].tier - GEAR[b].tier || a.localeCompare(b));
-  $('gearbank').innerHTML = mine.length
-    ? mine.map((n) => { const lv = lvs[n] || 0, cost = gearUpgradeCost(n, lv), m = 1 + 0.25 * lv, b = Object.fromEntries(Object.entries(GEAR[n].bonus).map(([k, v]) => [k, v * m]));
-      return `<div class="gitem${gear[gearSlotSel] === n ? ' on' : ''}" data-n="${n}" title="${n}">${imgTag(n)}<div><b>${n}${lv ? ` +${lv}` : ''}</b><span>${bonusText(b)}${GEAR[n].set && GEAR_SETS[GEAR[n].set] ? ` · ${GEAR[n].set} set` : ''}</span>
-        <button class="gup ghost" data-n="${n}" ${lv >= GEAR_MAX_LV || coins < cost ? 'disabled' : ''}>${lv >= GEAR_MAX_LV ? 'Fully reinforced' : `Reinforce +${lv + 1} · ${cost} coins`}</button></div></div>`; }).join('')
-    : `<p class="gempty">Nothing for this slot yet. Reward caskets drop from bosses, and now and then from anything you slay. Quests pay out gear too.</p>`;
+  // every piece for this slot (owner 3 Nov: "the gear menu is just a list of all the gear"): yours to wear, reinforce or
+  // smith into the next metal; the rest dim, with where it comes from
+  const owned = new Set(bank);
+  const all = Object.keys(GEAR).filter((n) => GEAR[n].slot === gearSlotSel).sort((a, b) => (owned.has(b) - owned.has(a)) || GEAR[a].tier - GEAR[b].tier || a.localeCompare(b));
+  $('gearbank').innerHTML = all.map((n) => {
+    if (!owned.has(n)) {
+      const prev = smithPrev(n), how = prev && owned.has(prev) ? `Smith it from your ${prev}` : prev ? `Smith it from a ${prev}, or find it in a reward casket` : GEAR[n].rarity === 'unique' ? 'A unique drop from reward caskets' : 'Found in reward caskets and quests';
+      return `<div class="gitem locked" title="${n}">${imgTag(n)}<div><b>${n}</b><span>${bonusText(GEAR[n].bonus)}</span><span class="dim">${how}</span></div></div>`;
+    }
+    const lv = lvs[n] || 0, cost = gearUpgradeCost(n, lv), m = 1 + 0.25 * lv, b = Object.fromEntries(Object.entries(GEAR[n].bonus).map(([k, v]) => [k, v * m]));
+    const up = smithNext(n), smith = up && !owned.has(up.name) ? `<button class="gsmith" data-n="${n}" ${coins < up.cost ? 'disabled' : ''}>Smith into ${up.name} · ${up.cost.toLocaleString()} coins</button>` : '';
+    return `<div class="gitem${gear[gearSlotSel] === n ? ' on' : ''}" data-n="${n}" title="${n}">${imgTag(n)}<div><b>${n}${lv ? ` +${lv}` : ''}</b><span>${bonusText(b)}${GEAR[n].set && GEAR_SETS[GEAR[n].set] ? ` · ${GEAR[n].set} set` : ''}</span>
+        ${smith}<button class="gup ghost" data-n="${n}" ${lv >= GEAR_MAX_LV || coins < cost ? 'disabled' : ''}>${lv >= GEAR_MAX_LV ? 'Fully reinforced' : `Reinforce +${lv + 1} · ${cost} coins`}</button></div></div>`;
+  }).join('') || '<p class="gempty">Nothing for this slot.</p>';
   for (const b of $('gearbank').querySelectorAll('.gup')) b.onclick = (e) => {
     e.stopPropagation(); const n = b.dataset.n, l = getGearLv(), lv = l[n] || 0, cost = gearUpgradeCost(n, lv);
     if (lv >= GEAR_MAX_LV || getCoins() < cost) return;
     l[n] = lv + 1; save('sq-gearlv', l); save('sq-coins', getCoins() - cost); showBest(); buildGear();
   };
-  for (const el of $('gearbank').querySelectorAll('.gitem')) el.onclick = () => {
+  // smithing: the next metal's piece joins your gear (the old one stays in your collection); worn, it is worn instead,
+  // and its reinforcement carries over
+  for (const b of $('gearbank').querySelectorAll('.gsmith')) b.onclick = (e) => {
+    e.stopPropagation(); const n = b.dataset.n, up = smithNext(n); if (!up || getBank().includes(up.name) || getCoins() < up.cost) return;
+    save('sq-coins', getCoins() - up.cost); bankItem(up.name, false);
+    const l = getGearLv(); if (l[n]) { l[up.name] = Math.max(l[up.name] || 0, l[n]); save('sq-gearlv', l); }
+    const g = getGear(); if (g[gearSlotSel] === n) { g[gearSlotSel] = up.name; save('sq-gear', g); refreshIdle(); }
+    audio.play('smith', { minGap: 0 }); showBest(); buildGear();
+  };
+  for (const el of $('gearbank').querySelectorAll('.gitem:not(.locked)')) el.onclick = () => {
     const g = getGear(); if (g[gearSlotSel] === el.dataset.n) delete g[gearSlotSel]; else g[gearSlotSel] = el.dataset.n;
     save('sq-gear', g); buildGear(); refreshIdle();
   };
@@ -393,15 +451,26 @@ const SETTINGS = [
   { id: 'foliage', name: 'Grass and flowers', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'rain', name: 'Rain', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'roofs', name: 'Roofs', opts: [['off', 'Off'], ['auto', 'On, lift when inside']] },
+  { head: 'Sound' },
+  { id: 'sound', name: 'Sound and music', opts: [[true, 'On'], [false, 'Off']] },
+  { vol: 's', name: 'Sound effects' },
+  { vol: 'm', name: 'Music' },
   { head: 'Game' },
   { id: 'fx', name: 'Effects', opts: [['full', 'Full'], ['reduced', 'Reduced']] },
   { id: 'numbers', name: 'Damage numbers', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'shake', name: 'Screen shake', opts: [[true, 'On'], [false, 'Off']] },
-  { id: 'sound', name: 'Sound and music', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'autoalch', name: 'Auto high alch caskets that are not better', opts: [[true, 'On'], [false, 'Off']] },
 ];function buildSettings() {
   const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn() };
-  $('setlist').innerHTML = SETTINGS.map((o) => o.head ? `<h3 class="sethead">${o.head}</h3>` : `<div class="setrow"><span>${o.name}</span><div class="seg">${o.opts.map(([v, label]) => `<button class="${cur[o.id] === v ? 'on' : 'ghost'}" data-id="${o.id}" data-v='${JSON.stringify(v)}'>${label}</button>`).join('')}</div></div>`).join('');
+  $('setlist').innerHTML = SETTINGS.map((o) => o.head ? `<h3 class="sethead">${o.head}</h3>` : o.vol ? `<div class="setrow"><span>${o.name}</span><div class="volrow"><input type="range" min="0" max="100" step="5" value="${audio.volume(o.vol)}" data-vol="${o.vol}" aria-label="${o.name} volume"><b>${audio.volume(o.vol)}%</b></div></div>` : `<div class="setrow"><span>${o.name}</span><div class="seg">${o.opts.map(([v, label]) => `<button class="${cur[o.id] === v ? 'on' : 'ghost'}" data-id="${o.id}" data-v='${JSON.stringify(v)}'>${label}</button>`).join('')}</div></div>`).join('');
+  let blip = 0;
+  for (const r of $('setlist').querySelectorAll('input[data-vol]')) {
+    r.addEventListener('keydown', (e) => e.stopPropagation()); // arrow keys move the slider, not the menu
+    r.oninput = () => {
+      audio.setVolume(r.dataset.vol, r.value); r.nextElementSibling.textContent = `${audio.volume(r.dataset.vol)}%`;
+      if (r.dataset.vol === 's' && performance.now() - blip > 150) { blip = performance.now(); audio.init(); audio.play('pickup', { minGap: 0 }); } // hear it
+    };
+  }
   for (const b of $('setlist').querySelectorAll('button')) b.onclick = () => {
     const id = b.dataset.id, v = JSON.parse(b.dataset.v);
     if (id === 'sound') audio.setMuted(!v); else if (id === 'autoalch') save('sq-autoalch', v === true); else renderer.applySettings({ [id]: v });
@@ -422,7 +491,7 @@ $('moreclose').onclick = () => $('more').classList.add('hidden');
 $('more').addEventListener('click', (e) => { if (e.target.id === 'more') $('more').classList.add('hidden'); });
 // ---- move progress to another device: a code with the save (progress and settings only, never ranked tickets, a DMT
 // pass or a wallet), checked key by key on the way in like the old-address hand-off in index.html
-const XFER_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch', 'sq-roofs', 'sq-muted', 'sq-seen'];
+const XFER_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch', 'sq-roofs', 'sq-muted', 'sq-vol', 'sq-seen'];
 const b64 = (s) => btoa(unescape(encodeURIComponent(s))), unb64 = (s) => decodeURIComponent(escape(atob(s)));
 const xferSum = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return h.toString(36); };
 function xferCode() {
@@ -506,11 +575,21 @@ async function showBoard(mapId, mode) {
 async function showRankedBoard() {
   try {
     const r = await fetch(`${BASE}api/ranked-week`); const d = await r.json();
-    const rows = d.rows || [], pays = d.payouts || [], pool = Number(d.poolDmt) || 0, myName = load('sq-name', '');
+    const races = raceList(d); if (!races.includes(rankedMode)) rankedMode = 'normal';
+    const race = raceOf(d, rankedMode), kp = kpmRules(d), two = races.length > 1;
+    const rows = race.rows || [], pays = d.payouts || [], pool = Number(race.poolDmt) || 0, myName = load('sq-name', '');
     const left = Math.max(0, (d.endsAt || 0) - Date.now()), dd = Math.floor(left / 86400000), hh = Math.floor((left % 86400000) / 3600000);
-    const head = `<p class="lbweek">${esc((MAP_BY_ID[d.map] || {}).name || d.map)} · ${d.entries} entries · <b>${pool} DMT pot</b> · resets in ${dd}d ${hh}h</p>`;
-    const place = prizePlaces(rows), prize = (i) => (place[i] < 0 ? '<span class="dim">no prize (dev)</span>' : pays[place[i]] ? `${Math.round(pool * pays[place[i]] * 1000) / 1000} DMT` : '');
-    $('lblist').innerHTML = head + (rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}</td><td class="opt">${esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4))}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>` : '<p class="dim">No ranked runs yet this week. Enter from the Ranked button on the title screen.</p>');
+    const tabs = two ? `<div class="lbmode lbrace" role="tablist" aria-label="Ranked race">${races.map((m) => `<button role="tab" data-race="${m}" aria-selected="${m === rankedMode}" class="${m === rankedMode ? 'on' : 'ghost'}">${RACE[m].name} <span>${esc(raceOf(d, m).entryDmt)} DMT</span></button>`).join('')}</div>` : '';
+    const head = `${tabs}<p class="lbweek">${esc((MAP_BY_ID[d.map] || {}).name || d.map)}${two ? ` · ${race.name}` : ''} · ${race.entries} entries · <b>${pool} DMT pot</b> · resets in ${dd}d ${hh}h</p>`
+      + (kp ? `<p class="lbweek dim">Score: kills per minute. Runs under ${fmtT(d.minSeconds || RANKED.minSeconds)} cannot win.</p>` : '');
+    const place = prizePlaces(rows, d.week);
+    const prize = (i) => (place[i] < 0 ? `<span class="dim">${noPrize(rows[i].wallet) ? 'no prize (dev)' : 'too short'}</span>` : pays[place[i]] ? `${Math.round(pool * pays[place[i]] * 1000) / 1000} DMT` : '');
+    const wal = (x) => esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4));
+    $('lblist').innerHTML = head + (rows.length ? (kp
+      ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>KPM</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}</td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>`
+      : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}</td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>`)
+      : `<p class="dim">No ${two ? race.name + ' ' : ''}ranked runs yet this week. Enter from the Ranked button on the title screen.</p>`);
+    for (const b of $('lblist').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); showRankedBoard(); };
   } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
 }
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -540,7 +619,9 @@ $('sharex').onclick = () => {
   if (!lastRun) return;
   const m = MAP_BY_ID[lastRun.map].name;
   const stats = `${fmtT(lastRun.t)}, level ${lastRun.level}, ${lastRun.kills} monsters slain`;
-  const text = lastRun.ranked && lastRun.rank ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ranked on ${m} (${stats}). The top 5 split the $DMT pot. Can you knock me off?`
+  const race = lastRun.race === 'hard' ? 'Hard ' : '';
+  const text = lastRun.ranked && lastRun.rank && lastRun.kpm != null ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ${race}ranked race on ${m}: ${lastRun.kpm.toFixed(2)} kills per minute (${lastRun.kills} slain in ${fmtT(lastRun.t)}). Top 5 split the ${race}$DMT pot. Can you knock me off?`
+    : lastRun.ranked && lastRun.rank ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ranked on ${m} (${stats}). Top 5 split the $DMT pot. Can you knock me off?`
     : lastRun.won ? `I cleared ${m} in SankoQuest Survivors in ${fmtT(lastRun.t)} (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you beat it?`
     : `I survived ${fmtT(lastRun.t)} in ${m} in SankoQuest Survivors (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you last longer?`;
   const url = location.origin + '/';
@@ -621,13 +702,46 @@ function renderWallet() {
     + (mine ? `<p class="dmtok">DMT perks are on until ${new Date(pass.exp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.</p>`
       : b && b.dmt > 0 ? '<div class="dmtwallets"><button id="wlperks">Turn on DMT perks (free signature)</button></div>'
         : `<p class="dim">Hold DMT on Arbitrum for holder perks. <a href="${GET_DMT}" target="_blank" rel="noopener">Get DMT</a></p>`)
+    + cloudHTML(c)
     + `<div class="lurow">${rankedWeek && rankedWeek.open ? '<button id="wlranked">Ranked runs</button>' : ''}<button id="wlswitch" class="ghost">Switch wallet</button><button id="wldisc" class="ghost">Disconnect</button></div>`;
+  bindCloud(c, msg);
   $('wlcopy').onclick = async () => { try { await navigator.clipboard.writeText(c.address); msg('Address copied.'); } catch { msg(c.address); } };
   if ($('wlperks')) $('wlperks').onclick = async () => { $('wlperks').disabled = true; try { const r = await prove(c.w, BASE, msg); msg(r.pass ? 'You hold DMT. Your perks are on!' : `${short(r.address)} holds no DMT on Arbitrum.`); } catch (e) { msg(why(e)); } applyDmt(); renderWallet(); };
   if ($('wlranked')) $('wlranked').onclick = () => { $('wallet').classList.add('hidden'); openRanked(); };
   $('wlswitch').onclick = () => { const ch = walletChoices((w) => pickWallet(w, msg)); body.innerHTML = `<p>Pick a wallet. For another account in the same wallet, switch accounts inside the wallet.</p>${ch.html}`; ch.bind(body); };
   $('wldisc').onclick = () => { walletDisconnect(); msg('Disconnected.'); };
 }
+// ---- cloud save on the wallet (src/cloud.js): the same progress on every device ---------------------------------------
+const cloud = createCloud(BASE, {
+  choose: (wal, dev) => new Promise((done) => {
+    const line = (s) => `${s.coins.toLocaleString()} coins · ${s.maps} map${s.maps === 1 ? '' : 's'} cleared · ${s.ranks} skill rank${s.ranks === 1 ? '' : 's'} · ${s.gear} gear`;
+    $('cloudwal').textContent = line(wal); $('clouddev').textContent = line(dev); $('cloudpick').classList.remove('hidden');
+    const pick = (v) => { $('cloudpick').classList.add('hidden'); done(v); };
+    $('cloudusewal').onclick = () => pick('cloud'); $('cloudusedev').onclick = () => pick('device');
+  }),
+  note: (t) => banner(t, 4000),
+  reload: () => { banner('Loading your progress from your wallet…', 3000); setTimeout(() => location.reload(), 500); },
+});
+onSaved = (k) => { if (CLOUD_KEYS.includes(k)) cloud.changed(); };
+const cloudFor = (c) => { const s = cloud.state(); return s && c && s.a.toLowerCase() === c.address.toLowerCase() ? s : null; };
+function cloudHTML(c) {
+  const s = cloud.state(), on = cloudFor(c);
+  if (on) return `<div class="wlcloud"><p class="dmtok">Cloud save is on: your progress follows this wallet to any device.</p><div class="lurow"><button id="wlcloudnow" class="ghost">Save now</button><button id="wlcloudoff" class="ghost">Turn off here</button></div></div>`;
+  return `<div class="wlcloud"><p>${s ? `This device saves to ${esc(short(s.a))}. ` : ''}Keep your progress on this wallet and play the same save on your laptop, desktop and phone.</p><button id="wlcloud">Turn on cloud save (free signature)</button></div>`;
+}
+function bindCloud(c, msg) {
+  if ($('wlcloud')) $('wlcloud').onclick = async () => {
+    $('wlcloud').disabled = true;
+    try { const r = await cloud.signIn(c, msg); msg(r === 'loaded' ? 'Loading the progress saved on this wallet…' : 'Cloud save is on.'); renderWallet(); }
+    catch (e) { msg(why(e)); $('wlcloud').disabled = false; }
+  };
+  if ($('wlcloudnow')) $('wlcloudnow').onclick = async () => { msg('Saving…'); await cloud.push(true); msg('Saved to your wallet.'); };
+  if ($('wlcloudoff')) $('wlcloudoff').onclick = () => { cloud.signOut(); msg('Cloud save is off on this device. Your saved progress stays on the wallet.'); renderWallet(); };
+}
+// open the game or come back to it: a newer save from another device loads (only between runs)
+const cloudPull = async () => { if (!cloud.state() || mode !== 'title' || rankedPlaying()) return; if (await cloud.pull()) { banner('Loading your progress from your other device…', 3000); setTimeout(() => location.reload(), 600); } else cloud.changed(); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); else if (cloud.state()) cloud.push(true); });
+setTimeout(cloudPull, 1500);
 function openWallet() { $('walletmsg').textContent = ''; renderWallet(); $('wallet').classList.remove('hidden'); $('walletclose').focus(); refreshBalances(true); }
 $('walletchip').onclick = openWallet;
 $('walletclose').onclick = () => { $('wallet').classList.add('hidden'); (!$('ranked').classList.contains('hidden') ? $('rankedclose') : $('walletchip')).focus(); };
@@ -699,7 +813,8 @@ async function startRun(live = null) {
   const gear = isRanked || forced ? {} : getGear();
   await renderer.preloadGear(Object.values(gear));
   if (isRanked) {
-    const restored = resumeRanked(live.log, { seed: live.seed, mapId: live.map, adv: live.adv, ground: runGround() });
+    const restored = await resumeRankedAsync(live.log, { seed: live.seed, mapId: live.map, adv: live.adv, ground: runGround(), ...liveRace(live) },
+      (done, all) => rankedMessage(`Restoring your ranked run: ${fmtT(done / 30)} of ${fmtT(all / 30)}…`));
     sim = restored.sim; rankedRec = restored.rec; persistRanked();
     $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
   } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
@@ -708,8 +823,8 @@ async function startRun(live = null) {
   $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
   $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
   if (isRanked && sim.pending[PLAYER]) showLevelUp();
-  const goalText = !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
-  banner(`${isRanked ? 'Ranked ·' : endlessOn ? 'Endless' : 'Survive'} ${map.name}${!isRanked && hardOn ? ' (hard)' : ''}${goalText}`, 4500);
+  const goalText = isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills per minute' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
+  banner(`${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'} ${map.name}${!isRanked && hardOn ? ' (hard)' : ''}${goalText}`, 4500);
 }
 let bannerT = 0;
 function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; b.classList.add('on'); clearTimeout(bannerT); bannerT = setTimeout(() => b.classList.remove('on'), ms); }
@@ -732,7 +847,7 @@ function endRun() {
   $('lbsubmit').disabled = wasRanked; $('lbmsg').textContent = '';
   $('endlb').classList.toggle('hidden', wasRanked || $('lbbtn').classList.contains('hidden'));
   $('rankedresult').textContent = ''; $('rankedretry').classList.add('hidden');
-  if (wasRanked) { lastRun.sent = true; lastRun.ranked = true; }
+  if (wasRanked) { lastRun.sent = true; lastRun.ranked = true; lastRun.race = sim.hard ? 'hard' : 'normal'; if (sim.endless && kpmWeek(liveRace(rankedRun).week)) lastRun.kpm = kpm(sim.kills, Math.floor(sim.t)); } // week 0 ranks by time
   $('again').textContent = wasRanked ? 'Next ranked run' : 'Run it back'; // after ranked, play again goes back to Ranked (a free casual run was mistaken for ranked)
   if (!wasRanked && load('sq-name', '') && sim.t >= 30) setTimeout(submitScore, 300); // named players send runs of 30 s or more automatically
   const endlessBonus = sim.endless ? Math.floor(Math.max(0, sim.t - sim.map.length) / 10) : 0;
@@ -773,8 +888,9 @@ function endRun() {
   $('enddmg').innerHTML = dmgRows.map(([id, v]) => `<div class="drow">${wicon(id)}<span>${wname(id)}</span><div class="dbar"><i style="width:${(v / top) * 100}%"></i></div><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
   $('endloot').innerHTML = (lootNotes.length ? `<div class="lootline"><b>Caskets</b> ${lootNotes.join(' · ')}</div>` : '') + questNotes.map((x) => `<div class="questline">${x}</div>`).join('');
   buildMaps(); buildAdventurers(); showBest();
-  $('endtitle').textContent = won ? `${sim.map.name} holds!` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
-  $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${unlockNote}`;
+  $('endtitle').textContent = won ? `${sim.map.name} holds!` : sim.over === 'time' ? `The hunt is over at ${fmtT(sim.endAt)}` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
+  const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
+  $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${kpmNote}${unlockNote}`;
   $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
   $('end').classList.remove('hidden');
   if (wasRanked) { rankedRun.ended = true; persistRanked(); submitRanked(); }
@@ -1003,8 +1119,8 @@ function updateHud(view) {
   $('hptext').textContent = `${me.hp} / ${me.mhp}`;
   $('xpfill').style.width = Math.min(100, (view.xp / view.xpNeed) * 100) + '%';
   $('lvl').textContent = 'Lv ' + view.level;
-  const t = Math.floor(view.t); $('clock').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
-  const goal = sim && !sim.endless && sim.map.length ? sim.map.length : 0; $('clockgoal').textContent = goal ? `of ${Math.floor(goal / 60)}:${String(goal % 60).padStart(2, '0')}` : '';
+  const t = Math.floor(view.t); $('clock').textContent = fmtT(t);
+  const goal = sim && sim.endAt ? sim.endAt : sim && !sim.endless && sim.map.length ? sim.map.length : 0; $('clockgoal').textContent = goal ? `of ${fmtT(goal)}` : '';
   $('kills').textContent = view.kills;
   const boss = view.enemies.find((e) => ENEMIES[e[1]].boss);
   $('bossbar').classList.toggle('hidden', !boss);
@@ -1038,7 +1154,7 @@ function updateHud(view) {
 
 // ---- menus with a controller or the arrow keys: spatial focus, A/Enter picks, B/Esc goes back -----------------------
 const NAV_SCREENS = ['ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'pause', 'end', 'title'];
-const NAV_ITEMS = '.aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem, #hardwrap:not(.hidden), #endlesswrap:not(.hidden)';
+const NAV_ITEMS = '.aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden), #endlesswrap:not(.hidden), input[data-vol]';
 let navEl = null;
 function navScreen() { return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden')); }
@@ -1047,6 +1163,8 @@ function navMove(dir) {
   const scr = navScreen(); if (!scr) return;
   const items = navItems(scr); if (!items.length) return;
   if (!navEl || !scr.contains(navEl) || !items.includes(navEl)) { navFocus(items.find((el) => el.classList.contains('sel')) || (scr.id === 'title' ? $('start') : items[0])); return; }
+  // a volume slider: left and right move it
+  if (navEl.matches('input[type=range]') && (dir === 'left' || dir === 'right')) { navEl.value = Number(navEl.value) + (dir === 'left' ? -5 : 5); navEl.dispatchEvent(new Event('input')); return; }
   const r = navEl.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   let best = null, bs = 1e9;
   for (const el of items) {

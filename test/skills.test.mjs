@@ -119,10 +119,17 @@ test('Revive restores half HP, protects briefly, shows an effect, and only works
   assert.deepEqual({ ...a, rng: null }, { ...b, rng: null });
 });
 test('ranked ignores supplied upgrades, remains 4/4, and never revives', () => {
-  const s = rankedSim({ seed: 1, mapId: 'greentown', adv: 'adventurer', ground: null, meta: { revive: 1, strength: 2, prayer: 2 } });
+  const s = rankedSim({ seed: 1, mapId: 'greentown', adv: 'adventurer', ground: null, week: 0, meta: { revive: 1, strength: 2, prayer: 2 } });
   const p = s.players[0], st = playerStats(p);
   assert.equal(st.weaponSlots, 4); assert.equal(st.passiveSlots, 4); assert.equal(p.revives, 0);
   lethal(s); assert.equal(p.alive, false); assert.ok(!s.fx.some((f) => f.k === 'revive'));
+  // the same in both week 1 races (endless, Hard on hard rules)
+  for (const mode of ['normal', 'hard']) {
+    const h = rankedSim({ seed: 1, mapId: 'greentown', adv: 'adventurer', ground: null, week: 1, mode, meta: { revive: 1, strength: 2, prayer: 2 } });
+    const hp = h.players[0], hs = playerStats(hp);
+    assert.deepEqual([hs.weaponSlots, hs.passiveSlots, hp.revives, h.hard, h.endless], [4, 4, 0, mode === 'hard', true]);
+    lethal(h); assert.equal(hp.alive, false); assert.ok(!h.fx.some((f) => f.k === 'revive'));
+  }
 });
 test('base health and enemy HP and speed scaling follow the new season rules', () => {
   assert.equal(createSim().players[0].hp, 100);

@@ -1,6 +1,27 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.36', date: '3 Nov 2026', title: 'Ranked is endless, up to two hours',
+    items: [
+      'Ranked runs are endless from today. Bosses keep coming until you fall, and the hunt is over at 2:00:00.',
+      'This week (to Monday 9 Nov) ranks by how long you survive, then kills. Runs already sent this week keep their times.',
+      'From Monday 9 Nov your ranked score is kills per minute (kills × 60 ÷ seconds survived). A run must last 3:00 to place. Ties go to more kills, then the earlier finish.',
+      'From Monday 9 Nov, a Hard ranked race: the same weekly map on hard rules, 1.5 DMT a run, with its own pot and board. The same top 5 split, and unclaimed places roll over into next week’s Hard pot.',
+      'The Ranked panel and the leaderboard get a Normal / Hard switch showing each race’s price, pot, prizes and standings.',
+      'Cloud save: open the wallet and turn on cloud save (one free signature per device). Your coins, skills, gear, quests and cleared maps follow your wallet to your laptop, desktop and phone. Playing on two at once? What each one earned is added together.',
+      'The Gear panel lists every piece for each slot. Smith a metal piece into the next metal with coins: Bronze Helmet into Iron, up to Runite (400 to 7,000 coins). The new piece is worn if the old one was, and keeps its reinforcement.',
+      'No limit on ranked runs: play as many as you like each week. Still one wallet per player.',
+      'A long run takes a few minutes to check when you send it: keep the page open until it says accepted.',
+      'Past the first hour the clock shows hours too (1:05:30).',
+      'Settings, Sound: separate sliders for sound effects and music (arrow keys or a controller move them too).',
+      'Dropped items no longer show a dark box around them (ambient occlusion and depth of field now leave sprites out).',
+      'Bones on the ground are 10% bigger.',
+      'Mushrooms, daisies, grass and path stones are their real size again (the smaller-download change had made mushrooms huge and the rest too small).',
+      'Food drops come in SankoQuest’s tiers: Cooked Crawdad (+15 health), Brown Trout (+25), Catfish (+35) and Bubba Bass (+50). Better fish later in a run and from elites; bosses drop a Bubba Bass.',
+      'Softer effects: the throwing axe’s spin, elite halos, the fire ring, the DMT aura and enemy bolts glow and fade at the edges instead of hard flat rings.',
+    ],
+  },
+  {
     version: '0.35', date: '2 Nov 2026', title: 'New season: the Hidden Oasis, real casket gear, more slots and balance',
     items: [
       'Move your progress to another computer or phone: More, Move progress, copy the code, paste it on the other device.',

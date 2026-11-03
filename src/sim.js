@@ -19,11 +19,11 @@ export function mulberry32(a) {
 
 const hyp = dhypot;
 
-export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false } = {}) {
+export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0 } = {}) {
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
   const sim = {
-    seed, rng, map, hard, meta, endless, t: 0, tick: 0, nextId: 1,
+    seed, rng, map, hard, meta, endless, endAt, t: 0, tick: 0, nextId: 1,
     mapIndex: Math.max(0, MAPS.findIndex((m) => m.id === map.id)), casketRank: casketRank(map),
     killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], endlessBossT: 0, endlessCycle: 0,
     players: [], enemies: [], proj: [], gems: [], pickups: [], fx: [],
@@ -31,7 +31,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
     eproj: [],            // monster projectiles: { id, x, z, vx, vz, r, dmg, life, art }
     level: 1, xp: 0, xpNeed: xpForLevel(1),
     pending: {},          // playerId -> { choices: [...], left: seconds }; a reward casket card also has { casket: compareGear(...) }
-    over: null,           // null | 'win' | 'dead'
+    over: null,           // null | 'win' | 'dead' | 'time' (an endless ranked run reached its time limit, endAt seconds)
     kills: 0, bossIndex: 0, spawnAcc: 0, spawnCount: players.length, region: null,
     eventT: 210, event: null, dmgBy: {}, hurtBy: {}, src: null, // random events: treasure goblin, swarm, meteor shower
     ground,               // optional { n, blocked: Uint8Array, walls?: Uint8Array } one cell per world unit: ridges, mountains, water; thin walls
@@ -232,7 +232,7 @@ function killEnemy(sim, e, owner) {
   sim.fx.push({ k: 'die', x: e.x, z: e.z, boss: def.boss ? 1 : 0, elite: e.elite ? 1 : 0 });
   if (!def.boss) {
     const r = sim.rng(), drop = (kind) => sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z, kind });
-    if (r < 0.010) drop('beer'); else if (r < 0.016) drop('pumpkin'); else if (r < 0.022) drop('warp'); else if (r < 0.034) drop('fish');
+    if (r < 0.010) drop('beer'); else if (r < 0.016) drop('pumpkin'); else if (r < 0.022) drop('warp'); else if (r < 0.034) drop(foodDrop(sim.t, (r - 0.022) / 0.012, e.elite));
     if (sim.rng() < 0.05 * (p ? playerStats(p).coin : 1)) drop('coin');
     if (sim.rng() < 0.0015 * (p ? playerStats(p).casket : 1) || e.elite) drop('casket'); // a rare reward casket from anything, always from an elite
     if (e.elite) { for (let i = 0; i < 3; i++) sim.pickups.push({ id: sim.nextId++, x: e.x + (i - 1) * 0.8, z: e.z + 0.8, kind: 'coin' }); }
@@ -244,7 +244,7 @@ function killEnemy(sim, e, owner) {
       const a = sim.rng() * 6.283;
       sim.gems.push({ id: sim.nextId++, x: e.x + dcos(a) * 1.5, z: e.z + dsin(a) * 1.5, v: Math.ceil(def.xp / 8), vx: 0, vz: 0 });
     }
-    sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z, kind: 'fish' }, { id: sim.nextId++, x: e.x + 1.2, z: e.z, kind: 'chest' }, { id: sim.nextId++, x: e.x - 1.2, z: e.z, kind: 'casket' });
+    sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z, kind: 'bass' }, { id: sim.nextId++, x: e.x + 1.2, z: e.z, kind: 'chest' }, { id: sim.nextId++, x: e.x - 1.2, z: e.z, kind: 'casket' });
     const luck = p ? playerStats(p).luck - 1 : 0;
     if (luck > 0 && sim.rng() < luck) sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z + 1.2, kind: 'chest' });
     sim.bossKills++;
@@ -643,9 +643,19 @@ export function regionOf(sim, p) {
 // ---- the belt: beer, pumpkins and warp shards can be saved and used when it counts ------------------------------
 export const BELT_SIZE = 4;
 const BELT_KINDS = ['beer', 'pumpkin', 'warp'];
+// food in SankoQuest's own tiers (owner 3 Nov: "different tiers of food drops, crawdads lowest"): eaten on pickup.
+// Early on mostly crawdads and trout; later catfish and the odd Bubba Bass; an elite drops one tier up; bosses a bass.
+export const FOOD = { crawdad: { heal: 15, item: 'Cooked Crawdad' }, trout: { heal: 25, item: 'Cooked Brown Trout' }, catfish: { heal: 35, item: 'Cooked Catfish' }, bass: { heal: 50, item: 'Cooked Bubba Bass' } };
+const FOOD_TIERS = ['crawdad', 'trout', 'catfish', 'bass'];
+// u: a roll in [0, 1) (the drop roll itself, so the run's random sequence is unchanged)
+export function foodDrop(t, u, elite = false) {
+  let i = t < 180 ? (u < 0.7 ? 0 : 1) : t < 480 ? (u < 0.35 ? 0 : u < 0.75 ? 1 : 2) : (u < 0.3 ? 1 : u < 0.78 ? 2 : 3);
+  if (elite) i = Math.min(3, i + 1);
+  return FOOD_TIERS[i];
+}
 function useItem(sim, p, kind) {
   const st = playerStats(p);
-  if (kind === 'fish') p.hp = Math.min(p.maxHp, p.hp + 35 * st.heal);
+  if (FOOD[kind]) p.hp = Math.min(p.maxHp, p.hp + FOOD[kind].heal * st.heal);
   else if (kind === 'beer') { p.hp = Math.min(p.maxHp, p.hp + 20 * st.heal); p.buffs.speed = 8; }
   else if (kind === 'pumpkin') { sim.src = 'pumpkin'; sim.fx.push({ k: 'nuke', x: p.x, z: p.z, r: 20 }); for (const e of sim.enemies) if (hyp(e.x - p.x, e.z - p.z) < 20) damageEnemy(sim, e, 45 + sim.t * 0.25, p.id, 4, p.x, p.z); }
   else if (kind === 'warp') { for (const g of sim.gems) g.pulled = true; for (const o of sim.pickups) if (o.kind === 'coin') o.pulled = true; }
@@ -923,7 +933,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       k.taken = true;
       const st = playerStats(p);
       if (BELT_KINDS.includes(k.kind) && p.belt.length < BELT_SIZE) p.belt.push(k.kind); // kept for later (1-4)
-      else if (BELT_KINDS.includes(k.kind) || k.kind === 'fish') useItem(sim, p, k.kind);
+      else if (BELT_KINDS.includes(k.kind) || FOOD[k.kind]) useItem(sim, p, k.kind);
       else if (k.kind === 'chest') { if (!sim.pending[p.id]) sim.pending[p.id] = { choices: rollChoices(sim, p), left: 25 }; }
       else if (k.kind === 'casket') gotCasket(sim, p, rollCasket(sim.rng, sim.casketRank, sim.hard, sim.t));
       else p.coins++;
@@ -934,6 +944,7 @@ export function step(sim, inputs = {}, dt = TICK) {
 
   if (sim.players.every((p) => !p.alive)) sim.over = 'dead';
   else if (sim.t >= sim.map.length && !sim.endless) sim.over = 'win';
+  else if (sim.endAt && sim.t >= sim.endAt) sim.over = 'time';
   for (const p of sim.players) openCasket(sim, p); // a casket card waits for any level-up card first
 }
 

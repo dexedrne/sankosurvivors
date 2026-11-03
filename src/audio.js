@@ -10,18 +10,22 @@ const EXT = { 'NPC_Block': 'wav', 'magic-edit-1': 'wav', 'Bun_Burp_v1': 'wav' };
 const TRACKS = { early: 'Fresh_Beginnings', mid: 'Adobe_Fantasy', late: 'snowdrift_mix', boss: 'payasan_town_mix', final: 'grotto1' };
 
 export function createAudio() {
-  let ctx = null, sfxGain = null, musicEl = null, musicName = '', muted = localStorage.getItem('sq-muted') === '1';
+  let ctx = null, sfxGain = null, musicEl = null, musicName = '', muted = localStorage.getItem('sq-muted') === '1', ducked = false;
+  // volume sliders, 0-100 each (Settings, Sound): 60 is the old fixed loudness, so there is room both ways
+  const vol = { s: 60, m: 60 };
+  try { const v = JSON.parse(localStorage.getItem('sq-vol') || 'null'); for (const k of ['s', 'm']) if (Number.isFinite(v?.[k])) vol[k] = Math.max(0, Math.min(100, v[k])); } catch { /* defaults */ }
+  const sfxLevel = () => (muted ? 0 : 0.5 * vol.s / 60), musicLevel = () => (muted ? 0 : Math.min(1, 0.3 * vol.m / 60) * (ducked ? 1 / 3 : 1));
   const buffers = new Map(); const last = {};
   async function init() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    ctx = new AC(); sfxGain = ctx.createGain(); sfxGain.gain.value = muted ? 0 : 0.5; sfxGain.connect(ctx.destination);
+    ctx = new AC(); sfxGain = ctx.createGain(); sfxGain.gain.value = sfxLevel(); sfxGain.connect(ctx.destination);
     await Promise.all([...new Set(Object.values(SFX).flat())].map(async (n) => {
       try { const r = await fetch(asset(`sound/soundEffects/${n}.${EXT[n] || 'mp3'}`)); buffers.set(n, await ctx.decodeAudioData(await r.arrayBuffer())); } catch { /* optional */ }
     }));
   }
   function play(kind, { minGap = 0.05, vol = 1, rate = 1 } = {}) {
-    if (!ctx || muted) return;
+    if (!ctx || muted || !vol.s) return;
     const now = ctx.currentTime; if (now - (last[kind] || 0) < minGap) return; last[kind] = now;
     const list = SFX[kind]; const name = list[Math.floor(Math.random() * list.length)]; const buf = buffers.get(name); if (!buf) return;
     const src = ctx.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate * (0.92 + Math.random() * 0.16);
@@ -32,11 +36,18 @@ export function createAudio() {
     musicName = file;
     const old = musicEl; const el = new Audio(asset(`music/${file}.mp3`)); el.loop = true; el.volume = 0; el.preload = 'auto';
     musicEl = el; el.play().catch(() => {});
-    let v = 0; const target = muted ? 0 : 0.3;
-    const fade = setInterval(() => { v = Math.min(target, v + 0.02); el.volume = v; if (old) old.volume = Math.max(0, old.volume - 0.03); if (v >= target && (!old || old.volume <= 0)) { clearInterval(fade); old && old.pause(); } }, 100);
+    let v = 0;
+    const fade = setInterval(() => { const target = musicLevel(); v = Math.min(target, v + 0.02); el.volume = v; if (old) old.volume = Math.max(0, old.volume - 0.03); if (v >= target && (!old || old.volume <= 0)) { clearInterval(fade); old && old.pause(); } }, 100);
   }
-  function setMuted(m) { muted = m; localStorage.setItem('sq-muted', m ? '1' : '0'); if (sfxGain) sfxGain.gain.value = m ? 0 : 0.5; if (musicEl) musicEl.volume = m ? 0 : 0.3; }
-  function duck(on) { if (musicEl && !muted) musicEl.volume = on ? 0.1 : 0.3; }
+  const apply = () => { if (sfxGain) sfxGain.gain.value = sfxLevel(); if (musicEl) musicEl.volume = musicLevel(); };
+  function setMuted(m) { muted = m; localStorage.setItem('sq-muted', m ? '1' : '0'); apply(); }
+  function duck(on) { ducked = !!on; apply(); }
+  // kind: 's' sound effects or 'm' music; pct 0-100
+  function setVolume(kind, pct) {
+    if (kind !== 's' && kind !== 'm') return; vol[kind] = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+    try { localStorage.setItem('sq-vol', JSON.stringify(vol)); } catch { /* storage blocked */ }
+    apply();
+  }
   function onFx(list, view, base = 'early') {
     for (const f of list) {
       if (f.k === 'dmg') play('hit', { minGap: 0.045, vol: 0.5 });
@@ -60,5 +71,5 @@ export function createAudio() {
     }
     if (view) { const t = view.t; music(t >= 720 ? 'final' : t >= 540 ? 'boss' : t >= 330 ? 'late' : t >= 150 ? 'mid' : base); }
   }
-  return { init, play, music, onFx, setMuted, duck, get muted() { return muted; } };
+  return { init, play, music, onFx, setMuted, duck, setVolume, volume: (k) => vol[k], get muted() { return muted; } };
 }
