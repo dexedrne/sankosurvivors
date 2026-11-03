@@ -5,8 +5,8 @@
 export const METAL_TIERS = ['Bronze', 'Iron', 'Steel', 'Mithril', 'Adamantite', 'Runite'];
 export const MAX_WEAPON_LEVEL = 6;
 export const MAX_PASSIVE_LEVEL = 5;
-export const MAX_WEAPONS = 6;
-export const MAX_PASSIVES = 6;
+export const MAX_WEAPONS = 4;
+export const MAX_PASSIVES = 4;
 
 // ---- enemies ------------------------------------------------------------
 // h = rendered height in world units, r = body radius, speed in units/s.
@@ -21,7 +21,7 @@ export const ENEMIES = {
   spider:    { name: 'Giant Spider', model: 'mobs/Spider.glb',                   h: 0.77, r: 0.8, hp: 40,  speed: 3.0, dmg: 11, xp: 4, walk: 'walk', idle: 'idle' },
   jspider:   { name: 'Jungle Spider',model: 'mobs/Spider2.glb',                  h: 0.75, r: 0.8, hp: 55,  speed: 3.2, dmg: 13, xp: 5, walk: 'walk', idle: 'idle' },
   pspider:   { name: 'Plasma Spider',model: 'mobs/Spider3.glb',                  h: 0.75, r: 0.9, hp: 80,  speed: 3.4, dmg: 16, xp: 7, walk: 'walk', idle: 'idle' },
-  slimer:    { name: 'Slimer',       model: 'mobs/snail/Slimer.glb',             h: 2.1, r: 0.8, hp: 60,  speed: 1.8, dmg: 12, xp: 5, walk: 'walk', idle: 'idle' },
+  slimer:    { name: 'Slimer',       model: 'mobs/snail/Slimer.glb',             h: 2.1, r: 1.3, hp: 60,  speed: 1.8, dmg: 12, xp: 5, walk: 'walk', idle: 'idle' },
   dwarf:     { name: 'Frost Dwarf',  model: 'mobs/snow_biome/dwarf.glb',         h: 1.5, r: 0.6, hp: 70,  speed: 2.8, dmg: 14, xp: 6, walk: 'walk', idle: 'idle' },
   wight:     { name: 'Frost Wight',  model: 'mobs/snow_biome/frost_wight.glb',   h: 2.0, r: 0.7, hp: 110, speed: 2.9, dmg: 17, xp: 8, walk: 'walk', idle: 'idle' },
   yeti:      { name: 'Yeti',         model: 'mobs/snow_biome/yeti.glb',          h: 2.8, r: 1.0, hp: 190, speed: 3.0, dmg: 22, xp: 12, walk: 'walk', idle: 'idle' },
@@ -37,10 +37,10 @@ export const ENEMIES = {
   lildragon: { name: 'Lil Dragon',   model: 'mobs/Dragon.glb',                   h: 2.6, r: 1.0, hp: 220, speed: 3.3, dmg: 20, xp: 14, walk: 'Walk', idle: 'Idle' },
   bandit:    { name: 'Bandit',       rig: { hair: 'Short', head: 'Ranger Helmet', chest: 'Ranger Chestplate', hands: 'Ranger Gauntlets', legs: 'Ranger Leggings', feet: 'Ranger Boots' }, h: 1.6, r: 0.5, hp: 28, speed: 3.6, dmg: 9, xp: 3 },
   shapewiz:  { name: 'Shape Wizard', rig: { hair: 'Long', head: 'Shape Wizard Hat', chest: 'Shape Robe', legs: 'Shape Skirt', shirt: 0x7a4ac8 }, h: 1.6, r: 0.5, hp: 70, speed: 3.0, dmg: 15, xp: 7 },
-  mslimer:   { name: 'Mutant Slimer',model: 'mobs/snail/mutant slimer.glb',      h: 2.1, r: 1.1, hp: 260, speed: 2.6, dmg: 22, xp: 15, walk: 'walk', idle: 'walk' },
+  mslimer:   { name: 'Mutant Slimer',model: 'mobs/snail/mutant slimer.glb',      h: 2.1, r: 1.5, hp: 260, speed: 2.6, dmg: 22, xp: 15, walk: 'walk', idle: 'walk' },
   // bosses
   giant:     { name: 'Lesser Giant', model: 'mobs/giant.glb',                    h: 3.9, r: 1.6, hp: 900,  speed: 2.2, dmg: 28, xp: 60, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam'] },
-  ogre:      { name: 'Ogre Warlord', model: 'mobs/snow_biome/ogre.glb',          h: 4.1, r: 1.5, hp: 2200, speed: 2.5, dmg: 34, xp: 120, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam', 'charge'] },
+  ogre:      { name: 'Fudna the Hoard Keeper', model: 'mobs/snow_biome/ogre.glb',          h: 4.1, r: 1.5, hp: 2200, speed: 2.5, dmg: 34, xp: 120, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam', 'charge'] },
   colossus:  { name: 'Rime Colossus',model: 'mobs/snow_biome/rime_colossus.glb', h: 6.0, r: 2.0, hp: 4200, speed: 2.4, dmg: 40, xp: 200, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam', 'volley'], shot: 'ice' },
   reaper:    { name: 'Pumpkin Reaper', model: 'mobs/halloween/pumpkin-reaper/pumpkin-reaper.glb', h: 4.4, r: 1.5, hp: 3600, speed: 3.1, dmg: 38, xp: 160, walk: 'walk', idle: 'idle', boss: true, attacks: ['charge', 'volley'], shot: 'fire' },
   dragon:    { name: 'Dragon',       model: 'mobs/Dragon.glb',                   h: 3.8, r: 2.4, hp: 9000, speed: 3.4, dmg: 50, xp: 500, walk: 'Walk', idle: 'Idle', boss: true, final: true, attacks: ['volley', 'slam', 'charge'], shot: 'fire' },
@@ -67,7 +67,7 @@ export const SPAWN_POOL = [
   { t: 240, type: 'camel',    w: 2 },
   { t: 300, type: 'snowman',  w: 3 },
   { t: 330, type: 'alligator',w: 2 },
-  { t: 390, type: 'star',     w: 3 },
+  { t: 390, type: 'bandit',   w: 3 }, // (the Star is a friendly townsman in SankoQuest, never a monster)
   { t: 450, type: 'shapewiz', w: 3 },
   { t: 510, type: 'boatman',  w: 2 },
   { t: 570, type: 'starwiz',  w: 2 },
@@ -170,7 +170,7 @@ export const PASSIVES = {
   thorns:  { name: 'Scorpion Carapace', item: 'Scorpion Carapace', blurb: 'Monsters that hit you take 8 damage per level back.' },
   greed:   { name: 'Rusty Key',     item: 'Rusty Key',     blurb: '+15% coins and more reward caskets per level.' },
 };
-export const ARMOR_TIERS = ['Bronze', 'Iron', 'Steel', 'Mithril', 'Adamantite'];
+export const ARMOR_TIERS = ['Bronze', 'Iron', 'Steel', 'Mithril', 'Adamantite', 'Runite'];
 // Real item name to show for a passive at a level.
 export function passiveItem(id, level) {
   if (id === 'armor') return `${ARMOR_TIERS[Math.min(level, 5) - 1] || 'Bronze'} Chestplate`;
@@ -238,19 +238,35 @@ export function evolveStats(id, s) {
 
 // ---- permanent upgrades bought with coins: SankoQuest's skills ----------------------------------------------
 export const SKILLS = {
-  combat:      { name: 'Combat',      icon: 'attack',      blurb: '+4% damage per level.' },
-  magic:       { name: 'Magic',       icon: 'magic',       blurb: '+10% pickup range per level.' },
-  mining:      { name: 'Mining',      icon: 'mining',      blurb: '+1 armor at levels 2 and 4.' },
-  smithing:    { name: 'Smithing',    icon: 'smithing',    blurb: '+8 max HP per level.' },
-  woodcutting: { name: 'Woodcutting', icon: 'woodcutting', blurb: '+3% move speed per level.' },
-  fletching:   { name: 'Fletching',   icon: 'crafting',   blurb: '-3% cooldowns per level.' },
-  fishing:     { name: 'Fishing',     icon: 'fishing',     blurb: 'Food heals 12% more per level.' },
-  cooking:     { name: 'Cooking',     icon: 'cooking',     blurb: 'Regenerate 0.1 HP/s per level.' },
-  herblore:    { name: 'Mixnometry',  icon: 'mixnometry',  blurb: '+5% experience per level.' },
+  combat:      { max: 5, name: 'Combat',      icon: 'ui/skills/attack.png',      blurb: '+4% damage per level.' },
+  magic:       { max: 5, name: 'Magic',       icon: 'ui/skills/magic.png',       blurb: '+10% pickup range per level.' },
+  mining:      { max: 5, name: 'Mining',      icon: 'ui/skills/mining.png',      blurb: '+1 armor at levels 2 and 4.' },
+  smithing:    { max: 5, name: 'Smithing',    icon: 'ui/skills/smithing.png',    blurb: '+8 max HP per level.' },
+  woodcutting: { max: 5, name: 'Woodcutting', icon: 'ui/skills/woodcutting.png', blurb: '+3% move speed per level.' },
+  fletching:   { max: 5, name: 'Fletching',   icon: 'ui/skills/crafting.png',   blurb: '-3% cooldowns per level.' },
+  fishing:     { max: 5, name: 'Fishing',     icon: 'ui/skills/fishing.png',     blurb: 'Food heals 12% more per level.' },
+  cooking:     { max: 5, name: 'Cooking',     icon: 'ui/skills/cooking.png',     blurb: 'Regenerate 0.1 HP/s per level.' },
+  herblore:    { max: 5, name: 'Mixnometry',  icon: 'ui/skills/mixnometry.png',  blurb: '+5% experience per level.' },
+  strength: { name: 'Strength', icon: 'ui/skills/strength.png', max: 2, costs: [1500, 4000], blurb: '+1 weapon slot per rank. Start with 4; train up to 6.' },
+  prayer: { name: 'Prayer', icon: 'ui/skills/prayer.png', max: 2, costs: [1500, 4000], blurb: '+1 passive slot per rank. Start with 4; train up to 6.' },
+  projectileSpeed: { name: 'Projectile speed', icon: 'ui/items/item_Bronze_Arrow.png', max: 2, costs: [300, 800], blurb: '+10% projectile speed per rank.' },
+  amount: { name: 'One more projectile', icon: 'ui/items/item_Feather.png', max: 1, costs: [3000], blurb: '+1 projectile for the same weapons as the Feather.' },
+  area: { name: 'Area', icon: 'ui/items/item_Cape.png', max: 2, costs: [300, 800], blurb: '+5% attack area per rank, like the Cape.' },
+  luck: { name: 'Luck', icon: 'ui/items/item_Rusty_Key.png', max: 3, costs: [250, 600, 1200], blurb: '+15% casket drops and bonus boss chest chance per rank.' },
+  coins: { name: 'Coins', icon: 'ui/items/item_Gold.png', max: 5, costs: [150, 400, 800, 1400, 2200], blurb: '+10% coins earned at the end of a run per rank.' },
+  rerolls: { name: 'Rerolls', icon: 'ui/items/item_Warp_Shard.png', max: 3, costs: [300, 800, 1600], blurb: '+1 level-up reroll per run per rank.' },
+  revive: { name: 'Revive', icon: 'ui/items/item_Power_Amulet.png', max: 1, costs: [5000], blurb: 'Once per run, return at 50% HP with 2 seconds of protection.' },
 };
 export const SKILL_IDS = Object.keys(SKILLS);
-export const SKILL_MAX = 5;
-export const skillCost = (level) => Math.round(60 * (level + 1) ** 1.7);
+export const skillCost = (id, level) => SKILLS[id].costs ? SKILLS[id].costs[level] : Math.round(60 * (level + 1) ** 1.7);
+export function clampSkills(saved) {
+  const out = {};
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) for (const id of SKILL_IDS) {
+    if (Object.hasOwn(saved, id)) out[id] = Math.max(0, Math.min(SKILLS[id].max, Math.floor(Number(saved[id])) || 0));
+  }
+  return out;
+}
+
 
 // ---- adventurers: different people, each with a look, a starting weapon and a small bonus ----------------------
 // look uses the real modular character parts (hair, skin, shirt colours, worn armor pieces by item name).
@@ -269,7 +285,7 @@ export const ADVENTURERS = [
 ];
 export const ADVENTURER_BY_ID = Object.fromEntries(ADVENTURERS.map((a) => [a.id, a]));
 
-export const PLAYER_BASE = { hp: 120, speed: 5.4, magnet: 2.8, radius: 0.5 };
+export const PLAYER_BASE = { hp: 100, speed: 5.4, magnet: 2.8, radius: 0.5 };
 
 export function xpForLevel(level) {
   return Math.round(4 + level * 2.6 + level * level * 0.65);
@@ -298,7 +314,7 @@ export const MAPS = [
   {
     id: 'apache', name: 'Apache Desert', blurb: 'Scorpions, camels and bandits in the shadow of the sphinx.',
     cx: 192, cz: 78, r: 1000, sky: 0xf2dca4, fog: 0xf2dca4, light: 1.15, music: 'mid', length: RUN_LENGTH, finalBoss: 'dragon',
-    pool: [P(0, 'scorpion', 6), P(0, 'fox', 4), P(40, 'bandit', 5), P(90, 'camel', 3), P(170, 'spider', 4), P(250, 'alligator', 2), P(300, 'skeleton', 4), P(340, 'jspider', 3), P(420, 'mslimer', 2), P(500, 'boatman', 3), P(560, 'star', 3), P(620, 'pspider', 3)],
+    pool: [P(0, 'scorpion', 6), P(0, 'fox', 4), P(40, 'bandit', 5), P(90, 'camel', 3), P(170, 'spider', 4), P(250, 'alligator', 2), P(300, 'skeleton', 4), P(340, 'jspider', 3), P(420, 'mslimer', 2), P(500, 'boatman', 3), P(560, 'boatman', 3), P(620, 'pspider', 3)],
     retire: { fox: 360 },
     events: ['sandstorm', 'sandstorm', 'treasure', 'swarm', 'meteors'], // desert winds
     bosses: [{ t: 180, type: 'giant' }, { t: 360, type: 'ogre' }, { t: 600, type: 'colossus' }, { t: 720, type: 'dragon' }],
@@ -314,7 +330,7 @@ export const MAPS = [
   {
     id: 'graves', name: 'Chapel Graves', blurb: 'The chapel and the cemetery. The dead do not stay down.',
     cx: 255, cz: 250, r: 1000, sky: 0x33464f, fog: 0x33464f, light: 0.85, music: 'final', length: RUN_LENGTH, finalBoss: 'reaper',
-    pool: [P(0, 'skeleton', 8), P(0, 'dog', 2), P(60, 'star', 4), P(120, 'wolf', 3), P(180, 'spider', 4), P(260, 'shapewiz', 4), P(340, 'snowman', 3), P(440, 'starwiz', 3), P(540, 'jspider', 3), P(640, 'pspider', 3)],
+    pool: [P(0, 'skeleton', 8), P(0, 'dog', 2), P(60, 'bandit', 4), P(120, 'wolf', 3), P(180, 'spider', 4), P(260, 'shapewiz', 4), P(340, 'snowman', 3), P(440, 'starwiz', 3), P(540, 'jspider', 3), P(640, 'pspider', 3)],
     retire: { dog: 240 },
     events: ['rising', 'rising', 'treasure', 'swarm', 'meteors'], // the dead do not stay down
     bosses: [{ t: 240, type: 'giant' }, { t: 450, type: 'ogre' }, { t: 720, type: 'reaper' }],
@@ -338,10 +354,20 @@ export const MAPS = [
   {
     id: 'paya', name: 'Payasan Village', blurb: 'The snowy village east of the desert lake: stars, wizards, snowmen and a yeti.',
     cx: 243, cz: 106, r: 1000, sky: 0xcfe0f0, fog: 0xcfe0f0, light: 1, music: 'boss', length: RUN_LENGTH, finalBoss: 'dragon',
-    pool: [P(0, 'dog', 5), P(0, 'chicken', 4), P(50, 'bandit', 4), P(90, 'snowman', 4), P(180, 'camel', 3), P(260, 'star', 4), P(340, 'shapewiz', 4), P(420, 'yeti', 1), P(430, 'starwiz', 3), P(520, 'boatman', 3), P(620, 'lildragon', 3)],
+    pool: [P(0, 'dog', 5), P(0, 'chicken', 4), P(50, 'bandit', 4), P(90, 'snowman', 4), P(180, 'camel', 3), P(260, 'dwarf', 4), P(340, 'shapewiz', 4), P(420, 'yeti', 1), P(430, 'starwiz', 3), P(520, 'boatman', 3), P(620, 'lildragon', 3)],
     retire: { chicken: 240, dog: 360 },
     events: ['blizzard', 'blizzard', 'treasure', 'swarm', 'meteors'], // snow country
     bosses: [{ t: 210, type: 'giant' }, { t: 420, type: 'reaper' }, { t: 620, type: 'colossus' }, { t: 720, type: 'dragon' }],
+  },
+  {
+    // SankoQuest's underground area under Apache town (its ground and scene sit in our world's empty south-west corner,
+    // see tools/build-world-tiles.py). Opens with Apache Desert, not the map before it in this list.
+    id: 'oasis', name: 'Hidden Oasis', after: 'apache', under: true, area: [0, 448, 128, 512], blurb: 'Behind the locked door under Apache town: a cave of alligator pools and the old factory beyond it.',
+    cx: 37.5, cz: 485.5, r: 1000, sky: 0x0e0b08, fog: 0x0e0b08, light: 0.6, music: 'final', length: RUN_LENGTH, finalBoss: 'colossus',
+    pool: [P(0, 'jspider', 5), P(0, 'slimer', 4), P(40, 'scorpion', 3), P(90, 'alligator', 4), P(200, 'mslimer', 3), P(280, 'skeleton', 3), P(360, 'pspider', 4), P(560, 'boatman', 2), P(640, 'lildragon', 2)],
+    retire: { scorpion: 300, jspider: 420 },
+    events: ['ambush', 'swarm', 'treasure', 'ambush'], // alligators and slimers out of the pools
+    bosses: [{ t: 210, type: 'giant' }, { t: 450, type: 'reaper' }, { t: 720, type: 'colossus' }],
   },
   {
     id: 'tutorial', name: 'Tutorial Island', special: true, forceAdv: 'alex', blurb: 'Where every adventurer washes up. You play as Alex. A gentler ten minutes, open from the start.',
@@ -363,14 +389,23 @@ export const MAP_BY_ID = Object.fromEntries(MAPS.map((m) => [m.id, m]));
 // ---- gear: worn items won from reward caskets and quests, kept between runs ---------------------------------------
 // Every piece is a real SankoQuest item with its own model on the character. Bonus keys: armor, dmg, haste (cooldown cut),
 // speed, magnet, growth (xp), hp, regen, coin (coin drop chance).
-export const GEAR_SLOTS = ['head', 'chest', 'hands', 'legs', 'feet', 'back'];
-export const GEAR_SLOT_NAMES = { head: 'Head', chest: 'Body', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back' };
+export const GEAR_SLOTS = ['head', 'chest', 'hands', 'legs', 'feet', 'offhand', 'back'];
+export const GEAR_SLOT_NAMES = { head: 'Head', chest: 'Body', hands: 'Hands', legs: 'Legs', feet: 'Feet', offhand: 'Shield', back: 'Back' };
 const METAL_PIECES = [['head', 'Helmet'], ['chest', 'Chestplate'], ['hands', 'Gauntlets'], ['legs', 'Leggings'], ['feet', 'Boots']];
+const METAL_ARMOR = [0.2, 0.3, 0.4, 0.5, 0.6, 0.75];
 export const GEAR = {};
 ARMOR_TIERS.forEach((t, i) => {
-  for (const [slot, piece] of METAL_PIECES) GEAR[`${t} ${piece}`] = { slot, set: t, tier: i, bonus: { armor: [0.2, 0.3, 0.4, 0.5, 0.6][i] } };
+  for (const [slot, piece] of METAL_PIECES) GEAR[`${t} ${piece}`] = { slot, set: t, tier: i, bonus: { armor: METAL_ARMOR[i] } };
+});
+// shields for the off hand: a kiteshield is heavy (more armor, a little health), a round shield is light (less armor, a
+// little speed). Models are the held items in equipment/offhand/, not clothing.
+ARMOR_TIERS.forEach((t, i) => {
+  const low = t.toLowerCase();
+  GEAR[`${t} Kiteshield`] = { slot: 'offhand', tier: i, model: `equipment/offhand/kiteshield/${low}_kiteshield.glb`, bonus: { armor: [0.3, 0.45, 0.6, 0.75, 0.9, 1.1][i], hp: [4, 6, 8, 10, 12, 15][i] } };
+  GEAR[`${t} Shield`] = { slot: 'offhand', tier: i, model: `equipment/offhand/shield/${low}_shield.glb`, bonus: { armor: METAL_ARMOR[i], speed: 0.02 } };
 });
 Object.assign(GEAR, {
+  'Ogre Shield':        { slot: 'offhand', tier: 4, rarity: 'unique', model: 'equipment/offhand/shield/ogre_shield.glb', bonus: { armor: 1.2, hp: 25 } },
   'Ranger Helmet':      { slot: 'head',  set: 'Ranger', tier: 2, bonus: { dmg: 0.03, magnet: 0.06 } },
   'Ranger Chestplate':  { slot: 'chest', set: 'Ranger', tier: 2, bonus: { dmg: 0.03, armor: 0.2 } },
   'Ranger Gauntlets':   { slot: 'hands', set: 'Ranger', tier: 2, bonus: { dmg: 0.03 } },
@@ -387,7 +422,7 @@ Object.assign(GEAR, {
   'Bowler Hat':         { slot: 'head',  tier: 1, bonus: { coin: 0.5 } },
   'Beret':              { slot: 'head',  tier: 1, bonus: { speed: 0.04 } },
   'Hamburger Hat':      { slot: 'head',  tier: 2, bonus: { regen: 0.3 } },
-  'Pumpkin Head':       { slot: 'head',  tier: 4, bonus: { dmg: 0.08 } },
+  'Pumpkin Head':       { slot: 'head',  tier: 4, rarity: 'unique', bonus: { dmg: 0.08 } },
   'Winged Boots':       { slot: 'feet',  tier: 3, bonus: { speed: 0.08 } },
   'Green Boots':        { slot: 'feet',  tier: 1, bonus: { speed: 0.05 } },
   'Quilted Boots':      { slot: 'feet',  tier: 0, bonus: { hp: 8 } },
@@ -403,10 +438,19 @@ export const GEAR_SETS = {
   Steel:      { pieces: 5, bonus: { hp: 25, armor: 0.5 }, text: '+25 max HP, +0.5 armor' },
   Mithril:    { pieces: 5, bonus: { hp: 30, speed: 0.04 }, text: '+30 max HP, +4% speed' },
   Adamantite: { pieces: 5, bonus: { hp: 40, armor: 1 }, text: '+40 max HP, +1 armor' },
+  Runite:     { pieces: 5, bonus: { hp: 50, armor: 1.5, dmg: 0.05 }, text: '+50 max HP, +1.5 armor, +5% damage' },
 };
 const BONUS_TEXT = { armor: (v) => `+${v} armor`, dmg: (v) => `+${Math.round(v * 100)}% damage`, haste: (v) => `-${Math.round(v * 100)}% cooldowns`, speed: (v) => `+${Math.round(v * 100)}% speed`,
   magnet: (v) => `+${Math.round(v * 100)}% pickup range`, growth: (v) => `+${Math.round(v * 100)}% experience`, hp: (v) => `+${v} max HP`, regen: (v) => `+${v} HP/s`, coin: (v) => `+${Math.round(v * 100)}% coins` };
-export const bonusText = (b) => Object.entries(b).map(([k, v]) => BONUS_TEXT[k](Math.round(v * 100) / 100)).join(', ');
+export const bonusText = (b) => Object.entries(b).filter(([k]) => BONUS_TEXT[k]).map(([k, v]) => BONUS_TEXT[k](Math.round(v * 100) / 100)).join(', ');
+// one stat change as short text with its sign ("+0.3 armor", "-4% speed"); haste is a cut, so more haste reads as -x% cooldowns
+export const BONUS_NAMES = { armor: 'armor', dmg: 'damage', haste: 'cooldowns', speed: 'speed', magnet: 'pickup range', growth: 'experience', hp: 'max HP', regen: 'HP/s', coin: 'coins' };
+export function deltaText(k, v) {
+  const r = (x) => Math.round(x * 100) / 100, pct = (x) => `${Math.round(Math.abs(x) * 100)}%`;
+  if (k === 'haste') return `${v > 0 ? '-' : '+'}${pct(v)} cooldowns`;
+  if (['dmg', 'speed', 'magnet', 'growth', 'coin'].includes(k)) return `${v > 0 ? '+' : '-'}${pct(v)} ${BONUS_NAMES[k]}`;
+  return `${v > 0 ? '+' : '-'}${r(Math.abs(v))} ${BONUS_NAMES[k]}`;
+}
 // the Armoury: each piece can be reinforced three times with coins, +25% of its bonus each time
 export const GEAR_MAX_LV = 3;
 export const gearUpgradeCost = (name, lv) => Math.round((50 + 35 * ((GEAR[name] && GEAR[name].tier) || 0)) * (lv + 1) ** 1.6);
@@ -414,21 +458,73 @@ export const gearUpgradeCost = (name, lv) => Math.round((50 + 35 * ((GEAR[name] 
 export function gearBonus(gear = {}, levels = {}) {
   const out = {}; const add = (b, m = 1) => { for (const [k, v] of Object.entries(b)) out[k] = (out[k] || 0) + v * m; };
   const sets = {};
-  for (const name of Object.values(gear)) { const g = GEAR[name]; if (!g) continue; add(g.bonus, 1 + 0.25 * Math.min(GEAR_MAX_LV, levels[name] || 0)); if (g.set) sets[g.set] = (sets[g.set] || 0) + 1; }
+  for (const name of Object.values(gear)) { if (!Object.hasOwn(GEAR, name)) continue; const g = GEAR[name]; add(g.bonus, 1 + 0.25 * Math.min(GEAR_MAX_LV, levels[name] || 0)); if (g.set) sets[g.set] = (sets[g.set] || 0) + 1; }
   const done = [];
   for (const [s, c] of Object.entries(sets)) if (GEAR_SETS[s] && c >= GEAR_SETS[s].pieces) { add(GEAR_SETS[s].bonus); done.push(s); }
   out.sets = done;
   return out;
 }
-/** what a reward casket holds: better tiers on later maps and in hard mode */
-export function rollCasket(rng, mapIndex = 0, hard = false) {
-  const top = Math.min(4, 1 + mapIndex + (hard ? 1 : 0));
-  const names = Object.keys(GEAR).filter((n) => GEAR[n].tier <= top);
-  const weight = (n) => { const g = GEAR[n]; return (g.set && ARMOR_TIERS.includes(g.set) ? 3 : 1.4) * (1 + top - g.tier); };
-  let total = 0; for (const n of names) total += weight(n);
-  let r = rng() * total; for (const n of names) { if ((r -= weight(n)) <= 0) return n; }
-  return names[names.length - 1];
+// ---- reward caskets: what a piece is worth, and how it compares with what you wear --------------------------------
+// rarity: metal armour and metal shields are common, the named pieces (Ranger, Wizard, Shape, hats, boots, Cape) rare,
+// the Pumpkin Head and the Ogre Shield unique
+export const gearRarity = (name) => GEAR[name].rarity || (ARMOR_TIERS.includes(GEAR[name].set) || / (Kite)?[Ss]hield$/.test(name) ? 'common' : 'rare');
+export const ALCH_BY_TIER = [25, 35, 50, 70, 100, 150];
+export const ALCH_RARITY = { common: 1, rare: 1.5, unique: 2 };
+// the big pieces are worth more, as in SankoQuest (a chestplate takes the most bars)
+const ALCH_PIECE = (name) => (/Chestplate$|Robe$/.test(name) ? 1.5 : /Leggings$|Skirt$|Kiteshield$/.test(name) ? 1.25 : 1);
+/** coins for high-alching a casket piece (added to this run's coins) */
+export function alchValue(name) {
+  const g = GEAR[name]; if (!g) return 0;
+  return Math.round(ALCH_BY_TIER[Math.min(g.tier, ALCH_BY_TIER.length - 1)] * ALCH_RARITY[gearRarity(name)] * ALCH_PIECE(name) / 5) * 5;
 }
+// one number for "how good is this loadout", to recommend Wear or High alch (the card still shows every stat)
+export const GEAR_SCORE_W = { armor: 10, dmg: 100, haste: 100, speed: 80, magnet: 25, growth: 50, hp: 0.4, regen: 12, coin: 6 };
+export function gearScore(b) { let s = 0; for (const [k, v] of Object.entries(b)) if (GEAR_SCORE_W[k]) s += GEAR_SCORE_W[k] * v; return s; }
+/** what wearing `item` instead of what is in its slot would change: every stat, the sets, and a recommendation */
+export function compareGear(gear = {}, levels = {}, item) {
+  const g = GEAR[item], slot = g.slot, old = gear[slot] || null;
+  const before = gearBonus(gear, levels), after = gearBonus({ ...gear, [slot]: item }, levels);
+  const delta = {};
+  for (const k of new Set([...Object.keys(before), ...Object.keys(after)])) {
+    if (k === 'sets') continue;
+    const d = Math.round(((after[k] || 0) - (before[k] || 0)) * 1000) / 1000; if (d) delta[k] = d;
+  }
+  const sb = gearScore(before), sa = gearScore(after);
+  const set = g.set && GEAR_SETS[g.set] ? { name: g.set, have: Object.values({ ...gear, [slot]: item }).filter((n) => GEAR[n] && GEAR[n].set === g.set).length, need: GEAR_SETS[g.set].pieces } : null;
+  return {
+    item, slot, old, delta, set, alch: alchValue(item),
+    setsGained: after.sets.filter((s) => !before.sets.includes(s)), setsLost: before.sets.filter((s) => !after.sets.includes(s)),
+    better: sa > sb + 1e-9,                       // recommend Wear
+    anyUp: Object.values(delta).some((v) => v > 0), // false: nothing improves (a clear downgrade, or the same)
+  };
+}
+/** what a reward casket holds. Higher tiers on later maps, later in the run and in hard mode; Runite only late on the
+ *  later maps (or in hard mode), and rare. rank = map progress (0 = Greentown), t = seconds into the run. */
+export function casketWeights(rank = 0, hard = false, t = 0) {
+  const reach = 1 + rank + (hard ? 1 : 0);               // as before: Greentown reaches Iron, later maps further
+  let top = Math.min(4, reach + (t >= 360 ? 1 : 0));     // past 6:00 one tier more
+  if (t < 120) top = Math.min(top, 1 + (hard ? 1 : 0));  // the first two minutes stay low
+  const late = Math.max(0, Math.min(1, t / 900));        // later in the run the better tiers weigh more
+  const lift = late + (hard ? 0.5 : 0);                  // and in hard mode
+  const runite = t >= 480 && reach >= 3;
+  const out = [];
+  for (const [n, g] of Object.entries(GEAR)) {
+    const base = ARMOR_TIERS.includes(g.set) ? 3 : g.slot === 'offhand' && g.rarity !== 'unique' ? 2 : 1.4;
+    if (g.tier === 5) { if (runite) out.push([n, base * 0.25 * (1 + lift)]); continue; }
+    if (g.tier > top) continue;
+    out.push([n, base * ((1 + top - g.tier) + lift * g.tier)]);
+  }
+  return out;
+}
+export function rollCasket(rng, rank = 0, hard = false, t = 0) {
+  const list = casketWeights(rank, hard, t);
+  let total = 0; for (const [, w] of list) total += w;
+  let r = rng() * total; for (const [n, w] of list) { if ((r -= w) <= 0) return n; }
+  return list[list.length - 1][0];
+}
+/** map progress for caskets: the campaign map's place in the list; Tutorial Island counts as the first map, the Whole
+ *  World as the fourth */
+export function casketRank(map) { if (!map) return 0; if (map.special) return map.world ? 3 : 0; return Math.max(0, MAPS.findIndex((m) => m.id === map.id)); }
 
 // ---- quests: long tasks over many runs, paid in coins and gear -----------------------------------------------------
 // stat: a counter kept across runs (kills.<type>, kills, bosses, bestTime, evolves, caskets, cleared, dragons)

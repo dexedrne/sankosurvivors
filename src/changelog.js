@@ -1,6 +1,37 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.35', date: '2 Nov 2026', title: 'New season: the Hidden Oasis, real casket gear, more slots and balance',
+    items: [
+      'New map: the Hidden Oasis, behind the locked door under Apache town. A dark cave of alligator pools, the old factory rooms and the high ground beyond, lit by its own lamps and the torch you carry.',
+      'Jungle spiders, slimers, alligators and mutant slimers live down there, as in SankoQuest. A Lesser Giant, the Pumpkin Reaper and finally the Rime Colossus come for you.',
+      'It opens when you clear Apache Desert.',
+      'Slimers are their real size now, and easier to hit.',
+      'Start with 4 weapon slots and 4 passive slots. Strength and Prayer each unlock two more, for 1,500 then 4,000 coins.',
+      'New skills: Projectile speed (+10%, 2 ranks), One more projectile (+1, 3,000 coins), and Area (+5%, 2 ranks). They work with the same attacks as the Feather and Cape.',
+      'Luck adds 15% more casket drops and a 15% chance of an extra boss chest per rank, up to 3 ranks.',
+      'Coins adds 10% to your end-of-run coins per rank, up to 5 ranks. Rerolls adds one level-up reroll per rank, up to 3 ranks.',
+      'Revive costs 5,000 coins. Once per run, return with half your max HP and 2 seconds of protection.',
+      'Each skill shows its own ranks and price. The original nine skills keep their effects and prices. Saved ranks above a skill’s limit are clamped.',
+      'Base health is now 100. Monsters move 5% slower and their health grows more gently.',
+      'Monsters no longer get much faster late in a run: even the quickest (foxes, dogs, wolves) stay a little slower than you, so you can always get away.',
+      'Coins fly to you from your pickup range, like experience gems.',
+      'The Star is a friendly townsman, as in SankoQuest, and no longer attacks you. The ogre is Fudna the Hoard Keeper.',
+      'The crowd grows gradually. Fewer monsters pile up early, with the busiest stretch in the last third around the bosses.',
+      'Overlapping chests wait until you finish each choice, so bonus rewards are kept.',
+      'Ranked starts equal with 4 slots of each kind. Permanent skills, including Revive, do not apply.',
+      'Reward caskets hold real gear: Bronze, Iron, Steel, Mithril, Adamantite and now Runite, as a helmet, chestplate, gauntlets, leggings or boots.',
+      'New shield slot: a kiteshield or a round shield in every metal, and the rare Ogre Shield. You carry it in your off hand.',
+      'A full Runite set gives +50 max HP, +1.5 armor and +5% damage.',
+      'Runite is rare and only shows up late in a run on the later maps.',
+      'If the slot is empty, the item goes straight on. If not, the run pauses: Wear it, or High alch it for coins. The card shows every stat that goes up or down and recommends one.',
+      'High alch coins are added to the coins you earn at the end of the run.',
+      'Every item you open still goes into your collection in the Gear panel.',
+      'New setting: Auto high alch caskets that are not better.',
+      'Tutorial Island caskets now give early-game gear.',
+    ],
+  },
+  {
     version: '0.34.1', date: '2 Nov 2026', title: 'Your wallet, in one place',
     items: [
       'A wallet button in the top corner: connect Rabby, MetaMask or any other wallet once and the game remembers it next time. It shows your address and DMT.',

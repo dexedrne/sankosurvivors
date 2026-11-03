@@ -19,6 +19,8 @@ const BASE = import.meta.env.BASE_URL || './';
 const A = (p) => `${BASE}assets/${p}`;
 export const GROUND_Y = 7.0;
 const MAP_SIZE = 512; // minimap covers world x,z in [0,512] (4 px per unit)
+// underground areas (their own scene file, placed where tools/build-world-tiles.py put their ground): the Hidden Oasis
+const AREA_SCENES = [{ file: 'desertAdventure.json', dx: 0, dz: -192 }];
 const TILE = { cx: 352, cz: 288 };
 const SLOT_COLORS = [0xffd34d, 0x4dd2ff, 0xff6b6b, 0x8dff6b];
 
@@ -238,6 +240,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         uniform sampler2D uDiff, uOver; uniform highp sampler2DArray uTex; uniform float uSeed[12], uRot[12], uMir[12], uWet;
         varying vec3 vWP; varying vec3 vWN;
         float gPuddle = 0.0;
+        float gPit = 0.0; // 1 deep in the dark pit around an underground area (the overworld never dips below 0)
         float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
           float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453), b = fract(sin(dot(i + vec2(1, 0), vec2(127.1, 311.7))) * 43758.5453);
           float c = fract(sin(dot(i + vec2(0, 1), vec2(127.1, 311.7))) * 43758.5453), d = fract(sin(dot(i + vec2(1, 1), vec2(127.1, 311.7))) * 43758.5453);
@@ -300,8 +303,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           gPuddle = uWet * smoothstep(0.62, 0.7, pn) * smoothstep(0.985, 0.998, vWN.y);
           col *= mix(1.0, 0.68, uWet);
           col = mix(col, col * 0.35 + vec3(0.02, 0.025, 0.03), gPuddle);
-          diffuseColor.rgb = col;
+          gPit = smoothstep(-0.4, -5.0, vWP.y);
+          diffuseColor.rgb = col * (1.0 - gPit);
         }`)
+      .replace('#include <fog_fragment>', 'gl_FragColor.rgb *= 1.0 - gPit;\n#include <fog_fragment>')
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = mix(roughnessFactor, 0.55, uWet * 0.6); roughnessFactor = mix(roughnessFactor, 0.04, gPuddle);');
   };
   // the sea: the game keeps one level of water across the world (0.8); the real ground lies under it
@@ -347,7 +352,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const pm = new THREE.PMREMGenerator(renderer); groundMat.envMap = pm.fromScene(skyScene, 0.02).texture; pm.dispose();
   }
   const F = field;
-  let terrain = null;
+  let terrain = null; const groundPieces = [];
   function buildWorldGround() {
     terrain = terrainFromTiles({ height: new Float32Array(heightBuf), nav: pixels(navImg), S: MAP_SIZE });
     F.data = terrain.h;
@@ -364,7 +369,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       for (let j = 0; j < w; j++) for (let i = 0; i < w; i++) { const src = ((cz * C + j) * n + cx * C + i) * 3, dst = (j * w + i) * 3; cp[dst] = P[src] + MAP_SIZE / 2; cp[dst + 1] = P[src + 1]; cp[dst + 2] = P[src + 2] + MAP_SIZE / 2; cn[dst] = N[src]; cn[dst + 1] = N[src + 1]; cn[dst + 2] = N[src + 2]; }
       for (let j = 0; j < C; j++) for (let i = 0; i < C; i++) { const a = j * w + i, b = a + 1, c = a + w, d = c + 1; idx.push(a, c, b, b, c, d); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(cp, 3)); g.setAttribute('normal', new THREE.BufferAttribute(cn, 3)); g.setIndex(idx); g.computeBoundingSphere();
-      const piece = new THREE.Mesh(g, groundMat); piece.name = 'ground'; piece.receiveShadow = true; scene.add(piece);
+      const piece = new THREE.Mesh(g, groundMat); piece.name = 'ground'; piece.receiveShadow = true; piece.userData.x0 = cx * C; piece.userData.z0 = cz * C; groundPieces.push(piece); scene.add(piece);
     }
     geo.dispose();
   }
@@ -377,11 +382,16 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const BATCH = !new URLSearchParams(location.search).has('nobatch') && renderer.extensions.has('WEBGL_multi_draw');
   const rugs = new THREE.Group(); rugs.name = 'rugs'; scene.add(rugs);
   const num = (v, d) => (v == null || Number.isNaN(v) ? d : v);
-  let allNodes = null, propsBuilt = false;
+  let allNodes = null, propsBuilt = false, areaBuilt = false;
+  const areaFx = new THREE.Group(); areaFx.name = 'area-fx'; scene.add(areaFx);
   async function parseNodes() {
     if (allNodes) return allNodes;
     const data = await (await fetch(A('world/scenes/world.json'))).json();
-    const rootObj = new THREE.Object3D(); const nodes = []; const planes = [];
+    // underground areas live in their own scene files; each sits in an empty corner of our world (tools/build-world-tiles.py)
+    for (const a of AREA_SCENES) {
+      try { const sc = await (await fetch(A('world/scenes/' + a.file))).json(); for (const r of sc) data.push({ ...r, transform: { position: [a.dx, 0, a.dz] }, area: true }); } catch (e) { console.warn('area scene failed', a.file, e); }
+    }
+    const rootObj = new THREE.Object3D(); const nodes = []; const planes = []; const pools = [], lamps = [];
     // roofs come off so you can see into the buildings: roof groups in the scene, and roof-like pieces anywhere
     // (dormers, chimneys, the little canopies over doors)
     const ROOFY = /roof|dormer|chimney|town_entry/i;
@@ -403,9 +413,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (m) { const roof = !!m.isRoof || roofy || ROOFY.test(m.filename); nodes.push({ o, file: m.filename, roof, bldg: roof ? (roofOwner || parentId) : 0, m }); }
       const ip = (n.components || []).find((c) => c.type === 'imagePlane' && c.filename);
       if (ip) planes.push({ o, file: ip.filename, w: ip.width, l: ip.length });
+      // a pool of water (a flat box with the game's water material) and the baked lamps of an underground area (the
+      // overworld's own water boxes are the sea and lakes, which the sea plane already draws)
+      const wm = (n.components || []).find((c) => c.type === 'waterMaterial'), bx = (n.components || []).find((c) => c.type === 'boxGeometry');
+      if (inArea && wm && bx && bx.args) pools.push({ o, w: bx.args[0], d: bx.args[2], color: (wm.props && wm.props.color) || '#3355a3' });
+      if (inArea && (n.components || []).some((c) => c.type === 'bakedSpotLight')) lamps.push(o);
       for (const c of n.children || []) walk(c, o, roofy, myId, roofOwner);
     };
-    for (const r of data) walk(r, rootObj);
+    let inArea = false;
+    for (const r of data) { inArea = !!r.area; walk(r, rootObj); }
     rootObj.updateMatrixWorld(true);
     const v = new THREE.Vector3();
     // a model can be repeated in a row or grid (fences, wall runs, the castle's curtain walls): copies step along the
@@ -423,6 +439,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     }
     allNodes.names = nodeNames;
     allNodes.planes = planes.map(({ o, file, w, l }) => { v.setFromMatrixPosition(o.matrixWorld); return { file, w, l, mw: o.matrixWorld.clone(), x: v.x, y: v.y, z: v.z }; });
+    allNodes.pools = pools.map(({ o, w, d, color }) => ({ w, d, color, mw: o.matrixWorld.clone() }));
+    allNodes.lamps = lamps.map((o) => new THREE.Vector3().setFromMatrixPosition(o.matrixWorld));
     return allNodes;
   }
 
@@ -649,9 +667,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   async function loadMap(m, progress = () => {}) {
     curMap = m;
     scene.background.set(m.sky); scene.fog.color.set(m.fog); hemi.intensity = 1.9 * m.light; sun.intensity = 2.2 * m.light;
+    water.visible = seabed.visible = !m.under; // no sea underground
     if (typeof applyTime === 'function' && settingsReady) applyTime();
     const nodes = await parseNodes();
     if (!terrain) buildWorldGround();
+    // underground: only the ground the area sits in is drawn (the overworld's sea floor around it would show otherwise)
+    for (const pc of groundPieces) { const u = pc.userData; pc.visible = !m.area || (u.x0 < m.area[2] && u.x0 + 64 > m.area[0] && u.z0 < m.area[3] && u.z0 + 64 > m.area[1]); }
     const near = nodes.filter((n) => Math.hypot(n.x - m.cx, n.z - m.cz) < m.r + 60);
     // pictures in the scene (rugs, stained glass): SankoQuest's image planes stand upright (width across, length up) and
     // the node's own rotation lays a rug flat or turns a window to its wall, so the plane is used as it comes
@@ -659,6 +680,22 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const tex = texLoader.load(A('world/terrain/' + pl.file.split('/').pop())); tex.colorSpace = THREE.SRGBColorSpace;
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(pl.w, pl.l), new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
       mesh.matrixAutoUpdate = false; mesh.matrix.copy(pl.mw); mesh.matrix.multiply(new THREE.Matrix4().makeTranslation(0, 0, 0.03)); rugs.add(mesh); // a hair off its floor or wall
+    }
+    // underground areas: their pools of water and the light thrown on the floor by their lamps, built once
+    if (!areaBuilt) {
+      areaBuilt = true;
+      for (const pl of nodes.pools || []) {
+        const c = new THREE.Color(pl.color);
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(pl.w, pl.d).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: c, emissive: c.clone().multiplyScalar(0.35), roughness: 0.1, metalness: 0.15, transparent: true, opacity: 0.85, depthWrite: false }));
+        mesh.matrixAutoUpdate = false; mesh.matrix.copy(pl.mw); mesh.renderOrder = 2; areaFx.add(mesh);
+      }
+      if ((nodes.lamps || []).length) {
+        const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, 'rgba(255,214,150,0.55)'); g.addColorStop(0.45, 'rgba(255,190,110,0.22)'); g.addColorStop(1, 'rgba(255,170,90,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+        const glowMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+        const glowGeo = new THREE.PlaneGeometry(9, 9).rotateX(-Math.PI / 2);
+        for (const l of nodes.lamps) { const m2 = new THREE.Mesh(glowGeo, glowMat); m2.position.set(l.x, groundAt(l.x, l.z) + 0.05, l.z); areaFx.add(m2); }
+      }
     }
     // props by model file, loaded once for the whole world; roofs kept apart (key prefixed) so a building's roof can
     // lift off when you walk in
@@ -750,7 +787,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   };
   // make sure the models for worn gear are loaded before a character puts them on
   const GEAR_FOLDER = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back' };
-  async function preloadGear(names) { if (!kit) return; await Promise.all(names.filter((n) => GEAR[n]).map((n) => kit.load(`${GEAR_FOLDER[GEAR[n].slot]}/Clothing/${n}`))); }
+  // (a shield is a held item: its model loads with the other hand-held items)
+  const isClothing = (n) => Object.hasOwn(GEAR, n) && GEAR_FOLDER[GEAR[n].slot];
+  async function preloadGear(names) { if (!kit) return; await Promise.all(names.filter(isClothing).map((n) => kit.load(`${GEAR_FOLDER[GEAR[n].slot]}/Clothing/${n}`))); }
   const itemProtos = {};
   async function item(url) { if (!itemProtos[url]) itemProtos[url] = loadGLB(A('models/' + url)).then((g) => ({ gltf: g })).catch(() => null); return itemProtos[url]; }
   onProgress('ready', 1);
@@ -1094,7 +1133,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const torch = new THREE.PointLight(0xffb060, 0, 16, 1.6); scene.add(torch);
   function applyTime() {
     const m = (curMap.world && skyMap) || curMap, t = settings.time, sky = new THREE.Color(m.sky);
-    if (t === 'dusk') {
+    if (m.under) { // underground: no sun or sky, lamplight and the torch you carry
+      sun.color.set(0xffd9a8); sun.intensity = 0.9 * m.light; hemi.color.set(0xffe2b8); hemi.groundColor.set(0x2a2218); hemi.intensity = 1.2 * m.light; SUN_OFF.set(-22, 40, 14); torch.intensity = 30;
+    } else if (t === 'dusk') {
       sky.lerp(new THREE.Color(0xe08a6a), 0.65); sun.color.set(0xffa860); sun.intensity = 1.9 * m.light; hemi.color.set(0xffc8a0); hemi.groundColor.set(0x4a3a50); hemi.intensity = 1.1 * m.light; SUN_OFF.set(-38, 22, 10); torch.intensity = 0;
     } else if (t === 'night') {
       sky.set(0x0d1626); sun.color.set(0x9fb8ff); sun.intensity = 0.55; hemi.color.set(0x5068a8); hemi.groundColor.set(0x141420); hemi.intensity = 0.55; SUN_OFF.set(-22, 40, 14); torch.intensity = 26;
@@ -1154,7 +1195,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     bloom.enabled = !!settings.bloom; bokeh.enabled = !!settings.dof; gtao.enabled = !!settings.ao; grade.enabled = settings.grade !== false;
     for (const ms of Object.values(folMeshes)) for (const m of ms) m.im.visible = !!settings.foliage;
     roofsOff = settings.roofs === 'off'; roofHidden.clear(); roofHidden.add(-1);
-    rainGroup.visible = !!settings.rain;
+    rainGroup.visible = rainOn();
     // water reflections: the sun's glints on the water and the sky in the puddles
     waterMat.specular.set(settings.water ? 0xb8e4ff : 0x000000); waterMat.shininess = settings.water ? 110 : 2; groundMat.envMapIntensity = settings.water ? 0.6 : 0;
     fxaa.enabled = !!settings.aa;
@@ -1173,12 +1214,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   splashes.frustumCulled = false; rainGroup.add(splashes);
   const splashLife = new Float32Array(90), splashXZ = new Float32Array(180);
   let wet = 0;
+  const rainOn = () => !!settings.rain && !(curMap && curMap.under); // never rains underground
   function rainStep(dt) {
-    const target = settings.rain ? 1 : 0; wet += (target - wet) * Math.min(1, dt * 0.6);
+    const target = rainOn() ? 1 : 0; wet += (target - wet) * Math.min(1, dt * 0.6);
     if (groundMat.userData.sh) groundMat.userData.sh.uniforms.uWet.value = wet;
     if (waterMat.userData.sh) waterMat.userData.sh.uniforms.uRain.value = wet;
     scene.fog.near = Math.max(18, scene.fog.near * (1 - wet * 0.35));
-    if (!settings.rain) return;
+    if (!rainOn()) return;
     const cx = cam.x, cz = cam.z, gy = groundAt(cx, cz);
     for (let i = 0; i < RAIN_N; i++) {
       const o = i * 6;
@@ -1213,7 +1255,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   function ambientStep(dt) {
     const kind = weatherNow ? weatherNow : settings.time === 'night' ? 'fireflies' : AMB_BY_MAP[curMap.id] || 'leaves', a = AMB[kind];
     if (amb.userData.kind !== kind) { amb.userData.kind = kind; ambMat.color.set(a.color); if (a.glow) ambMat.color.multiplyScalar(2); ambMat.size = a.size; ambMat.blending = a.glow ? THREE.AdditiveBlending : THREE.NormalBlending; ambMat.toneMapped = !a.glow; ambMat.needsUpdate = true; }
-    amb.visible = (settings.foliage !== false && !settings.rain) || !!weatherNow;
+    amb.visible = (settings.foliage !== false && !rainOn()) || !!weatherNow;
     if (!amb.visible) return;
     const out = ambGeo.attributes.position.array, cx = cam.x, cz = cam.z, gy = groundAt(cx, cz);
     for (let i = 0; i < AMB_N; i++) {
@@ -1245,6 +1287,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; }
       else if (f.k === 'die') { pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
       else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
+      else if (f.k === 'revive') { ringFx(f.x, f.z, 5, 0x8bffd0); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 45, 5, { s: 1.1, life: 1.2, color: 0x8bffd0, up: 8 }); }
       else if (f.k === 'treasure') { ringFx(f.x, f.z, 5, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 60, 7, { s: 1.1, life: 1.1, color: 0xffd34d, up: 8 }); cam.shake = Math.max(cam.shake, 0.3); }
       else if (f.k === 'surface') { ringFx(f.x, f.z, 1.4, 0x9fd8e8); emit(f.x, Math.max(groundAt(f.x, f.z), WATER_Y) + 0.2, f.z, 16, 2.2, { s: 1.1, life: 0.8, color: 0xcfeef8, up: 4 }); }
       else if (f.k === 'bounce') { ringFx(f.x, f.z, 0.9, f.evo ? 0xffd34d : 0xfff6dc); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 5, 2.5, { s: 0.6, life: 0.3, color: 0xfff6dc, up: 1.5 }); }
@@ -1316,19 +1359,23 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         const lvl = p.ps.armor || 0;
         // worn: the adventurer's own look, then the armor passive's tier, then the gear you really wear (from caskets and the
         // bank) on top, so a casket's straw hat shows instead of hiding under the passive's helmet
-        const want = { ...a.baseArmor, ...armorSet(lvl), ...(p.gear || {}) }, gsig = JSON.stringify(want);
+        const worn = {}; for (const [k, n] of Object.entries(p.gear || {})) if (isClothing(n)) worn[k] = n; // the shield goes in the hand, below
+        const want = { ...a.baseArmor, ...armorSet(lvl), ...worn }, gsig = JSON.stringify(want);
         if (gsig !== a.gearSig) {
-          const missing = Object.values(p.gear || {}).filter((n) => GEAR[n] && !kit.isLoaded(`${GEAR_FOLDER[GEAR[n].slot]}/Clothing/${n}`));
+          const missing = Object.values(worn).filter((n) => !kit.isLoaded(`${GEAR_FOLDER[GEAR[n].slot]}/Clothing/${n}`));
           if (!missing.length) { a.gearSig = gsig; a.kit.setArmor(want); }
           else if (!a.gearLoading) { a.gearLoading = true; preloadGear(missing).finally(() => { a.gearLoading = false; }); }
         }
-        // weapon in the right hand, shield or bow in the left
-        const wk = Object.keys(p.w); const rightId = wk.find((id) => !['bow', 'shield'].includes(id) && WEAPONS[id] && WEAPONS[id].model); const leftId = wk.includes('shield') ? 'shield' : wk.includes('bow') ? 'bow' : null; // (the baseball and lighter have no hand model)
-        const sig = `${rightId}${rightId ? p.w[rightId] : ''}${p.evo[rightId] ? 'E' : ''}|${leftId}${leftId ? p.w[leftId] : ''}`;
+        // weapon in the right hand; in the left the bow (it needs both hands), else the shield you wear (from a casket or
+        // the bank), else the Kiteshield weapon's own shield
+        const wk = Object.keys(p.w); const rightId = wk.find((id) => !['bow', 'shield'].includes(id) && WEAPONS[id] && WEAPONS[id].model);
+        const wornShield = p.gear && Object.hasOwn(GEAR, p.gear.offhand || '') && GEAR[p.gear.offhand].model ? p.gear.offhand : null;
+        const leftId = wk.includes('bow') ? 'bow' : wornShield ? 'worn' : wk.includes('shield') ? 'shield' : null; // (the baseball and lighter have no hand model)
+        const sig = `${rightId}${rightId ? p.w[rightId] : ''}${p.evo[rightId] ? 'E' : ''}|${leftId}${leftId === 'worn' ? wornShield : leftId ? p.w[leftId] : ''}`;
         if (sig !== a.heldSig) {
           a.heldSig = sig;
-          const urlFor = (id) => (id === 'katana' && p.evo.katana ? 'shadowfang.glb' : weaponModelPath(id, p.w[id]));
-          Promise.all([rightId ? item(urlFor(rightId)) : null, leftId ? item(urlFor(leftId)) : null]).then(([r, l]) => { if (a.heldSig === sig) a.kit.setHeld({ right: r && r.gltf, left: l && l.gltf, rightFix: heldFix(rightId, p.evo[rightId]), leftFix: heldFix(leftId), rightAim: HELD_AIM[rightId], leftAim: HELD_AIM[leftId], rightScale: HS ? Number(HS) : 1, leftScale: HS ? Number(HS) : 1 }); });
+          const urlFor = (id) => (id === 'worn' ? GEAR[wornShield].model : id === 'katana' && p.evo.katana ? 'shadowfang.glb' : weaponModelPath(id, p.w[id]));
+          Promise.all([rightId ? item(urlFor(rightId)) : null, leftId ? item(urlFor(leftId)) : null]).then(([r, l]) => { if (a.heldSig === sig) a.kit.setHeld({ right: r && r.gltf, left: l && l.gltf, rightFix: heldFix(rightId, p.evo[rightId]), leftFix: heldFix(leftId === 'worn' ? 'shield' : leftId), rightAim: HELD_AIM[rightId], leftAim: HELD_AIM[leftId === 'worn' ? 'shield' : leftId], rightScale: HS ? Number(HS) : 1, leftScale: HS ? Number(HS) : 1 }); });
         }
         a.kit.setMoving(!!p.mv, 1);
         a.mixer.update(dt);
@@ -1341,7 +1388,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       // kiteshields
       const sl = p.w.shield;
       if (sl) {
-        const s = WEAPONS.shield.stats(sl);
+        const s = p.shields || WEAPONS.shield.stats(sl);
         for (let i = 0; i < s.count; i++) {
           const key = `${p.id}:${i}`; seenShield.add(key);
           let o = shieldObjs.get(key);

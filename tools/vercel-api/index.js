@@ -74,7 +74,7 @@ const clean = (s, n) => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim()
 const int = (v) => Math.min(1e6, Math.max(0, Math.floor(Number(v)) || 0));
 // a run is won by surviving the map's length or by killing its final boss (the last one on the schedule), which cannot
 // appear before these times (src/content.js: each map's bosses and length; test/api.test.mjs checks they still match)
-const WIN = { greentown: [720, 900], apache: [720, 900], duel: [720, 900], graves: [720, 900], swamp: [720, 900], goblins: [780, 900], paya: [720, 900], tutorial: [480, 600], world: [1560, 1800] };
+const WIN = { greentown: [720, 900], apache: [720, 900], duel: [720, 900], graves: [720, 900], swamp: [720, 900], goblins: [780, 900], paya: [720, 900], oasis: [720, 900], tutorial: [480, 600], world: [1560, 1800] };
 module.exports = async function handler(req, res) {
   if (!SB || !KEY || !TICKET_KEY || !SERVER_KEY) return send(res, 503, { error: 'leaderboard not set up yet' });
   const u = new URL(req.url, 'http://x'), path = u.searchParams.get('route') || u.pathname.replace(/^\/api\/?/, '');

@@ -50,6 +50,7 @@ export function createAudio() {
       else if (f.k === 'use') play(f.kind === 'beer' ? 'drink' : f.kind === 'pumpkin' ? 'pop' : 'level', { vol: 0.9 });
       else if (f.k === 'slam') play('slam', { minGap: 0.15, vol: f.meteor ? 0.6 : 1, rate: f.meteor ? 1.3 : 0.75 });
       else if (f.k === 'casket') play('casket', { vol: 0.9 });
+      else if (f.k === 'alch') play('pickup', { vol: 1, rate: 0.8 });
       else if (f.k === 'evolve') play('smith', { vol: 1 });
       else if (f.k === 'treasure') play('choose', { vol: 1 });
       else if (f.k === 'event') play('boss', { vol: 0.7, rate: 1.2 });

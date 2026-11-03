@@ -11,8 +11,8 @@ function play(seed, mapId, adv, { maxT = 400, rerollAt = 3 } = {}) {
   while (!sim.over) {
     if (sim.pending.p1) {
       levels++;
-      if (levels === rerollAt && p.rerolls > 0) { rec.reroll(); reroll(sim, 'p1'); }
-      const i = levels % 3; rec.pick(i); choose(sim, 'p1', i); continue;
+      if (levels === rerollAt && p.rerolls > 0 && !sim.pending.p1.casket) { rec.reroll(); reroll(sim, 'p1'); }
+      const i = levels % sim.pending.p1.choices.length; rec.pick(i); choose(sim, 'p1', i); continue; // a casket card has two choices
     }
     let fx = Math.cos(sim.t * 0.4) * 0.3, fz = Math.sin(sim.t * 0.4) * 0.3;
     for (const e of sim.enemies) { const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz); if (d < 4 && d > 0.01) { fx += dx / d / d; fz += dz / d / d; } }
@@ -81,7 +81,8 @@ test('a level-up left open until the timer runs out (auto-pick) replays when rec
       continue;
     }
     let fx = Math.cos(sim.t * 0.4) * 0.3, fz = Math.sin(sim.t * 0.4) * 0.3;
-    for (const e of sim.enemies) { const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz); if (d < 4 && d > 0.01) { fx += dx / d / d; fz += dz / d / d; } }
+    // flee only at sword reach, so monsters (slower since the new season) still come close enough to die and give levels
+    for (const e of sim.enemies) { const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz); if (d < 2 && d > 0.01) { fx += dx / d / d; fz += dz / d / d; } }
     const l = Math.hypot(fx, fz) || 1, before = sim.tick;
     step(sim, { p1: rec.input(fx / l, fz / l, null) }, TICK); rec.after(sim.tick !== before);
   }

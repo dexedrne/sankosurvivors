@@ -1,7 +1,7 @@
 // Ranked weekly DMT runs: the rules, the run recorder and the replay that checks a run. The game and the server both use
 // this file, so a run replays on the server exactly as it was played (the simulation's maths is deterministic, see
 // dmath.js). Ranked runs start equal: no skills, no gear, no DMT perks, any adventurer.
-import { createSim, step, choose, reroll, skipLevel, TICK } from './sim.js';
+import { createSim, step, choose, reroll, skipLevel, autoChoice, TICK } from './sim.js';
 import { MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID } from './content.js';
 
 export const RANKED = {
@@ -29,7 +29,8 @@ export function rankedSim({ seed, mapId, adv, ground } = {}) {
 // stick and key input reaches the simulation in hundredths, so the recorded run is exactly what was simulated
 export const q = (v) => Math.max(-100, Math.min(100, Math.round((Number(v) || 0) * 100)));
 
-// Records one ranked run. Call tick() around every step, pick()/reroll()/skip() for level-up choices.
+// Records one ranked run. Call tick() around every step, pick()/reroll()/skip() for level-up choices. A reward casket's
+// card is a choice like a level-up: pick(0) is Wear, pick(1) is High alch (also when the auto high alch setting picks it).
 export class RunRecorder {
   constructor() { this.runs = []; this.uses = []; this.picks = []; this.ticks = 0; }
   // returns the inputs to hand to step(); call after() once the step is done
@@ -41,8 +42,8 @@ export class RunRecorder {
     if (use != null) this.uses.push([this.ticks, use]);
     this.ticks++;
   }
-  pick(i) { this.picks.push(i); }      // 0, 1 or 2
-  auto() { this.picks.push('a'); }     // the level-up timer ran out and the sim picked card 0 by itself (step() does this while a card screen is open)
+  pick(i) { this.picks.push(i); }      // 0, 1 or 2 (a casket card: 0 Wear, 1 High alch)
+  auto() { this.picks.push('a'); }     // the card timer ran out and the sim picked by itself (step() does this while a card screen is open): card 0, or a casket's recommended choice
   reroll() { this.picks.push('r'); }
   skip() { this.picks.push('s'); }
   log() { return { v: 1, runs: this.runs, uses: this.uses, picks: this.picks }; }
@@ -71,7 +72,7 @@ export function replay(log, params, { maxTicks = 40 * 60 * 30 } = {}) {
       if (a === undefined) return 'missing a level-up choice';
       if (a === 'r') { if (!reroll(sim, PID)) return 'reroll not allowed'; }
       else if (a === 's') { if (!skipLevel(sim, PID)) return 'skip not allowed'; }
-      else if (a === 'a') choose(sim, PID, 0); // what step() itself does when the level-up timer runs out
+      else if (a === 'a') choose(sim, PID, autoChoice(sim.pending[PID])); // what step() itself does when the card timer runs out
       else if (a === 0 || a === 1 || a === 2) { if (!sim.pending[PID].choices[a]) return 'no such choice'; choose(sim, PID, a); }
       else return 'bad choice';
     }

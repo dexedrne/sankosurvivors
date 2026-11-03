@@ -25,8 +25,9 @@ test('ranked frames stop at choices; resumed logs replay across maps with items,
           ({ sim, rec } = play.resumeRanked(copy, params)); cut = true;
           assert.deepEqual(rec.log(), copy);
         }
-        if (sim.players[0].rerolls && choices % 3 === 0) { assert.ok(play.rankedChoice(sim, rec, 'r')); rerolls++; }
-        const action = choices++ % 4 === 0 ? 's' : choices % 3;
+        const casket = !!sim.pending.p1.casket; // a casket card: Wear or High alch, no reroll or skip
+        if (!casket && sim.players[0].rerolls && choices % 3 === 0) { assert.ok(play.rankedChoice(sim, rec, 'r')); rerolls++; }
+        const action = casket ? choices++ % 2 : choices++ % 4 === 0 ? 's' : choices % sim.pending.p1.choices.length;
         assert.ok(play.rankedChoice(sim, rec, action)); if (action === 's') skips++;
         continue;
       }

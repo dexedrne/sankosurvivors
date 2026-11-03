@@ -1,5 +1,5 @@
 // The only simulation mutations used by the ranked UI. Choices pause indefinitely.
-import { step, choose, reroll, skipLevel, TICK } from './sim.js';
+import { step, choose, reroll, skipLevel, autoChoice, TICK } from './sim.js';
 import { rankedSim, RunRecorder } from './ranked.js';
 
 export function rankedStep(sim, rec, mx, mz, use) {
@@ -14,7 +14,7 @@ export function rankedChoice(sim, rec, action) {
   if (action === 'r') { if (!reroll(sim, 'p1')) return false; rec.reroll(); }
   else if (action === 's') { if (!skipLevel(sim, 'p1')) return false; rec.skip(); }
   else if ([0, 1, 2, 'a'].includes(action)) {
-    const i = action === 'a' ? 0 : action;
+    const i = action === 'a' ? autoChoice(sim.pending.p1) : action;
     if (!sim.pending.p1.choices[i]) return false;
     choose(sim, 'p1', i); if (action === 'a') rec.auto(); else rec.pick(i);
   } else return false;

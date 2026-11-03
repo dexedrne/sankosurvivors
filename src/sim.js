@@ -2,7 +2,7 @@
 import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in every browser and on the server (ranked replays)
 import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS,
-  ADVENTURER_BY_ID, EVOLUTIONS, evolveStats, SKILL_IDS, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, REROLLS_PER_RUN, GEAR,
+  ADVENTURER_BY_ID, EVOLUTIONS, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
 } from './content.js';
 
 export const TICK = 1 / 30;
@@ -20,16 +20,17 @@ export function mulberry32(a) {
 const hyp = dhypot;
 
 export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false } = {}) {
+  meta = clampSkills(meta);
   const rng = mulberry32(seed);
   const sim = {
     seed, rng, map, hard, meta, endless, t: 0, tick: 0, nextId: 1,
-    mapIndex: Math.max(0, MAPS.findIndex((m) => m.id === map.id)),
-    killsByType: {}, bossKills: 0, evolves: 0, loot: [], endlessBossT: 0, endlessCycle: 0,
+    mapIndex: Math.max(0, MAPS.findIndex((m) => m.id === map.id)), casketRank: casketRank(map),
+    killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], endlessBossT: 0, endlessCycle: 0,
     players: [], enemies: [], proj: [], gems: [], pickups: [], fx: [],
     hazards: [],          // telegraphed boss attacks on the ground: { x, z, r, t, max, dmg }
     eproj: [],            // monster projectiles: { id, x, z, vx, vz, r, dmg, life, art }
     level: 1, xp: 0, xpNeed: xpForLevel(1),
-    pending: {},          // playerId -> { choices: [...], left: seconds }
+    pending: {},          // playerId -> { choices: [...], left: seconds }; a reward casket card also has { casket: compareGear(...) }
     over: null,           // null | 'win' | 'dead'
     kills: 0, bossIndex: 0, spawnAcc: 0, spawnCount: players.length, region: null,
     eventT: 210, event: null, dmgBy: {}, hurtBy: {}, src: null, // random events: treasure goblin, swarm, meteor shower
@@ -44,9 +45,10 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       face: 0, moving: false, hp: PLAYER_BASE.hp, maxHp: PLAYER_BASE.hp, alive: true, inv: 0,
       meta, adv: p.adv || 'adventurer', weapons: { [p.weapon || (ADVENTURER_BY_ID[p.adv] ? ADVENTURER_BY_ID[p.adv].weapon : startWeapon)]: 1 }, passives: { ...((ADVENTURER_BY_ID[p.adv] || {}).startPassives || {}) }, evo: {}, buffs: {}, cd: {}, orbit: 0, kills: 0, coins: 0, regen: 0, hurt: 0,
       gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}), rerolls: REROLLS_PER_RUN, belt: [],
+      casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
     });
   });
-  for (const p of sim.players) { const st = playerStats(p); p.maxHp = st.maxHp; p.hp = st.maxHp; const w = findWalkable(sim, p.x, p.z); p.x = w[0]; p.z = w[1]; }
+  for (const p of sim.players) { const st = playerStats(p); p.maxHp = st.maxHp; p.hp = st.maxHp; p.rerolls = st.rerolls; p.revives = st.revives; const w = findWalkable(sim, p.x, p.z); p.x = w[0]; p.z = w[1]; }
   return sim;
 }
 
@@ -59,7 +61,12 @@ export function walkable(sim, x, z) {
   if (i < 0 || j < 0 || i >= g.n || j >= g.n) return false;
   return !g.blocked[j * g.n + i];
 }
-function findWalkable(sim, x, z) {
+// the nearest spot to (x, z) a monster can stand on AND walk to the players from: event and boss spawns used to land in
+// closed rooms and wall pockets (a war band's chief stuck in a building). Falls back to any open ground if none is near.
+export function findWalkable(sim, x, z) {
+  const reach = (a, b) => walkable(sim, a, b) && flowAt(sim, a, b) !== -2;
+  if (reach(x, z)) return [x, z];
+  for (let r = 1; r < 30; r++) for (let k = 0; k < 16; k++) { const a = (k / 16) * 6.2832, nx = x + dcos(a) * r, nz = z + dsin(a) * r; if (reach(nx, nz)) return [nx, nz]; }
   if (walkable(sim, x, z)) return [x, z];
   for (let r = 1; r < 30; r++) for (let k = 0; k < 16; k++) { const a = (k / 16) * 6.2832, nx = x + dcos(a) * r, nz = z + dsin(a) * r; if (walkable(sim, nx, nz)) return [nx, nz]; }
   return [x, z];
@@ -166,9 +173,14 @@ export function playerStats(p, meta = p.meta || {}) {
     maxHp: Math.round(PLAYER_BASE.hp + 20 * passiveLevel(p, 'vigor') + 8 * m('smithing') + (B.hp || 0) + (G.hp || 0)),
     regen: 0.15 * passiveLevel(p, 'vigor') + 0.1 * m('cooking') + (G.regen || 0),
     coin: 1 + (G.coin || 0) + 0.15 * passiveLevel(p, 'greed'),
-    casket: 1 + 0.25 * passiveLevel(p, 'greed'),
-    area: 1 + 0.1 * passiveLevel(p, 'area'),
-    amount: (passiveLevel(p, 'amount') >= 1 ? 1 : 0) + (passiveLevel(p, 'amount') >= 4 ? 1 : 0),
+    luck: 1 + 0.15 * m('luck'),
+    casket: (1 + 0.25 * passiveLevel(p, 'greed')) * (1 + 0.15 * m('luck')),
+    coinBonus: 1 + 0.1 * m('coins'),
+    weaponSlots: MAX_WEAPONS + m('strength'), passiveSlots: MAX_PASSIVES + m('prayer'),
+    projectileSpeed: 1 + 0.1 * m('projectileSpeed'),
+    rerolls: REROLLS_PER_RUN + m('rerolls'), revives: m('revive'),
+    area: 1 + 0.1 * passiveLevel(p, 'area') + 0.05 * m('area'),
+    amount: m('amount') + (passiveLevel(p, 'amount') >= 1 ? 1 : 0) + (passiveLevel(p, 'amount') >= 4 ? 1 : 0),
     reach: 1 + 0.06 * passiveLevel(p, 'amount'), // Feather: projectiles fly a little farther every level
     critC: 0.08 + 0.05 * passiveLevel(p, 'crit'), critM: 1.8 + 0.1 * passiveLevel(p, 'crit'),
     thorns: 8 * passiveLevel(p, 'thorns'),
@@ -233,6 +245,8 @@ function killEnemy(sim, e, owner) {
       sim.gems.push({ id: sim.nextId++, x: e.x + dcos(a) * 1.5, z: e.z + dsin(a) * 1.5, v: Math.ceil(def.xp / 8), vx: 0, vz: 0 });
     }
     sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z, kind: 'fish' }, { id: sim.nextId++, x: e.x + 1.2, z: e.z, kind: 'chest' }, { id: sim.nextId++, x: e.x - 1.2, z: e.z, kind: 'casket' });
+    const luck = p ? playerStats(p).luck - 1 : 0;
+    if (luck > 0 && sim.rng() < luck) sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z + 1.2, kind: 'chest' });
     sim.bossKills++;
     if (e.final && e.type === sim.map.finalBoss && !sim.endless) sim.over = 'win';
   }
@@ -242,12 +256,14 @@ function killEnemy(sim, e, owner) {
 export function spawnEnemy(sim, type, x, z, scaleHp = 1) {
   const def = ENEMIES[type];
   const t = sim.t;
-  const hp = def.hp * (1 + t / 260) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
+  const hp = def.hp * (1 + t / 300) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
   // now and then a golden elite: much tougher, a little slower, and it always carries a reward casket
   const elite = !def.boss && scaleHp === 1 && t > 60 && sim.rng() < 0.012;
   sim.enemies.push({
     id: sim.nextId++, type, x, z, hp: hp * (elite ? 7 : 1), maxHp: hp * (elite ? 7 : 1), face: 0, hit: 0, kx: 0, kz: 0, cdHit: {},
-    speed: def.speed * (1 + Math.min(0.45, t / 800)) * (elite ? 0.9 : 1), elite,
+    // monsters speed up as the run goes on, but only by a fifth (reached at 5:00): the fastest (fox, dog, wolf) stay just
+    // under your own base speed, so you can always outrun a chase (it was +45%, and from 4:30 foxes outran you)
+    speed: def.speed * 0.95 * (1 + Math.min(0.2, t / 1500)) * (elite ? 0.9 : 1), elite,
     atkCd: def.boss ? 3 + sim.rng() * 2 : 0, charge: null,
   });
 }
@@ -278,8 +294,9 @@ function spawnTick(sim, dt) {
     }
   }
   const alive = sim.enemies.length;
-  const cap = 125 + 70 * (sim.spawnCount - 1) + Math.min(105, t / 7);
-  const rate = (0.85 + t / 92) * (0.7 + 0.45 * sim.spawnCount) * (sim.hard ? 1.35 : 1); // enemies per second
+  const progress = Math.min(1, t / M.length);
+  const cap = 75 + 70 * (sim.spawnCount - 1) + 155 * progress * progress;
+  const rate = (1.05 + 1.6 * progress + 6.4 * progress * progress + Math.max(0, t - M.length) / 92) * (0.7 + 0.45 * sim.spawnCount) * (sim.hard ? 1.35 : 1); // enemies per second
   sim.spawnAcc += rate * dt;
   if (sim.event && sim.event.kind === 'duel') sim.spawnAcc = Math.min(sim.spawnAcc, 0.5); // the crowd holds back while you duel
   // on the whole-world map, the monsters come from the region you are standing in
@@ -333,20 +350,20 @@ function recycleStrays(sim, dt) {
 
 // ---- level ups ----------------------------------------------------------
 export function rollChoices(sim, p) {
-  const opts = [];
+  const opts = [], st = playerStats(p);
   for (const id of Object.keys(EVOLUTIONS)) {
     if ((p.weapons[id] || 0) >= MAX_WEAPON_LEVEL && !p.evo[id] && (p.passives[EVOLUTIONS[id].passive] || 0) >= 1) opts.push({ kind: 'evolve', id, level: 1, w: 1000 });
   }
   for (const id of WEAPON_IDS) {
     const lvl = p.weapons[id] || 0;
     if (lvl >= MAX_WEAPON_LEVEL) continue;
-    if (!lvl && Object.keys(p.weapons).length >= MAX_WEAPONS) continue;
+    if (!lvl && Object.keys(p.weapons).length >= st.weaponSlots) continue;
     opts.push({ kind: 'weapon', id, level: lvl + 1, w: lvl ? 3 : 2 });
   }
   for (const id of PASSIVE_IDS) {
     const lvl = p.passives[id] || 0;
     if (lvl >= MAX_PASSIVE_LEVEL) continue;
-    if (!lvl && Object.keys(p.passives).length >= MAX_PASSIVES) continue;
+    if (!lvl && Object.keys(p.passives).length >= st.passiveSlots) continue;
     opts.push({ kind: 'passive', id, level: lvl + 1, w: lvl ? 2.5 : 2 });
   }
   const out = [];
@@ -377,22 +394,56 @@ export function choose(sim, playerId, index) {
   const p = sim.players.find((q) => q.id === playerId);
   if (!pend || !p) return false;
   const c = pend.choices[index] || pend.choices[0];
-  applyChoice(sim, p, c);
+  if (pend.casket) applyCasket(sim, p, c); else applyChoice(sim, p, c);
   delete sim.pending[playerId];
   sim.fx.push({ k: 'pick', id: playerId });
+  openCasket(sim, p); // the next casket in the queue, if any
   return true;
+}
+// the card the sim picks by itself when the timer runs out: the first level-up card, or a casket's recommended choice
+export function autoChoice(pend) { return pend && pend.casket ? pend.rec : 0; }
+
+// ---- reward caskets: an item for an empty slot goes straight on; otherwise the run pauses on a card: Wear or High alch --
+// put a piece on: a change in max HP adds to (or caps) your health, like the Cooked Meat passive
+function wearItem(p, item) {
+  const before = p.maxHp;
+  p.gear = { ...p.gear, [GEAR[item].slot]: item }; p.gb = gearBonus(p.gear, p.gearLv || {});
+  if (!p.godMode) { const m = playerStats(p).maxHp; p.maxHp = m; p.hp = Math.min(m, p.hp + Math.max(0, m - before)); }
+}
+function gotCasket(sim, p, item) {
+  sim.loot.push(item);
+  if (!p.gear[GEAR[item].slot]) { wearItem(p, item); sim.fx.push({ k: 'casket', item, worn: 1 }); return; }
+  p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1 });
+}
+export function openCasket(sim, p) {
+  if (!p || !p.alive || sim.pending[p.id] || !p.casketQ.length || sim.over) return false;
+  const item = p.casketQ.shift();
+  const card = compareGear(p.gear, p.gearLv || {}, item);
+  const rec = card.better ? 0 : 1;
+  sim.pending[p.id] = { casket: card, choices: [{ kind: 'wear', id: item, level: 1 }, { kind: 'alch', id: item, level: card.alch }], rec, more: p.casketQ.length, left: 30 };
+  return true;
+}
+function applyCasket(sim, p, c) {
+  if (c.kind === 'wear') {
+    const old = p.gear[GEAR[c.id].slot] || null;
+    wearItem(p, c.id);
+    sim.fx.push({ k: 'casket', item: c.id, worn: 1, old });
+  } else {
+    p.alch += c.level; sim.alched.push(c.id);
+    sim.fx.push({ k: 'alch', item: c.id, coins: c.level });
+  }
 }
 
 // a fresh set of three cards (limited per run)
 export function reroll(sim, playerId) {
   const pend = sim.pending[playerId], p = sim.players.find((q) => q.id === playerId);
-  if (!pend || !p || p.rerolls <= 0) return false;
+  if (!pend || pend.casket || !p || p.rerolls <= 0) return false;
   p.rerolls--; pend.choices = rollChoices(sim, p); return true;
 }
 // pass on this level's cards for a coin
 export function skipLevel(sim, playerId) {
   const p = sim.players.find((q) => q.id === playerId);
-  if (!sim.pending[playerId] || !p) return false;
+  if (!sim.pending[playerId] || sim.pending[playerId].casket || !p) return false;
   delete sim.pending[playerId]; p.coins++; sim.fx.push({ k: 'pick', id: playerId });
   return true;
 }
@@ -411,6 +462,7 @@ function gainXp(sim, amount) {
 function withPassives(id, s, st) {
   // Spirit Shard (haste): weapons without a cooldown hit more often instead (shields re-hit sooner, the fire burns faster)
   if (st.haste < 1 && (s.hitcd || s.tick)) { s = { ...s }; if (s.hitcd) s.hitcd *= st.haste; if (s.tick) s.tick *= st.haste; }
+  if (s.speed && st.projectileSpeed !== 1) s = { ...s, speed: s.speed * st.projectileSpeed };
   if (st.area === 1 && !st.amount) return s;
   s = { ...s }; const A = st.area;
   if (s.range) s.range *= A;
@@ -517,6 +569,7 @@ function fireWeapons(sim, p, dt, st) {
     let s = WEAPONS.shield.stats(p.weapons.shield);
     if (p.evo.shield) s = evolveStats('shield', s);
     s = withPassives('shield', s, st);
+    p.shields = s;
     const dmg = s.dmg * st.might; sim.src = 'shield';
     for (let i = 0; i < s.count; i++) {
       const a = p.orbit * s.spin + (i / s.count) * Math.PI * 2;
@@ -626,7 +679,7 @@ function eventTick(sim, dt) {
   if (kind === 'treasure') {
     const a = sim.rng() * 6.283, w = findWalkable(sim, p.x + dcos(a) * 12, p.z + dsin(a) * 12);
     spawnEnemy(sim, 'goblin', w[0], w[1], 12); const g = sim.enemies[sim.enemies.length - 1];
-    g.treasure = true; g.elite = true; g.speed = PLAYER_BASE.speed * 0.82;
+    g.treasure = true; g.elite = true; g.speed = PLAYER_BASE.speed * 0.82 * 0.95;
     sim.event = { kind, t: 25, id: g.id };
   } else if (kind === 'swarm') {
     const pool = sim.map.pool.filter((s) => sim.t >= s.t), type = (pool[pool.length - 1] || pool[0]).type;
@@ -712,7 +765,10 @@ function hurtPlayer(sim, tp, dmg, src = 'contact') {
   sim.hurtBy[src] = (sim.hurtBy[src] || 0) + dmg; // damage taken by source, for balancing
   tp.hp -= dmg; tp.inv = 0.75; tp.hurt = 0.25; // a beat to break free after each hit
   sim.fx.push({ k: 'hurt', id: tp.id, v: dmg, x: tp.x, z: tp.z });
-  if (tp.hp <= 0) { tp.hp = 0; tp.alive = false; sim.fx.push({ k: 'down', id: tp.id }); }
+  if (tp.hp <= 0 && tp.revives > 0) {
+    tp.revives--; tp.hp = tp.maxHp * 0.5; tp.inv = 2;
+    sim.fx.push({ k: 'revive', id: tp.id, x: tp.x, z: tp.z });
+  } else if (tp.hp <= 0) { tp.hp = 0; tp.alive = false; sim.fx.push({ k: 'down', id: tp.id }); }
 }
 const bossDmg = (sim, def, mul) => Math.round(def.dmg * mul * (1 + sim.t / 900) * (sim.hard ? 1.35 : 1));
 // returns a movement override (charging, or holding still while winding up), or null
@@ -769,7 +825,7 @@ export function step(sim, inputs = {}, dt = TICK) {
     for (const id of pendIds) {
       const pend = sim.pending[id];
       pend.left -= dt;
-      if (pend.left <= 0) choose(sim, id, 0);
+      if (pend.left <= 0) choose(sim, id, autoChoice(pend));
     }
     return;
   }
@@ -860,20 +916,16 @@ export function step(sim, inputs = {}, dt = TICK) {
   sim.gems = sim.gems.filter((g) => !g.taken);
   for (const k of sim.pickups) {
     const p = nearestPlayer(sim, k.x, k.z);
+    if (p && k.kind === 'coin' && !k.pulled && hyp(p.x - k.x, p.z - k.z) < playerStats(p).magnet) k.pulled = true; // coins answer pickup range, like gems
     if (k.pulled && p) { const d = hyp(p.x - k.x, p.z - k.z) || 1; k.x += ((p.x - k.x) / d) * 12 * dt; k.z += ((p.z - k.z) / d) * 12 * dt; }
     if (p && hyp(p.x - k.x, p.z - k.z) < 1.1) {
+      if (k.kind === 'chest' && sim.pending[p.id]) continue;
       k.taken = true;
       const st = playerStats(p);
       if (BELT_KINDS.includes(k.kind) && p.belt.length < BELT_SIZE) p.belt.push(k.kind); // kept for later (1-4)
       else if (BELT_KINDS.includes(k.kind) || k.kind === 'fish') useItem(sim, p, k.kind);
       else if (k.kind === 'chest') { if (!sim.pending[p.id]) sim.pending[p.id] = { choices: rollChoices(sim, p), left: 25 }; }
-      else if (k.kind === 'casket') {
-        const item = rollCasket(sim.rng, sim.mapIndex, sim.hard); sim.loot.push(item);
-        const g = GEAR[item], cur = p.gear[g.slot] && GEAR[p.gear[g.slot]];
-        const wear = !cur || g.tier > cur.tier; // put it on straight away if the slot is empty or it is better
-        if (wear) { p.gear = { ...p.gear, [g.slot]: item }; p.gb = gearBonus(p.gear, p.gearLv || {}); }
-        sim.fx.push({ k: 'casket', item, worn: wear ? 1 : 0 });
-      }
+      else if (k.kind === 'casket') gotCasket(sim, p, rollCasket(sim.rng, sim.casketRank, sim.hard, sim.t));
       else p.coins++;
       sim.fx.push({ k: 'get', kind: k.kind, x: k.x, z: k.z });
     }
@@ -882,6 +934,7 @@ export function step(sim, inputs = {}, dt = TICK) {
 
   if (sim.players.every((p) => !p.alive)) sim.over = 'dead';
   else if (sim.t >= sim.map.length && !sim.endless) sim.over = 'win';
+  for (const p of sim.players) openCasket(sim, p); // a casket card waits for any level-up card first
 }
 
 // ---- snapshots for the network and the renderer ---------------------------
@@ -899,14 +952,14 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
   const fx = sim.fx; sim.fx = [];
   return {
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
-    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, belt: p.belt.slice() })),
+    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice() })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),
     hazards: sim.hazards.map((h) => [r1(h.x), r1(h.z), h.r, Math.round((1 - h.t / h.max) * 100) / 100, h.meteor ? 1 : 0]),
     eproj: sim.eproj.map((b) => [b.id, r1(b.x), r1(b.z), b.art]),
     proj: sim.proj.map((p) => [p.id, p.art, r1(p.x), r1(p.z), Math.round(datan2(p.vx, p.vz) * 20) / 20, p.lvl, Math.round((p.spin || 0) * 10) / 10, p.evo ? 1 : 0]),
     gems: sim.gems.map((g) => [g.id, r1(g.x), r1(g.z), g.v]),
     pickups: sim.pickups.map((k) => [k.id, k.kind, r1(k.x), r1(k.z)]),
-    pending: Object.fromEntries(Object.entries(sim.pending).map(([id, v]) => [id, { choices: v.choices, left: Math.ceil(v.left) }])),
+    pending: Object.fromEntries(Object.entries(sim.pending).map(([id, v]) => [id, v.casket ? { choices: v.choices, left: Math.ceil(v.left), casket: v.casket, rec: v.rec, more: v.more } : { choices: v.choices, left: Math.ceil(v.left) }])),
     fx,
   };
 }

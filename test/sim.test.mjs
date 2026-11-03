@@ -105,8 +105,16 @@ test('evolution: maxed weapon + its passive offers the evolution first, and it h
   assert.equal(ch[0].kind, 'evolve'); assert.equal(ch[0].id, 'katana');
   applyChoice(sim, p, ch[0]); assert.ok(p.evo.katana);
   const base = createSim({ seed: 4 }); base.players[0].weapons.katana = 6; base.players[0].passives.might = 1;
-  run(sim, 25); run(base, 25);
-  assert.ok(sim.kills >= base.kills, `evolved ${sim.kills} vs plain ${base.kills}`);
+  // Compare damage on identical durable targets; random spawn/loot paths diverge after kills.
+  const dealt = (s) => {
+    s.spawnAcc = -1e9;
+    const p = s.players[0]; spawnEnemy(s, 'cow', p.x + 2, p.z, 1000);
+    const target = s.enemies[0]; target.speed = 0;
+    run(s, 0.5);
+    return target.maxHp - target.hp;
+  };
+  const evolved = dealt(sim), plain = dealt(base);
+  assert.ok(evolved > plain && plain > 0, `evolved ${evolved} vs plain ${plain}`);
 });
 
 test('power-ups go on the belt and work when used: beer speeds you up, pumpkin blasts, chest gives a choice', () => {
@@ -212,7 +220,8 @@ test('gear, casket and quest items all exist with icons and models', () => {
   const F = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back' };
   for (const [n, g] of Object.entries(GEAR)) {
     assert.ok(existsSync(new URL(`../public/assets/ui/items/${itemIconFile(n)}`, import.meta.url)), 'icon ' + n);
-    assert.ok(existsSync(new URL(`../public/assets/models/playerCharacter/${F[g.slot]}/Clothing/${n}.glb`, import.meta.url)), 'model ' + n);
+    const model = g.model ? `../public/assets/models/${g.model}` : `../public/assets/models/playerCharacter/${F[g.slot]}/Clothing/${n}.glb`; // shields are held items
+    assert.ok(existsSync(new URL(model, import.meta.url)), 'model ' + n);
   }
   for (const q of QUESTS) if (q.item) assert.ok(GEAR[q.item], 'quest item ' + q.item);
   for (const s of Object.keys(GEAR_SETS)) assert.ok(Object.values(GEAR).filter((g) => g.set === s).length >= GEAR_SETS[s].pieces, 'set ' + s);
@@ -421,10 +430,11 @@ test('Fighting Forum: a champion challenges you, the crowd holds back, and beati
   const champ = sim.enemies.find((e) => e.champion); assert.ok(champ && champ.elite, 'one golden champion');
   const n0 = sim.enemies.length; for (let i = 0; i < 90; i++) { step(sim, {}, TICK); for (const id of Object.keys(sim.pending)) choose(sim, id, 0); }
   assert.ok(sim.enemies.filter((e) => !e.champion).length <= n0 + 2, 'the crowd holds back during the duel');
-  const coins0 = sim.pickups.filter((q) => q.kind === 'coin').length;
+  const coinsNow = () => sim.pickups.filter((q) => q.kind === 'coin').length + sim.players.reduce((n, q) => n + (q.coins || 0), 0); // on the ground or already pulled in
+  const coins0 = coinsNow();
   champ.hp = 0.0001; for (let i = 0; i < 40 && sim.enemies.includes(champ); i++) step(sim, {}, TICK);
   if (sim.enemies.includes(champ)) { champ.hp = -1; step(sim, {}, TICK); }
-  assert.ok(sim.pickups.filter((q) => q.kind === 'coin').length >= coins0 + 6, 'a champion drops a pile of coins');
+  assert.ok(coinsNow() >= coins0 + 6, 'a champion drops a pile of coins');
   assert.ok(!sim.event || sim.event.kind !== 'duel', 'and the duel is over');
 });
 
@@ -594,4 +604,46 @@ test('the Spirit Shard speeds up weapons without a cooldown too (shields re-hit 
   };
   const plain = burnGap(0), fast = burnGap(5);
   assert.ok(plain > 0.4 && fast < plain * 0.75, `burn interval ${fast.toFixed(3)} vs ${plain.toFixed(3)}`);
+});
+
+test('Hidden Oasis: one arena in the south-west corner; you start on open ground, monsters come and nothing leaves it', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { unpackGround } = await import('../src/ground-pack.js');
+  const g = unpackGround(readFileSync(new URL('../tools/vercel-api/ground.bin', import.meta.url))), n = g.n;
+  const map = MAPS.find((m) => m.id === 'oasis');
+  assert.ok(map && map.under && map.after === 'apache');
+  const open = (x, z) => !g.blocked[Math.floor(z) * n + Math.floor(x)];
+  assert.ok(open(map.cx, map.cz), 'the start is on open ground');
+  // the entrance room, the cave and the factory floor are one walkable piece
+  const seen = new Uint8Array(n * n), q = [[Math.floor(map.cx), Math.floor(map.cz)]]; seen[q[0][1] * n + q[0][0]] = 1;
+  while (q.length) { const [a, b] = q.pop(); for (const [d, e] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const A = a + d, B = b + e; if (A >= 0 && B >= 0 && A < n && B < n && open(A, B) && !seen[B * n + A]) { seen[B * n + A] = 1; q.push([A, B]); } } }
+  for (const [x, z, what] of [[11, 460, 'entrance'], [85, 485, 'factory'], [40, 470, 'cave']]) assert.ok(seen[z * n + x], `${what} is reachable`);
+  const sim = createSim({ seed: 7, map, ground: g, players: [{ id: 'p1', name: 'T', adv: 'alex' }] });
+  const me = sim.players[0]; me.godMode = true; me.hp = me.maxHp = 1e9;
+  let most = 0, outside = 0;
+  for (let i = 0; i < Math.round(150 / TICK); i++) {
+    step(sim, { p1: { mx: Math.sin(i / 90), mz: Math.cos(i / 130) } }, TICK); for (const id of Object.keys(sim.pending)) choose(sim, id, 0);
+    most = Math.max(most, sim.enemies.filter((e) => !e.dead).length);
+    for (const e of sim.enemies) if (!e.dead && (e.x < 0 || e.x > 128 || e.z < 448 || e.z > 512)) outside++;
+    const p = sim.players[0]; assert.ok(p.x >= 0 && p.x <= 128 && p.z >= 448 && p.z <= 512, 'the player stays in the oasis');
+  }
+  assert.ok(most >= 25, `monsters keep coming in the tight arena (most alive ${most})`);
+  assert.equal(outside, 0, 'no monster ever stands outside the oasis');
+});
+
+test('event and boss spawns never land inside a closed room or wall pocket (a war band chief was stuck in a building)', async () => {
+  const { findWalkable } = await import('../src/sim.js');
+  const n = 128, blocked = new Uint8Array(n * n), walls = new Uint8Array(n * n);
+  // a closed room 12 x 12 cells, 20 units east of the player: walls all round, no door
+  for (let j = 58; j <= 69; j++) for (let i = 70; i <= 81; i++) {
+    if (i === 70) walls[j * n + i] |= 8; if (i === 81) walls[j * n + i] |= 2;
+    if (j === 58) walls[j * n + i] |= 1; if (j === 69) walls[j * n + i] |= 4;
+  }
+  const ground = { n, blocked, cell: true, walls, water: null };
+  const sim = createSim({ seed: 3, map: { ...MAPS[0], cx: 52.5, cz: 64.5, r: 1000 }, ground });
+  sim.spawnAcc = -1e9;
+  for (let i = 0; i < 30; i++) step(sim, {}, TICK);
+  const [x, z] = findWalkable(sim, 76, 64);
+  const inside = x >= 70 && x < 82 && z >= 58 && z < 70;
+  assert.ok(!inside, `spawned at ${x.toFixed(1)},${z.toFixed(1)}, inside the closed room`);
 });

@@ -8,7 +8,7 @@ SRC=$PWD; PUB="${SQS_PUBLIC_DIR:-$HOME/work/sqs-public}"; REPO=dexedrne/sankosur
 [ -d "$PUB/.git" ] || { echo "github: no public copy at $PUB, skipped"; exit 0; }
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 git archive HEAD | tar -x -C "$TMP"
-rm -rf "$TMP/reference" "$TMP/qa-kit" "$TMP/docs/superpowers"
+rm -rf "$TMP/reference" "$TMP/qa-kit" "$TMP/qa-out" "$TMP/docs/superpowers"
 find "$TMP" -maxdepth 1 -name '*.md' ! -name README.md -delete      # internal reports and notes stay private
 [ -d "$TMP/docs" ] && [ -z "$(ls -A "$TMP/docs")" ] && rmdir "$TMP/docs"
 # refuse on anything personal, any AI attribution, home paths or secrets (patterns split so this file never matches)

@@ -2,7 +2,7 @@ import { RunRecorder } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRanked } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
-import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, BELT_SIZE, TICK } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK } from './sim.js';
 import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
@@ -12,9 +12,9 @@ const prizePlaces = (rows) => { let k = 0; return rows.map((r) => (noPrize(r.wal
 import { wallets, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
 import { connect as walletConnect, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
-  MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, SKILL_MAX, skillCost,
+  MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
-  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, gearBonus, bonusText, QUESTS,
+  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, gearBonus, bonusText, QUESTS, deltaText, gearRarity, alchValue, ARMOR_TIERS,
 } from './content.js';
 
 const $ = (id) => document.getElementById(id);
@@ -38,21 +38,22 @@ const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } cat
 const clearedMaps = () => new Set(load('sq-cleared', []));
 const getCoins = () => Number(load('sq-coins', 0)) || 0;
 const clampLv = (o, max) => { const out = {}; if (o && typeof o === 'object' && !Array.isArray(o)) for (const k of Object.keys(o)) out[k] = Math.max(0, Math.min(max, Math.floor(Number(o[k])) || 0)); return out; }; // saved levels can be edited or arrive in a #carry= link: never trust them as numbers
-const getSkills = () => clampLv(load('sq-skills', {}), SKILL_MAX);
+const getSkills = () => clampSkills(load('sq-skills', {}));
 let selMap = load('sq-map', 'greentown'); if (!MAP_BY_ID[selMap]) selMap = 'greentown';
 let selAdv = load('sq-adv', 'adventurer'); if (!ADVENTURER_BY_ID[selAdv]) selAdv = 'adventurer';
 let loadedMapId = 'greentown', mapLoading = false, hardOn = false, endlessOn = false;
 // gear you own (from caskets and quests) and what you wear; lifetime stats that quests read
-const getBank = () => load('sq-bank', []);
-const getGear = () => { const g = load('sq-gear', {}), bank = new Set(getBank()); for (const k of Object.keys(g)) if (!bank.has(g[k]) || !GEAR[g[k]]) delete g[k]; return g; };
+const getBank = () => { const b = load('sq-bank', []); return Array.isArray(b) ? b.filter((n) => typeof n === 'string' && Object.hasOwn(GEAR, n)) : []; }; // old saves: unknown names are ignored
+const getGear = () => { const raw = load('sq-gear', {}), g = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}, bank = new Set(getBank()); for (const k of Object.keys(g)) if (!GEAR_SLOTS.includes(k) || !bank.has(g[k]) || !Object.hasOwn(GEAR, g[k]) || GEAR[g[k]].slot !== k) delete g[k]; return g; };
 const getStats = () => load('sq-stats', {});
 const getGearLv = () => clampLv(load('sq-gearlv', {}), GEAR_MAX_LV);
 const questsDone = () => new Set(load('sq-quests', []));
 const statVal = (st, key) => st[key] || 0;
-// a new item goes to the bank; a duplicate is sold for coins
-function bankItem(name) { const b = getBank(); if (b.includes(name)) { save('sq-coins', getCoins() + 25); return false; } b.push(name); save('sq-bank', b); return true; }
+// a new item goes to the bank; a duplicate is sold for coins (unless it was already high alched in the run: sell = false)
+function bankItem(name, sell = true) { if (!Object.hasOwn(GEAR, name)) return false; const raw = load('sq-bank', []), b = Array.isArray(raw) ? raw : []; if (b.includes(name)) { if (sell) save('sq-coins', getCoins() + 25); return false; } b.push(name); save('sq-bank', b); return true; }
+const autoAlchOn = () => load('sq-autoalch', false) === true; // Settings: auto high alch caskets that are not better
 // special maps (Tutorial Island) are open from the start and sit outside the campaign chain
-const unlockedMap = (i) => params.has('unlock') || i === 0 || !!MAPS[i].special || clearedMaps().has(MAPS[i - 1].id);
+const unlockedMap = (i) => params.has('unlock') || i === 0 || !!MAPS[i].special || clearedMaps().has(MAPS[i].after || MAPS[i - 1].id);
 const unlockedAdv = (a) => params.has('unlock') || a.unlock <= clearedMaps().size;
 // some maps fix who you play (Tutorial Island: Alex)
 const runAdv = () => ADVENTURER_BY_ID[(MAP_BY_ID[selMap] && MAP_BY_ID[selMap].forceAdv) || selAdv];
@@ -105,7 +106,7 @@ function buildMaps() {
     return `<div class="mopt${m.id === selMap ? ' sel' : ''}${open ? '' : ' locked'}" data-id="${m.id}"><div class="thumb" style="${bg}">${open ? '' : '🔒'}${cl.has(m.id) ? '<i>✔</i>' : ''}</div>${m.name}</div>`;
   }).join('');
   for (const el of $('mpick').children) el.onclick = () => {
-    if (el.classList.contains('locked')) { $('mapinfo').textContent = 'Clear the map before it to unlock this one.'; return; }
+    if (el.classList.contains('locked')) { const m = MAP_BY_ID[el.dataset.id]; $('mapinfo').textContent = m.after ? `Clear ${MAP_BY_ID[m.after].name} to unlock this one.` : 'Clear the map before it to unlock this one.'; return; }
     pickMap(el.dataset.id);
   };
   const m = MAP_BY_ID[selMap];
@@ -293,12 +294,12 @@ function buildSkills() {
   const lv = getSkills(), coins = getCoins();
   $('coins2').textContent = coins;
   $('skillgrid').innerHTML = SKILL_IDS.map((id) => {
-    const s = SKILLS[id], l = lv[id] || 0, max = l >= SKILL_MAX, cost = skillCost(l);
-    return `<div class="skill"><img src="${BASE}assets/ui/skills/${s.icon}.png" alt=""><h4>${s.name}</h4><div class="pips">${'■'.repeat(l)}${'□'.repeat(SKILL_MAX - l)}</div><p style="grid-column:1/-1">${s.blurb}</p><button data-id="${id}" ${max || coins < cost ? 'disabled' : ''}>${max ? 'Maxed' : `Train · ${cost} coins`}</button></div>`;
+    const s = SKILLS[id], l = lv[id] || 0, max = l >= s.max, cost = skillCost(id, l);
+    return `<div class="skill"><img src="${BASE}assets/${s.icon}" alt=""><h4>${s.name}</h4><div class="pips">${'■'.repeat(l)}${'□'.repeat(s.max - l)}</div><p style="grid-column:1/-1">${s.blurb}</p><button data-id="${id}" ${max || coins < cost ? 'disabled' : ''}>${max ? 'Maxed' : `Train · ${cost} coins`}</button></div>`;
   }).join('');
   for (const b of $('skillgrid').querySelectorAll('button')) b.onclick = () => {
-    const id = b.dataset.id, l = getSkills()[id] || 0, cost = skillCost(l);
-    if (l >= SKILL_MAX || getCoins() < cost) return;
+    const id = b.dataset.id, l = getSkills()[id] || 0, cost = skillCost(id, l);
+    if (l >= SKILLS[id].max || getCoins() < cost) return;
     const sk = getSkills(); sk[id] = l + 1; save('sq-skills', sk); save('sq-coins', getCoins() - cost); showBest(); buildSkills();
   };
 }
@@ -347,7 +348,7 @@ function buildGear() {
   const gear = getGear(), bank = getBank(), lvs = getGearLv(), coins = getCoins();
   $('gearslots').innerHTML = GEAR_SLOTS.map((sl) => `<div class="gslot${sl === gearSlotSel ? ' sel' : ''}" data-slot="${sl}">${gear[sl] ? imgTag(gear[sl]) : '<span class="empty"></span>'}<small>${GEAR_SLOT_NAMES[sl]}</small></div>`).join('');
   for (const el of $('gearslots').children) el.onclick = () => { gearSlotSel = el.dataset.slot; buildGear(); };
-  const mine = bank.filter((n) => GEAR[n] && GEAR[n].slot === gearSlotSel).sort((a, b) => GEAR[a].tier - GEAR[b].tier);
+  const mine = bank.filter((n) => GEAR[n] && GEAR[n].slot === gearSlotSel).sort((a, b) => GEAR[a].tier - GEAR[b].tier || a.localeCompare(b));
   $('gearbank').innerHTML = mine.length
     ? mine.map((n) => { const lv = lvs[n] || 0, cost = gearUpgradeCost(n, lv), m = 1 + 0.25 * lv, b = Object.fromEntries(Object.entries(GEAR[n].bonus).map(([k, v]) => [k, v * m]));
       return `<div class="gitem${gear[gearSlotSel] === n ? ' on' : ''}" data-n="${n}" title="${n}">${imgTag(n)}<div><b>${n}${lv ? ` +${lv}` : ''}</b><span>${bonusText(b)}${GEAR[n].set && GEAR_SETS[GEAR[n].set] ? ` · ${GEAR[n].set} set` : ''}</span>
@@ -395,12 +396,13 @@ const SETTINGS = [
   { id: 'numbers', name: 'Damage numbers', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'shake', name: 'Screen shake', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'sound', name: 'Sound and music', opts: [[true, 'On'], [false, 'Off']] },
+  { id: 'autoalch', name: 'Auto high alch caskets that are not better', opts: [[true, 'On'], [false, 'Off']] },
 ];function buildSettings() {
-  const cur = { ...renderer.getSettings(), sound: !audio.muted };
+  const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn() };
   $('setlist').innerHTML = SETTINGS.map((o) => o.head ? `<h3 class="sethead">${o.head}</h3>` : `<div class="setrow"><span>${o.name}</span><div class="seg">${o.opts.map(([v, label]) => `<button class="${cur[o.id] === v ? 'on' : 'ghost'}" data-id="${o.id}" data-v='${JSON.stringify(v)}'>${label}</button>`).join('')}</div></div>`).join('');
   for (const b of $('setlist').querySelectorAll('button')) b.onclick = () => {
     const id = b.dataset.id, v = JSON.parse(b.dataset.v);
-    if (id === 'sound') audio.setMuted(!v); else renderer.applySettings({ [id]: v });
+    if (id === 'sound') audio.setMuted(!v); else if (id === 'autoalch') save('sq-autoalch', v === true); else renderer.applySettings({ [id]: v });
     const keep = { ...renderer.getSettings(), v: 2 }; save('sq-settings', keep); buildSettings();
   };
 }
@@ -654,7 +656,7 @@ async function startRun(live = null) {
     $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
   } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
   renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
-  for (const id of ['title', 'end', 'pause', 'levelup', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden');
+  for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden');
   $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
   $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
   if (isRanked && sim.pending[PLAYER]) showLevelUp();
@@ -686,11 +688,18 @@ function endRun() {
   if (!wasRanked && load('sq-name', '') && sim.t >= 30) setTimeout(submitScore, 300); // named players send runs of 30 s or more automatically
   const endlessBonus = sim.endless ? Math.floor(Math.max(0, sim.t - sim.map.length) / 10) : 0;
   const dmtOn = !!savedPass(); // DMT holders: +25% coins
-  const earned = Math.round((Math.floor(sim.kills / 6) + p.coins * 3 + (won ? 120 : 0) + endlessBonus) * (sim.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1));
+  // high alch coins are added as the casket card promised them, after the multipliers
+  const alchCoins = Math.max(0, Math.floor(p.alch || 0));
+  const earned = Math.round((Math.floor(sim.kills / 6) + p.coins * 3 + (won ? 120 : 0) + endlessBonus) * playerStats(p).coinBonus * (sim.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1)) + alchCoins;
   save('sq-coins', getCoins() + earned);
-  // caskets opened this run go to the bank
-  const worn = sim.players[0].gear || {};
-  const lootNotes = sim.loot.map((n) => { const fresh = bankItem(n), on = Object.values(worn).includes(n); return `${imgTag(n)} ${n} <em>${on ? 'now worn' : fresh ? 'new' : 'sold, +25 coins'}</em>`; });
+  // caskets opened this run go to the bank (the collection), worn or high alched; a duplicate you kept is sold, one you
+  // high alched already paid its coins
+  const worn = sim.players[0].gear || {}, alched = [...(sim.alched || [])];
+  const lootNotes = sim.loot.map((n) => {
+    const ai = alched.indexOf(n), wasAlched = ai >= 0; if (wasAlched) alched.splice(ai, 1);
+    const fresh = bankItem(n, !wasAlched), on = Object.values(worn).includes(n);
+    return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}${fresh ? ', new' : ''}` : on ? 'now worn' : fresh ? 'new' : 'sold, +25 coins'}</em>`;
+  });
   if (sim.map.forceAdv !== sim.players[0].adv) { const g = getGear(); for (const [slot, n] of Object.entries(worn)) if (getBank().includes(n)) g[slot] = n; save('sq-gear', g); }
   // lifetime stats, then quests
   const st = getStats(), add = (k, v) => { st[k] = (st[k] || 0) + v; };
@@ -717,7 +726,7 @@ function endRun() {
   buildMaps(); buildAdventurers(); showBest();
   $('endtitle').textContent = won ? `${sim.map.name} holds!` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
   $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${unlockNote}`;
-  $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
+  $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
   $('end').classList.remove('hidden');
   if (wasRanked) { rankedRun.ended = true; persistRanked(); submitRanked(); }
 }
@@ -725,7 +734,7 @@ function toMenu() {
   if (rankedPlaying()) return;
   rankedRun = null; rankedRec = null; applyDmt();
   sim = null; mode = 'title'; window.__idleSim = null;
-  for (const id of ['end', 'pause', 'levelup', 'hud']) $(id).classList.add('hidden');
+  for (const id of ['end', 'pause', 'levelup', 'casket', 'hud']) $(id).classList.add('hidden');
   $('hud').classList.add('hidden'); $('title').classList.remove('hidden'); renderer.reset(); renderer.setZoom(0.45); renderer.setShift(2.4);
   buildAdventurers(); buildMaps(); showBest();
 }
@@ -734,6 +743,13 @@ function toMenu() {
 addEventListener('keydown', (e) => {
   if (e.repeat) return;
   const k = e.key.toLowerCase(); keys.add(k);
+  if (mode === 'casket') {
+    if (k === '1' || k === '2') pickCasket(Number(k) - 1);
+    else if (k === 'arrowleft' || k === 'a' || k === 'arrowup' || k === 'w') { selCard = 0; markCasket(); }
+    else if (k === 'arrowright' || k === 'd' || k === 'arrowdown' || k === 's') { selCard = 1; markCasket(); }
+    else if (k === 'enter' || k === ' ') pickCasket(selCard);
+    return;
+  }
   if (mode === 'levelup') {
     if (k === '1' || k === '2' || k === '3') pick(Number(k) - 1);
     else if (k === 'arrowleft' || k === 'a') { selCard = (selCard + 2) % 3; markCard(); }
@@ -850,6 +866,7 @@ let shownPending = false;
 function showLevelUp() {
   if (sim) preloadNextIcons(sim.players.find((q) => q.id === PLAYER));
   const pend = sim.pending[PLAYER]; if (!pend) return;
+  if (pend.casket) { showCasket(); return; }
   shownPending = true; mode = 'levelup'; selCard = 0; audio.duck(true);
   touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden');
   const wrap = $('cards'); wrap.innerHTML = '';
@@ -880,9 +897,54 @@ function doSkip() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 's') : 
 $('reroll').onclick = doReroll; $('skiplv').onclick = doSkip;
 function markCard() { [...$('cards').children].forEach((el, i) => el.classList.toggle('sel', i === selCard)); }
 function pick(i) {
-  if (!sim.pending[PLAYER]) return;
+  if (!sim.pending[PLAYER] || sim.pending[PLAYER].casket) return;
   if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else choose(sim, PLAYER, i); audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden');
 }
+
+// ---- reward casket card: the item, what it replaces, every stat change, and Wear or High alch ----------------------------
+const RARITY_NAME = { common: '', rare: 'Rare', unique: 'Unique' };
+const tierLabel = (n) => { const g = GEAR[n]; const metal = ARMOR_TIERS.includes(g.set) || / (Kite)?[Ss]hield$/.test(n) && g.rarity !== 'unique'; return [GEAR_SLOT_NAMES[g.slot], metal ? '' : RARITY_NAME[gearRarity(n)]].filter(Boolean).join(' · '); };
+function casketItemHTML(n, cls, label) {
+  const g = GEAR[n];
+  return `<div class="ckitem ${cls}"><div class="cklabel">${label}</div>${imgTag(n)}<div class="cktext"><b>${n}</b><small>${tierLabel(n)}</small><span>${bonusText(g.bonus)}</span></div></div>`;
+}
+function showCasket() {
+  const pend = sim.pending[PLAYER]; if (!pend || !pend.casket) return;
+  const c = pend.casket;
+  // Settings: a piece that improves nothing is high alched without stopping the run (still a recorded choice in ranked)
+  if (autoAlchOn() && !c.anyUp) { toast(`${imgTag(c.item)} <span>Auto high alch<br><b>${c.item}</b> +${c.alch} coins</span>`); pickCasket(1, true); return; }
+  shownPending = true; mode = 'casket'; selCard = pend.rec; audio.duck(true);
+  touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden');
+  const rows = Object.entries(c.delta).map(([k, v]) => `<li class="${v > 0 ? 'up' : 'down'}">${deltaText(k, v)}</li>`);
+  for (const sname of c.setsGained) rows.push(`<li class="up">${sname} set complete: ${GEAR_SETS[sname].text}</li>`);
+  for (const sname of c.setsLost) rows.push(`<li class="down">Breaks the ${sname} set (${GEAR_SETS[sname].text})</li>`);
+  if (!rows.length) rows.push('<li class="same">No change</li>');
+  const setLine = c.set ? `<div class="ckset${c.set.have >= c.set.need ? ' done' : ''}">${c.set.name} set ${Math.min(c.set.have, c.set.need)}/${c.set.need} · ${GEAR_SETS[c.set.name].text}</div>` : '';
+  $('cktitle').textContent = 'Reward casket';
+  $('ckitems').innerHTML = casketItemHTML(c.item, 'new', 'New') + `<div class="ckvs">replaces</div>` + casketItemHTML(c.old, 'old', 'Worn');
+  $('ckset').innerHTML = setLine;
+  $('ckdelta').innerHTML = `<ul>${rows.join('')}</ul>`;
+  $('ckwear').innerHTML = `<span class="kb">1</span><span class="kb">A</span>Wear`;
+  $('ckalch').innerHTML = `<span class="kb">2</span><span class="kb">B</span>High alch for ${c.alch} coins`;
+  // the recommended choice is the game's green accept button, the other one grey
+  $('ckwear').classList.toggle('ghost', pend.rec !== 0); $('ckalch').classList.toggle('ghost', pend.rec !== 1);
+  $('ckrec').textContent = pend.rec === 0 ? 'Recommended: wear it' : c.anyUp ? 'Recommended: high alch (not better overall)' : 'Recommended: high alch (not better)';
+  $('ckmore').textContent = pend.more ? `${pend.more} more casket${pend.more > 1 ? 's' : ''} after this` : '';
+  markCasket(); $('casket').classList.remove('hidden');
+}
+function markCasket() { $('ckwear').classList.toggle('sel', selCard === 0); $('ckalch').classList.toggle('sel', selCard === 1); }
+// after a casket choice (or the timer): the next casket card, a level-up card, or back to the run
+function afterCasket() {
+  shownPending = false; $('casket').classList.add('hidden');
+  if (sim && sim.pending[PLAYER]) { showLevelUp(); return; }
+  audio.duck(false); mode = 'play';
+}
+function pickCasket(i, auto = false) {
+  const pend = sim && sim.pending[PLAYER]; if (!pend || !pend.casket || (!auto && mode !== 'casket')) return;
+  if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else choose(sim, PLAYER, i);
+  afterCasket();
+}
+$('ckwear').onclick = () => pickCasket(0); $('ckalch').onclick = () => pickCasket(1);
 
 // ---- HUD -----------------------------------------------------------------------------------------------------------------------------
 let hudT = 0; const slotCache = { w: '', p: '', b: '' };
@@ -914,12 +976,14 @@ function updateHud(view) {
     else if (f.k === 'use' && f.kind === 'beer') banner('Tin of Beer: speed up!', 1400);
     else if (f.k === 'use' && f.kind === 'pumpkin') banner('Pumpkin bomb!', 1200);
     else if (f.k === 'use' && f.kind === 'warp') banner('Warp Shard: everything comes to you', 1600);
+    else if (f.k === 'revive') banner('Revived!', 1600);
     else if (f.k === 'get' && f.kind === 'chest') banner('Chest!', 1000);
     else if (f.k === 'event') banner(f.kind === 'treasure' ? 'A treasure goblin! Catch it before it gets away' : f.kind === 'swarm' ? 'Swarm!' : f.kind === 'warband' ? `A goblin warband charges from the ${f.dir}!` : f.kind === 'rising' ? 'The dead rise around you!' : f.kind === 'blizzard' ? 'Blizzard! The snow slows you down' : f.kind === 'duel' ? 'A champion of the Fighting Forum challenges you!' : f.kind === 'stampede' ? `Chicken stampede from the ${f.dir}!` : f.kind === 'sandstorm' ? 'Sandstorm! Scorpions in the dust' : f.kind === 'ambush' ? 'Ambush! Things are crawling out of the water' : 'Meteor shower! Watch the ground', 2600);
     else if (f.k === 'treasure') banner('Treasure goblin caught!', 1800);
     else if (f.k === 'region' && sim.t > 1) banner(MAP_BY_ID[f.id].name, 1800);
     else if (f.k === 'escape') banner('The treasure goblin got away', 1600);
-    else if (f.k === 'casket') { toast(`${imgTag(f.item)} <span>Reward casket${f.worn ? ', now worn' : ''}<br><b>${f.item}</b></span>`); }
+    else if (f.k === 'casket' && f.worn) { toast(`${imgTag(f.item)} <span>${f.old ? 'Now wearing' : 'Reward casket, now worn'}<br><b>${f.item}</b></span>`); }
+    else if (f.k === 'alch' && !autoAlchOn()) { toast(`${imgTag('Gold')} <span>High alch<br><b>${f.item}</b> +${f.coins} coins</span>`); }
   }
 }
 
@@ -957,7 +1021,7 @@ function navBack() {
   return false;
 }
 addEventListener('keydown', (e) => {
-  if (mode === 'play' || mode === 'levelup') return;
+  if (mode === 'play' || mode === 'levelup' || mode === 'casket') return;
   const k = e.key; const dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
   if (dir) { navMove(dir); e.preventDefault(); }
   else if (k === 'Enter' && navEl && navScreen() && navScreen().contains(navEl)) { if (navPress()) { e.stopImmediatePropagation(); e.preventDefault(); } }
@@ -998,7 +1062,7 @@ function loop(ts) {
   lastDrawn = ts;
   const dt = Math.min(0.1, (ts - last) / 1000 || 0.016); last = ts; frame++;
   const inp = readInput(); const edges = padEdges(inp.pad);
-  if (mode !== 'play' && mode !== 'levelup') {
+  if (mode !== 'play' && mode !== 'levelup' && mode !== 'casket') {
     for (const d of ['up', 'down', 'left', 'right']) if (edges[d]) navMove(d);
     if (edges.b) navBack();
     if (edges.a && navPress()) edges.a = false;
@@ -1035,7 +1099,12 @@ function loop(ts) {
   } else if (mode === 'levelup') {
     if (edges.left) { selCard = (selCard + 2) % 3; markCard(); } if (edges.right) { selCard = (selCard + 1) % 3; markCard(); } if (edges.a) pick(selCard);
     if (!rankedRec) step(sim, {}, dt); // ranked choices wait for the player
-    if (!sim.pending[PLAYER] && shownPending) { shownPending = false; audio.duck(false); mode = 'play'; $('levelup').classList.add('hidden'); }
+    if (shownPending && (!sim.pending[PLAYER] || sim.pending[PLAYER].casket)) { shownPending = false; audio.duck(false); mode = 'play'; $('levelup').classList.add('hidden'); } // (a casket card shows next)
+  } else if (mode === 'casket') {
+    // controller: A wears, B high alches; the stick or d-pad moves the highlight
+    if (edges.left || edges.up) { selCard = 0; markCasket(); } if (edges.right || edges.down) { selCard = 1; markCasket(); }
+    if (edges.a) pickCasket(0); else if (edges.b) pickCasket(1);
+    if (mode === 'casket' && !rankedRec && sim.pending[PLAYER]) { const before = sim.pending[PLAYER]; step(sim, {}, dt); if (sim.pending[PLAYER] !== before) afterCasket(); } // the timer picks the recommended choice
   } else if (mode === 'pause') {
     if (edges.start) pause(false);
     if (frame % 4 !== 0) return;
@@ -1068,6 +1137,10 @@ const qaHooks = {
   god() { if (rankedRun) return; const p = sim.players[0]; p.hp = p.maxHp = 1e6; p.godMode = true; },
   give(name) { return bankItem(name); }, wear(slot, name) { const g = getGear(); g[slot] = name; save('sq-gear', g); }, buildGear, buildQuests, refreshIdle,
   drop(kind) { if (rankedRun) return; const p = sim.players[0]; sim.pickups.push({ id: sim.nextId++, x: p.x + 1.5, z: p.z, kind }); },
+  // reward caskets: drop n at your feet (rolled by the sim), or queue given items as if a casket held them
+  caskets(n = 1) { if (rankedRun) return; const p = sim.players[0]; for (let i = 0; i < n; i++) sim.pickups.push({ id: sim.nextId++, x: p.x, z: p.z, kind: 'casket' }); },
+  casketOf(...names) { if (rankedRun) return; const p = sim.players[0]; for (const n of names) if (GEAR[n]) { if (!p.gear[GEAR[n].slot]) continue; sim.loot.push(n); p.casketQ.push(n); } openCasket(sim, p); }, // as if caskets held them
+  wearNow(gear) { if (rankedRun) return; const p = sim.players[0]; p.gear = { ...p.gear, ...gear }; p.gb = gearBonus(p.gear, p.gearLv || {}); },
 };
 
 if ((params.has('debug') || params.has('qa')) && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) Object.defineProperty(window, '__sq', { get: () => rankedRun || rankedLive() ? undefined : qaHooks });
