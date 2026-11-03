@@ -10,6 +10,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR } from './content.js';
 import { createCharacterKit, armorSet } from './character.js';
@@ -52,7 +53,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   let skyMap = null; // on the whole-world map, the region you are in sets the sky and light
 
   const draco = new DRACOLoader().setDecoderPath(`${BASE}draco/`);
-  const gltfLoader = new GLTFLoader().setDRACOLoader(draco);
+  // models ship meshopt-compressed with lossless WebP textures (tools/compress-models.sh): about a third of the download
+  const gltfLoader = new GLTFLoader().setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
   const cache = new Map();
   const loadGLB = (url) => {
     if (!cache.has(url)) cache.set(url, new Promise((res, rej) => gltfLoader.load(url, res, undefined, rej)));

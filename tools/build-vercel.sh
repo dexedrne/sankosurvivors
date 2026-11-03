@@ -32,6 +32,8 @@ echo '{"runtime":"nodejs22.x","handler":"index.js","launcherType":"Nodejs","shou
 cat > .vercel/output/config.json <<'JSON'
 {"version":3,"routes":[
   {"src":"/(.*)","headers":{"X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","Permissions-Policy":"camera=(), microphone=(), geolocation=(), payment=()"},"continue":true},
+  {"src":"^/assets/[^/]+-[A-Za-z0-9_-]{8,}\\.(js|css)$","headers":{"Cache-Control":"public, max-age=31536000, immutable"},"continue":true},
+  {"src":"^/assets/(models|world|music|sound|anim|ui|draco)/.*$","headers":{"Cache-Control":"public, max-age=86400, stale-while-revalidate=604800"},"continue":true},
   {"src":"^/(index\\.html)?$","has":[{"type":"header","key":"user-agent","value":".*(TelegramBot|Twitterbot|facebookexternalhit|Discordbot|Slackbot|WhatsApp).*"}],"dest":"/preview"},
   {"src":"^/api/(scores|score|report|run|nonce|holder|ranked-week|ranked-nonce|ranked-enter|ranked-start|ranked-submit|ranked-void)$","dest":"/api?route=$1"},
   {"src":"^/api/payout-cron$","dest":"/payout"},
