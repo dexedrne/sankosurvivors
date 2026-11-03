@@ -606,11 +606,19 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     if (!bunOf.size && entData) { let k = 0; entData.folk.forEach((f, j) => { if (f[3] === 'npc_apache' && k < BUNS.length) bunOf.set(j, BUNS[k++]); }); bunOf.set(-1, null); }
     return bunOf.get(i) || null;
   };
-  // a Bun's model loads the first time you come near Apache (Remilio and Milady are about 1 MB each)
-  const bunProto = (name) => {
-    const key = 'bun:' + name; if (protos[key] || bunLoading.has(key)) return protos[key] || null;
-    bunLoading.add(key); prepare(A('models/buns/' + name + '.glb'), BUN_H).then((p) => { protos[key] = p; folkT = 0; }).catch((e) => console.warn('bun failed', name, e));
+  // a townsfolk model of the game's own loads the first time you come near (Remilio and Milady are about 1 MB each)
+  const folkProto = (key, path, h) => {
+    if (protos[key] || bunLoading.has(key)) return protos[key] || null;
+    bunLoading.add(key); prepare(A(path), h).then((p) => { protos[key] = p; folkT = 0; }).catch((e) => console.warn('townsfolk model failed', key, e));
     return null;
+  };
+  // Payasan Village's Payasans: the live game draws npc_paya with its Payasan model, 1.40 tall (live capture 2 Nov);
+  // owner 3 Nov: "payasan village doesnt have the payasans in it"
+  const PAYA_H = 1.4;
+  const ownFolk = (kind, i) => {
+    if (kind === 'npc_paya') return { key: 'paya', path: 'models/mobs/payasan/payasan.glb', h: PAYA_H };
+    const bun = kind === 'npc_apache' ? bunFor(i) : null;
+    return bun ? { key: 'bun:' + bun, path: 'models/buns/' + bun + '.glb', h: BUN_H } : null;
   };
   const APACHE_LOOKS = [
     { hair: 'Long', hairColor: 0x1e140c, skin: 0xb57e55, shirt: 0xc28a4a, pants: 0x6b4a2e, armor: {} },
@@ -628,15 +636,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const [i, a] of folkActors) if (!keep.has(i)) { entGroup.remove(a.root); folkActors.delete(i); }
     for (const { i, f } of want) {
       if (folkActors.has(i)) continue;
-      const bun = f[3] === 'npc_apache' ? bunFor(i) : null;
-      if (bun) {
-        const p = bunProto(bun); if (!p) continue; // still loading: placed on a later pass
+      const own = ownFolk(f[3], i);
+      if (own) { // the game's own townsfolk models: Apache's Buns, the Payasans
+        const p = folkProto(own.key, own.path, own.h); if (!p) continue; // still loading: placed on a later pass
         try {
-          const inst = kit ? kit.animate(p.gltf, BUN_H, 'idle', { fromRest: 'hips' }) : instantiate(p, 'idle');
+          const inst = kit ? kit.animate(p.gltf, own.h, 'idle', { fromRest: 'hips' }) : instantiate(p, 'idle');
           inst.root.position.set(f[0], groundAt(f[0], f[1]), f[1]); inst.root.rotation.y = f[2] * Math.PI / 180 - ((inst.kit && inst.kit.yaw0) || 0);
           inst.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
           if (!inst.mixer) inst.mixer = { update() {} };
-          inst.kind = 'bun'; entGroup.add(inst.root); folkActors.set(i, inst);
+          inst.kind = own.key; entGroup.add(inst.root); folkActors.set(i, inst);
         } catch (e) { /* skip */ }
         continue;
       }

@@ -20,6 +20,7 @@ export const CHANGELOG = [
       'The Star Wizard walks facing forward.',
       'The baseball is baseball-sized in flight (it was drawn about twice too big; it hits the same).',
       'The Shard Staff casts SankoQuest’s own spells as it levels: Air, Water, Earth and Fire Missile, then Air and Water Blast, and Fire Blast once it evolves. Built from the game’s own spell code: the Blast glow with its white-hot core and pulsing ring, the impact flash and burst, the trail, and the flight height.',
+      'Payasan Village has its Payasans again, drawn with the game’s own Payasan model.',
       'Apache Village has its Buns: Kev, Detec, Orange, Milady and Remilio stand in town as in SankoQuest, with desert villagers around them.',
       'Townsfolk dress for their job: gravediggers by the graveyard and swamp, the priests in pale vestments, the elder in plain clothes, and the Shape Wizards in their own set. Only wizards wear wizard robes now.',
       'Food drops come in SankoQuest’s tiers: Cooked Crawdad (+15 health), Brown Trout (+25), Catfish (+35) and Bubba Bass (+50). Better fish later in a run and from elites; bosses drop a Bubba Bass.',
