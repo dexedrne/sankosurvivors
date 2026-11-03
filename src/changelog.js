@@ -1,6 +1,14 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.37', date: '3 Nov 2026', title: 'Security update',
+    items: [
+      'A security update: stronger protection for ranked runs, entry payments, prizes, the DMT buy and cloud saves.',
+      'If a game update ever cuts a ranked run short, that entry now starts again for free instead of being lost.',
+      'Updates that change ranked now wait until nobody is in the middle of a ranked run.',
+    ],
+  },
+  {
     version: '0.36', date: '3 Nov 2026', title: 'Ranked is endless, up to two hours',
     items: [
       'Ranked runs are endless from today. Bosses keep coming until you fall, and the hunt is over at 2:00:00.',
