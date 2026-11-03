@@ -24,6 +24,7 @@ export const CHANGELOG = [
       'Skills & upgrades: Refund all, or right-click a skill (hold it on a phone) to undo one rank, with the full price back. The panel fits a 1080p screen.',
       'Buy DMT without leaving the game: Wallet, Buy DMT, pick an amount (1, 5 or 10 entries), see the price, confirm once. It swaps ETH for DMT on Arbitrum through KyberSwap; the game takes no fee. In Ranked, Buy DMT here appears when you are short.',
       'Hard mode and Endless are always shown on the map screen (greyed out until you clear that map), so they are easy to find.',
+      'The Lighter’s ring of fire burns properly: a flickering rim with flames licking inward, heat on the ground and upright flames dancing round the edge.',
       'Shrines: every two minutes or so one of SankoQuest’s altars rises nearby with a pillar of light. Stand in its circle for a few seconds to charge it: Strength (+30% damage), Prayer (full health and protection), Magic (every bone flies to you, +40% experience), Agility (+25% speed), Fortune (a treasure chest) or Wealth (a ring of coins). Unused, it fades. In ranked from the Monday reset.',
       'Jump! Space, A on a controller, or the JUMP button on a phone. Half a second in the air clears monsters and boss slams (aimed fireballs still hit), then a second to land. In ranked from the Monday reset.',
       'Reward caskets are rarer: elites used to drop one every time (about 60 in a full run). Now about 10 a run, bosses still always drop one. Ranked from the Monday reset.',

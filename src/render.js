@@ -1071,6 +1071,48 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
   const glowSprite = (color, size, opacity = 0.6) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(color).multiplyScalar(1.3), transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending })); sp.scale.setScalar(size); return fxOnly(sp); };
+  // the Lighter's ring of fire (owner 3 Nov: "aoe for lighter needs to be improved just looks bland"): a ground shader
+  // with a flickering rim, flame tongues licking inward and a faint heat on the floor, plus upright flames dancing round
+  // the edge. Built at radius 1 and scaled to the weapon's radius; the flames keep their own size.
+  const fireFloorMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform float uTime; varying vec2 vUv;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
+      void main(){
+        vec2 p = (vUv * 2.0 - 1.0) * 1.15; float r = length(p), a = atan(p.y, p.x) / 6.2831853 + 0.5;
+        float flick = n(vec2(a * 18.0, uTime * 4.0)) * 0.6 + n(vec2(a * 41.0 + 3.0, uTime * 7.0)) * 0.4;
+        float rim = 1.0 - smoothstep(0.0, 0.07 + 0.09 * flick, abs(r - (0.94 + 0.04 * flick)));
+        float tongue = pow(n(vec2(a * 30.0, r * 4.0 - uTime * 3.2)), 2.2) * smoothstep(0.5, 0.95, r) * (1.0 - smoothstep(0.97, 1.06, r));
+        float floorHeat = (1.0 - smoothstep(0.0, 1.0, r)) * (0.10 + 0.08 * n(p * 3.0 + vec2(0.0, uTime * 0.8)));
+        float heat = rim * 0.95 + tongue * 1.1 + floorHeat;
+        vec3 col = mix(vec3(0.7, 0.08, 0.02), vec3(1.0, 0.45, 0.07), clamp(heat * 1.4, 0.0, 1.0));
+        col = mix(col, vec3(1.0, 0.92, 0.62), clamp((heat - 0.75) * 2.2, 0.0, 1.0));
+        float al = clamp(heat, 0.0, 1.0) * (1.0 - smoothstep(1.02, 1.12, r));
+        gl_FragColor = vec4(col * al, al);
+      }`,
+  });
+  const flameTex = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 128; const g = c.getContext('2d');
+    const gr = g.createRadialGradient(32, 100, 2, 32, 82, 58); gr.addColorStop(0, 'rgba(255,244,200,1)'); gr.addColorStop(0.25, 'rgba(255,190,70,0.95)'); gr.addColorStop(0.6, 'rgba(255,90,20,0.6)'); gr.addColorStop(1, 'rgba(180,30,5,0)');
+    g.fillStyle = gr; g.beginPath(); g.moveTo(32, 4); g.bezierCurveTo(52, 46, 60, 84, 32, 124); g.bezierCurveTo(4, 84, 12, 46, 32, 4); g.fill();
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  const FLAMES = 22;
+  function fireRingFx() {
+    const g = new THREE.Group(), floor = fxOnly(new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.3).rotateX(-Math.PI / 2), fireFloorMat));
+    floor.position.y = 0.09; g.add(floor);
+    const flames = [];
+    for (let i = 0; i < FLAMES; i++) { const sp = fxOnly(new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.85 }))); sp.userData.seed = i * 1.7 + Math.random() * 3; g.add(sp); flames.push(sp); }
+    g.userData.flames = flames; return g;
+  }
+  function stepFireRing(g, radius, t) {
+    fireFloorMat.uniforms.uTime.value = t; const k = 1 / Math.max(0.5, radius);
+    g.userData.flames.forEach((sp, i) => {
+      const a = (i / FLAMES) * Math.PI * 2 + t * 0.35, s = sp.userData.seed, f = 0.75 + 0.25 * Math.sin(t * 9 + s * 3) + 0.15 * Math.sin(t * 17 + s);
+      sp.position.set(Math.cos(a) * 0.97, 0.32 * f * k, Math.sin(a) * 0.97); sp.scale.set(0.42 * k * (0.9 + 0.2 * Math.sin(t * 6 + s)), 0.72 * f * k, 1);
+      sp.material.opacity = 0.55 + 0.35 * f;
+    });
+  }
   const effects = [];
   function addEffect(mesh, life, grow) { Object.assign(mesh.userData, { life, max: life, grow, base: mesh.scale.x }); fxOnly(mesh); dyn.add(mesh); effects.push(mesh); }
   // a sword swing: a crescent that sweeps across the arc, brightest at its leading edge and the blade's tip
@@ -1470,13 +1512,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           g.add(outer, inner); g.position.y = 0.07; a.root.add(g); a.aura = g;
         } else { a.root.remove(a.aura); a.aura = null; }
       }
-      if (p.fire > 0 && !a.fireRing) {
-        const g = new THREE.Group(), glow = softRing(0xff5a1f, 0, 0.9, { opacity: 0.12, fill: 0.6 }), edge = softRing(0xff7a2a, 0.88, 1.02, { opacity: 0.75 });
-        g.add(glow, edge); g.position.y = 0.09; a.root.add(g); a.fireRing = g;
-      } else if (!(p.fire > 0) && a.fireRing) { a.root.remove(a.fireRing); a.fireRing = null; }
+      if (p.fire > 0 && !a.fireRing) { a.fireRing = fireRingFx(); a.root.add(a.fireRing); }
+      else if (!(p.fire > 0) && a.fireRing) { a.root.remove(a.fireRing); a.fireRing = null; }
       if (a.fireRing) {
-        a.fireRing.scale.setScalar(p.fire); a.fireRing.rotation.y = -a.root.rotation.y;
-        a.fireRing.children[1].material.uniforms.uOp.value = 0.6 + 0.25 * Math.sin(time * 9); a.fireRing.children[0].material.uniforms.uOp.value = 0.1 + 0.05 * Math.sin(time * 5);
+        a.fireRing.scale.setScalar(p.fire); a.fireRing.rotation.y = -a.root.rotation.y; stepFireRing(a.fireRing, p.fire, time);
         if (a.root.visible && Math.random() < dt * 14) { const ang = Math.random() * 6.283; emit(a.px + Math.cos(ang) * p.fire, a.root.position.y + 0.2, a.pz + Math.sin(ang) * p.fire, 1, 0.6, { s: 0.7, life: 0.55, color: Math.random() < 0.5 ? 0xff7a2a : 0xffc04d, up: 2.2, g: 0 }); }
       }
       if (a.aura) { a.aura.rotation.y = -a.root.rotation.y + time * 0.6; a.aura.children[1].rotation.y = -time * 1.4; if (a.root.visible && Math.random() < dt * 2.2) emit(a.px + (Math.random() - 0.5) * 1.6, a.root.position.y + 0.2, a.pz + (Math.random() - 0.5) * 1.6, 1, 0.4, { s: 0.6, life: 0.9, color: Math.random() < 0.5 ? 0xffd34d : 0x5ff2d8, up: 1.6, g: 0 }); }
