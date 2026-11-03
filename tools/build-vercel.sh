@@ -17,7 +17,9 @@ mkdir -p tools/vercel-api/sims/$SIM
 echo $SIM > tools/vercel-api/sims/current.txt
 rm -rf $SIMTMP
 VITE_SIM=$SIM VITE_BUILD=$BUILD node_modules/.bin/vite build >/dev/null 2>&1 # the repo's own vite, never a downloaded one
-rm -rf .vercel/output && mkdir -p .vercel/output/functions/preview.func .vercel/output/functions/api.func .vercel/output/functions/payout.func
+rm -rf .vercel/output && mkdir -p .vercel/output/functions/preview.func .vercel/output/functions/api.func
+# no payout function here (security pass, 3 Nov): prizes are signed only on the owner's laptop, from the encrypted keystore
+# (node tools/payout/run.mjs), so no deployed function ever holds the entry wallet's key
 cp -r dist .vercel/output/static
 # the game compares its own build with this one to offer an Update button
 printf '{"build":"%s","sim":"%s"}\n' "$BUILD" "$SIM" > .vercel/output/static/version.json
@@ -33,8 +35,6 @@ cp -r tools/vercel-api/sims .vercel/output/functions/api.func/sims
 # locally, 5-7 min here; RANKED2.md has the timings)
 echo '{"runtime":"nodejs22.x","handler":"index.js","launcherType":"Nodejs","shouldAddHelpers":false,"maxDuration":800,"memory":2048}' > .vercel/output/functions/api.func/.vc-config.json
 # Bundle server code without substituting environment values; secrets exist only at runtime.
-node_modules/esbuild/bin/esbuild tools/payout/vercel.mjs --bundle --platform=node --format=cjs --target=node22 --log-level=error --footer:js='module.exports = module.exports.default;' --outfile=.vercel/output/functions/payout.func/index.js
-echo '{"runtime":"nodejs22.x","handler":"index.js","launcherType":"Nodejs","shouldAddHelpers":false,"maxDuration":300}' > .vercel/output/functions/payout.func/.vc-config.json
 cat > .vercel/output/config.json <<'JSON'
 {"version":3,"routes":[
   {"src":"/(.*)","headers":{"X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","Permissions-Policy":"camera=(), microphone=(), geolocation=(), payment=()","X-Frame-Options":"DENY","Content-Security-Policy":"frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'"},"continue":true},
@@ -42,7 +42,6 @@ cat > .vercel/output/config.json <<'JSON'
   {"src":"^/assets/(models|world|music|sound|anim|ui|draco)/.*$","headers":{"Cache-Control":"public, max-age=86400, stale-while-revalidate=604800"},"continue":true},
   {"src":"^/(index\\.html)?$","has":[{"type":"header","key":"user-agent","value":".*(TelegramBot|Twitterbot|facebookexternalhit|Discordbot|Slackbot|WhatsApp).*"}],"dest":"/preview"},
   {"src":"^/api/(scores|score|report|run|nonce|holder|ranked-week|ranked-nonce|ranked-enter|ranked-start|ranked-submit|ranked-void|save-nonce|save-login|save-get|save-put)$","dest":"/api?route=$1"},
-  {"src":"^/api/payout-cron$","dest":"/payout"},
   {"handle":"filesystem"}
-],"crons":[{"path":"/api/payout-cron","schedule":"*/15 * * * *"}]}
+],"crons":[]}
 JSON

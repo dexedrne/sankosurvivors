@@ -20,6 +20,9 @@ fi
 # BUILD_HOST=alexbl: build on a job box and copy the result back (the laptop only orchestrates; it overheats)
 if [ -n "$BUILD_HOST" ]; then bash tools/remote-build.sh "$BUILD_HOST"; else bash tools/build-vercel.sh; fi
 # PREVIEW=1 ./tools/deploy.sh -> a private preview link (team login) instead of the live site
+# security pass, 3 Nov: previews get the production server and ticket keys until those are unticked for Preview in
+# Vercel, so a preview build would run any code with them; refuse unless that has been done (SQS_PREVIEW_KEYS_SPLIT=1)
+if [ -n "$PREVIEW" ] && [ "${SQS_PREVIEW_KEYS_SPLIT:-}" != 1 ]; then echo "deploy: previews are off until the production keys are removed from Preview in Vercel"; exit 1; fi
 if [ -n "$PREVIEW" ]; then vercel deploy --prebuilt --yes 2>&1 | grep -E "Preview|Error|error|https://" | head -3
 else vercel deploy --prebuilt --prod --yes 2>&1 | grep -E "Production|Error|error" | head -3; fi
 # warm jsDelivr in the background so the first players after a change do not wait on it fetching from GitHub

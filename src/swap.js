@@ -6,7 +6,7 @@ import { DMT_TOKEN } from './wallet.js';
 
 export const KYBER = 'https://aggregator-api.kyberswap.com/arbitrum/api/v1';
 export const KYBER_ROUTER = '0x6131b5fae19ea4f9d964eac0408e4408b66337b5'; // MetaAggregationRouterV2, the same on every chain
-export const SLIPPAGE_BPS = 100; // 1%: the swap fails rather than give less than 99% of the quote
+export const SLIPPAGE_BPS = 1000; // 10% (owner 3 Nov: the DMT pool is thin): the swap fails rather than give less than 90% of the quote
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', HEAD = { 'x-client-id': 'sankosurvivors' };
 const ARB = { chainId: '0xa4b1' };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -37,7 +37,7 @@ export async function quoteDmt(dmt, f = fetch) {
 /** Check a built KyberSwap transaction before the wallet ever sees it. Returns the value to send, or throws.
  *  It decodes the router's swap(SwapExecutionParams) call and checks the swap itself, not just that the address appears
  *  somewhere (a hostile or broken API answer could hide the player's address in free-form bytes and pay someone else):
- *  ETH in, DMT out, the DMT to the player's own wallet, the quoted ETH, at least the quote less 1% (the router reverts
+ *  ETH in, DMT out, the DMT to the player's own wallet, the quoted ETH, at least the quote less the slippage (the router reverts
  *  below that), no fee receivers and no permit. Owner 3 Nov: "security is number one". */
 const SWAP_SELECTOR = 'e21fd0e9'; // MetaAggregationRouterV2.swap((address,address,bytes,(address,address,address[],uint256[],address[],uint256[],address,uint256,uint256,uint256,bytes),bytes))
 export const MAX_BUY_WEI = 100000000000000000n; // 0.1 ETH a buy: plenty for entries, and caps what a lying price can cost
@@ -55,7 +55,7 @@ export function checkBuilt(b, q, address) {
   const num = (at) => BigInt('0x' + word(at)), addr = (at) => { const w = word(at); if (!/^0{24}/.test(w)) throw bad(); return '0x' + w.slice(24); };
   const off = (base, i) => { const o = num(base + i * 64); if (o > BigInt(h.length)) throw bad(); return base + Number(o) * 2; };
   const p = off(8, 0), d = off(p, 3), len = (i) => num(off(d, i)); // desc: src, dst, srcReceivers, srcAmounts, feeReceivers, feeAmounts, dstReceiver, amount, minReturn, flags, permit
-  const minOut = (BigInt(q.summary.amountOut) * BigInt(10000 - SLIPPAGE_BPS - 1)) / 10000n; // KyberSwap rounds its 1% floor down: 0.01% of give
+  const minOut = (BigInt(q.summary.amountOut) * BigInt(10000 - SLIPPAGE_BPS - 1)) / 10000n; // KyberSwap rounds its floor down: 0.01% of give
   if (addr(d) !== ETH.toLowerCase() || addr(d + 64) !== DMT_TOKEN.toLowerCase() || addr(d + 6 * 64) !== address.toLowerCase()
     || num(d + 7 * 64) !== value || num(d + 8 * 64) < minOut || len(4) !== 0n || len(5) !== 0n || len(10) !== 0n)
     throw new Error('That swap did not pay your own wallet: stopped for your safety.');
@@ -87,7 +87,7 @@ export async function buyDmt(wallet, address, q, onStep = () => {}, f = fetch) {
   const until = Date.now() + 120000;
   while (Date.now() < until) {
     const receipt = await p.request({ method: 'eth_getTransactionReceipt', params: [tx] });
-    if (receipt) { if (receipt.status !== '0x1') throw Object.assign(new Error('The swap did not go through (the price moved past 1%). Your ETH was not spent, only a little gas.'), { tx }); return { tx }; }
+    if (receipt) { if (receipt.status !== '0x1') throw Object.assign(new Error('The swap did not go through (the price moved past 10%). Your ETH was not spent, only a little gas.'), { tx }); return { tx }; }
     await wait(2000);
   }
   throw Object.assign(new Error('Still waiting for Arbitrum. Your DMT will show up when it lands.'), { tx });

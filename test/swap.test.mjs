@@ -11,11 +11,11 @@ const fakeKyber = (outPerEthWei) => async (url) => {
   const amountIn = BigInt(new URL(url).searchParams.get('amountIn'));
   return new Response(JSON.stringify({ code: 0, data: { routeSummary: { amountIn: String(amountIn), amountOut: String(amountIn * outPerEthWei), amountInUsd: '10', amountOutUsd: '9.9' } } }), { status: 200 });
 };
-test('buy DMT: a quote for the amount asked, with the 1% floor and the loss shown', async () => {
+test('buy DMT: a quote for the amount asked, with the slippage floor and the loss shown', async () => {
   const q = await quoteDmt(2.5, fakeKyber(1800n)); // 1 ETH buys 1800 DMT
   assert.ok(q.dmtOut >= 2.5 && q.dmtOut < 2.6, String(q.dmtOut)); // asks 2% over, so the pool moving still leaves enough
   assert.equal(q.minOut, Math.floor(q.dmtOut * (10000 - SLIPPAGE_BPS) / 100) / 100 >= 0 ? q.minOut : 0);
-  assert.ok(q.minOut < q.dmtOut && q.minOut > q.dmtOut * 0.98);
+  assert.ok(q.minOut < q.dmtOut && q.minOut > q.dmtOut * 0.89); // 10% slippage (owner 3 Nov: the DMT pool is thin)
   assert.ok(Math.abs(q.loss - 0.01) < 1e-9);
   await assert.rejects(quoteDmt(0, fakeKyber(1n)), /Pick an amount/);
   await assert.rejects(quoteDmt(1, async () => new Response('{"code":4008}', { status: 400 })), /No DMT price/);

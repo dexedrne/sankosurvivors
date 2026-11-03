@@ -21,7 +21,6 @@ rsync -a "$H:$R/tools/vercel-api/ground.bin" tools/vercel-api/ground.bin
 F=.vercel/output/functions
 cp tools/vercel-api/index.js tools/vercel-api/noble-crypto.cjs tools/vercel-api/ranked.js tools/vercel-api/cloud.js $F/api.func/
 cp tools/vercel-probe/index.js $F/preview.func/index.js
-node_modules/esbuild/bin/esbuild tools/payout/vercel.mjs --bundle --platform=node --format=cjs --target=node22 --log-level=error --footer:js='module.exports = module.exports.default;' --outfile=$F/payout.func/index.js
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 node_modules/esbuild/bin/esbuild tools/vercel-api/ranked-entry.mjs --bundle --platform=node --format=cjs --target=node22 --log-level=error --outfile=$T/rb.cjs
 SIMID=$(cat tools/vercel-api/sims/current.txt)
