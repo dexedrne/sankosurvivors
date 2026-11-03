@@ -128,10 +128,9 @@ test('endless Normal and Hard runs (week 1) replay exactly, and a different race
     assert.deepEqual([r.t, r.kills, r.level, r.won, r.timeUp], [Math.floor(sim.t), sim.kills, sim.level, false, false], `${map} ${mode}`);
     const other = replay(log, { ...params, mode: mode === 'hard' ? 'normal' : 'hard' });
     assert.ok(other.error || other.kills !== r.kills || other.t !== r.t, 'the other race is another run');
-    // week 0 rules only differ from 15:00 on (the run would have ended there); a Normal run that fell earlier is the same
+    // week 0 keeps its own crowd pace (pace 1) and Normal only, so the same inputs are another run there
     const old = replay(log, { ...params, week: 0, mode: 'normal' });
-    if (mode === 'hard' || sim.t >= MAP_BY_ID[map].length) assert.ok(old.error || old.kills !== r.kills || old.t !== r.t, 'week 0 rules are another run');
-    else assert.deepEqual([old.t, old.kills], [r.t, r.kills]);
+    assert.ok(old.error || old.kills !== r.kills || old.t !== r.t, 'week 0 rules are another run');
   }
 });
 

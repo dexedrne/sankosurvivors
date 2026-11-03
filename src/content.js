@@ -40,6 +40,8 @@ export const ENEMIES = {
   mslimer:   { name: 'Mutant Slimer',model: 'mobs/snail/mutant slimer.glb',      h: 2.1, r: 1.5, hp: 260, speed: 2.6, dmg: 22, xp: 15, walk: 'walk', idle: 'walk' },
   // bosses
   giant:     { name: 'Lesser Giant', model: 'mobs/giant.glb',                    h: 3.9, r: 1.6, hp: 900,  speed: 2.2, dmg: 28, xp: 60, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam'] },
+  // Tutorial Island's own boss (owner 3 Nov: "on tutorial island boss should be sankson"): Survival Sankson, grown huge
+  sankson:   { name: 'Survival Sankson', model: 'mobs/sankson/sankson.glb', mixamo: true, h: 3.0, r: 1.3, hp: 1800, speed: 2.6, dmg: 30, xp: 110, boss: true, attacks: ['slam', 'charge'] },
   ogre:      { name: 'Fudna the Hoard Keeper', model: 'mobs/snow_biome/ogre.glb',          h: 4.1, r: 1.5, hp: 2200, speed: 2.5, dmg: 34, xp: 120, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam', 'charge'] },
   colossus:  { name: 'Rime Colossus',model: 'mobs/snow_biome/rime_colossus.glb', h: 6.0, r: 2.0, hp: 4200, speed: 2.4, dmg: 40, xp: 200, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam', 'volley'], shot: 'ice' },
   reaper:    { name: 'Pumpkin Reaper', model: 'mobs/halloween/pumpkin-reaper/pumpkin-reaper.glb', h: 4.4, r: 1.5, hp: 3600, speed: 3.1, dmg: 38, xp: 160, walk: 'walk', idle: 'idle', boss: true, attacks: ['charge', 'volley'], shot: 'fire' },
@@ -371,10 +373,10 @@ export const MAPS = [
   },
   {
     id: 'tutorial', name: 'Tutorial Island', special: true, forceAdv: 'alex', blurb: 'Where every adventurer washes up. You play as Alex. A gentler ten minutes, open from the start.',
-    cx: 82, cz: 248, r: 1000, sky: 0xa8d4f0, fog: 0xa8d4f0, light: 1.05, music: 'early', length: 600, finalBoss: 'ogre',
+    cx: 82, cz: 248, r: 1000, sky: 0xa8d4f0, fog: 0xa8d4f0, light: 1.05, music: 'early', length: 600, finalBoss: 'sankson',
     pool: [P(0, 'chicken', 6), P(0, 'cow', 3), P(30, 'goblin', 5), P(90, 'dog', 3), P(150, 'fox', 3), P(240, 'spider', 4), P(330, 'skeleton', 4), P(420, 'wolf', 3), P(500, 'jspider', 3)],
     retire: { chicken: 200, cow: 260 },
-    bosses: [{ t: 240, type: 'giant' }, { t: 480, type: 'ogre' }],
+    bosses: [{ t: 240, type: 'giant' }, { t: 480, type: 'sankson' }],
   },
   {
     id: 'world', name: 'The Whole World', special: true, world: true,

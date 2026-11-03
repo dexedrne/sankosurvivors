@@ -549,3 +549,19 @@ body.touch .ckbtns .kb { display: none; }
 .volrow { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 260px; justify-content: flex-end; }
 .volrow input[type=range] { flex: 1; min-width: 120px; height: 28px; accent-color: #c9a25a; cursor: pointer; background: transparent; }
 .volrow b { min-width: 44px; text-align: right; color: var(--gold); font-weight: 400; }
+/* desktop: Skills & upgrades fits a 1080p screen without scrolling (owner 3 Nov: "isnt fitting on my 1080p desktop
+   monitor"): 18 skills in 4-5 columns instead of 3, tighter cards when the window is short; Back stays in reach */
+@media (min-width: 1100px) {
+  #skills .panel { width: min(1280px, 96vw); max-width: min(1280px, 96vw); }
+  #skillgrid { grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); }
+}
+@media (min-width: 1100px) and (max-height: 1000px) {
+  #skills .panel { padding: 12px 18px; } #skills h2 { margin: 0 0 4px; } #skills .coinline { margin: 0 0 6px; }
+  #skillgrid .skill { padding: 4px 8px; } #skillgrid .skill p { font-size: 15px; line-height: 1.05; } #skillgrid .skill button { margin-top: 2px; }
+}
+#skills .lurow { position: sticky; bottom: 0; z-index: 2; margin-top: 6px; justify-content: center; gap: 10px; } .skillhint { margin: 6px 0 0; font-size: 15px; }
+/* buy DMT in the wallet panel */
+.wlbuy { margin: 10px 0; padding: 8px 10px; border: 2px solid var(--line); background: #241d15; text-align: left; }
+.wlbuy p { margin: 4px 0; } .wlbuy .lurow { flex-wrap: wrap; gap: 6px; justify-content: flex-start; }
+.wlbuyamt { padding: 4px 10px; } .wlbuyamt small { opacity: .75; margin-left: 4px; } .wlbuyamt.on { outline: 2px solid var(--gold); }
+#wlbuygo { margin-top: 6px; }

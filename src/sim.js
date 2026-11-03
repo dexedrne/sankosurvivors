@@ -19,11 +19,11 @@ export function mulberry32(a) {
 
 const hyp = dhypot;
 
-export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0 } = {}) {
+export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2 } = {}) {
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
   const sim = {
-    seed, rng, map, hard, meta, endless, endAt, t: 0, tick: 0, nextId: 1,
+    seed, rng, map, hard, meta, endless, endAt, pace, t: 0, tick: 0, nextId: 1, // pace: 2 the denser crowd of 3 Nov, 1 the 2 Nov one (ranked week 0)
     mapIndex: Math.max(0, MAPS.findIndex((m) => m.id === map.id)), casketRank: casketRank(map),
     killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], endlessBossT: 0, endlessCycle: 0,
     players: [], enemies: [], proj: [], gems: [], pickups: [], fx: [],
@@ -256,7 +256,7 @@ function killEnemy(sim, e, owner) {
 export function spawnEnemy(sim, type, x, z, scaleHp = 1) {
   const def = ENEMIES[type];
   const t = sim.t;
-  const hp = def.hp * (1 + t / 300) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
+  const hp = def.hp * (1 + t / (sim.pace >= 2 ? 270 : 300)) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
   // now and then a golden elite: much tougher, a little slower, and it always carries a reward casket
   const elite = !def.boss && scaleHp === 1 && t > 60 && sim.rng() < 0.012;
   sim.enemies.push({
@@ -295,8 +295,13 @@ function spawnTick(sim, dt) {
   }
   const alive = sim.enemies.length;
   const progress = Math.min(1, t / M.length);
-  const cap = 75 + 70 * (sim.spawnCount - 1) + 155 * progress * progress;
-  const rate = (1.05 + 1.6 * progress + 6.4 * progress * progress + Math.max(0, t - M.length) / 92) * (0.7 + 0.45 * sim.spawnCount) * (sim.hard ? 1.35 : 1); // enemies per second
+  // owner 3 Nov: "feel like it got kinda nerfed hard its less enemies now and 8 minutes in i barely took damage": the
+  // 2 Nov crowd (pace 1) thinned a run to two thirds of before (balance bot, 72 runs: average crowd 102 -> 68, damage
+  // taken by 5:00 44 -> 19). Pace 2: the cap is back to the old 190 by 8:00, spawns ~4.8/s there (old 6.1, pace 1 3.7),
+  // health and contact damage grow faster; the first two minutes stay gentle
+  const cap = sim.pace >= 2 ? 115 + 70 * (sim.spawnCount - 1) + 140 * progress : 75 + 70 * (sim.spawnCount - 1) + 155 * progress * progress;
+  const rate = ((sim.pace >= 2 ? 1.0 + 5.5 * progress + 3.0 * progress * progress : 1.05 + 1.6 * progress + 6.4 * progress * progress) + Math.max(0, t - M.length) / 92)
+    * (0.7 + 0.45 * sim.spawnCount) * (sim.hard ? 1.35 : 1); // enemies per second
   sim.spawnAcc += rate * dt;
   if (sim.event && sim.event.kind === 'duel') sim.spawnAcc = Math.min(sim.spawnAcc, 0.5); // the crowd holds back while you duel
   // on the whole-world map, the monsters come from the region you are standing in
@@ -899,7 +904,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       e.face = datan2(dx, dz);
       if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure) {
         const st = playerStats(tp);
-        const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? 0.7 : 1) * (1 + sim.t / 1200) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
+        const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? 0.7 : 1) * (1 + sim.t / (sim.pace >= 2 ? 900 : 1200)) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
         hurtPlayer(sim, tp, dmg, def.boss ? 'boss-contact' : 'contact');
         if (st.thorns > 0) { sim.src = 'thorns'; damageEnemy(sim, e, st.thorns * (1 + sim.t / 600), tp.id, 2.2, tp.x, tp.z); } // Scorpion Carapace
       }

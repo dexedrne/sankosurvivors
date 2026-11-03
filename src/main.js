@@ -12,6 +12,7 @@ const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
 const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
 import { wallets, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
 import { createCloud, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
+import { quoteDmt, buyDmt } from './swap.js';
 import { connect as walletConnect, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, clampSkills, skillCost,
@@ -30,7 +31,7 @@ const audio = createAudio();
 const p2 = (n) => String(Math.floor(n)).padStart(2, '0');
 const fmtT = (t) => (t >= 3600 ? `${Math.floor(t / 3600)}:${p2((t % 3600) / 60)}:${p2(t % 60)}` : `${Math.floor(t / 60)}:${p2(t % 60)}`); // 2:00:00 past an hour
 // A boss's own name (screen only; the sim and ranked replays never see it): SankoQuest's ogre is Fudna the Hoard Keeper.
-const BOSS_TITLES = { '*': { ogre: 'Fudna the Hoard Keeper' } }; // '*': every map
+const BOSS_TITLES = { '*': { ogre: 'Fudna the Hoard Keeper', sankson: 'Survival Sankson' } }; // '*': every map
 const titled = (map, type) => BOSS_TITLES[map && map.id]?.[type] || BOSS_TITLES['*'][type];
 const bossName = (map, type) => titled(map, type) || ENEMIES[type].name;
 const slayName = (map, type) => titled(map, type) || `the ${ENEMIES[type].name}`;
@@ -246,9 +247,10 @@ function renderRankedFrom() {
   if (!c) { el.innerHTML = '<p class="dim">Connect a wallet to enter. Prizes are paid to the wallet that entered.</p>'; enter.textContent = 'Connect wallet'; return; }
   const b = walletBal && walletBal.address.toLowerCase() === c.address.toLowerCase() ? walletBal : null;
   el.innerHTML = `<div class="rkfrom">${walletIcon(c.w)}<span>Paying from <b>${esc(short(c.address))}</b></span>${b ? `<span>${esc(fmtDmt(b.dmt))} DMT · ${esc(fmtEth(b.eth))} ETH</span>` : '<span class="dim">checking balance…</span>'}<button id="rkchange" class="linkbtn">Change</button></div>`
-    + (b && b.dmt < price ? `<p class="rkwarn">You need ${price} DMT on Arbitrum. <a href="${GET_DMT}" target="_blank" rel="noopener">Get DMT</a></p>` : '')
+    + (b && b.dmt < price ? `<p class="rkwarn">You need ${price} DMT on Arbitrum. <button id="rkbuy" class="linkbtn">Buy DMT here</button> or <a href="${GET_DMT}" target="_blank" rel="noopener">see the market</a></p>` : '')
     + (b && b.eth < ETH_FOR_GAS ? `<p class="rkwarn">You need a little ETH on Arbitrum for the network fee (well under a cent). <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a></p>` : '');
   $('rkchange').onclick = () => openWallet();
+  if ($('rkbuy')) $('rkbuy').onclick = () => { buyWant = Math.max(0.5, Math.ceil((price - (b ? b.dmt : 0)) * 10) / 10); openWallet(); };
   enter.textContent = two ? `Enter ${RACE[rankedMode].name} for ${price} DMT` : `Enter for ${price} DMT`;
 }
 const plain = (text) => Object.assign(new Error(text), { plain: true });
@@ -345,6 +347,22 @@ function buildSkills() {
     const id = b.dataset.id, l = getSkills()[id] || 0, cost = skillCost(id, l);
     if (l >= SKILLS[id].max || getCoins() < cost) return;
     const sk = getSkills(); sk[id] = l + 1; save('sq-skills', sk); save('sq-coins', getCoins() - cost); showBest(); buildSkills();
+  };
+  // refunds (owner 3 Nov): right-click a skill (or hold it on a phone) to undo its last rank, full price back
+  const undo = (id) => { const sk = getSkills(), l = sk[id] || 0; if (!l) return; sk[id] = l - 1; save('sq-skills', sk); save('sq-coins', getCoins() + skillCost(id, l - 1)); showBest(); buildSkills(); };
+  $('skillgrid').querySelectorAll('.skill').forEach((el, i) => {
+    const id = SKILL_IDS[i]; let hold = 0;
+    el.title = (lv[id] || 0) ? 'Right-click to undo a rank (full refund)' : '';
+    el.addEventListener('contextmenu', (e) => { e.preventDefault(); undo(id); });
+    el.addEventListener('touchstart', () => { clearTimeout(hold); hold = setTimeout(() => undo(id), 600); }, { passive: true });
+    for (const ev of ['touchend', 'touchmove', 'touchcancel']) el.addEventListener(ev, () => clearTimeout(hold), { passive: true });
+  });
+  const spent = SKILL_IDS.reduce((a, id) => { let c = 0; for (let k = 0; k < (lv[id] || 0); k++) c += skillCost(id, k); return a + c; }, 0);
+  const all = $('skillrefund'); all.disabled = !spent; all.dataset.sure = ''; all.textContent = spent ? `Refund all · ${spent.toLocaleString()} coins back` : 'Refund all';
+  all.onclick = () => {
+    if (!spent) return;
+    if (all.dataset.sure !== '1') { all.dataset.sure = '1'; all.textContent = `Click again to refund every skill (${spent.toLocaleString()} coins)`; return; }
+    save('sq-skills', {}); save('sq-coins', getCoins() + spent); showBest(); buildSkills();
   };
 }
 $('skillsbtn').onclick = () => { buildSkills(); $('skills').classList.remove('hidden'); };
@@ -703,10 +721,11 @@ function renderWallet() {
     + `<div class="wlbal">${b ? `<span><b>${esc(fmtDmt(b.dmt))}</b> DMT</span><span><b>${esc(fmtEth(b.eth))}</b> ETH</span><span class="dim">on Arbitrum</span>` : '<span class="dim">Reading your balances on Arbitrum…</span>'}</div>`
     + (mine ? `<p class="dmtok">DMT perks are on until ${new Date(pass.exp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.</p>`
       : b && b.dmt > 0 ? '<div class="dmtwallets"><button id="wlperks">Turn on DMT perks (free signature)</button></div>'
-        : `<p class="dim">Hold DMT on Arbitrum for holder perks. <a href="${GET_DMT}" target="_blank" rel="noopener">Get DMT</a></p>`)
+        : '<p class="dim">Hold DMT on Arbitrum for holder perks. You can buy some below.</p>')
+    + buyHTML(b)
     + cloudHTML(c)
     + `<div class="lurow">${rankedWeek && rankedWeek.open ? '<button id="wlranked">Ranked runs</button>' : ''}<button id="wlswitch" class="ghost">Switch wallet</button><button id="wldisc" class="ghost">Disconnect</button></div>`;
-  bindCloud(c, msg);
+  bindCloud(c, msg); bindBuy(c, b, msg);
   $('wlcopy').onclick = async () => { try { await navigator.clipboard.writeText(c.address); msg('Address copied.'); } catch { msg(c.address); } };
   if ($('wlperks')) $('wlperks').onclick = async () => { $('wlperks').disabled = true; try { const r = await prove(c.w, BASE, msg); msg(r.pass ? 'You hold DMT. Your perks are on!' : `${short(r.address)} holds no DMT on Arbitrum.`); } catch (e) { msg(why(e)); } applyDmt(); renderWallet(); };
   if ($('wlranked')) $('wlranked').onclick = () => { $('wallet').classList.add('hidden'); openRanked(); };
@@ -744,6 +763,32 @@ function bindCloud(c, msg) {
 const cloudPull = async () => { if (!cloud.state() || mode !== 'title' || rankedPlaying()) return; if (await cloud.pull()) { banner('Loading your progress from your other device…', 3000); setTimeout(() => location.reload(), 600); } else cloud.changed(); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); else if (cloud.state()) cloud.push(true); });
 setTimeout(cloudPull, 1500);
+// ---- buy DMT with ETH without leaving the game (src/swap.js: KyberSwap, checked before the wallet sees it) -------------
+let buyWant = 0, buyQuote = null; // DMT asked for from the Ranked panel; the quote on show
+const BUY_AMOUNTS = [[0.5, '1 entry'], [2.5, '5 entries'], [5, '10 entries'], [1.5, '1 Hard entry']];
+function buyHTML(b) {
+  const amts = buyWant && !BUY_AMOUNTS.some(([d]) => d === buyWant) ? [[buyWant, 'what you need'], ...BUY_AMOUNTS] : BUY_AMOUNTS;
+  return `<div class="wlbuy"><p><b>Buy DMT</b> <span class="dim">with ETH on Arbitrum, in one step</span></p><div class="lurow">${amts.map(([d, l]) => `<button class="ghost wlbuyamt${d === buyWant ? ' on' : ''}" data-dmt="${d}">${d} DMT <small>${l}</small></button>`).join('')}</div><div id="wlbuyq" class="dim">${b && b.eth < ETH_FOR_GAS ? `You need ETH on Arbitrum to buy with. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a>` : 'Swaps through KyberSwap at the best DMT price. The game takes no fee.'}</div></div>`;
+}
+function bindBuy(c, b, msg) {
+  const box = $('wlbuyq'); if (!box) return;
+  const show = (q) => {
+    const short2 = b && b.eth < q.ethIn + ETH_FOR_GAS;
+    box.className = ''; box.innerHTML = `<p>About <b>${q.dmtOut} DMT</b> for ${q.ethIn.toFixed(5)} ETH${q.usdIn ? ` (about $${q.usdIn.toFixed(2)})` : ''}${q.loss != null ? ` · ${(q.loss * 100).toFixed(1)}% to the pool and fees` : ''}. You get at least ${q.minOut} DMT, or the swap does not happen.</p>`
+      + (short2 ? `<p class="rkwarn">Not enough ETH on Arbitrum for that. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a></p>` : `<button id="wlbuygo">Buy ${q.dmtOut} DMT</button>`);
+    if ($('wlbuygo')) $('wlbuygo').onclick = async () => {
+      $('wlbuygo').disabled = true;
+      try { const r = await buyDmt(c.w, c.address, q, msg); buyQuote = null; buyWant = 0; msg('Bought. Your DMT is in your wallet.'); box.innerHTML = `<p class="dmtok">Done: <a href="${arbiscanTx(r.tx)}" target="_blank" rel="noopener">see the swap on Arbiscan</a></p>`; refreshBalances(true); }
+      catch (e) { msg(why(e)); if (e.tx) box.innerHTML = `<p><a href="${arbiscanTx(e.tx)}" target="_blank" rel="noopener">See it on Arbiscan</a></p>`; else $('wlbuygo').disabled = false; }
+    };
+  };
+  for (const btn of document.querySelectorAll('.wlbuyamt')) btn.onclick = async () => {
+    for (const o of document.querySelectorAll('.wlbuyamt')) o.classList.toggle('on', o === btn);
+    box.className = 'dim'; box.textContent = 'Getting a price…';
+    try { buyQuote = await quoteDmt(Number(btn.dataset.dmt)); show(buyQuote); } catch (e) { box.textContent = e.message; }
+  };
+  if (buyWant) { const pre = document.querySelector(`.wlbuyamt[data-dmt="${buyWant}"]`); if (pre && !buyQuote) pre.click(); else if (buyQuote) show(buyQuote); }
+}
 function openWallet() { $('walletmsg').textContent = ''; renderWallet(); $('wallet').classList.remove('hidden'); $('walletclose').focus(); refreshBalances(true); }
 $('walletchip').onclick = openWallet;
 $('walletclose').onclick = () => { $('wallet').classList.add('hidden'); (!$('ranked').classList.contains('hidden') ? $('rankedclose') : $('walletchip')).focus(); };
