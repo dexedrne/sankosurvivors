@@ -3,7 +3,7 @@ import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
 import { asset, pickAssetHost } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, JUMP_USE, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
@@ -121,7 +121,8 @@ function buildMaps() {
   $('apick').classList.toggle('forced', !!m.forceAdv);
   if (m.forceAdv) { const fa = ADVENTURER_BY_ID[m.forceAdv]; $('ainfo').innerHTML = `On ${m.name} you play as <b>${fa.name}</b>: ${weaponTitle(fa.weapon, 1)}, bronze armour, winged boots and extra health.`; }
   const cleared = cl.has(m.id) || params.has('unlock');
-  $('hardwrap').classList.toggle('hidden', !cleared); $('endlesswrap').classList.toggle('hidden', !cleared);
+  // always shown (owner 3 Nov: "where is hard mode"): greyed out with how to unlock until the map is cleared
+  for (const [w, id] of [['hardwrap', 'hard'], ['endlesswrap', 'endless']]) { $(w).classList.remove('hidden'); $(w).classList.toggle('locked', !cleared); $(id).disabled = !cleared; $(w).title = cleared ? '' : `Clear ${m.name} to unlock`; }
   if (!cleared) { hardOn = false; $('hard').checked = false; endlessOn = false; $('endless').checked = false; }
 }
 async function pickMap(id) {
@@ -867,7 +868,7 @@ async function startRun(live = null) {
   } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
   renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
   for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden');
-  $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
+  $('hud').classList.remove('hidden'); $('hud').classList.toggle('nojump', !canJump()); mode = 'play'; shownPending = false;
   $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
   if (isRanked && sim.pending[PLAYER]) showLevelUp();
   const goalText = isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills per minute' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
@@ -978,6 +979,7 @@ addEventListener('keydown', (e) => {
   }
   if (k === 'm') { audio.setMuted(!audio.muted); banner(audio.muted ? 'Sound off' : 'Sound on', 900); }
   if (mode === 'play' && k >= '1' && k <= '4') pendingUse = Number(k) - 1;
+  if (mode === 'play' && k === ' ') { if (canJump()) pendingUse = JUMP_USE; e.preventDefault(); } // jump
   if (k === 'escape') { if (mode === 'play') pause(true); else if (mode === 'pause') pause(false); else for (const id of ['skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden'); }
   if ((k === 'enter' || k === ' ') && mode === 'title' && !$('start').disabled && ['skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked'].every((id) => $(id).classList.contains('hidden'))) startRun();
   if ((k === 'enter' || k === ' ') && mode === 'end') startRun();
@@ -1044,6 +1046,9 @@ addEventListener('pointermove', (e) => {
 const endTouch = (e) => { if (e.pointerId !== touch.id) return; touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden'); };
 addEventListener('pointerup', endTouch); addEventListener('pointercancel', endTouch);
 $('pausebtn').onclick = () => { if (mode === 'play') pause(true); };
+$('jumpbtn').addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); if (mode === 'play' && canJump()) pendingUse = JUMP_USE; }); // phones: the JUMP button
+// jumping comes with the denser pace (casual now, ranked from week 1); a ranked week 0 run has none
+function canJump() { return !!sim && sim.pace >= 2; }
 
 let padPrev = [], pendingUse = null, slowmo = 0, stickDir = null, stickNext = 0; // belt slot to use on the next tick (1-4, a tap, or LB/RB/X/Y)
 function readInput() {
@@ -1198,6 +1203,8 @@ function updateHud(view) {
     else if (f.k === 'get' && f.kind === 'chest') banner('Chest!', 1000);
     else if (f.k === 'event') banner(f.kind === 'treasure' ? 'A treasure goblin! Catch it before it gets away' : f.kind === 'swarm' ? 'Swarm!' : f.kind === 'warband' ? `A goblin warband charges from the ${f.dir}!` : f.kind === 'rising' ? 'The dead rise around you!' : f.kind === 'blizzard' ? 'Blizzard! The snow slows you down' : f.kind === 'duel' ? 'A champion of the Fighting Forum challenges you!' : f.kind === 'stampede' ? `Chicken stampede from the ${f.dir}!` : f.kind === 'sandstorm' ? 'Sandstorm! Scorpions in the dust' : f.kind === 'ambush' ? 'Ambush! Things are crawling out of the water' : 'Meteor shower! Watch the ground', 2600);
     else if (f.k === 'treasure') banner('Treasure goblin caught!', 1800);
+    else if (f.k === 'shrine' && SHRINES[f.kind]) banner(`A ${SHRINES[f.kind].name} rose nearby: stand in its circle to charge it`, 3200);
+    else if (f.k === 'shrine-done' && SHRINES[f.kind] && f.id === PLAYER) banner(`${SHRINES[f.kind].name}: ${SHRINES[f.kind].text}`, 3200);
     else if (f.k === 'region' && sim.t > 1) banner(MAP_BY_ID[f.id].name, 1800);
     else if (f.k === 'escape') banner('The treasure goblin got away', 1600);
     else if (f.k === 'casket' && f.worn) { toast(`${imgTag(f.item)} <span>${f.old ? 'Now wearing' : 'Reward casket, now worn'}<br><b>${f.item}</b></span>`); }
@@ -1207,7 +1214,7 @@ function updateHud(view) {
 
 // ---- menus with a controller or the arrow keys: spatial focus, A/Enter picks, B/Esc goes back -----------------------
 const NAV_SCREENS = ['ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'pause', 'end', 'title'];
-const NAV_ITEMS = '.aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden), #endlesswrap:not(.hidden), input[data-vol]';
+const NAV_ITEMS = '.aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden')); }
@@ -1305,7 +1312,7 @@ function loop(ts) {
     if (edges.start) pause(true);
     acc += dt * (slowmo > 0 ? 0.3 : 1); slowmo -= dt; // a moment of slow motion when a boss falls
     let n = 0;
-    if (edges.lb) pendingUse = 0; if (edges.rb) pendingUse = 1; if (edges.x) pendingUse = 2; if (edges.y) pendingUse = 3;
+    if (edges.lb) pendingUse = 0; if (edges.rb) pendingUse = 1; if (edges.x) pendingUse = 2; if (edges.y) pendingUse = 3; if (edges.a && canJump()) pendingUse = JUMP_USE; // A jumps
     while (acc >= TICK && n++ < 4) {
       if (rankedRec) {
         if (sim.pending[PLAYER] || sim.over) { acc = 0; break; }

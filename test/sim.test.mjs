@@ -277,14 +277,20 @@ test('a boss slam is telegraphed: it lands where you stood, so standing still hu
   assert.equal(p2.hp, hp1, 'running out of the circle avoided it');
 });
 
-test('monster volleys fly and can be dodged; elites always drop a reward casket', () => {
+test('monster volleys fly and can be dodged; elites drop a reward casket (always on pace 1, now and then on pace 2)', () => {
   const sim = createSim({ seed: 9 }); sim.spawnAcc = -1e9; const p = sim.players[0]; p.hp = p.maxHp = 5000;
   sim.eproj.push({ id: 1, x: p.x + 6, z: p.z, vx: -9, vz: 0, r: 0.55, dmg: 30, life: 3, art: 'fire' });
   const hp0 = p.hp; for (let i = 0; i < 1.2 / TICK; i++) step(sim, {}, TICK);
   assert.ok(p.hp < hp0, 'the fireball hit');
   const e = { id: 50, type: 'goblin', x: p.x + 1, z: p.z, hp: 1, maxHp: 1, face: 0, hit: 0, kx: 0, kz: 0, cdHit: {}, speed: 0, elite: true };
-  sim.enemies.push(e); damageEnemy(sim, e, 5, 'p1');
+  sim.enemies.push(e); sim.rng = () => 0.05; damageEnemy(sim, e, 5, 'p1'); // pace 2: an elite's casket is an 8% roll
   assert.ok(sim.pickups.some((k) => k.kind === 'casket'), 'elite dropped a casket');
+  const s2 = createSim({ seed: 9 }), p2 = s2.players[0], e2 = { ...e, id: 51, x: p2.x + 1, z: p2.z, hp: 1, maxHp: 1, dead: false, cdHit: {} };
+  s2.enemies.push(e2); s2.rng = () => 0.5; damageEnemy(s2, e2, 5, 'p1');
+  assert.ok(!s2.pickups.some((k) => k.kind === 'casket'), 'not every elite (owner 3 Nov: caskets dropped too often)');
+  const s1 = createSim({ seed: 9, pace: 1 }), p1 = s1.players[0], e1 = { ...e, id: 52, x: p1.x + 1, z: p1.z, hp: 1, maxHp: 1, dead: false, cdHit: {} };
+  s1.enemies.push(e1); s1.rng = () => 0.5; damageEnemy(s1, e1, 5, 'p1');
+  assert.ok(s1.pickups.some((k) => k.kind === 'casket'), 'pace 1 (ranked week 0): every elite, as before');
 });
 
 test('random events happen every few minutes: a treasure goblin runs away with loot', () => {

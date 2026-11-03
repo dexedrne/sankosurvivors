@@ -28,6 +28,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
     killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], endlessBossT: 0, endlessCycle: 0,
     players: [], enemies: [], proj: [], gems: [], pickups: [], fx: [],
     hazards: [],          // telegraphed boss attacks on the ground: { x, z, r, t, max, dmg }
+    shrines: [],          // shrines to charge (pace 2): { id, x, z, kind, charge, life }
     eproj: [],            // monster projectiles: { id, x, z, vx, vz, r, dmg, life, art }
     level: 1, xp: 0, xpNeed: xpForLevel(1),
     pending: {},          // playerId -> { choices: [...], left: seconds }; a reward casket card also has { casket: compareGear(...) }
@@ -44,7 +45,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       x: map.cx + dcos(a) * 1.5, z: map.cz + dsin(a) * 1.5,
       face: 0, moving: false, hp: PLAYER_BASE.hp, maxHp: PLAYER_BASE.hp, alive: true, inv: 0,
       meta, adv: p.adv || 'adventurer', weapons: { [p.weapon || (ADVENTURER_BY_ID[p.adv] ? ADVENTURER_BY_ID[p.adv].weapon : startWeapon)]: 1 }, passives: { ...((ADVENTURER_BY_ID[p.adv] || {}).startPassives || {}) }, evo: {}, buffs: {}, cd: {}, orbit: 0, kills: 0, coins: 0, regen: 0, hurt: 0,
-      gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}), rerolls: REROLLS_PER_RUN, belt: [],
+      gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}), rerolls: REROLLS_PER_RUN, belt: [], air: 0, jumpCd: 0,
       casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
     });
   });
@@ -162,14 +163,15 @@ export function playerStats(p, meta = p.meta || {}) {
   const m = (id) => meta[id] || 0;
   const B = (ADVENTURER_BY_ID[p.adv] || {}).bonus || {};
   const G = p.gb || {}; // worn gear
-  const might = 1 + 0.12 * passiveLevel(p, 'might') + 0.04 * m('combat') + (B.dmg || 0) + (G.dmg || 0);
+  const bf = p.buffs || {}; // timed boons: beer, a blizzard's chill, the shrines' Strength, Agility and Magic
+  const might = (1 + 0.12 * passiveLevel(p, 'might') + 0.04 * m('combat') + (B.dmg || 0) + (G.dmg || 0)) * (bf.strength > 0 ? 1.3 : 1);
   const haste = Math.max(0.3, 1 - 0.07 * passiveLevel(p, 'haste') - 0.03 * m('fletching') - (B.haste || 0) - (G.haste || 0));
   return {
     might, haste,
-    speed: PLAYER_BASE.speed * (1 + 0.08 * passiveLevel(p, 'boots') + 0.03 * m('woodcutting') + (B.speed || 0) + (G.speed || 0)) * ((p.buffs && p.buffs.speed > 0) ? 1.35 : 1) * ((p.buffs && p.buffs.chill > 0) ? 0.9 : 1), // beer speeds you up, a blizzard slows you
+    speed: PLAYER_BASE.speed * (1 + 0.08 * passiveLevel(p, 'boots') + 0.03 * m('woodcutting') + (B.speed || 0) + (G.speed || 0)) * ((p.buffs && p.buffs.speed > 0) ? 1.35 : 1) * ((p.buffs && p.buffs.chill > 0) ? 0.9 : 1) * (bf.agility > 0 ? 1.25 : 1), // beer speeds you up, a blizzard slows you
     magnet: PLAYER_BASE.magnet * (1 + 0.3 * passiveLevel(p, 'magnet') + 0.1 * m('magic') + (B.magnet || 0) + (G.magnet || 0)),
     armor: passiveLevel(p, 'armor') + (B.armor || 0) + (G.armor || 0) + (m('mining') >= 2 ? 1 : 0) + (m('mining') >= 4 ? 1 : 0),
-    growth: 1 + 0.1 * passiveLevel(p, 'growth') + 0.05 * m('herblore') + (B.growth || 0) + (G.growth || 0),
+    growth: (1 + 0.1 * passiveLevel(p, 'growth') + 0.05 * m('herblore') + (B.growth || 0) + (G.growth || 0)) * (bf.wisdom > 0 ? 1.4 : 1),
     maxHp: Math.round(PLAYER_BASE.hp + 20 * passiveLevel(p, 'vigor') + 8 * m('smithing') + (B.hp || 0) + (G.hp || 0)),
     regen: 0.15 * passiveLevel(p, 'vigor') + 0.1 * m('cooking') + (G.regen || 0),
     coin: 1 + (G.coin || 0) + 0.15 * passiveLevel(p, 'greed'),
@@ -234,7 +236,10 @@ function killEnemy(sim, e, owner) {
     const r = sim.rng(), drop = (kind) => sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z, kind });
     if (r < 0.010) drop('beer'); else if (r < 0.016) drop('pumpkin'); else if (r < 0.022) drop('warp'); else if (r < 0.034) drop(foodDrop(sim.t, (r - 0.022) / 0.012, e.elite));
     if (sim.rng() < 0.05 * (p ? playerStats(p).coin : 1)) drop('coin');
-    if (sim.rng() < 0.0015 * (p ? playerStats(p).casket : 1) || e.elite) drop('casket'); // a rare reward casket from anything, always from an elite
+    // reward caskets (owner 3 Nov: "caskets drop too often tbh"): every elite dropped one, ~60 in a full run. Pace 2: a
+    // rare one from anything and an elite's now and then, ~10 a run with the bosses'. Pace 1 (ranked week 0) unchanged.
+    const cs = p ? playerStats(p).casket : 1;
+    if (sim.pace >= 2 ? (sim.rng() < 0.0006 * cs || (e.elite && sim.rng() < 0.08 * cs)) : (sim.rng() < 0.0015 * cs || e.elite)) drop('casket');
     if (e.elite) { for (let i = 0; i < 3; i++) sim.pickups.push({ id: sim.nextId++, x: e.x + (i - 1) * 0.8, z: e.z + 0.8, kind: 'coin' }); }
     if (e.champion) { for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; sim.pickups.push({ id: sim.nextId++, x: e.x + dcos(a) * 1.4, z: e.z + dsin(a) * 1.4, kind: 'coin' }); } sim.fx.push({ k: 'treasure', x: e.x, z: e.z }); }
     if (e.treasure) { for (let i = 0; i < 2; i++) drop('casket'); for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283; sim.pickups.push({ id: sim.nextId++, x: e.x + dcos(a) * 1.6, z: e.z + dsin(a) * 1.6, kind: 'coin' }); } sim.fx.push({ k: 'treasure', x: e.x, z: e.z }); }
@@ -666,10 +671,59 @@ function useItem(sim, p, kind) {
   else if (kind === 'warp') { for (const g of sim.gems) g.pulled = true; for (const o of sim.pickups) if (o.kind === 'coin') o.pulled = true; }
   sim.fx.push({ k: 'use', kind, x: p.x, z: p.z });
 }
+export const JUMP_USE = 4, JUMP = { air: 0.5, cd: 1.0 };
 export function useBelt(sim, playerId, slot) {
   const p = sim.players.find((q) => q.id === playerId);
   if (!p || !p.alive || slot < 0 || slot >= p.belt.length) return false;
   const kind = p.belt.splice(slot, 1)[0]; useItem(sim, p, kind); return true;
+}
+
+// ---- shrines (owner 3 Nov: "we should have shrines"): one of SankoQuest's altars rises nearby every two minutes or so;
+// stand in its circle for a few seconds to charge it (stepping out drains it slowly). It fades if left alone. Pace 2 only.
+export const SHRINES = {
+  strength: { name: 'Shrine of Strength', text: '+30% damage for 40 seconds', color: 0xff5a3c },
+  prayer: { name: 'Shrine of Prayer', text: 'full health and 3 seconds of protection', color: 0xbfe8ff },
+  magic: { name: 'Shrine of Magic', text: 'every bone flies to you, and +40% experience for 40 seconds', color: 0xb06aff },
+  agility: { name: 'Shrine of Agility', text: '+25% speed for 40 seconds', color: 0x7be06a },
+  fortune: { name: 'Shrine of Fortune', text: 'a treasure chest', color: 0xffd34d },
+  wealth: { name: 'Shrine of Wealth', text: 'a ring of coins', color: 0xffb03a },
+};
+export const SHRINE = { first: 75, every: 110, charge: 3.5, r: 2.6, life: 75 };
+const SHRINE_KINDS = Object.keys(SHRINES);
+function shrineTick(sim, dt) {
+  if (sim.pace < 2) return;
+  const alive = sim.players.filter((q) => q.alive); if (!alive.length) return;
+  sim.shrineT = (sim.shrineT ?? SHRINE.first) - dt;
+  if (sim.shrineT <= 0) {
+    sim.shrineT = sim.shrines.length >= 2 ? 20 : SHRINE.every; // two waiting already: look again soon
+    if (sim.shrines.length < 2) {
+      const p = alive[Math.floor(sim.rng() * alive.length)], M = sim.map;
+      for (let tries = 0; tries < 10; tries++) {
+        const a = sim.rng() * 6.283, d = 16 + sim.rng() * 10, x = p.x + dcos(a) * d, z = p.z + dsin(a) * d;
+        if (hyp(x - M.cx, z - M.cz) > M.r || !walkable(sim, x, z) || flowAt(sim, x, z) === -2) continue;
+        const kind = SHRINE_KINDS[Math.floor(sim.rng() * SHRINE_KINDS.length)];
+        sim.shrines.push({ id: sim.nextId++, x, z, kind, charge: 0, life: SHRINE.life }); sim.fx.push({ k: 'shrine', kind, x, z });
+        break;
+      }
+    }
+  }
+  for (const s of sim.shrines) {
+    s.life -= dt;
+    const p = alive.find((q) => hyp(q.x - s.x, q.z - s.z) < SHRINE.r);
+    s.charge = p ? s.charge + dt : Math.max(0, s.charge - dt * 0.5);
+    if (p && s.charge >= SHRINE.charge) { shrineReward(sim, p, s); s.done = true; sim.fx.push({ k: 'shrine-done', kind: s.kind, x: s.x, z: s.z, id: p.id }); }
+    else if (s.life <= 0) { s.done = true; sim.fx.push({ k: 'shrine-gone', kind: s.kind, x: s.x, z: s.z }); }
+  }
+  if (sim.shrines.some((s) => s.done)) sim.shrines = sim.shrines.filter((s) => !s.done);
+}
+function shrineReward(sim, p, s) {
+  const k = s.kind;
+  if (k === 'strength') p.buffs.strength = 40;
+  else if (k === 'prayer') { p.hp = p.maxHp; p.inv = Math.max(p.inv, 3); }
+  else if (k === 'magic') { for (const g of sim.gems) g.pulled = true; p.buffs.wisdom = 40; }
+  else if (k === 'agility') p.buffs.agility = 40;
+  else if (k === 'fortune') sim.pickups.push({ id: sim.nextId++, x: s.x, z: s.z, kind: 'chest' });
+  else for (let i = 0; i < 12; i++) { const a = (i / 12) * 6.283; sim.pickups.push({ id: sim.nextId++, x: s.x + dcos(a) * 1.8, z: s.z + dsin(a) * 1.8, kind: 'coin' }); }
 }
 
 // ---- random events: every few minutes something happens ---------------------------------------------------------
@@ -820,7 +874,7 @@ function stepBossAttacks(sim, dt) {
     h.t -= dt;
     if (h.t <= 0) {
       h.done = true; sim.fx.push({ k: 'slam', x: h.x, z: h.z, r: h.r, meteor: h.meteor ? 1 : 0 });
-      for (const p of sim.players) if (p.alive && p.inv <= 0 && hyp(p.x - h.x, p.z - h.z) < h.r) hurtPlayer(sim, p, Math.max(1, h.dmg - playerStats(p).armor), h.meteor ? 'meteor' : 'slam');
+      for (const p of sim.players) if (p.alive && p.inv <= 0 && !(p.air > 0) && hyp(p.x - h.x, p.z - h.z) < h.r) hurtPlayer(sim, p, Math.max(1, h.dmg - playerStats(p).armor), h.meteor ? 'meteor' : 'slam');
     }
   }
   sim.hazards = sim.hazards.filter((h) => !h.done);
@@ -850,7 +904,12 @@ export function step(sim, inputs = {}, dt = TICK) {
     if (!p.alive) continue;
     const st = playerStats(p);
     const inp = inputs[p.id] || { mx: 0, mz: 0 };
-    if (inp.use != null) useBelt(sim, p.id, inp.use);
+    // jump (owner 3 Nov: "can we have jumping lol"): input use 4. Half a second in the air clears monsters and boss slams
+    // (not aimed fireballs), then a second to recover. Pace 1 (ranked week 0) has no jump: use 4 does nothing there.
+    if (inp.use === JUMP_USE && sim.pace >= 2) { if (!(p.air > 0) && !(p.jumpCd > 0)) { p.air = JUMP.air; sim.fx.push({ k: 'jump', id: p.id, x: p.x, z: p.z }); } }
+    else if (inp.use != null) useBelt(sim, p.id, inp.use);
+    if (p.air > 0) { p.air -= dt; if (p.air <= 0) { p.air = 0; p.jumpCd = JUMP.cd; sim.fx.push({ k: 'land', id: p.id, x: p.x, z: p.z }); } }
+    else if (p.jumpCd > 0) p.jumpCd -= dt;
     const len = hyp(inp.mx, inp.mz);
     p.moving = len > 0.01;
     if (p.moving) {
@@ -871,6 +930,7 @@ export function step(sim, inputs = {}, dt = TICK) {
   sim.flowT -= dt; if (sim.flowT <= 0) { sim.flowT = 0.3; updateFlow(sim); }
   spawnTick(sim, dt);
   eventTick(sim, dt);
+  shrineTick(sim, dt);
 
   // enemies: chase, separate, hurt
   const cell = 1.6, grid = new Map();
@@ -902,7 +962,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       moveTo(sim, e, e.x + (mx + e.kx) * dt, e.z + (mz + e.kz) * dt);
       e.kx *= 0.86; e.kz *= 0.86;
       e.face = datan2(dx, dz);
-      if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure) {
+      if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure && !(tp.air > 0)) { // a jump clears them
         const st = playerStats(tp);
         const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? 0.7 : 1) * (1 + sim.t / (sim.pace >= 2 ? 900 : 1200)) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
         hurtPlayer(sim, tp, dmg, def.boss ? 'boss-contact' : 'contact');
@@ -968,13 +1028,14 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
   const fx = sim.fx; sim.fx = [];
   return {
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
-    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice() })),
+    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), j: p.air > 0 ? Math.round((1 - p.air / JUMP.air) * 100) / 100 : 0, jcd: p.jumpCd > 0 ? 1 : 0, f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice() })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),
     hazards: sim.hazards.map((h) => [r1(h.x), r1(h.z), h.r, Math.round((1 - h.t / h.max) * 100) / 100, h.meteor ? 1 : 0]),
     eproj: sim.eproj.map((b) => [b.id, r1(b.x), r1(b.z), b.art]),
     proj: sim.proj.map((p) => [p.id, p.art, r1(p.x), r1(p.z), Math.round(datan2(p.vx, p.vz) * 20) / 20, p.lvl, Math.round((p.spin || 0) * 10) / 10, p.evo ? 1 : 0]),
     gems: sim.gems.map((g) => [g.id, r1(g.x), r1(g.z), g.v]),
     pickups: sim.pickups.map((k) => [k.id, k.kind, r1(k.x), r1(k.z)]),
+    shrines: sim.shrines.map((s) => [s.id, s.kind, r1(s.x), r1(s.z), Math.round(Math.min(1, s.charge / SHRINE.charge) * 100) / 100, Math.round(s.life)]),
     pending: Object.fromEntries(Object.entries(sim.pending).map(([id, v]) => [id, v.casket ? { choices: v.choices, left: Math.ceil(v.left), casket: v.casket, rec: v.rec, more: v.more } : { choices: v.choices, left: Math.ceil(v.left) }])),
     fx,
   };

@@ -68,6 +68,7 @@ export function createAudio() {
       else if (f.k === 'event') play('boss', { vol: 0.7, rate: 1.2 });
       else if (f.k === 'volley') play('magic', { minGap: 0.2, vol: 0.7, rate: 0.7 });
       else if (f.k === 'aim') play('bow', { vol: 0.6, rate: 0.6 });
+      else if (f.k === 'jump') play('choose', { minGap: 0.2, vol: 0.35, rate: 1.6 });
     }
     if (view) { const t = view.t; music(t >= 720 ? 'final' : t >= 540 ? 'boss' : t >= 330 ? 'late' : t >= 150 ? 'mid' : base); }
   }

@@ -55,7 +55,7 @@ function* resumeSteps(log, params) {
       let use = null;
       if (ui < log.uses.length && log.uses[ui]?.[0] === sim.tick) {
         const u = log.uses[ui++];
-        if (u.length !== 2 || !Number.isInteger(u[1]) || u[1] < 0 || u[1] > 3) throw new Error('Invalid saved item.');
+        if (u.length !== 2 || !Number.isInteger(u[1]) || u[1] < 0 || u[1] > 4) throw new Error('Invalid saved item.');
         use = u[1];
       }
       rankedStep(sim, rec, row[1] / 100, row[2] / 100, use);

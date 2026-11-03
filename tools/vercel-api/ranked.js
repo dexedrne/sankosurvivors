@@ -110,7 +110,7 @@ function logShape(log, maxTicks) {
   if (ticks > maxTicks) return 'run too long';
   let lastUse = -1;
   for (const u of uses) {
-    if (!Array.isArray(u) || u.length !== 2 || !Number.isInteger(u[0]) || u[0] <= lastUse || u[0] >= ticks || !Number.isInteger(u[1]) || u[1] < 0 || u[1] > 3) return 'bad item use';
+    if (!Array.isArray(u) || u.length !== 2 || !Number.isInteger(u[0]) || u[0] <= lastUse || u[0] >= ticks || !Number.isInteger(u[1]) || u[1] < 0 || u[1] > 4) return 'bad item use';
     lastUse = u[0];
   }
   for (const p of picks) if (![0, 1, 2, 'a', 'r', 's'].includes(p)) return 'bad choice';

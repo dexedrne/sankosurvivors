@@ -1015,6 +1015,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   });
   const shardTex = new THREE.TextureLoader().load(A('ui/items/item_Bones.png'), (t) => { t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; for (const g of gemSets) { g.material.map = t; g.material.needsUpdate = true; } });
   const pickupSprites = new Map(); const iconCache = new Map();
+  const shrineObjs = new Map(), SHRINE_COLORS = { strength: 0xff5a3c, prayer: 0xbfe8ff, magic: 0xb06aff, agility: 0x7be06a, fortune: 0xffd34d, wealth: 0xffb03a }; // as SHRINES in sim.js
   const PICKUP_ICON = { coin: 'Gold', crawdad: 'Cooked Crawdad', trout: 'Cooked Brown Trout', catfish: 'Cooked Catfish', bass: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
   const PICKUP_SIZE = { chest: 1.5, coin: 0.855, crawdad: 0.8, trout: 0.95, catfish: 1.0, bass: 1.1 };
   function iconTex(name) {
@@ -1404,6 +1405,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; }
       else if (f.k === 'die') { pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
       else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
+      else if (f.k === 'shrine-done') { const c = SHRINE_COLORS[f.kind] || 0xffffff; ringFx(f.x, f.z, 4, c, 1, 0.7); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 50, 6, { s: 1, life: 1.1, color: c, up: 9 }); cam.shake = Math.max(cam.shake, 0.2); }
+      else if (f.k === 'shrine') emit(f.x, groundAt(f.x, f.z) + 0.5, f.z, 24, 3, { s: 0.8, life: 1, color: SHRINE_COLORS[f.kind] || 0xffffff, up: 6 });
+      else if (f.k === 'land') emit(f.x, groundAt(f.x, f.z) + 0.1, f.z, 8, 2.2, { s: 0.6, life: 0.4, color: 0xc9b38a, up: 1.2, g: 6 });
       else if (f.k === 'revive') { ringFx(f.x, f.z, 5, 0x8bffd0); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 45, 5, { s: 1.1, life: 1.2, color: 0x8bffd0, up: 8 }); }
       else if (f.k === 'treasure') { ringFx(f.x, f.z, 5, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 60, 7, { s: 1.1, life: 1.1, color: 0xffd34d, up: 8 }); cam.shake = Math.max(cam.shake, 0.3); }
       else if (f.k === 'surface') { ringFx(f.x, f.z, 1.4, 0x9fd8e8); emit(f.x, Math.max(groundAt(f.x, f.z), WATER_Y) + 0.2, f.z, 16, 2.2, { s: 1.1, life: 0.8, color: 0xcfeef8, up: 4 }); }
@@ -1435,7 +1439,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         if (kit) { try { const look = (ADVENTURER_BY_ID[p.adv] || ADVENTURER_BY_ID.adventurer).look; const k = kit.build({ ...look, h: 1.6 }); /* SankoQuest's people stand ~1.6 (skeletons, the same size, measure 1.51 in the live game) */ inst = { root: k.root, inner: k.master, mixer: k.mixer, kit: k, armorLvl: 0, baseArmor: look.armor || {} }; } catch (e) { console.warn('player rig failed', e); } }
         if (!inst) inst = playerProto ? instantiate(playerProto) : makeEnemy('goblin');
         const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: SLOT_COLORS[p.slot % 4], side: THREE.DoubleSide }));
-        ring.position.y = 0.05; inst.root.add(ring);
+        ring.position.y = 0.05; inst.root.add(ring); inst.ring = ring;
         inst.root.traverse((o) => { if (o.isMesh && o !== ring) o.castShadow = true; });
         inst.adv = p.adv; dyn.add(inst.root); a = inst; playerActors.set(p.id, a);
       }
@@ -1444,6 +1448,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       a.px += (p.x - a.px) * Math.min(1, dt * 24); a.pz += (p.z - a.pz) * Math.min(1, dt * 24);
       a.root.visible = !!p.al;
       a.root.position.set(a.px, groundAt(a.px, a.pz), a.pz);
+      // a jump: an arc 1.2 high over the half second, timed here so it is smooth between the sim's ticks; the ring stays
+      // on the ground under you
+      if (p.j > 0 && !(a.jt >= 0)) a.jt = p.j * 0.5; else if (!(p.j > 0) && a.jt >= 0 && a.jt > 0.45) a.jt = undefined;
+      if (a.jt >= 0) { a.jt = Math.min(0.5, a.jt + dt); const u = a.jt / 0.5, lift = 1.2 * 4 * u * (1 - u); a.root.position.y += lift; if (a.ring) a.ring.position.y = 0.05 - lift; if (u >= 1) a.jt = undefined; }
+      else if (a.ring) a.ring.position.y = 0.05;
       // turn smoothly instead of snapping, and hold the swing's direction for a moment so a strike reads as a strike
       // (the run direction and the swing direction alternate every frame otherwise)
       if (a.yaw === undefined) a.yaw = p.f;
@@ -1637,6 +1646,25 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       dyn.remove(o); projObjs.delete(id);
     }
     stepMagicBursts(performance.now());
+
+    // shrines: SankoQuest's altar, a pillar of light in the shrine's colour, and a circle that fills as you charge it
+    const seenS = new Set();
+    for (const [id, kind, x, z, ch] of view.shrines || []) {
+      seenS.add(id); let o = shrineObjs.get(id);
+      if (!o) {
+        const col = SHRINE_COLORS[kind] || 0xffffff; o = new THREE.Group();
+        loadGLB(A('world/scene-models/Altar.glb')).then((g) => { const m = g.scene.clone(true), b = boxOf(m), sz = b.getSize(new THREE.Vector3()), k = 1.3 / Math.max(sz.y, 1e-3); m.scale.setScalar(k); m.position.set(-(b.min.x + b.max.x) / 2 * k, -b.min.y * k, -(b.min.z + b.max.z) / 2 * k); m.traverse((c) => { if (c.isMesh) c.castShadow = true; }); o.add(m); }).catch(() => {});
+        const beam = fxOnly(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 9, 14, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })));
+        beam.position.y = 4.5;
+        const edge = softRing(col, 2.35, 2.75, { opacity: 0.85, arcs: 4 }), fill = softRing(col, 0, 2.5, { opacity: 0.15, fill: 0.9 });
+        edge.position.y = 0.09; fill.position.y = 0.08;
+        o.add(beam, edge, fill); o.userData.parts = { edge, fill, beam }; dyn.add(o); shrineObjs.set(id, o);
+      }
+      const P = o.userData.parts; o.position.set(x, groundAt(x, z), z);
+      P.edge.rotation.y = time * 0.6; P.fill.scale.setScalar(Math.max(0.06, ch)); P.fill.material.uniforms.uOp.value = 0.15 + 0.5 * ch;
+      P.beam.material.opacity = 0.16 + 0.3 * ch + (ch > 0 ? 0.05 * Math.sin(time * 10) : 0);
+    }
+    for (const [id, o] of shrineObjs) if (!seenS.has(id)) { dyn.remove(o); shrineObjs.delete(id); }
 
     // pickups
     { const cnt = [0, 0, 0];

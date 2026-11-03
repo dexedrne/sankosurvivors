@@ -77,6 +77,7 @@
     <div id="clock">0:00</div><div id="clockgoal"></div><div id="killcount"><b id="kills">0</b> slain <b id="gp">0</b> GP</div></div>
   <div id="bossbar" class="hidden"><span id="bossname"></span><div><i id="bossfill"></i></div></div>
   <div id="belt"></div>
+  <button id="jumpbtn" aria-label="Jump">JUMP</button>
   <div id="hp"><div class="bar"><i id="hpfill"></i></div><span id="hptext">100</span></div>
   <div id="loadout"><div id="wrow"></div><div id="prow"></div></div>
   <div id="mmwrap"><canvas id="minimap" width="168" height="168"></canvas></div>
@@ -94,7 +95,7 @@
     <section><h3>Map</h3><div id="mpick"></div><div id="mapinfo"></div></section>
     <section id="actions">
       <div id="loadbar"><i id="loadfill"></i></div><div id="loadtext">Loading the world…</div>
-      <div id="modes"><label id="hardwrap" class="hidden"><input type="checkbox" id="hard"> Hard mode</label><label id="endlesswrap" class="hidden"><input type="checkbox" id="endless"> Endless</label></div>
+      <div id="modes"><label id="hardwrap" class="hidden"><input type="checkbox" id="hard"> Hard mode <small class="lockhint">clear this map first</small></label><label id="endlesswrap" class="hidden"><input type="checkbox" id="endless"> Endless <small class="lockhint">clear this map first</small></label></div>
       <button id="start" disabled>Enter the field</button>
       <button id="rankedbtn" class="hidden">Ranked: weekly DMT prizes</button>
       <div class="btngrid"><button id="gearbtn" class="ghost">Gear</button><button id="questbtn" class="ghost">Quests</button><button id="skillsbtn" class="ghost">Skills</button><button id="lbbtn" class="ghost">Leaderboard</button></div>

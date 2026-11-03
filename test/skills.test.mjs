@@ -94,8 +94,8 @@ test('Luck increases marginal casket odds and adds bonus boss chests without rep
     s.rng = () => r; damageEnemy(s, s.enemies[0], 1e9, p.id);
     return s.pickups.map((q) => q.kind);
   };
-  assert.ok(!kill({}, 'goblin', .0018).includes('casket'));
-  assert.ok(kill({ luck: 3 }, 'goblin', .0018).includes('casket'));
+  assert.ok(!kill({}, 'goblin', .0007).includes('casket')); // pace 2: 0.06% a kill, x1.45 with Luck 3
+  assert.ok(kill({ luck: 3 }, 'goblin', .0007).includes('casket'));
   assert.equal(kill({}, 'giant', .2).filter((k) => k === 'chest').length, 1);
   assert.equal(kill({ luck: 3 }, 'giant', .2).filter((k) => k === 'chest').length, 2);
 });

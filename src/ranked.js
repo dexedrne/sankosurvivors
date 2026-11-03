@@ -107,7 +107,7 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
     if (!Number.isInteger(count) || count < 1 || !Number.isInteger(x) || !Number.isInteger(z) || Math.abs(x) > 100 || Math.abs(z) > 100) return { error: 'bad input' };
     total += count; if (total > maxTicks) return { error: 'run too long' };
   }
-  for (const u of log.uses) if (!Array.isArray(u) || u.length !== 2 || !Number.isInteger(u[0]) || !Number.isInteger(u[1]) || u[1] < 0 || u[1] > 3) return { error: 'bad item use' };
+  for (const u of log.uses) if (!Array.isArray(u) || u.length !== 2 || !Number.isInteger(u[0]) || !Number.isInteger(u[1]) || u[1] < 0 || u[1] > 4) return { error: 'bad item use' }; // 0-3 belt slots, 4 a jump
   let sim;
   try { sim = rankedSim(params); } catch { return { error: 'bad ranked run' }; }
   let pi = 0, ui = 0, tick = 0;
@@ -133,7 +133,7 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
       if (sim.over) return { error: 'inputs after the run ended' };
       const err = resolve(); if (err) return { error: err };
       let use = null;
-      if (ui < log.uses.length && log.uses[ui][0] === tick) { use = log.uses[ui][1]; ui++; if (!Number.isInteger(use) || use < 0 || use > 3) return { error: 'bad item use' }; }
+      if (ui < log.uses.length && log.uses[ui][0] === tick) { use = log.uses[ui][1]; ui++; if (!Number.isInteger(use) || use < 0 || use > 4) return { error: 'bad item use' }; }
       const before = sim.tick;
       step(sim, { [PID]: { mx: x / 100, mz: z / 100, use } }, TICK);
       if (sim.tick === before) return { error: 'a step did not run' };
