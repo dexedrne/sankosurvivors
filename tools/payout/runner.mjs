@@ -131,6 +131,19 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
     }catch{await alert('chain recovery unavailable');return;}
     if(outstanding.some(r=>r.status==='failed')){await alert('failed transfer requires review');return;}
     const due=outstanding.filter(r=>r.status==='planned'&&(r.kind==='refund'||Date.parse(planOf(state,r)?.pay_at)<=now()));
+    // A refund repays a real payment: its entry's transaction must hold DMT Transfer logs of exactly that amount from that
+    // wallet to the entry wallet, and no payment is refunded twice. A ledger row alone (a database write, a leaked server key)
+    // can never move DMT (security pass, 3 Nov).
+    const refundTx=new Map();
+    for(const row of state.rows.filter(r=>r.kind==='refund')){const tx=String(row.source_tx??'').toLowerCase();if(refundTx.has(tx)&&tx){await alert('refund paid twice row '+row.id);return;}refundTx.set(tx,row.id);}
+    for(const row of due.filter(r=>r.kind==='refund')){
+      const tx=String(row.source_tx??'').toLowerCase();
+      if(!/^0x[0-9a-f]{64}$/.test(tx)){await alert('unverified refund row '+row.id);return;}
+      let r;try{r=await chain.rpc('eth_getTransactionReceipt',[tx]);}catch{await alert('chain unavailable');return;}
+      let paid=0n;
+      for(const l of r?.status==='0x1'?r.logs??[]:[])if(l.address?.toLowerCase()===DMT&&l.topics?.[0]===TRANSFER&&l.topics[1]?.toLowerCase()==='0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0')&&l.topics[2]?.toLowerCase()==='0x'+config.wallet.slice(2).toLowerCase().padStart(64,'0'))paid+=BigInt(l.data);
+      if(paid!==units(row.amount)){await alert('unverified refund row '+row.id);return;}
+    }
     const work=[...recover,...due];
     if(!work.length){log('No transfers due.');return;}
     let fees,gasById;

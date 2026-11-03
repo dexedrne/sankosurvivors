@@ -304,7 +304,8 @@ async function recoverRankedRun() {
     if (live.sim !== SIM_ID) {
       rankedMessage('The game changed during your run. Requesting your refund…');
       try {
-        await rankedApi(BASE, 'void', { run: live.run });
+        try { await rankedApi(BASE, 'void', { run: live.run, log: live.log }); }
+        catch (e) { if (/send it instead/.test(String(e.message))) { rankedMessage('Your run had already ended: sending it…'); await submitRanked(); return; } throw e; }
         localStorage.removeItem('sq-ranked-live');
         rankedMessage(`Your ${RACE[liveRace(live).mode].entryDmt} DMT will be sent back.`);
       } catch (e) {

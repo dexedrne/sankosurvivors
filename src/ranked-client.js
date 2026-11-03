@@ -1,4 +1,6 @@
 import { hex } from './dmt.js';
+// where entry fees go, fixed here so a tampered server answer can never redirect a payment (security pass, 3 Nov)
+const ENTRY_WALLET = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', DMT_CONTRACT = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8';
 import { RANKED } from './ranked.js';
 const PAYMENT = 'sq-ranked-payment', ENTRIES = 'sq-ranked-entries';
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -49,7 +51,7 @@ export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'no
   if (!/^0x[\da-f]{40}$/i.test(address || '')) throw new Error('No account was shared.');
   onStep('Checking your entries for this week…');
   const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}`);
-  if (!n.message || !n.nonce || n.chainId !== 42161 || !/^0x[\da-f]{40}$/i.test(n.dmt) || !/^0x[\da-f]{40}$/i.test(n.collect) || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
+  if (!n.message || !n.nonce || n.chainId !== 42161 || String(n.dmt).toLowerCase() !== DMT_CONTRACT || String(n.collect).toLowerCase() !== ENTRY_WALLET || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
   onStep('Switch to Arbitrum One in your wallet…');
   const chain = { chainId: '0xa4b1' };
   try { await p.request({ method: 'wallet_switchEthereumChain', params: [chain] }); }
@@ -63,8 +65,8 @@ export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'no
   onStep('Sign the message in your wallet (free)…');
   const signature = await p.request({ method: 'personal_sign', params: [hex(n.message), address] });
   onStep(`Approve the ${race.entryDmt} DMT ${race.name} entry in your wallet. Arbitrum gas is paid in ETH…`);
-  const data = '0xa9059cbb' + n.collect.slice(2).toLowerCase().padStart(64, '0') + BigInt(n.amountWei).toString(16).padStart(64, '0');
-  const tx = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: n.dmt, data, value: '0x0' }] });
+  const data = '0xa9059cbb' + ENTRY_WALLET.slice(2).padStart(64, '0') + BigInt(n.amountWei).toString(16).padStart(64, '0');
+  const tx = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: DMT_CONTRACT, data, value: '0x0' }] });
   writeRanked(PAYMENT, { tx, signature, nonce: n.nonce });
   try { onTx(tx); } catch { /* display only */ }
   onStep('Payment sent. Waiting for its Arbitrum receipt…');

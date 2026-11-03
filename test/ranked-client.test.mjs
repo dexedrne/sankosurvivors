@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as client from '../src/ranked-client.js';
-const address = '0x' + '12'.repeat(20), token = '0x' + '34'.repeat(20), collect = '0x' + '56'.repeat(20), tx = '0x' + 'ab'.repeat(32);
+const address = '0x' + '12'.repeat(20), token = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8', collect = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', tx = '0x' + 'ab'.repeat(32);
 const nonce = { nonce: 'signed', message: 'Sign é', week: 0, dmt: token, collect, amountWei: '500000000000000000', chainId: 42161 };
 const response = (d, status = 200) => new Response(JSON.stringify(d), { status });
 function storage() { const map = new Map(); return { getItem: (k) => map.get(k) ?? null, setItem: (k, v) => map.set(k, v), removeItem: (k) => map.delete(k) }; }

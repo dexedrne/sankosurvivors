@@ -13,6 +13,7 @@ find "$TMP" -maxdepth 1 -name '*.md' ! -name README.md -delete      # internal r
 [ -d "$TMP/docs" ] && [ -z "$(ls -A "$TMP/docs")" ] && rmdir "$TMP/docs"
 # refuse on anything personal, any AI attribution, home paths or secrets (patterns split so this file never matches)
 P="pase""kaalex|pase""ka|prestig""ious|claude""-tech|co-authored""-by|/home/""alex|sk-""ant-|ghp""_[A-Za-z0-9]{20}|PRIVATE_KEY=0x[0-9a-f]{64}|-----BEGIN [A-Z ]*PRIV""ATE"
+P="$P|[0-9]{8,10}:AA[A-Za-z0-9_-]{30,}|sb_""secret_|service""_role|eyJhbGci""Oi[A-Za-z0-9_-]{10,}|github""_pat_|gh[opsu]""_[A-Za-z0-9]{20}|\"cipher""text\" *:|(key|secret|priv)[A-Za-z_]*[\"']? *[:=] *[\"']?0x[0-9a-fA-F]{64}"
 if HITS=$(grep -rlIiE "$P" "$TMP" | grep -v 'package-lock.json$'); then echo "github: refusing to publish, check: ${HITS//$TMP\//}"; exit 1; fi
 rsync -a --delete --exclude .git "$TMP"/ "$PUB"/
 cd "$PUB"; git add -A

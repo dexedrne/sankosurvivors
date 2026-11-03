@@ -12,9 +12,11 @@ node_modules/esbuild/bin/esbuild tools/vercel-api/ranked-entry.mjs --bundle --pl
 SIM=$(cat $SIMTMP/ranked-bundle.cjs tools/vercel-api/ground.bin | sha256sum | cut -c1-12)
 mkdir -p tools/vercel-api/sims/$SIM
 [ -f tools/vercel-api/sims/$SIM/ranked-bundle.cjs ] || { cp $SIMTMP/ranked-bundle.cjs tools/vercel-api/sims/$SIM/; cp tools/vercel-api/ground.bin tools/vercel-api/sims/$SIM/; }
+# when each version goes live, for the server's refund check (a run is refunded only if it was alive when its version was replaced)
+[ "$(cat tools/vercel-api/sims/current.txt 2>/dev/null)" = "$SIM" ] || echo "$(date +%s)000 $SIM" >> tools/vercel-api/sims/history.txt
 echo $SIM > tools/vercel-api/sims/current.txt
 rm -rf $SIMTMP
-VITE_SIM=$SIM VITE_BUILD=$BUILD npx vite build >/dev/null 2>&1
+VITE_SIM=$SIM VITE_BUILD=$BUILD node_modules/.bin/vite build >/dev/null 2>&1 # the repo's own vite, never a downloaded one
 rm -rf .vercel/output && mkdir -p .vercel/output/functions/preview.func .vercel/output/functions/api.func .vercel/output/functions/payout.func
 cp -r dist .vercel/output/static
 # the game compares its own build with this one to offer an Update button
@@ -35,7 +37,7 @@ node_modules/esbuild/bin/esbuild tools/payout/vercel.mjs --bundle --platform=nod
 echo '{"runtime":"nodejs22.x","handler":"index.js","launcherType":"Nodejs","shouldAddHelpers":false,"maxDuration":300}' > .vercel/output/functions/payout.func/.vc-config.json
 cat > .vercel/output/config.json <<'JSON'
 {"version":3,"routes":[
-  {"src":"/(.*)","headers":{"X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","Permissions-Policy":"camera=(), microphone=(), geolocation=(), payment=()"},"continue":true},
+  {"src":"/(.*)","headers":{"X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","Permissions-Policy":"camera=(), microphone=(), geolocation=(), payment=()","X-Frame-Options":"DENY","Content-Security-Policy":"frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'"},"continue":true},
   {"src":"^/assets/[^/]+-[A-Za-z0-9_-]{8,}\\.(js|css)$","headers":{"Cache-Control":"public, max-age=31536000, immutable"},"continue":true},
   {"src":"^/assets/(models|world|music|sound|anim|ui|draco)/.*$","headers":{"Cache-Control":"public, max-age=86400, stale-while-revalidate=604800"},"continue":true},
   {"src":"^/(index\\.html)?$","has":[{"type":"header","key":"user-agent","value":".*(TelegramBot|Twitterbot|facebookexternalhit|Discordbot|Slackbot|WhatsApp).*"}],"dest":"/preview"},

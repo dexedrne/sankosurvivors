@@ -34,13 +34,31 @@ export async function quoteDmt(dmt, f = fetch) {
     usdIn, usdOut, loss: usdIn > 0 && usdOut > 0 ? Math.max(0, 1 - usdOut / usdIn) : null, summary: s,
   };
 }
-/** Check a built KyberSwap transaction before the wallet ever sees it. Returns the value to send, or throws. */
+/** Check a built KyberSwap transaction before the wallet ever sees it. Returns the value to send, or throws.
+ *  It decodes the router's swap(SwapExecutionParams) call and checks the swap itself, not just that the address appears
+ *  somewhere (a hostile or broken API answer could hide the player's address in free-form bytes and pay someone else):
+ *  ETH in, DMT out, the DMT to the player's own wallet, the quoted ETH, at least the quote less 1% (the router reverts
+ *  below that), no fee receivers and no permit. Owner 3 Nov: "security is number one". */
+const SWAP_SELECTOR = 'e21fd0e9'; // MetaAggregationRouterV2.swap((address,address,bytes,(address,address,address[],uint256[],address[],uint256[],address,uint256,uint256,uint256,bytes),bytes))
+export const MAX_BUY_WEI = 100000000000000000n; // 0.1 ETH a buy: plenty for entries, and caps what a lying price can cost
 export function checkBuilt(b, q, address) {
-  if (!b || typeof b.data !== 'string' || !/^0x[0-9a-f]+$/i.test(b.data)) throw new Error('The swap could not be prepared. Try again.');
+  const bad = () => new Error('The swap could not be prepared. Try again.');
+  if (!b || typeof b.data !== 'string' || !/^0x(?:[0-9a-f]{2})+$/i.test(b.data)) throw bad();
   if (String(b.routerAddress || '').toLowerCase() !== KYBER_ROUTER) throw new Error('That swap was not going to KyberSwap: stopped for your safety.');
-  const value = BigInt(b.transactionValue ?? b.amountIn ?? -1);
+  if (!/^\d+$/.test(String(b.transactionValue ?? ''))) throw bad();
+  const value = BigInt(b.transactionValue);
   if (value !== BigInt(q.amountIn)) throw new Error('The price moved. Get a new quote.');
-  if (!b.data.toLowerCase().includes(address.slice(2).toLowerCase())) throw new Error('That swap did not pay your own wallet: stopped for your safety.');
+  if (value <= 0n || value > MAX_BUY_WEI) throw new Error('That buy is bigger than this page allows (0.1 ETH at a time).');
+  const h = b.data.slice(2).toLowerCase();
+  if (h.slice(0, 8) !== SWAP_SELECTOR) throw new Error('That was not a plain KyberSwap swap: stopped for your safety.');
+  const word = (at) => { if (!(at >= 8 && at + 64 <= h.length)) throw bad(); return h.slice(at, at + 64); };
+  const num = (at) => BigInt('0x' + word(at)), addr = (at) => { const w = word(at); if (!/^0{24}/.test(w)) throw bad(); return '0x' + w.slice(24); };
+  const off = (base, i) => { const o = num(base + i * 64); if (o > BigInt(h.length)) throw bad(); return base + Number(o) * 2; };
+  const p = off(8, 0), d = off(p, 3), len = (i) => num(off(d, i)); // desc: src, dst, srcReceivers, srcAmounts, feeReceivers, feeAmounts, dstReceiver, amount, minReturn, flags, permit
+  const minOut = (BigInt(q.summary.amountOut) * BigInt(10000 - SLIPPAGE_BPS - 1)) / 10000n; // KyberSwap rounds its 1% floor down: 0.01% of give
+  if (addr(d) !== ETH.toLowerCase() || addr(d + 64) !== DMT_TOKEN.toLowerCase() || addr(d + 6 * 64) !== address.toLowerCase()
+    || num(d + 7 * 64) !== value || num(d + 8 * 64) < minOut || len(4) !== 0n || len(5) !== 0n || len(10) !== 0n)
+    throw new Error('That swap did not pay your own wallet: stopped for your safety.');
   return value;
 }
 /** Swap: switch to Arbitrum, build, check, send, wait for it. wallet: { p } (an EIP-1193 provider). */

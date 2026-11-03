@@ -4,7 +4,7 @@ export async function sqlDB() {
   const { PGlite } = await import(pathToFileURL(process.env.SQS_PGLITE));
   const db = new PGlite();
   await db.exec('create role anon; create role authenticated;');
-  for(const f of ['schema','ranked','payouts']) await db.exec(await readFile(new URL(`../../tools/supabase/${f}.sql`,import.meta.url),'utf8'));
+  for(const f of ['schema','ranked','payouts','update4','update6']) await db.exec(await readFile(new URL(`../../tools/supabase/${f}.sql`,import.meta.url),'utf8'));
   // The clock is controlled only in this isolated PostgreSQL instance.
   await db.exec("create or replace function pg_catalog.now() returns timestamptz language sql stable as $$ select '2026-11-17T01:00:00Z'::timestamptz $$;");
   await db.exec("update sqs_admin set v=encode(sha256(convert_to(case when k='payout_key_sha256' then 'payout-key' when k='reports_key_sha256' then 'reports-key' else 'server-key' end,'UTF8')),'hex');");

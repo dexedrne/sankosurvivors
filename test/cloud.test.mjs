@@ -88,7 +88,8 @@ test('the server refuses forged keys, other wallets, wrong signatures, junk and 
   assert.equal((await call('POST', 'save-login', { nonce: old, signature: w.sign(cloudApi.saveMessage(old)) })).code, 400, 'a sign-in older than 15 minutes');
   for (const data of [null, [], 'x', { junk: '1' }, { 'sq-coins': 5 }]) assert.equal((await call('POST', 'save-put', { key: a.key, rev: 0, data })).code, 400, J(data));
   for (const rev of [-1, 1.5, '0', null]) assert.equal((await call('POST', 'save-put', { key: a.key, rev, data: { 'sq-coins': '1' } })).code, 400);
-  assert.equal((await call('POST', 'save-put', { key: a.key, rev: 0, data: { 'sq-bank': J(['x'.repeat(50000)]) } })).code, 400, 'a value over 40 KB is dropped, leaving nothing');
+  assert.equal((await call('POST', 'save-put', { key: a.key, rev: 0, data: { 'sq-bank': J(['x'.repeat(20000)]) } })).code, 400, 'a value over 12 KB is dropped, leaving nothing');
+  assert.equal((await call('POST', 'save-put', { key: a.key, rev: 0, data: { 'sq-bank': J(['x'.repeat(50000)]) } })).code, 413, 'a body over 32 KB is refused');
   assert.equal((await call('POST', 'save-put', 'x'.repeat(160000))).code, 413);
   assert.equal((await call('GET', 'save-put')).code, 404);
 });

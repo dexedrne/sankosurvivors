@@ -4,3 +4,8 @@ dist
 reference/ws-capture
 tools/supabase/functions.sql
 tools/supabase/update2.sql
+# secrets never go in git (security pass, 3 Nov)
+*.env
+!*.env.example
+*.passphrase
+*keystore*.json

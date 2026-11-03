@@ -10,7 +10,9 @@
 const crypto = require('node:crypto');
 
 const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
-const MAX_VALUE = 40000, MAX_SAVE = 100000, MAX_BODY = 150000, KEY_DAYS = 90;
+// the biggest honest save (every gear piece at +5, every map and mode best) is about 8 KB: these leave room and stop one
+// client from filling the database with made-up wallets at 100 KB each (security pass, 3 Nov)
+const MAX_VALUE = 12000, MAX_SAVE = 24000, MAX_BODY = 32000, KEY_DAYS = 90;
 const saveMessage = (nonce) => `SankoQuest Survivors\n\nSign to keep your progress on this wallet, so it follows you to any device. This is free: no transaction, no gas, nothing leaves your wallet.\n\nNonce: ${nonce}`;
 
 // only the progress keys, each a JSON value the game saves, within size
@@ -40,7 +42,7 @@ function readBody(req) {
   });
 }
 
-async function handle(path, req, res, { rpc, send, signed, unsign, recoverSigner, SERVER_KEY }) {
+async function handle(path, req, res, { rpc, send, signed, unsign, recoverSigner, SERVER_KEY, ip = '' }) {
   if (path === 'save-nonce' && req.method === 'GET') {
     const nonce = signed({ k: 'snonce', s: Date.now(), n: crypto.randomBytes(9).toString('base64url') });
     return send(res, 200, { nonce, message: saveMessage(nonce) });
@@ -69,7 +71,11 @@ async function handle(path, req, res, { rpc, send, signed, unsign, recoverSigner
   // save-put
   const data = cleanSave(b.data); if (!data) return send(res, 400, { error: 'nothing to save' });
   if (!Number.isInteger(b.rev) || b.rev < 0) return send(res, 400, { error: 'bad revision' });
-  const out = await rpc('sqs_save_put', { p_server_key: SERVER_KEY, p_wallet: s.a, p_data: data, p_rev: b.rev });
+  // the database also limits how many NEW wallets one IP can save (update6.sql); before that is pasted, the old call
+  const p_ip = crypto.createHash('sha256').update('save-ip:' + String(ip || 'unknown')).digest('hex').slice(0, 32);
+  let out;
+  try { out = await rpc('sqs_save_put', { p_server_key: SERVER_KEY, p_wallet: s.a, p_data: data, p_rev: b.rev, p_ip }); }
+  catch (e) { if (!/ 404 /.test(String(e.message))) throw e; out = await rpc('sqs_save_put', { p_server_key: SERVER_KEY, p_wallet: s.a, p_data: data, p_rev: b.rev }); }
   if (!out || out.error) return send(res, out && out.error === 'slow down' ? 429 : 400, out || { error: 'could not save' });
   if (out.conflict) return send(res, 409, { conflict: true, ...shape(out) });
   return send(res, 200, { ok: true, rev: out.rev });

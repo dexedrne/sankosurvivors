@@ -29,7 +29,7 @@ export class FakePayoutDB {
         if(BigInt(plan.house)>0n)this.row(week,'house',HOUSE,plan.house,{mode});
         this.row(week,'rollover-note',COLLECT,plan.rollover,{mode,status:'confirmed'});return {ok:true};
       }
-      case 'refunds':{let added=0;for(const r of this.refunds)if(!this.rows.some(x=>x.source_entry_id===r.id)){this.row(r.week,'refund',r.wallet,r.paid,{source_entry_id:r.id,mode:r.mode??'normal'});added++;}return {ok:true,added};}
+      case 'refunds':{let added=0;for(const r of this.refunds)if(!this.rows.some(x=>x.source_entry_id===r.id)){const tx=r.tx??('0x'+r.id.padStart(64,'e'));const row=this.row(r.week,'refund',r.wallet,r.paid,{source_entry_id:r.id,mode:r.mode??'normal',source_tx:tx});if(!r.forged)this.onRefund?.(row);added++;}return {ok:true,added};}
       case 'lease':if(p.p_release){if(this.owner===p.p_owner)this.owner=null;return {ok:true};}if(this.owner&&this.owner!==p.p_owner&&this.until>this.now)return {ok:false};this.owner=p.p_owner;this.until=this.now+5*60000;return {ok:true};
       case 'notice':if(this.notices.has(p.p_name))return {ok:false};this.notices.add(p.p_name);return {ok:true};
       case 'hold':{
@@ -100,6 +100,9 @@ export function fixture(count=3) {
   db.reports.set(0,{week:0,paid:decimal('10').toString(),top:Array.from({length:count},(_,i)=>({id:String(i+1),wallet:wallet(i+1),name:'Player '+(i+1),t:900-i})),refunds:[]});
   db.refunds.push({id:'100',week:0,wallet:wallet(9),paid:decimal('0.5').toString()});
   const config={live:true,wallet:addressOf(key),weekCap:decimal('1000'),transferCap:decimal('500'),ethCap:decimal('0.005'),maxFee:2000000000n,payoutKey:'payout-key',reportsKey:'reports-key'};
+  // every refund the fake ledger makes repays a real payment the fake chain holds
+  db.onRefund=(row)=>{const to=(w)=>({address:DMT,topics:[TRANSFER,'0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0'),'0x'+w.slice(2).toLowerCase().padStart(64,'0')],data:'0x'+BigInt(row.amount).toString(16).padStart(64,'0')});
+    chain.receipts.set(row.source_tx,{transactionHash:row.source_tx,status:'0x1',logs:[...new Set([config.wallet.toLowerCase(),COLLECT.toLowerCase()])].map(to)});}; // to the fixture's wallet, and to the live one the Vercel loader uses
   const ports={rpc:db.rpc.bind(db),chain:new Arbitrum(chain.fetch),notify:async text=>messages.push(text),log:text=>logs.push(text),key:async()=>key,now:()=>db.now,pause:async()=>{}};
   return {config,ports,db,chain,messages,logs};
 }

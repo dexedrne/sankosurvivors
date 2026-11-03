@@ -198,3 +198,28 @@ test('the Hard rollover chain is its own: an empty Hard week rolls its whole poo
   assert.equal(plan(2,'hard').rollover,e18(2.43));
   assert.equal(f.db.weeks.some(x=>x.week===0&&x.mode==='hard'),false,'no Hard race in week 0');
 });
+// security pass, 3 Nov: a refund row in the ledger is not money. Only a real payment on chain is refunded, and only once.
+test('a forged refund (a ledger row with no payment on chain) pauses the bot and sends nothing', async () => {
+  const f = fixture(3);
+  f.db.refunds.push({ id: '666', week: 0, wallet: wallet(7), paid: '500000000000000000000', forged: true }); // 500 DMT that was never paid in
+  await run(f.config, f.ports);
+  assert.equal(f.chain.broadcasts.length, 0, 'not a single transfer');
+  assert.ok(f.logs.some((s) => s.includes('PAUSED: unverified refund row')));
+  assert.ok(f.messages.some((s) => s.includes('ALERT')));
+});
+test('a refund whose payment was for less, or from another wallet, is not sent', async () => {
+  for (const tamper of [(r) => { r.logs[0].data = '0x' + 1n.toString(16).padStart(64, '0'); }, (r) => { r.logs[0].topics[1] = '0x' + wallet(8).slice(2).padStart(64, '0'); }, (r) => { r.status = '0x0'; }]) {
+    const f = fixture(3);
+    await f.ports.rpc('sqs_payout_refunds', { p_key: 'payout-key' });
+    const row = f.db.rows.find((x) => x.kind === 'refund'); const rec = f.chain.receipts.get(row.source_tx);
+    for (const l of rec.logs) tamper({ ...rec, logs: [l] }); tamper(rec);
+    await run(f.config, f.ports);
+    assert.equal(f.chain.broadcasts.length, 0); assert.ok(f.logs.some((s) => s.includes('PAUSED: unverified refund row')));
+  }
+});
+test('two refund rows for one payment pause the bot', async () => {
+  const f = fixture(3);
+  f.db.refunds.push({ id: '101', week: 0, wallet: wallet(9), paid: '500000000000000000', tx: '0x' + '100'.padStart(64, 'e') }); // the same payment as entry 100
+  await run(f.config, f.ports);
+  assert.equal(f.chain.broadcasts.length, 0); assert.ok(f.logs.some((s) => s.includes('PAUSED: refund paid twice')));
+});
