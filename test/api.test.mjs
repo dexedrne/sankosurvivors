@@ -64,6 +64,22 @@ test('POSTs must be JSON (another site cannot submit from a visitor\'s browser)'
   assert.equal((await call('POST', 'report', JSON.stringify({ text: 'x' }), {})).code, 415);
 });
 
+test('malformed signed tokens are refused without exceptions or database calls', async () => {
+  calls.length = 0;
+  const valid = ticket(120), body = valid.split('.')[0];
+  const saveBody = Buffer.from(JSON.stringify({ k: 'save', a: '0x' + 'ab'.repeat(20), exp: Date.now() + 60000 })).toString('base64url');
+  const saveToken = saveBody + '.' + createHmac('sha256', 'ticket-secret').update(saveBody).digest('base64url');
+  const saveBad = [saveToken + '.extra', saveBody + '.' + 'é'.repeat(43), saveBody + '.' + 'a'.repeat(42)];
+  let i = 0;
+  for (const bad of [valid + '.extra', body + '.' + 'é'.repeat(43), body + '.' + 'a'.repeat(42)]) {
+    const score = await call('POST', 'score', { map: 'greentown', t: 100, kills: 10, level: 2, ticket: bad });
+    assert.deepEqual(score, { code: 400, json: { error: 'no ticket' } });
+    const save = await call('POST', 'save-get', { key: saveBad[i++] });
+    assert.equal(save.code, 401);
+  }
+  assert.equal(calls.length, 0);
+});
+
 test('endless runs: their own boards, never a win, and an old database (before update3.sql) still takes the score', async () => {
   calls.length = 0;
   assert.equal((await call('POST', 'score', { map: 'greentown', t: 1500, kills: 6000, level: 60, won: true, endless: true, ticket: ticket(1510) })).code, 200);

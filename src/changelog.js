@@ -1,6 +1,13 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.39', date: '3 Nov 2026', title: 'Another security check',
+    items: [
+      'Casual leaderboards show your best run per name. Repeated attempts no longer fill the board.',
+      'Improved validation of leaderboard tickets and wallet cloud-save sessions.',
+    ],
+  },
+  {
     version: '0.38', date: '3 Nov 2026', title: 'Warp Shards and boss slams',
     items: [
       'Warp Shards and Shrines of Magic pull distant experience toward you instead of pushing it away.',

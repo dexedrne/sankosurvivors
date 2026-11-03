@@ -34,7 +34,7 @@ begin
   if n = 0 then return json_build_object('error', 'that run was already sent'); end if;
   return json_build_object('ok', true, 'week', e.week, 'mode', e.mode);
 end $$;
-revoke all on function public.sqs_ranked_restart(text, bigint, text, bigint, text, bigint) from public;
+revoke all on function public.sqs_ranked_restart(text, bigint, text, bigint, text, bigint) from public, authenticated;
 grant execute on function public.sqs_ranked_restart(text, bigint, text, bigint, text, bigint) to anon;
 -- no code path refunds a run any more (update 7 restarts it instead)
 revoke execute on function public.sqs_ranked_void(text, bigint, text, text) from public, anon, authenticated;

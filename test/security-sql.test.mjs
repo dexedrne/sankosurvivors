@@ -14,6 +14,7 @@ test('security SQL: keys fail closed, refunds owed are real, settled weeks canno
     for (const f of ['schema.sql', 'ranked.sql', 'payouts.sql', 'update4.sql']) await db.exec(await sql(f));
     const six = await sql('update6.sql'); await db.exec(six); await db.exec(six); // safe to paste again
     const seven = await sql('update7.sql'); await db.exec(seven); await db.exec(seven);
+    await db.exec('alter default privileges grant execute on functions to authenticated;');
     const eight = await sql('update8.sql'); await db.exec(eight); await db.exec(eight); // safe to paste again
     await db.exec("update sqs_admin set v = encode(sha256(convert_to('server-key', 'UTF8')), 'hex') where k = 'server_key_sha256';");
     const call = async (fn, args) => (await db.query(`select ${fn}(${Object.keys(args).map((k, i) => `${k} => $${i + 1}`).join(',')}) as r`, Object.values(args))).rows[0].r;
@@ -67,6 +68,7 @@ test('security SQL: keys fail closed, refunds owed are real, settled weeks canno
     assert.equal(await can('anon', 'public.sqs_ranked_void(text,bigint,text,text)'), false, 'nothing refunds a run any more');
     assert.equal(await can('authenticated', 'public.sqs_ranked_void(text,bigint,text,text)'), false);
     assert.equal(await can('anon', 'public.sqs_ranked_restart(text,bigint,text,bigint,text,bigint)'), true);
+    assert.equal(await can('authenticated', 'public.sqs_ranked_restart(text,bigint,text,bigint,text,bigint)'), false, 'new signatures remove inherited default grants');
     assert.equal(await can('anon', 'public.sqs_ranked_owe(text,text,text,int,numeric,text,text)'), true);
 
     // update 8 B: a payment over 100 DMT is recorded for review, and its refund is held (100 DMT exactly is not)

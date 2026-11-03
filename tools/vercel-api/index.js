@@ -19,7 +19,7 @@ const DMT = '0x8B0E6f19Ee57089F7649A455D89D7bC6314D04e8', ARB_RPCS = ['https://a
 const holderMessage = (nonce) => `SankoQuest Survivors\n\nSign to show you hold DMT. This is free: no transaction, no gas, nothing leaves your wallet.\n\nNonce: ${nonce}`;
 function signed(obj) { const body = b64u(JSON.stringify(obj)); return body + '.' + sign(body); }
 function unsign(t) {
-  if (!TICKET_KEY || typeof t !== 'string' || t.length > 400) return null;
+  if (!TICKET_KEY || typeof t !== 'string' || t.length > 400 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(t)) return null;
   const [body, sig] = t.split('.'); if (!body || !sig) return null;
   const want = sign(body); if (want.length !== sig.length || !crypto.timingSafeEqual(Buffer.from(want), Buffer.from(sig))) return null;
   try { return JSON.parse(Buffer.from(body, 'base64url').toString()); } catch { return null; }
@@ -50,7 +50,7 @@ const b64u = (b) => Buffer.from(b).toString('base64url');
 const sign = (body) => crypto.createHmac('sha256', TICKET_KEY).update(body).digest('base64url');
 function makeTicket() { const body = b64u(JSON.stringify({ s: Date.now(), n: crypto.randomBytes(9).toString('base64url') })); return body + '.' + sign(body); }
 function readTicket(t) {
-  if (!TICKET_KEY || typeof t !== 'string' || t.length > 200) return null;
+  if (!TICKET_KEY || typeof t !== 'string' || t.length > 200 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(t)) return null;
   const [body, sig] = t.split('.'); if (!body || !sig) return null;
   const want = sign(body); if (want.length !== sig.length || !crypto.timingSafeEqual(Buffer.from(want), Buffer.from(sig))) return null;
   try { const d = JSON.parse(Buffer.from(body, 'base64url').toString()); return typeof d.s === 'number' && typeof d.n === 'string' ? d : null; } catch { return null; }
