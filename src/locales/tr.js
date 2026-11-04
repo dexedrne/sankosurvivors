@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "#1 vs starting board": "başlangıç tablosuna göre #1",
+  "outside starting top 25": "başlangıçtaki ilk 25 dışında",
   "Capes": "Pelerinler",
   "that run is still being checked. Retry shortly; after a server interruption recovery can take up to 15 minutes.": "Tur hâlâ kontrol ediliyor. Birazdan yeniden dene; sunucu kesintisinden sonra kurtarma 15 dakika kadar sürebilir.",
   "an older submission is in progress: tell the dev if it does not finish": "Önceki bir gönderim hâlâ işleniyor; tamamlanmazsa geliştiriciye bildir.",
@@ -874,6 +876,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["#{1} vs starting board", "başlangıç tablosuna göre #{1}"],
   ["Ranked run accepted. Place when checked: #{1} in the Hard race.", "Dereceli turun kabul edildi. Kontrol edildiğindeki Zor yarış sıralaman: #{1}."],
   ["Ranked run accepted. Place when checked: #{1}.", "Dereceli turun kabul edildi. Kontrol edildiğindeki sıralaman: #{1}."],
   ["{1} entries · {2} DMT pool.", "{1} katılım · {2} DMT havuzu."],

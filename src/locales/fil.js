@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "#1 vs starting board": "#1 kumpara sa talaan sa simula",
+  "outside starting top 25": "wala sa unang 25 ng talaan sa simula",
   "Capes": "Mga Kapa",
   "that run is still being checked. Retry shortly; after a server interruption recovery can take up to 15 minutes.": "Sinusuri pa ang larong iyon. Subukan muli maya-maya; pagkatapos ng pagkaantala ng server, maaaring umabot sa 15 minuto ang pagbawi.",
   "an older submission is in progress: tell the dev if it does not finish": "may naunang pagpapadalang pinoproseso pa: ipaalam sa developer kung hindi ito matapos",
@@ -874,6 +876,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["#{1} vs starting board", "#{1} kumpara sa talaan sa simula"],
   [
     "Ranked run accepted. Place when checked: #{1} in the Hard race.",
     "Tinanggap ang ranked na laro. Ranggo nang suriin: #{1} sa Mahirap na paligsahan."

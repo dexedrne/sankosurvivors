@@ -1,4 +1,4 @@
-import { RunRecorder, RANKED, kpm, kpmWeek, prizePlaces as racePlaces, placeable } from './ranked.js';
+import { RunRecorder, RANKED, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
@@ -657,15 +657,22 @@ let runBest = null, passedBest = false, chase = null; // chase: { rows (others' 
 function chaseText(t, kills) {
   if (!chase || !chase.rows.length) return '';
   const min = RANKED.minSeconds, mine = kpm(kills, t);
+  if (chase.kp && t < min) return ` · places from ${fmtT(min)}`;
   // the board's order (one best run per wallet, top 25): time then kills, or in kills-per-minute weeks only runs of 3:00 place
   const ahead = chase.rows.filter((r) => (chase.kp
-    ? r.t >= min && (t < min || kpm(r.kills, r.t) > mine || (kpm(r.kills, r.t) === mine && r.kills >= kills))
+    ? r.t >= min && (kpm(r.kills, r.t) > mine || (kpm(r.kills, r.t) === mine && r.kills >= kills))
     : r.t > t || (r.t === t && r.kills >= kills)));
-  if (!ahead.length) return chase.kp && t < min ? ` · #1 pace · places from ${fmtT(min)}` : ' · #1 this week!';
+  if (!ahead.length) return ' · #1 vs starting board';
   const full = chase.rows.length >= 25, place = ahead.length + 1, next = ahead[ahead.length - 1];
-  const where = place > 25 || (full && place > chase.rows.length) ? 'not top 25 yet' : `#${place} this week`, to = place > 25 ? 'the top 25' : `#${place - 1}`;
-  if (chase.kp && t < min) return ` · places from ${fmtT(min)}`;
-  if (chase.kp) { const n = Math.max(1, Math.floor(kpm(next.kills, next.t) * t / 60) - kills + 1); return ` · ${where} · ${n} kill${n === 1 ? '' : 's'} to ${to}`; }
+  const where = place > 25 || (full && place > chase.rows.length) ? 'outside starting top 25' : `#${place} vs starting board`, to = place > 25 ? 'the top 25' : `#${place - 1}`;
+  if (chase.kp) {
+    const micro = BigInt(kpmMicro(next.kills, next.t)), seconds = BigInt(t), scale = 60000000n;
+    const ceilKills = q => Number((q * seconds + scale - 1n) / scale);
+    // Equal integer KPM wins only with more total kills; a full tie belongs to the earlier finisher.
+    const target = Math.min(Math.max(ceilKills(micro), next.kills + 1), ceilKills(micro + 1n));
+    const n = Math.max(1, target - kills);
+    return ` · ${where} · ${n} kill${n === 1 ? '' : 's'} to ${to}`;
+  }
   return ` · ${where} · ${fmtT(Math.max(1, next.t - t))} to ${to}`;
 }
 const localBest = () => { const b = load('sq-best', null); return b ? `${fmtT(Number(b.t) || 0)}, level ${Number(b.level) || 0}, ${Number(b.kills) || 0} slain` : 'none yet'; };

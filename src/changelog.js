@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version:'0.40.3', date:'4 Nov 2026', title:'Clearer ranked targets',
+    items:['The ranked chase display now counts kills correctly when equal kills per minute wins on total kills.', 'Chase positions are labelled against the board at run start. KPM runs show the three-minute minimum before estimating a place.'],
+  },
+  {
     version:'0.40.2', date:'3 Nov 2026', title:'SankoSurvivors',
     items:['The language picker now matches the game buttons, with a visible keyboard focus outline.', 'Updated title branding to SankoSurvivors.'],
   },

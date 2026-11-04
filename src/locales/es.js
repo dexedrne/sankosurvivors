@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "#1 vs starting board": "n.º 1 frente a la tabla inicial",
+  "outside starting top 25": "fuera de los 25 primeros de la tabla inicial",
   "Capes": "Capas",
   "that run is still being checked. Retry shortly; after a server interruption recovery can take up to 15 minutes.": "esa partida aún se está verificando. Vuelve a intentarlo en breve; tras una interrupción del servidor, la recuperación puede tardar hasta 15 minutos.",
   "an older submission is in progress: tell the dev if it does not finish": "hay un envío anterior en curso: avisa al desarrollador si no termina",
@@ -874,6 +876,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["#{1} vs starting board", "n.º {1} frente a la tabla inicial"],
   [
     "Ranked run accepted. Place when checked: #{1} in the Hard race.",
     "Partida competitiva aceptada. Puesto al verificarse: n.º {1} en la competición Difícil."
