@@ -44,8 +44,8 @@ function wallet() {
   const key = randomBytes(32), pub = secp256k1.getPublicKey(key, false);
   return { address: '0x' + Buffer.from(keccak_256(pub.subarray(1))).subarray(-20).toString('hex'), sign(message) {
     const msg = Buffer.from(message), hash = keccak_256(Buffer.concat([Buffer.from(`\x19Ethereum Signed Message:\n${msg.length}`), msg]));
-    const sig = secp256k1.sign(hash, key);
-    return '0x' + Buffer.concat([sig.toCompactRawBytes(), Buffer.from([sig.recovery + 27])]).toString('hex');
+    const sig = secp256k1.sign(hash, key, { prehash: false, format: 'recovered' });
+    return '0x' + Buffer.concat([sig.subarray(1), Buffer.from([sig[0] + 27])]).toString('hex');
   } };
 }
 globalThis.fetch = async (url, opts) => {

@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.43.2', date: '4 Nov 2026', title: 'Wallet security maintenance',
+    items: ['Stricter wallet sign-in checks, with existing progress and ranked runs preserved.'],
+  },
+  {
     version: '0.43.1', date: '4 Nov 2026', title: 'Know your starting bonuses',
     items: ['Skills and Gear show the casual enemy scaling from your saved ranks and starting equipment.', 'The menus explain the existing cap and how gear counts. Ranked keeps its equal starts.'],
   },

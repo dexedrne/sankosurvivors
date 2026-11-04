@@ -109,7 +109,8 @@ function makeRepo() {
   for (const d of [fx, boxes, home]) mkdirSync(d);
   writeFileSync(log, '');
   for (const d of ['src', 'tools/vercel-api', 'tools/vercel-probe']) cpSync(path.join(ROOT, d), path.join(fx, d), { recursive: true });
-  for (const f of ['remote-build.sh', 'build-vercel.sh', 'deploy.sh']) cpSync(path.join(ROOT, 'tools', f), path.join(fx, 'tools', f));
+  for (const f of ['remote-build.sh', 'build-vercel.sh', 'build-crypto.mjs', 'deploy.sh']) cpSync(path.join(ROOT, 'tools', f), path.join(fx, 'tools', f));
+  for (const f of ['package.json', 'package-lock.json']) cpSync(path.join(ROOT, f), path.join(fx, f));
   const stub = '// test stub: this copy keeps the committed fences and tools/vercel-api/ground.bin\n';
   for (const f of ['build-fences.mjs', 'build-ground.mjs']) writeFileSync(path.join(fx, 'tools', f), stub);
   mkdirSync(path.join(fx, 'node_modules/.bin'), { recursive: true }); // the real packages (esbuild), with the fake vite
@@ -153,6 +154,16 @@ function reference(build) {
   return tree(path.join(ref.fx, '.vercel/output'));
 }
 const builtOf = (fx) => JSON.parse(readFileSync(path.join(fx, '.vercel/output/static/version.json'), 'utf8'));
+
+test('build-vercel.sh refuses altered cryptography before making a deployable artifact', () => {
+  const box = makeRepo(), file = path.join(box.fx, 'tools/vercel-api/noble-crypto.cjs');
+  writeFileSync(file, readFileSync(file, 'utf8') + '\nmodule.exports.secp256k1 = {};\n');
+  const r = run(box, ['tools/build-vercel.sh'], { BUILD: 'tampered-crypto' });
+  assert.notEqual(r.status, 0, r.out);
+  assert.match(r.out, /cryptography bundle differs/);
+  assert.doesNotMatch(r.calls, /^vite/m);
+  assert.ok(!existsSync(path.join(box.fx, '.vercel/output')));
+});
 
 test('remote-build.sh, statically: nothing but dist comes back from a box, always as plain files', () => {
   const s = readFileSync(path.join(ROOT, 'tools/remote-build.sh'), 'utf8');

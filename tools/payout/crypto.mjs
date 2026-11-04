@@ -13,7 +13,7 @@ function hexBytes(value, length) {
 }
 export function privateBytes(value) {
   const bytes = hexBytes(value?.replace(/^0x/, ''), 32);
-  if (!secp256k1.utils.isValidPrivateKey(bytes)) throw new Error('invalid private key');
+  if (!secp256k1.utils.isValidSecretKey(bytes)) throw new Error('invalid private key');
   return bytes;
 }
 export function addressOf(key) {
@@ -43,7 +43,7 @@ export function sign1559(tx, key) {
   const fields = [BigInt(tx.chainId), BigInt(tx.nonce), BigInt(tx.priority), BigInt(tx.maxFee), BigInt(tx.gas), address(tx.to), BigInt(tx.value ?? 0), tx.data ?? '0x', []];
   if (fields[3] < fields[2] || fields[4] < 21000n) throw new Error('invalid transaction fees');
   const digest = keccak_256(Buffer.concat([Buffer.from([2]), rlp(fields)]));
-  const sig = secp256k1.sign(digest, privateBytes(key), { lowS: true });
+  const sig = secp256k1.Signature.fromBytes(secp256k1.sign(digest, privateBytes(key), { prehash: false, lowS: true, format: 'recovered' }), 'recovered');
   if (sig.recovery > 1) throw new Error('unsupported signature recovery');
   const raw = '0x02' + rlp([...fields, BigInt(sig.recovery), sig.r, sig.s]).toString('hex');
   return { raw, hash: hash(Buffer.from(raw.slice(2), 'hex')) };
@@ -83,7 +83,8 @@ export function decode1559(raw) {
   const integer=i=>{const b=fields[i];if(!Buffer.isBuffer(b) || b.length>32 || b[0]===0) throw new Error('noncanonical integer');return b.length?BigInt('0x'+b.toString('hex')):0n;};
   const sig=new secp256k1.Signature(integer(10),integer(11)).addRecoveryBit(Number(integer(9)));
   const digest=keccak_256(Buffer.concat([Buffer.from([2]),rlp(fields.slice(0,9))]));
-  const pub=sig.recoverPublicKey(digest).toRawBytes(false);
-  if(sig.hasHighS() || !secp256k1.verify(sig,digest,pub,{lowS:true})) throw new Error('invalid transaction signature');
+  const encoded=sig.toBytes('recovered');
+  const pub=sig.recoverPublicKey(digest).toBytes(false);
+  if(sig.hasHighS() || !secp256k1.verify(encoded,digest,pub,{prehash:false,lowS:true,format:'recovered'})) throw new Error('invalid transaction signature');
   return {chainId:integer(0),nonce:integer(1),priority:integer(2),maxFee:integer(3),gas:integer(4),to:address('0x'+fields[5].toString('hex')),value:integer(6),data:'0x'+fields[7].toString('hex'),from:'0x'+Buffer.from(keccak_256(pub.subarray(1))).subarray(-20).toString('hex'),hash:hash(bytes)};
 }

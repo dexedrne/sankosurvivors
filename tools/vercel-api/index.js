@@ -25,12 +25,13 @@ function unsign(t) {
   try { return JSON.parse(Buffer.from(body, 'base64url').toString()); } catch { return null; }
 }
 function recoverSigner(message, sigHex) {
-  const sig = Buffer.from(String(sigHex).replace(/^0x/, ''), 'hex'); if (sig.length !== 65) return null;
+  if (typeof sigHex !== 'string' || !/^(?:0x)?[0-9a-fA-F]{130}$/.test(sigHex)) return null;
+  const sig = Buffer.from(sigHex.replace(/^0x/, ''), 'hex');
   const msg = Buffer.from(message, 'utf8');
   const hash = keccak_256(Buffer.concat([Buffer.from(`\x19Ethereum Signed Message:\n${msg.length}`, 'utf8'), msg]));
   let v = sig[64]; if (v >= 27) v -= 27; if (v !== 0 && v !== 1) return null;
   try {
-    const pub = secp256k1.Signature.fromCompact(sig.subarray(0, 64)).addRecoveryBit(v).recoverPublicKey(hash).toRawBytes(false);
+    const pub = secp256k1.Signature.fromBytes(sig.subarray(0, 64), 'compact').addRecoveryBit(v).recoverPublicKey(hash).toBytes(false);
     return '0x' + Buffer.from(keccak_256(pub.subarray(1))).subarray(-20).toString('hex');
   } catch { return null; }
 }

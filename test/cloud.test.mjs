@@ -44,8 +44,8 @@ function wallet() {
   const address = '0x' + Buffer.from(keccak_256(pub.subarray(1))).subarray(-20).toString('hex');
   const sign = (message) => {
     const msg = Buffer.from(message), hash = keccak_256(Buffer.concat([Buffer.from(`\x19Ethereum Signed Message:\n${msg.length}`), msg]));
-    const sig = secp256k1.sign(hash, key);
-    return '0x' + Buffer.concat([sig.toCompactRawBytes(), Buffer.from([sig.recovery + 27])]).toString('hex');
+    const sig = secp256k1.sign(hash, key, { prehash: false, format: 'recovered' });
+    return '0x' + Buffer.concat([sig.subarray(1), Buffer.from([sig[0] + 27])]).toString('hex');
   };
   // an EIP-1193 wallet that signs personal_sign messages (sent as hex)
   const p = { request: async ({ method, params }) => { assert.equal(method, 'personal_sign'); return sign(Buffer.from(params[0].slice(2), 'hex').toString()); } };

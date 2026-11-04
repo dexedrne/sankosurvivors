@@ -2,6 +2,7 @@
 # Build the prebuilt site and functions locally. No Vercel command or credentials needed.
 set -e
 cd "$(dirname "$0")/.."
+node tools/build-crypto.mjs --check
 BUILD=${BUILD:-$(git rev-parse --short HEAD)$(git diff --quiet || echo "+$(date +%s)")} # tools/remote-build.sh passes it in
 # ranked runs replay on the server with the rules of the version they were played on: keep every version's simulation
 # (bundled) and walk data under tools/vercel-api/sims/<id>/ (commit them), and tell the game its version id
@@ -31,6 +32,7 @@ cp dist/index.html .vercel/output/functions/preview.func/index.html
 echo '{"runtime":"nodejs22.x","handler":"index.js","launcherType":"Nodejs","shouldAddHelpers":false}' > .vercel/output/functions/preview.func/.vc-config.json
 cp tools/vercel-api/index.js .vercel/output/functions/api.func/index.js
 cp tools/vercel-api/noble-crypto.cjs .vercel/output/functions/api.func/noble-crypto.cjs
+cp tools/vercel-api/noble-LICENSE.txt .vercel/output/functions/api.func/
 cp tools/vercel-api/ranked.js .vercel/output/functions/api.func/
 cp tools/vercel-api/cloud.js .vercel/output/functions/api.func/
 cp -r tools/vercel-api/sims .vercel/output/functions/api.func/sims
