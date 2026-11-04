@@ -985,6 +985,7 @@ async function startRun(live = null) {
   renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
   for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden');
   $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
+  waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
   $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
   if (isRanked && sim.pending[PLAYER]) showLevelUp();
   runBest = isRanked ? null : (getBests()[bestKey(sim)] || null); passedBest = false; chase = null;
@@ -1005,6 +1006,7 @@ function runCoins(s, won = false) {
 }
 function endRun() {
   mode = 'end';
+  waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
   const wasRanked = !!rankedRun;
   const won = sim.over === 'win';
   const p = sim.players[0];
@@ -1082,6 +1084,7 @@ function toMenu() {
   if (rankedPlaying()) return;
   rankedRun = null; rankedRec = null; applyDmt();
   sim = null; mode = 'title'; window.__idleSim = null;
+  waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
   for (const id of ['end', 'pause', 'levelup', 'casket', 'hud']) $(id).classList.add('hidden');
   $('hud').classList.add('hidden'); $('title').classList.remove('hidden'); renderer.reset(); renderer.setZoom(0.45); renderer.setShift(2.4);
   buildAdventurers(); buildMaps(); showBest();
@@ -1116,14 +1119,15 @@ addEventListener('keydown', (e) => {
   if ((k === 'enter' || k === ' ') && mode === 'end') startRun();
 });
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-addEventListener('blur', () => { keys.clear(); if (mode === 'play') pause(true); });
-document.addEventListener('visibilitychange', () => { if (document.hidden && mode === 'play') pause(true); });
-function pause(on) { touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden'); audio.duck(on); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); }
+addEventListener('blur', () => { keys.clear(); clearTouch(); if (mode === 'play') pause(true); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); if (mode === 'play') pause(true); } });
+function pause(on) { clearTouch(); audio.duck(on); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); }
 $('start').onclick = startRun; $('again').onclick = () => { if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
 $('quit').onclick = () => { if (rankedPlaying()) return; pause(false); sim.over = 'dead'; };
 
 // touch: drag anywhere on the field to move (a stick appears under your thumb); the II button pauses
 const touch = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
+let waitingForMove = false;
 const isTouchUI = matchMedia('(pointer: coarse)').matches;
 if (isTouchUI) document.body.classList.add('touch');
 // ---- installable app (PWA) ----
@@ -1161,6 +1165,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && mo
 // folding or rotating the phone: keep the run going, just re-fit the view
 addEventListener('orientationchange', () => setTimeout(() => dispatchEvent(new Event('resize')), 250));
 const stickEl = $('stick'), knob = stickEl.firstElementChild, STICK_R = 56;
+function clearTouch() { touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden'); }
 addEventListener('pointerdown', (e) => {
   if (e.pointerType !== 'touch' || mode !== 'play' || touch.id !== null) return;
   if (e.target.closest('button, .panel, #menu, #belt')) return;
@@ -1174,7 +1179,7 @@ addEventListener('pointermove', (e) => {
   touch.x = dx / STICK_R; touch.y = dy / STICK_R;
   knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 });
-const endTouch = (e) => { if (e.pointerId !== touch.id) return; touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden'); };
+const endTouch = (e) => { if (e.pointerId === touch.id) clearTouch(); };
 addEventListener('pointerup', endTouch); addEventListener('pointercancel', endTouch);
 $('pausebtn').onclick = () => { if (mode === 'play') pause(true); };
 const hop = () => { if (!renderer || !renderer.hop) return; renderer.hop(); audio.play('choose', { minGap: 0.3, vol: 0.3, rate: 1.6 }); }; // Space or A, just for the look
@@ -1214,13 +1219,22 @@ function padEdges(pad) {
 }
 
 // ---- level up UI ------------------------------------------------------------------------------------------------------------
-let shownPending = false;
+let shownPending = false, rewardWasShown = false;
+function resumeAfterReward() {
+  if (sim.pending[PLAYER] || !rewardWasShown) return;
+  rewardWasShown = false;
+  const input = readInput();
+  waitingForMove = isTouchUI && Math.hypot(input.mx, input.mz) <= 0.01;
+  $('movehint').classList.toggle('hidden', !waitingForMove);
+  if (touch.id !== null) stickEl.classList.remove('hidden');
+  acc = 0; audio.duck(waitingForMove);
+}
 function showLevelUp() {
   if (sim) preloadNextIcons(sim.players.find((q) => q.id === PLAYER));
   const pend = sim.pending[PLAYER]; if (!pend) return;
   if (pend.casket) { showCasket(); return; }
-  shownPending = true; mode = 'levelup'; selCard = 0; audio.duck(true);
-  touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden');
+  shownPending = rewardWasShown = true; mode = 'levelup'; selCard = 0; audio.duck(true);
+  waitingForMove = false; $('movehint').classList.add('hidden'); stickEl.classList.add('hidden');
   const wrap = $('cards'); wrap.innerHTML = '';
   $('lutitle').textContent = pend.choices.some((c) => c.kind === 'evolve') ? 'Evolution!' : 'Level up!';
   pend.choices.forEach((c, i) => {
@@ -1252,12 +1266,12 @@ function showLevelUp() {
   markCard(); $('levelup').classList.remove('hidden');
 }
 function doReroll() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 'r') : reroll(sim, PLAYER))) { shownPending = false; showLevelUp(); if (rankedRec) persistRanked(); } }
-function doSkip() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 's') : skipLevel(sim, PLAYER))) { audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); if (rankedRec) persistRanked(); } }
+function doSkip() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 's') : skipLevel(sim, PLAYER))) { audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward(); if (rankedRec) persistRanked(); } }
 $('reroll').onclick = doReroll; $('skiplv').onclick = doSkip;
 function markCard() { [...$('cards').children].forEach((el, i) => el.classList.toggle('sel', i === selCard)); }
 function pick(i) {
   if (!sim.pending[PLAYER] || sim.pending[PLAYER].casket) return;
-  if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else choose(sim, PLAYER, i); audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden');
+  if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else choose(sim, PLAYER, i); audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward();
 }
 
 // ---- reward casket card: the item, what it replaces, every stat change, and Wear or High alch ----------------------------
@@ -1274,8 +1288,8 @@ function showCasket() {
   const c = pend.casket;
   // Settings: a piece that improves nothing is high alched without stopping the run (still a recorded choice in ranked)
   if (autoAlchOn() && !c.anyUp) { toast(`${imgTag(c.item)} <span>Auto high alch<br><b>${c.item}</b> +${c.alch} coins</span>`); pickCasket(1, true); return; }
-  shownPending = true; mode = 'casket'; selCard = pend.rec; audio.duck(true);
-  touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden');
+  shownPending = rewardWasShown = true; mode = 'casket'; selCard = pend.rec; audio.duck(true);
+  waitingForMove = false; $('movehint').classList.add('hidden'); stickEl.classList.add('hidden');
   const rows = Object.entries(c.delta).map(([k, v]) => `<li class="${v > 0 ? 'up' : 'down'}">${deltaText(k, v)}</li>`);
   for (const sname of c.setsGained) rows.push(`<li class="up">${sname} set complete: ${GEAR_SETS[sname].text}</li>`);
   for (const sname of c.setsLost) rows.push(`<li class="down">Breaks the ${sname} set (${GEAR_SETS[sname].text})</li>`);
@@ -1300,6 +1314,7 @@ function afterCasket() {
   shownPending = false; $('casket').classList.add('hidden');
   if (sim && sim.pending[PLAYER]) { showLevelUp(); return; }
   audio.duck(false); mode = 'play';
+  resumeAfterReward();
 }
 function pickCasket(i, auto = false) {
   const pend = sim && sim.pending[PLAYER]; if (!pend || !pend.casket || (!auto && mode !== 'casket')) return;
@@ -1459,7 +1474,9 @@ function loop(ts) {
   if (!sim) return;
   if (mode === 'play') {
     if (edges.start) pause(true);
-    acc += dt * (slowmo > 0 ? 0.3 : 1); slowmo -= dt; // a moment of slow motion when a boss falls
+    if (waitingForMove && Math.hypot(inp.mx, inp.mz) > 0.01) { waitingForMove = false; $('movehint').classList.add('hidden'); audio.duck(false); }
+    if (waitingForMove) acc = 0;
+    else { acc += dt * (slowmo > 0 ? 0.3 : 1); slowmo -= dt; } // a moment of slow motion when a boss falls
     let n = 0;
     if (edges.lb) pendingUse = 0; if (edges.rb) pendingUse = 1; if (edges.x) pendingUse = 2; if (edges.y) pendingUse = 3; if (edges.a) hop(); // A hops (a look only)
     while (acc >= TICK && n++ < 4) {
@@ -1475,8 +1492,8 @@ function loop(ts) {
   } else if (mode === 'levelup') {
     if (edges.left) { selCard = (selCard + 2) % 3; markCard(); } if (edges.right) { selCard = (selCard + 1) % 3; markCard(); } if (edges.a) pick(selCard);
     const before = sim.pending[PLAYER];
-    if (!rankedRec) step(sim, {}, dt); // ranked choices wait for the player
-    if (shownPending && (!sim.pending[PLAYER] || sim.pending[PLAYER].casket)) { shownPending = false; audio.duck(false); mode = 'play'; $('levelup').classList.add('hidden'); } // (a casket card shows next)
+    if (mode === 'levelup' && !rankedRec && sim.pending[PLAYER]) step(sim, {}, dt); // ranked choices wait for the player
+    if (shownPending && (!sim.pending[PLAYER] || sim.pending[PLAYER].casket)) { shownPending = false; audio.duck(false); mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward(); } // (a casket card shows next)
     else if (shownPending && sim.pending[PLAYER] !== before) showLevelUp();
   } else if (mode === 'casket') {
     // controller: A wears, B high alches; the stick or d-pad moves the highlight

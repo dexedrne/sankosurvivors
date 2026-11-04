@@ -42,6 +42,7 @@ body.standalone #c, body.standalone .screen { top:0; bottom:auto; height:100vh; 
 .slot small { position: absolute; right: 2px; bottom: 0; font-size: 12px; font-weight: 800; color: var(--gold); text-shadow: 0 1px 2px #000; }
 #banner { position: absolute; top: 28%; left: 50%; transform: translateX(-50%); font-size: 34px; font-weight: 900; text-shadow: 0 3px 8px #000; opacity: 0; transition: opacity .4s; text-align: center; color: var(--gold); }
 #banner.on { opacity: 1; }
+#movehint { position:absolute; left:50%; bottom:100px; transform:translateX(-50%); width:max-content; max-width:86%; padding:8px 12px; border:2px solid var(--line); background:var(--panel); color:var(--cream); font-family:RSPlain,"Trebuchet MS",sans-serif; font-size:18px; text-shadow:var(--sh); text-align:center; pointer-events:none; }
 
 .screen { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(15,12,9,.62); z-index: 5; }
 .panel { background: var(--panel); border: 3px solid var(--line); box-shadow: 0 10px 40px #000a; padding: 26px 30px; max-width: min(720px, 94vw); text-align: center; }

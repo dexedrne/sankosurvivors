@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44', date: '4 Nov 2026', title: 'Move safely after rewards',
+    items: ['On mobile, a held movement drag survives level-up and gear choices. If you lift your thumb to choose, the fight waits until you drag again.', 'Boss warnings stay frozen while you get your movement back. No boss damage or ranked rules changed.'],
+  },
+  {
     version: '0.43.3', date: '4 Nov 2026', title: 'Clearer request handling',
     items: ['Malformed score and sign-in fields receive a clear refusal. Bug reports keep valid text when optional details are unreadable.'],
   },

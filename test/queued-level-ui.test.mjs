@@ -10,7 +10,7 @@ function frame(sim,accept=false) {
     let mode='levelup',shownPending=true,selCard=2,redraws=0,hidden=0;
     const PLAYER='p1',rankedRec=null,dt=1/30,edges={a:accept};
     const audio={duck(){}},$=()=>({classList:{add(){hidden++;}}}),markCard=()=>{};
-    const showLevelUp=()=>{redraws++;selCard=0;};
+    const showLevelUp=()=>{redraws++;selCard=0;},resumeAfterReward=()=>{};
     const pick=i=>{choose(sim,PLAYER,i);mode='play';shownPending=false;};
     if(false){${block}}
     return {mode,shownPending,selCard,redraws,hidden};
