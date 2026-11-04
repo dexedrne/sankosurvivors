@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A smoother Sankson walk": "Sankson daha doğal yürüyor",
+  "Sankson's right knee bends naturally when he walks.": "Sankson'un sağ dizi artık yürürken doğal biçimde bükülüyor.",
   "Drag to resume. The fight is paused.": "Devam etmek için sürükle. Çatışma duraklatıldı.",
   "Each skill rank adds 1.5% enemy HP/contact damage. Each starting gear piece counts as two ranks, up to +75%. Ranked ignores both.": "Her beceri kademesi düşman HP/temas hasarını %1.5 artırır. Başlangıçta giyilen her parça iki kademe sayılır; sınır +%75. Dereceli mod ikisini de kullanmaz.",
   "Before armour and other modifiers.": "Zırh ve diğer değiştiricilerden önce.",

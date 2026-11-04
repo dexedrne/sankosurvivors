@@ -54,14 +54,13 @@ $$;
 
 -- one action per kind per ip per window; returns false when too soon
 create or replace function public.sqs_rate_ok(p_ip text, p_kind text, p_secs int)
-returns boolean language plpgsql security definer set search_path = public as $$
-declare last timestamptz;
+returns boolean language plpgsql security definer set search_path = pg_catalog, public, pg_temp as $$
 begin
-  select at into last from sqs_rate where ip = p_ip and kind = p_kind for update;
-  if last is not null and last > now() - make_interval(secs => p_secs) then return false; end if;
-  insert into sqs_rate (ip, kind, at) values (p_ip, p_kind, now())
-    on conflict (ip, kind) do update set at = excluded.at;
-  return true;
+  -- Check the locked conflicting row, including a concurrent first insert.
+  insert into public.sqs_rate (ip, kind, at) values (p_ip, p_kind, now())
+    on conflict (ip, kind) do update set at = excluded.at
+    where (sqs_rate.at > excluded.at - make_interval(secs => p_secs)) is not true;
+  return found;
 end $$;
 
 create or replace function public.sqs_top(p_map text)

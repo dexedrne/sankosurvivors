@@ -79,9 +79,11 @@ export function decode1559(raw) {
     if(begin!==end) throw new Error('bad RLP list');return [result,end];
   }
   const [fields,end]=item(1);
-  if(end!==bytes.length || !Array.isArray(fields) || fields.length!==12 || !Array.isArray(fields[8]) || fields[8].length || !Buffer.concat([Buffer.from([2]),rlp(fields)]).equals(bytes)) throw new Error('invalid transaction fields');
+  if(end!==bytes.length || !Array.isArray(fields) || fields.length!==12 || !Buffer.isBuffer(fields[5]) || !Buffer.isBuffer(fields[7]) || !Array.isArray(fields[8]) || fields[8].length || !Buffer.concat([Buffer.from([2]),rlp(fields)]).equals(bytes)) throw new Error('invalid transaction fields');
   const integer=i=>{const b=fields[i];if(!Buffer.isBuffer(b) || b.length>32 || b[0]===0) throw new Error('noncanonical integer');return b.length?BigInt('0x'+b.toString('hex')):0n;};
-  const sig=new secp256k1.Signature(integer(10),integer(11)).addRecoveryBit(Number(integer(9)));
+  const parity=integer(9);
+  if(parity>1n) throw new Error('invalid transaction parity');
+  const sig=new secp256k1.Signature(integer(10),integer(11)).addRecoveryBit(Number(parity));
   const digest=keccak_256(Buffer.concat([Buffer.from([2]),rlp(fields.slice(0,9))]));
   const encoded=sig.toBytes('recovered');
   const pub=sig.recoverPublicKey(digest).toBytes(false);

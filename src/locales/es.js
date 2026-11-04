@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A smoother Sankson walk": "Un caminar más natural para Sankson",
+  "Sankson's right knee bends naturally when he walks.": "La rodilla derecha de Sankson se dobla de forma natural al caminar.",
   "Drag to resume. The fight is paused.": "Arrastra para continuar. El combate está en pausa.",
   "Each skill rank adds 1.5% enemy HP/contact damage. Each starting gear piece counts as two ranks, up to +75%. Ranked ignores both.": "Cada rango de habilidad añade un 1.5% de vida/daño de contacto a los enemigos. Cada pieza equipada al inicio cuenta como dos rangos, hasta +75%. El modo competitivo ignora ambos.",
   "Before armour and other modifiers.": "Antes de la armadura y otros modificadores.",

@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.2', date: '4 Nov 2026', title: 'A smoother Sankson walk',
+    items: ["Sankson's right knee bends naturally when he walks."],
+  },
+  {
     version: '0.44.1', date: '4 Nov 2026', title: 'More reliable bug reports',
     items: ['Bug reports keep your message when optional diagnostic settings cannot be read.'],
   },

@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "A smoother Sankson walk": "Mas maayos na paglakad ni Sankson",
+  "Sankson's right knee bends naturally when he walks.": "Natural na ang pagyuko ng kanang tuhod ni Sankson kapag naglalakad siya.",
   "Drag to resume. The fight is paused.": "I-drag para magpatuloy. Naka-pause ang laban.",
   "Each skill rank adds 1.5% enemy HP/contact damage. Each starting gear piece counts as two ranks, up to +75%. Ranked ignores both.": "Bawat antas ng kasanayan ay nagdaragdag ng 1.5% sa HP/pinsala sa pagdikit ng kalaban. Bawat gamit na suot sa simula ay katumbas ng dalawang antas, hanggang +75%. Hindi ginagamit ng Ranked ang pareho.",
   "Before armour and other modifiers.": "Bago ang baluti at iba pang modifier.",

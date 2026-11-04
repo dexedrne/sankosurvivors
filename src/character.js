@@ -46,7 +46,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
       const o = await fbx.loadAsync(A(`anim/${n}.fbx`));
       if (o.animations[0]) {
         o.animations[0].name = n; clips[n] = o.animations[0];
-        // the clip's own rig at rest, so a rig with other rest rotations can be given each bone's change instead
+        // Initial posed rotations are used only to align rigs whose hips are turned differently.
         const rest = new Map(); o.traverse((b) => { if (b.isBone) rest.set(boneKey(b.name), b.quaternion.clone()); });
         clipRest.set(clips[n], rest);
       }
@@ -78,6 +78,9 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
   await Promise.all(want.map(load));
   const masterGltf = ready.get(BASE.chest);
   if (!masterGltf) throw new Error('character base missing');
+  const rigRest = new Map(), rigBones = new Map();
+  masterGltf.scene.updateMatrixWorld(true);
+  masterGltf.scene.traverse(b => { if (b.isBone) { rigRest.set(boneKey(b.name), b.quaternion.clone()); rigBones.set(b.name, b); } });
 
   // The game plays these FBX clips unscaled on the GLB rig (the rig's Armature node carries the 0.0047 cm->m scale),
   // and the bone names already match, so the clips are used as they are.
@@ -245,7 +248,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
   // Each file stores its rig in a different axis convention, so the figure is stood upright from where its head ends up.
   // The shared Mixamo clips set every bone's rotation outright, made for their own rig's rest pose, and move the hips in
   // that rig's space. A rig whose bones rest differently (Survival Sankson: Z-up, legs turned another way) would fold up,
-  // so it gets each bone's change from rest instead (target rest x clip rest^-1 x clip pose), and its hips stay put.
+  // so it gets each bone's change from the neutral master rig instead. An FBX scene starts posed, not at bind rest.
   const fitted = new WeakMap();
   // fit 'hips': the same rig with only its hips bone turned (Skelly's is flipped 180 degrees): every other bone plays the
   // clip as it is, the hips get their change from rest, and the hips stay in place
@@ -259,15 +262,22 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     const hipsOnly = force === 'hips';
     let byRig = fitted.get(clip); if (!byRig) fitted.set(clip, (byRig = new WeakMap()));
     if (byRig.has(hip)) return byRig.get(hip);
-    const src = clipRest.get(clip) || new Map(), c = clip.clone(), q = new THREE.Quaternion(), inv = new THREE.Quaternion();
+    const src = hipsOnly ? (clipRest.get(clip) || new Map()) : rigRest, c = clip.clone(), q = new THREE.Quaternion(), inv = new THREE.Quaternion();
+    const frameQuat = rig => new THREE.Quaternion().setFromRotationMatrix(frameOf(n => rig.get('mixamorig_' + n).getWorldPosition(new THREE.Vector3())).m);
+    const axes = hipsOnly ? null : frameQuat(rigBones).multiply(frameQuat(bones).invert());
     c.tracks = c.tracks.filter((t) => !/\.position$/.test(t.name));
     for (const t of c.tracks) {
       if (!/\.quaternion$/.test(t.name)) continue;
       const key = boneKey(t.name.replace(/\.quaternion$/, '')), b = bones.get('mixamorig_' + key), s0 = src.get(key);
       if (!b || !s0 || (hipsOnly && key !== 'Hips')) continue;
       inv.copy(s0).invert(); const r = b.quaternion;
+      // Express the source motion in this joint's own bind axes.
+      const basis = hipsOnly ? null : rigBones.get('mixamorig_' + key).getWorldQuaternion(new THREE.Quaternion()).invert().multiply(axes).multiply(b.getWorldQuaternion(new THREE.Quaternion()));
+      const before = basis ? r.clone().multiply(basis.clone().invert()).multiply(inv) : null;
       for (let i = 0; i < t.values.length; i += 4) {
-        q.fromArray(t.values, i); q.premultiply(inv).premultiply(r); q.toArray(t.values, i);
+        q.fromArray(t.values, i);
+        if (basis) q.premultiply(before).multiply(basis); else q.premultiply(inv).premultiply(r);
+        q.toArray(t.values, i);
       }
     }
     byRig.set(hip, c);
@@ -278,6 +288,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     const bones = new Map();
     master.traverse((o) => { o.frustumCulled = false; if (o.isBone) { if (/^mixamorig(?!_)/.test(o.name)) o.name = o.name.replace(/^mixamorig:?/, 'mixamorig_'); bones.set(o.name, o); } });
     const root = new THREE.Group(), holder = new THREE.Group(); holder.add(master); root.add(holder);
+    root.updateMatrixWorld(true);
     const mixer = new THREE.AnimationMixer(master);
     mixer.clipAction(fitClip(clips[clipName] || clips.run || clips.idle, bones, fromRest)).play();
     mixer.update(0); root.updateMatrixWorld(true);
