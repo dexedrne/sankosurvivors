@@ -252,10 +252,10 @@ function killEnemy(sim, e, owner) {
   const p = sim.players.find((q) => q.id === owner);
   if (p) p.kills++;
   sim.gems.push({ id: sim.nextId++, x: e.x, z: e.z, v: def.xp, vx: 0, vz: 0 });
-  sim.fx.push({ k: 'die', x: e.x, z: e.z, boss: def.boss ? 1 : 0, elite: e.elite ? 1 : 0 });
+  sim.fx.push({ k: 'die', x: e.x, z: e.z, boss: def.boss ? 1 : 0, elite: e.elite ? 1 : 0, ...(sim.pace >= 2 ? { type: e.type } : {}) });
   if (!def.boss) {
     const r = sim.rng(), drop = (kind) => sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z, kind });
-    if (r < 0.010) drop('beer'); else if (r < 0.016) drop('pumpkin'); else if (r < 0.022) drop('warp'); else if (r < 0.034) drop(foodDrop(sim.t, (r - 0.022) / 0.012, e.elite));
+    if (r < 0.010) drop('beer'); else if (r < 0.016) drop('pumpkin'); else if (r < 0.022) drop('warp'); else if (r < 0.034) drop(foodDrop(sim.t, (r - 0.022) / 0.012, e.elite, sim.pace));
     if (sim.rng() < 0.05 * (p ? playerStats(p).coin : 1)) drop('coin');
     // reward caskets (owner 3 Nov: "caskets drop too often tbh"): every elite dropped one, ~60 in a full run. Pace 2: a
     // rare one from anything and an elite's now and then, ~10 a run with the bosses'. Pace 1 (ranked week 0) unchanged.
@@ -359,7 +359,7 @@ function spawnSpot(sim, anchor) {
   const M = sim.map;
   for (let tries = 0; tries < 8; tries++) {
     const ahead = anchor.moving && sim.rng() < 0.65; // sim angles are atan2(x, z)
-    const a = ahead ? anchor.face + (sim.rng() - 0.5) * 1.6 : sim.rng() * 6.283, d = 26 + sim.rng() * 8;
+    const a = ahead ? (sim.pace >= 2 ? anchor.moveFace : anchor.face) + (sim.rng() - 0.5) * 1.6 : sim.rng() * 6.283, d = 26 + sim.rng() * 8;
     let x = anchor.x + (ahead ? dsin(a) : dcos(a)) * d, z = anchor.z + (ahead ? dcos(a) : dsin(a)) * d;
     const off = hyp(x - M.cx, z - M.cz);
     if (off > M.r) { x = M.cx + (x - M.cx) * (M.r / off); z = M.cz + (z - M.cz) * (M.r / off); }
@@ -432,6 +432,13 @@ export function rollChoices(sim, p) {
 // levels a card gives: a rarity card says how many (from -> level); a card without rarity (pace 1) gives one
 const cardGain = (c) => (c.rarity && typeof c.from === 'number' && c.level > c.from ? c.level - c.from : 1);
 
+function openLevel(sim, p) {
+  if (!(sim.pace >= 2) || !p.alive || sim.pending[p.id] || !p.levelQ || sim.over) return false;
+  p.levelQ--;
+  sim.pending[p.id] = { choices: rollChoices(sim, p), left: 20 };
+  return true;
+}
+
 export function applyChoice(sim, p, choice) {
   if (choice.kind === 'evolve') { p.evo[choice.id] = true; sim.evolves++; sim.fx.push({ k: 'evolve', id: choice.id }); return; }
   if (choice.kind === 'weapon') p.weapons[choice.id] = Math.min(MAX_WEAPON_LEVEL, (p.weapons[choice.id] || 0) + cardGain(choice));
@@ -451,7 +458,7 @@ export function choose(sim, playerId, index) {
   if (pend.casket) applyCasket(sim, p, c); else applyChoice(sim, p, c);
   delete sim.pending[playerId];
   sim.fx.push({ k: 'pick', id: playerId });
-  openCasket(sim, p); // the next casket in the queue, if any
+  if (!openLevel(sim, p)) openCasket(sim, p); // earned levels before the next casket
   return true;
 }
 // the card the sim picks by itself when the timer runs out: the first level-up card, or a casket's recommended choice
@@ -504,6 +511,7 @@ export function skipLevel(sim, playerId) {
   const p = sim.players.find((q) => q.id === playerId);
   if (!sim.pending[playerId] || sim.pending[playerId].casket || !p) return false;
   delete sim.pending[playerId]; p.coins++; sim.fx.push({ k: 'pick', id: playerId });
+  if (sim.pace >= 2 && !openLevel(sim, p)) openCasket(sim, p);
   return true;
 }
 
@@ -511,7 +519,10 @@ function gainXp(sim, amount) {
   sim.xp += amount;
   while (sim.xp >= sim.xpNeed) {
     sim.xp -= sim.xpNeed; sim.level++; sim.xpNeed = xpForLevel(sim.level);
-    for (const p of sim.players) if (p.alive && !sim.pending[p.id]) sim.pending[p.id] = { choices: rollChoices(sim, p), left: 20 };
+    for (const p of sim.players) if (p.alive) {
+      if (sim.pace >= 2) { p.levelQ = (p.levelQ || 0) + 1; openLevel(sim, p); }
+      else if (!sim.pending[p.id]) sim.pending[p.id] = { choices: rollChoices(sim, p), left: 20 };
+    }
     sim.fx.push({ k: 'level', level: sim.level });
   }
 }
@@ -711,13 +722,14 @@ export function regionOf(sim, p) {
 export const BELT_SIZE = 4;
 const BELT_KINDS = ['beer', 'pumpkin', 'warp'];
 // food in SankoQuest's own tiers (owner 3 Nov: "different tiers of food drops, crawdads lowest"): eaten on pickup.
-// Early on mostly crawdads and trout; later catfish and the odd Bubba Bass; an elite drops one tier up; bosses a bass.
-export const FOOD = { crawdad: { heal: 15, item: 'Cooked Crawdad' }, trout: { heal: 25, item: 'Cooked Brown Trout' }, catfish: { heal: 35, item: 'Cooked Catfish' }, bass: { heal: 50, item: 'Cooked Bubba Bass' } };
+// Pace 2 splits the lowest drops between Cheese and crawdads; elites still drop one tier up and bosses a bass.
+export const FOOD = { cheese: { heal: 15, item: 'Cheese' }, crawdad: { heal: 15, item: 'Cooked Crawdad' }, trout: { heal: 25, item: 'Cooked Brown Trout' }, catfish: { heal: 35, item: 'Cooked Catfish' }, bass: { heal: 50, item: 'Cooked Bubba Bass' } };
 const FOOD_TIERS = ['crawdad', 'trout', 'catfish', 'bass'];
 // u: a roll in [0, 1) (the drop roll itself, so the run's random sequence is unchanged)
-export function foodDrop(t, u, elite = false) {
+export function foodDrop(t, u, elite = false, pace = 1) {
   let i = t < 180 ? (u < 0.7 ? 0 : 1) : t < 480 ? (u < 0.35 ? 0 : u < 0.75 ? 1 : 2) : (u < 0.3 ? 1 : u < 0.78 ? 2 : 3);
   if (elite) i = Math.min(3, i + 1);
+  if (pace >= 2 && i === 0 && u < (t < 180 ? 0.35 : 0.175)) return 'cheese';
   return FOOD_TIERS[i];
 }
 function useItem(sim, p, kind) {
@@ -969,6 +981,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       const mx = inp.mx / Math.max(1, len), mz = inp.mz / Math.max(1, len);
       moveTo(sim, p, p.x + mx * st.speed * dt, p.z + mz * st.speed * dt);
       p.face = datan2(mx, mz);
+      if (sim.pace >= 2) p.moveFace = p.face;
     }
     const off = hyp(p.x - sim.map.cx, p.z - sim.map.cz);
     if (off > sim.map.r) { p.x = sim.map.cx + (p.x - sim.map.cx) * sim.map.r / off; p.z = sim.map.cz + (p.z - sim.map.cz) * sim.map.r / off; }
@@ -988,8 +1001,9 @@ export function step(sim, inputs = {}, dt = TICK) {
   // enemies: chase, separate, hurt
   const cell = 1.6, grid = new Map();
   const key = (x, z) => ((Math.floor(x / cell) + 4096) << 13) | (Math.floor(z / cell) + 4096);
-  for (const e of sim.enemies) { const k = key(e.x, e.z); (grid.get(k) || grid.set(k, []).get(k)).push(e); }
+  for (const e of sim.enemies) { if (sim.pace >= 2 && e.dead) continue; const k = key(e.x, e.z); (grid.get(k) || grid.set(k, []).get(k)).push(e); }
   for (const e of sim.enemies) {
+    if (sim.pace >= 2 && e.dead) continue;
     const def = ENEMIES[e.type];
     const tp = nearestPlayer(sim, e.x, e.z);
     e.hit = Math.max(0, e.hit - dt);
@@ -1006,7 +1020,7 @@ export function step(sim, inputs = {}, dt = TICK) {
         const list = grid.get(((cx + ix + 4096) << 13) | (cz + iz + 4096));
         if (!list) continue;
         for (const o of list) {
-          if (o === e) continue;
+          if (o === e || (sim.pace >= 2 && o.dead)) continue;
           const ox = e.x - o.x, oz = e.z - o.z, od = hyp(ox, oz);
           const min = (def.r + ENEMIES[o.type].r) * 0.85;
           if (od < min && od > 0.001) { const push = (min - od) / min; mx += (ox / od) * push * 4; mz += (oz / od) * push * 4; }
@@ -1049,13 +1063,13 @@ export function step(sim, inputs = {}, dt = TICK) {
     if (p && hyp(p.x - k.x, p.z - k.z) < 1.1) {
       if (k.kind === 'chest' && sim.pending[p.id]) continue;
       k.taken = true;
-      const st = playerStats(p);
+      const st = playerStats(p), beforeHp = p.hp;
       if (BELT_KINDS.includes(k.kind) && p.belt.length < BELT_SIZE) p.belt.push(k.kind); // kept for later (1-4)
       else if (BELT_KINDS.includes(k.kind) || FOOD[k.kind]) useItem(sim, p, k.kind);
       else if (k.kind === 'chest') { if (!sim.pending[p.id]) sim.pending[p.id] = { choices: rollChoices(sim, p), left: 25 }; }
       else if (k.kind === 'casket') gotCasket(sim, p, rollCasket(sim.rng, sim.casketRank, sim.hard, sim.t, { pace: sim.pace, weapons: p.weapons }));
       else p.coins++;
-      sim.fx.push({ k: 'get', kind: k.kind, x: k.x, z: k.z });
+      sim.fx.push({ k: 'get', kind: k.kind, x: k.x, z: k.z, ...(sim.pace >= 2 && FOOD[k.kind] ? { heal: Math.max(0, p.hp - beforeHp) } : {}) });
     }
   }
   sim.pickups = sim.pickups.filter((k) => !k.taken);

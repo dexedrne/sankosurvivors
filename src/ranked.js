@@ -47,11 +47,29 @@ export const placeable = (w, r) => !kpmWeek(w) || (Number(r.t) || 0) >= RANKED.m
 export const scoreKey = (w, r) => (kpmWeek(w)
   ? [placeable(w, r) ? 1 : 0, kpmMicro(r.kills, r.t), Number(r.kills) || 0]
   : [0, Number(r.t) || 0, Number(r.kills) || 0]);
+function finishMicros(row) {
+  const value = row.at ?? row.finished_at, numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    const whole = Math.trunc(numeric);
+    return BigInt(whole) * 1000n + BigInt(Math.round((numeric - whole) * 1000));
+  }
+  if (typeof value !== 'string') return 0n;
+  const iso = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}(?::?\d{2})?)$/i.exec(value);
+  if (!iso) return 0n;
+  const date = new Date(iso[1] + 'T00:00:00Z');
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== iso[1]) return 0n;
+  const zone = /^[+-]\d{2}$/.test(iso[4]) ? iso[4] + ':00' : iso[4];
+  const ms = Date.parse(`${iso[1]}T${iso[2]}${zone}`);
+  if (iso[2].startsWith('24:') && /[1-9]/.test(iso[3] || '')) return 0n;
+  // Parse whole seconds separately so Date.parse cannot discard PostgreSQL's final three fraction digits.
+  return Number.isFinite(ms) ? BigInt(ms) * 1000n + BigInt((iso[3] || '').padEnd(6, '0')) : 0n;
+}
 export function compareRuns(w) {
   return (a, b) => {
     const ka = scoreKey(w, a), kb = scoreKey(w, b);
     for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return kb[i] - ka[i];
-    return (Number(a.at ?? a.finished_at) || 0) - (Number(b.at ?? b.finished_at) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0);
+    const ta = finishMicros(a), tb = finishMicros(b);
+    return ta < tb ? -1 : ta > tb ? 1 : (Number(a.id) || 0) - (Number(b.id) || 0);
   };
 }
 // which prize place each board row (already in board order) is playing for: -1 for no prize (the developer's wallet, or
@@ -114,7 +132,7 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
   const resolve = () => {
     let guard = 0;
     while (sim.pending[PID]) {
-      if (guard++ > 60) return 'too many choices';
+      if (sim.pace < 2 && guard++ > 60) return 'too many choices'; // pace 2 consumes a finite pick per queued reward
       const a = log.picks[pi++];
       if (a === undefined) return 'missing a level-up choice';
       if (a === 'r') { if (!reroll(sim, PID)) return 'reroll not allowed'; }

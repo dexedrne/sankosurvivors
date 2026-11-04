@@ -35,7 +35,7 @@ function harness() {
       const view = { players: [], proj: [], eproj: [], shrines: [], ...state }, dt = 0.1, time = 0, vt = 0;
       ${between('    // monster projectiles (fire and ice)', '    // pickups\n')}
     }
-    const effects = [], pickupSprites = new Map(), numbers = [], parts = [], gemSets = [], partMesh = {};
+    const slimeFlecks = [], effects = [], pickupSprites = new Map(), numbers = [], parts = [], gemSets = [], partMesh = {};
     const actors = new Map(), playerActors = new Map(), folkActors = new Map(), corpses = [], hazardPool = [], curMap = { cx: 0, cz: 0 }, cam = {};
     let folkT = 0, spTick = 0; const removePickup = () => {};
     ${between('  function reset() {', '  return { hop:')}

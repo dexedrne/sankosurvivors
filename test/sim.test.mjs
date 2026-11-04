@@ -31,7 +31,7 @@ test('standing still forever eventually kills a lone player (the run ends)', () 
 
 test('level up pauses the sim until the player chooses', () => {
   const sim = createSim({ seed: 1 });
-  sim.gems.push({ id: 999, x: sim.players[0].x, z: sim.players[0].z, v: 50, vx: 0, vz: 0 });
+  sim.gems.push({ id: 999, x: sim.players[0].x, z: sim.players[0].z, v: sim.xpNeed, vx: 0, vz: 0 });
   step(sim, {}, TICK);
   assert.ok(sim.pending.p1, 'choices rolled');
   const t = sim.t; step(sim, {}, TICK); assert.equal(sim.t, t, 'paused');

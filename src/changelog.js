@@ -1,6 +1,16 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.42', date: '4 Nov 2026', title: 'Every level counts',
+    items: [
+      'Collecting several levels at once keeps every earned upgrade. Choices queue until you pick, skip or time out.',
+      'Killed enemies stop moving and dealing contact damage immediately. Forward spawns follow your movement direction.',
+      'Cheese joins early food drops, using the native SankoQuest icon. Food feedback shows the health actually restored.',
+      'Slimes burst into native blue Slime Blob flecks, with a smaller burst on Reduced effects.',
+      'Ranked timestamp ties now preserve the full finish precision. Week 0 gameplay remains unchanged.',
+    ],
+  },
+  {
     version: '0.41.1', date: '4 Nov 2026', title: 'Lighter effects between runs',
     items: ['Spells, thrown weapons and shrine effects now release their temporary graphics resources when they finish or a run resets.'],
   },

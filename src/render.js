@@ -1243,6 +1243,21 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   function spark(x, z, crit) { emit(x, groundAt(x, z) + 1.0, z, crit ? 7 : 3, crit ? 6 : 4, { s: crit ? 0.9 : 0.55, life: 0.25, color: crit ? 0xffcf4a : 0xfff4dc, up: 2, g: 4 }); }
 
+  // native Slime Blob flecks share one cached icon/material and reuse at most 32 sprites.
+  const slimeFlecks = [];
+  let slimeCursor = 0, slimeMat = null;
+  function slimeBurst(x, z) {
+    if (!slimeMat) slimeMat = new THREE.SpriteMaterial({ map: iconTex('Slime Blob'), transparent: true, alphaTest: 0.3, depthWrite: false });
+    for (let i = 0, n = settings.fx === 'reduced' ? 2 : 6; i < n; i++) {
+      const slot = slimeCursor++ % 32;
+      let sp = slimeFlecks[slot];
+      if (!sp) { sp = new THREE.Sprite(slimeMat); fxOnly(sp); dyn.add(sp); slimeFlecks[slot] = sp; }
+      const a = Math.random() * Math.PI * 2, speed = 1.5 + Math.random() * 2;
+      Object.assign(sp.userData, { life: 0.55, vx: Math.cos(a) * speed, vz: Math.sin(a) * speed, vy: 2 + Math.random() * 2 });
+      sp.position.set(x, groundAt(x, z) + 0.7, z); sp.scale.setScalar(0.5); sp.visible = true;
+    }
+  }
+
   // flat effects (slash arcs, quakes, bursts) glow and fade
   const ringMat = (c, add = true) => new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(add ? 1.4 : 1), transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending });
   // soft rings and glows (owner 3 Nov: the flat hard-edged rings looked like cut-out discs): a band that fades at both
@@ -1656,7 +1671,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (f.k === 'dmg') { number(f.x, f.z, f.v, f.c, f.c ? '#ffd34d' : '#ffffff'); spark(f.x, f.z, f.c); spFx.dmg.push(f); }
       else if (f.k === 'hurt') { number(f.x, f.z, '-' + f.v, 0, '#ff5a4d'); cam.shake = 0.35; cam.flash = 0.3; spFx.hurt.push(f); }
       else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; spSlow = 0.9; } // spSlow: main.js slows the sim 0.3x for 0.9 s here
-      else if (f.k === 'die') { pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
+      else if (f.k === 'die') { if (f.type === 'slimer' || f.type === 'mslimer') slimeBurst(f.x, f.z); pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
       else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'shrine-done') { const c = SHRINE_COLORS[f.kind] || 0xffffff; ringFx(f.x, f.z, 4, c, 1, 0.7); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 50, 6, { s: 1, life: 1.1, color: c, up: 9 }); cam.shake = Math.max(cam.shake, 0.2); }
       else if (f.k === 'shrine') emit(f.x, groundAt(f.x, f.z) + 0.5, f.z, 24, 3, { s: 0.8, life: 1, color: SHRINE_COLORS[f.kind] || 0xffffff, up: 6 });
@@ -1966,6 +1981,16 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     }
     partMesh.instanceMatrix.needsUpdate = true; if (partMesh.instanceColor) partMesh.instanceColor.needsUpdate = true;
 
+    // slime flecks
+    for (const sp of slimeFlecks) {
+      const u = sp.userData; if (!sp.visible) continue;
+      u.life -= dt;
+      if (u.life <= 0) { sp.visible = false; continue; }
+      u.vy -= 9 * dt; sp.position.x += u.vx * dt; sp.position.y += u.vy * dt; sp.position.z += u.vz * dt;
+      sp.position.y = Math.max(sp.position.y, groundAt(sp.position.x, sp.position.z) + 0.1);
+      sp.scale.setScalar(0.5 * u.life / 0.55);
+    }
+
     // flat effects
     for (let i = effects.length - 1; i >= 0; i--) {
       const m = effects[i], u = m.userData; u.life -= dt;
@@ -2016,6 +2041,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const seenShield = new Set();
 
   function reset() {
+    for (const sp of slimeFlecks) { sp.visible = false; sp.userData.life = 0; }
     for (const m of effects) { dyn.remove(m); m.geometry.dispose(); m.material.dispose(); } effects.length = 0;
     for (const sp of pickupSprites.values()) removePickup(sp); pickupSprites.clear();
     for (const n of numbers) n.el.remove(); numbers.length = 0;
