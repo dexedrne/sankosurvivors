@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version:'0.40.4', date:'4 Nov 2026', title:'Keep your best runs',
+    items:['Personal bests now use victories, whole seconds survived and kill-count ties consistently.', 'Cloud sync keeps the strongest personal record for each map and mode across devices.', 'The new-best message follows the same rules as the saved record.'],
+  },
+  {
     version:'0.40.3', date:'4 Nov 2026', title:'Clearer ranked targets',
     items:['The ranked chase display now counts kills correctly when equal kills per minute wins on total kills.', 'Chase positions are labelled against the board at run start. KPM runs show the three-minute minimum before estimating a place.'],
   },

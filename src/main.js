@@ -12,7 +12,7 @@ const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
 // prize place of each board row: the developer's wallet and (from week 1) runs under 3:00 take none, the places pass down
 const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
 import { wallets, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
-import { createCloud, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
+import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
 import { quoteDmt, buyDmt } from './swap.js';
 import { connect as walletConnect, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
@@ -954,7 +954,8 @@ function endRun() {
   const won = sim.over === 'win';
   const p = sim.players[0];
   const prev = load('sq-best', null);
-  if (!prev || sim.t > prev.t || (won && !prev.won)) save('sq-best', { t: Math.round(sim.t), level: sim.level, kills: sim.kills, won });
+  const runRecord = { t: Math.floor(sim.t), level: sim.level, kills: sim.kills, won };
+  if (betterRun(prev, runRecord) === runRecord) save('sq-best', runRecord);
   let unlockNote = '';
   if (won) {
     const cl = clearedMaps(), before = cl.size; cl.add(sim.map.id); save('sq-cleared', [...cl]);
@@ -1014,8 +1015,8 @@ function endRun() {
   let bestNote = '';
   if (!wasRanked) {
     const all = getBests(), k = bestKey(sim), b = all[k];
-    if (!b || sim.t > b.t || (won && !b.won)) { all[k] = { t: Math.floor(sim.t), kills: sim.kills, level: sim.level, won }; save('sq-bests', all); bestNote = b ? ` · new best (was ${fmtT(b.t)})!` : ''; }
-    else bestNote = ` · ${fmtT(b.t - sim.t)} short of your best (${fmtT(b.t)})`;
+    if (betterRun(b, runRecord) === runRecord) { all[k] = runRecord; save('sq-bests', all); bestNote = b ? ` · new best (was ${fmtT(b.t)})!` : ''; }
+    else bestNote = sim.t < b.t ? ` · ${fmtT(b.t - sim.t)} short of your best (${fmtT(b.t)})` : ` · best ${fmtT(b.t)}`;
   }
   $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${kpmNote}${bestNote}${unlockNote}`;
   $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
@@ -1262,7 +1263,7 @@ function updateHud(view) {
   $('lvl').textContent = 'Lv ' + view.level;
   const t = Math.floor(view.t); $('clock').textContent = fmtT(t);
   const goal = sim && sim.endAt ? sim.endAt : sim && !sim.endless && sim.map.length ? sim.map.length : 0;
-  if (runBest && !passedBest && t > runBest.t) { passedBest = true; banner(`New best on ${sim.map.name}!`, 2200); audio.play('level', { vol: 0.8 }); }
+  if (runBest && !passedBest && betterRun(runBest, { t, kills:view.kills, won:sim.over === 'win' }) !== runBest) { passedBest = true; banner(`New best on ${sim.map.name}!`, 2200); audio.play('level', { vol: 0.8 }); }
   $('clockgoal').textContent = (goal ? `of ${fmtT(goal)}` : '') + (runBest ? (passedBest ? ' · new best!' : ` · best ${fmtT(runBest.t)}`) : '') + chaseText(t, view.kills);
   $('kills').textContent = view.kills;
   if (sim && sim.players[0] && (frame % 10 === 0 || !$('gp').textContent)) $('gp').textContent = runCoins(sim).toLocaleString();

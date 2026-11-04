@@ -14,10 +14,25 @@ const parse = (v, d) => { try { const x = JSON.parse(v); return x ?? d; } catch 
 const num = (v) => { const n = Number(parse(v, 0)); return Number.isFinite(n) ? n : 0; };
 const obj = (v) => { const o = parse(v, {}); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; };
 const arr = (v) => { const a = parse(v, []); return Array.isArray(a) ? a : []; };
-const better = (a, b) => (!a ? b : !b ? a : (!!b.won !== !!a.won ? (b.won ? b : a) : (Number(b.t) || 0) > (Number(a.t) || 0) ? b : a));
+// Same personal-record order as casual boards: victory, whole seconds, then kills. Keep the old record on a full tie.
+export function betterRun(a, b) {
+  const valid = r => r && typeof r === 'object' && !Array.isArray(r) && typeof r.t === 'number' && Number.isFinite(r.t) && r.t >= 0;
+  if (!valid(a)) return valid(b) ? b : null;
+  if (!valid(b)) return a;
+  const key = r => [r.won === true ? 1 : 0, Math.floor(r.t), Number.isFinite(r.kills) ? Math.min(999999, Math.max(0, Math.floor(r.kills))) : 0];
+  const x = key(a), y = key(b);
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return y[i] > x[i] ? b : a;
+  return a;
+}
 
 // the merge of one key: base is what both devices last agreed on (undefined: never synced)
 function mergeKey(k, base, mine, theirs) {
+  // Personal records only improve, including when an older client makes a one-sided weaker edit.
+  if ((k === 'sq-best' || k === 'sq-bests') && (base !== undefined || mine !== undefined || theirs !== undefined)) {
+    if (k === 'sq-best') return JSON.stringify(betterRun(betterRun(parse(base, null), parse(theirs, null)), parse(mine, null)));
+    const sources = [obj(base), obj(theirs), obj(mine)], keys = new Set(sources.flatMap(Object.keys));
+    return JSON.stringify(Object.fromEntries([...keys].map(key => [key, sources.reduce((best, records) => betterRun(best, Object.hasOwn(records, key) ? records[key] : null), null)])));
+  }
   if (mine === theirs || theirs === undefined) return mine;
   if (mine === undefined || mine === base) return theirs;
   if (theirs === base) return mine;
@@ -30,7 +45,6 @@ function mergeKey(k, base, mine, theirs) {
     }
     case 'sq-skills': case 'sq-gearlv': { const m = obj(mine), t = obj(theirs), out = { ...t }; for (const [s, v] of Object.entries(m)) out[s] = Math.max(Number(v) || 0, Number(t[s]) || 0); return JSON.stringify(out); }
     case 'sq-cleared': case 'sq-quests': case 'sq-bank': return JSON.stringify([...new Set([...arr(theirs), ...arr(mine)])]);
-    case 'sq-best': return JSON.stringify(better(obj(theirs), obj(mine)));
     default: return mine;
   }
 }
@@ -147,7 +161,7 @@ export function createCloud(baseUrl, ui) {
       if (busy || get(UPLOAD_KEY) || cloudState()?.key !== s.key || cloudState()?.rev !== s.rev) return false;
       if (r.status === 401) { setState(null); return false; }
       if (r.status !== 200 || !r.d.rev || r.d.rev <= s.rev || !r.d.data) return false;
-      const mine = snapshot(), b = base(), merged = b && !same(mine, b) ? mergeSaves(b, mine, r.d.data) : r.d.data;
+      const mine = snapshot(), b = base(), merged = mergeSaves(b || mine, mine, r.d.data);
       applySnapshot(r.d.data); for (const k of SAVE_KEYS) set(k, typeof merged[k] === 'string' ? merged[k] : null);
       setState({ ...s, rev: r.d.rev });
       if (!same(merged, r.d.data)) changed(); // this device had unsaved progress on top: save the join
