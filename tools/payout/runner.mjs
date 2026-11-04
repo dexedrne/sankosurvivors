@@ -163,9 +163,13 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       try {
         const r=await chain.rpc('eth_getTransactionReceipt',[tx]);
         if(r?.transactionHash?.toLowerCase()!==tx||r.status!=='0x1')throw Error('invalid source receipt');
-        let paid=0n;
+        let paid=0n;const indices=new Set();
         for(const l of r.logs??[])if(l.address?.toLowerCase()===DMT&&l.topics?.length===3&&l.topics[0]===TRANSFER&&l.topics[1]?.toLowerCase()==='0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0')&&l.topics[2]?.toLowerCase()==='0x'+config.wallet.slice(2).toLowerCase().padStart(64,'0')){
           if(!/^0x[0-9a-f]{64}$/i.test(l.data))throw Error('invalid Transfer amount');
+          if(l.removed===true||l.transactionHash?.toLowerCase()!==tx||l.blockHash?.toLowerCase()!==r.blockHash?.toLowerCase()||quantityBigInt(l.blockNumber)!==quantityBigInt(r.blockNumber))throw Error('source event mismatch');
+          const index=quantityBigInt(l.logIndex);
+          if(indices.has(index))throw Error('duplicate source event');
+          indices.add(index);
           paid+=BigInt(l.data);
         }
         if(paid!==units(row.amount))throw Error('source amount mismatch');

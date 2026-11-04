@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Stronger payment checks": "Mas mahigpit na pagsusuri sa bayad",
+  "Ranked payments stay saved while inconsistent chain receipts are checked again.": "Nananatiling naka-save ang mga bayad sa ranked habang muling sinusuri ang mga hindi tugmang resibo sa chain.",
   "Keep every character": "Panatilihin ang bawat karakter",
   "Casual names and bug reports keep accented letters and emoji when a network request arrives in pieces.": "Napananatili ang mga titik na may tuldik at emoji sa mga pangalan sa casual at ulat ng bug kahit paunti-unting dumating ang network request.",
   "A smoother Sankson walk": "Mas maayos na paglakad ni Sankson",

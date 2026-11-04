@@ -14,6 +14,14 @@ Each prize pool goes to five wallets: **40% / 25% / 15% / 12% / 8%**. Missing
 places roll over; the last actual winner gets rounding dust. Default is **dry
 run**: plans and Telegram previews, no key loading, signing or sending.
 
+Receipt checks bind counted refund Transfer events to their transaction and block,
+reject removed or repeated log indices, and preserve genuine split transfers.
+Refund sources and outgoing confirmations also require the current 20-L2-block
+depth and canonical-block checks. This is **soft confirmation**, not Ethereum
+finality; see [Arbitrum's confirmation model](https://developer.arbitrum.io/how-arbitrum-works/reference/finality-and-reorgs).
+Entry registration checks current canonical receipt consistency without adding a
+new confirmation wait. No short L2 block count proves a block irreversible.
+
 ## Two pots from week 1
 
 Week 0 (to Mon 9 Nov 00:00 UTC) has one race, Normal, ranked by won, then time,
@@ -40,12 +48,17 @@ In Supabase's SQL editor, paste in this order, each file whole:
    transfer uniqueness to (week, mode, kind, wallet). Existing plans, nonces, sent
    transfers and refunds are kept.
 
-3. Then the security updates, in order: `update4.sql`, `update5.sql`, `update6.sql`, `update7.sql`, `update8.sql`
-   (cloud saves, boards, the fail-closed key check, restarts instead of refunds, per-row payout caps).
+3. Then `update4.sql` through `update10.sql`, in order: cloud saves, boards,
+   fail-closed guards, bound restarts, payout caps, permissions and recoverable submissions.
+4. Apply `update11.sql` for incoming-pool metadata and `update12.sql` for atomic
+   rate admission. Update12 is independent of update11. The owner pastes all SQL;
+   the presence of a migration file does not mean it has been applied.
 
 **Re-pasting:** each file is safe to paste again, but an older file brings back older functions. After any re-paste of
-`ranked.sql`, `payouts.sql` or `update6.sql`, paste `update7.sql` and `update8.sql` again (otherwise `sqs_ranked_void`
-is open to anon again, and the held over-payment refunds and owe checks go back to the old ones). Paste them
+`ranked.sql`, `payouts.sql` or `update6.sql`, paste `update7.sql` through `update10.sql` again,
+plus update11 once installed. Otherwise old permissions/restart/refund functions can return
+and the recovery APIs can be missing. Reapply update9 after update5 as well.
+Reapply update12 after restoring an older schema.sql; other numbered updates do not replace its helper. Paste required repairs
 **before deploying** the new game build: the new API calls the new signatures.
 Do not reapply the older `schema.sql` placeholders. A fresh install pastes
 `schema.sql`, `ranked.sql`, `payouts.sql`, then the updates in order.

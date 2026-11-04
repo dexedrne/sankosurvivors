@@ -101,7 +101,7 @@ export function fixture(count=3) {
   db.refunds.push({id:'100',week:0,wallet:wallet(9),paid:decimal('0.5').toString()});
   const config={live:true,wallet:addressOf(key),weekCap:decimal('1000'),transferCap:decimal('500'),ethCap:decimal('0.005'),maxFee:2000000000n,payoutKey:'payout-key',reportsKey:'reports-key'};
   // every refund the fake ledger makes repays a real payment the fake chain holds
-  db.onRefund=(row)=>{const to=(w)=>({address:DMT,topics:[TRANSFER,'0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0'),'0x'+w.slice(2).toLowerCase().padStart(64,'0')],data:'0x'+BigInt(row.amount).toString(16).padStart(64,'0')});
+  db.onRefund=(row)=>{const to=(w,i)=>({address:DMT,topics:[TRANSFER,'0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0'),'0x'+w.slice(2).toLowerCase().padStart(64,'0')],data:'0x'+BigInt(row.amount).toString(16).padStart(64,'0'),removed:false,transactionHash:row.source_tx,blockNumber:quantity(chain.block-30n),blockHash:'0x'+'c'.repeat(64),logIndex:quantity(i)});
     chain.receipts.set(row.source_tx,{transactionHash:row.source_tx,status:'0x1',blockNumber:quantity(chain.block-30n),blockHash:'0x'+'c'.repeat(64),logs:[...new Set([config.wallet.toLowerCase(),COLLECT.toLowerCase()])].map(to)});}; // to the fixture's wallet, and to the live one the Vercel loader uses
   const ports={rpc:db.rpc.bind(db),chain:new Arbitrum(chain.fetch),notify:async text=>messages.push(text),log:text=>logs.push(text),key:async()=>key,now:()=>db.now,pause:async()=>{}};
   return {config,ports,db,chain,messages,logs};

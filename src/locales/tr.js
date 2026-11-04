@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Stronger payment checks": "Daha güçlü ödeme kontrolleri",
+  "Ranked payments stay saved while inconsistent chain receipts are checked again.": "Tutarsız zincir işlem makbuzları yeniden kontrol edilirken dereceli oyun ödemeleri kayıtlı kalır.",
   "Keep every character": "Her karakter korunsun",
   "Casual names and bug reports keep accented letters and emoji when a network request arrives in pieces.": "Normal oyun adları ve hata raporları, ağ isteği parça parça ulaştığında Türkçe harfleri, aksanlı harfleri ve emojileri korur.",
   "A smoother Sankson walk": "Sankson daha doğal yürüyor",

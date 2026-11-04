@@ -285,8 +285,8 @@ for(const condition of ['shallow','orphan','wrong hash','missing block','missing
   const f=fixture(3);
   await f.ports.rpc('sqs_payout_refunds',{p_key:'payout-key'});
   const row=f.db.rows.find(r=>r.kind==='refund'),r=f.chain.receipts.get(row.source_tx);
-  if(condition==='shallow')r.blockNumber='0x3d5'; // 981: only 19 blocks behind head 1000
-  if(condition==='orphan')r.blockHash='0x'+'d'.repeat(64);
+  if(condition==='shallow'){r.blockNumber='0x3d5';for(const l of r.logs)l.blockNumber=r.blockNumber;} // 981: only 19 blocks behind head 1000
+  if(condition==='orphan'){r.blockHash='0x'+'d'.repeat(64);for(const l of r.logs)l.blockHash=r.blockHash;}
   if(condition==='wrong hash')r.transactionHash='0x'+'d'.repeat(64);
   if(condition==='missing block')delete r.blockNumber;
   if(condition==='missing block hash')delete r.blockHash;
@@ -308,7 +308,7 @@ test('a mature canonical refund source at exactly 20 blocks authorizes payment o
   const f=fixture(3);
   await f.ports.rpc('sqs_payout_refunds',{p_key:'payout-key'});
   const row=f.db.rows.find(r=>r.kind==='refund');
-  f.chain.receipts.get(row.source_tx).blockNumber='0x3d4'; // 980
+  const source=f.chain.receipts.get(row.source_tx);source.blockNumber='0x3d4';for(const l of source.logs)l.blockNumber=source.blockNumber; // 980
   const original=f.chain.request.bind(f.chain),canonical=[];
   f.chain.request=async(method,args)=>{if(method==='eth_getBlockByNumber')canonical.push(args);return original(method,args);};
   await run(f.config,f.ports);await run(f.config,f.ports);
@@ -327,4 +327,32 @@ test('an unsigned refund nonce claim rechecks its source before recovery signs',
   await run(f.config,f.ports);
   assert.equal(keys,0);assert.equal(f.chain.broadcasts.length,0);
   assert.equal(row.nonce,'0');assert.equal(row.raw_tx,null);
+});
+
+for(const condition of ['duplicate','removed','wrong transaction','wrong block hash','wrong block number','missing index'])test(`refund source event ${condition} stops before any transfer is proposed`,async()=>{
+  const f=fixture(3);f.config.live=false;
+  await f.ports.rpc('sqs_payout_refunds',{p_key:'payout-key'});
+  const row=f.db.rows.find(r=>r.kind==='refund'),r=f.chain.receipts.get(row.source_tx),event=r.logs[0];
+  if(condition==='duplicate'){row.amount='1000000000000000000';r.logs.push(structuredClone(event));}
+  if(condition==='removed')event.removed=true;
+  if(condition==='wrong transaction')event.transactionHash='0x'+'d'.repeat(64);
+  if(condition==='wrong block hash')event.blockHash='0x'+'d'.repeat(64);
+  if(condition==='wrong block number')event.blockNumber='0x999';
+  if(condition==='missing index')delete event.logIndex;
+  let keys=0;f.ports.key=async()=>{keys++;throw Error('must not request a key');};
+  await run(f.config,f.ports);
+  assert.ok(f.logs.some(s=>s.includes('PAUSED: unverified refund row')));
+  assert.ok(!f.logs.some(s=>s.startsWith('WOULD SEND')));
+  assert.equal(keys,0);assert.equal(f.chain.broadcasts.length,0);assert.ok(f.db.rows.every(r=>r.nonce==null));
+});
+
+test('distinct source event indices preserve genuine split refund payments',async()=>{
+  const f=fixture(3);f.config.live=false;
+  await f.ports.rpc('sqs_payout_refunds',{p_key:'payout-key'});
+  const row=f.db.rows.find(r=>r.kind==='refund'),r=f.chain.receipts.get(row.source_tx),event=r.logs[0];
+  event.data='0x'+250000000000000000n.toString(16).padStart(64,'0');
+  r.logs.push({...event,logIndex:'0x2'});
+  await run(f.config,f.ports);
+  assert.ok(f.logs.some(s=>s.startsWith(`WOULD SEND row ${row.id} refund`)));
+  assert.ok(!f.logs.some(s=>s.startsWith('PAUSED:')));assert.equal(f.chain.broadcasts.length,0);
 });

@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.4', date: '4 Nov 2026', title: 'Stronger payment checks',
+    items: ['Ranked payments stay saved while inconsistent chain receipts are checked again.'],
+  },
+  {
     version: '0.44.3', date: '4 Nov 2026', title: 'Keep every character',
     items: ['Casual names and bug reports keep accented letters and emoji when a network request arrives in pieces.'],
   },

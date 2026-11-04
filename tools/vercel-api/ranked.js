@@ -74,18 +74,28 @@ async function checkPayment(tx, from, sinceMs, mode = 'normal') {
   const race = RACES[mode];
   const r = await arb('eth_getTransactionReceipt', [tx]);
   if (!r) return { error: 'that payment is not on Arbitrum yet. Wait a few seconds and try again', retry: true };
-  if (r.status !== '0x1') return { error: 'that payment failed on-chain' };
-  const pad = (a) => '0x' + a.replace(/^0x/, '').toLowerCase().padStart(64, '0');
-  let paid = 0n;
-  for (const l of r.logs || []) {
-    if (String(l.address).toLowerCase() !== DMT || !l.topics || l.topics[0] !== TRANSFER) continue;
-    if (String(l.topics[1]).toLowerCase() !== pad(from) || String(l.topics[2]).toLowerCase() !== pad(COLLECT)) continue;
-    paid += BigInt(l.data === '0x' ? 0 : l.data);
-  }
-  if (paid < race.wei) return { error: `that transaction did not send ${race.dmt} DMT from your wallet to the entry address` };
+  const pending = { error: 'could not verify that payment on Arbitrum yet. Wait a few seconds and try again', retry: true };
+  const hash = value => typeof value === 'string' && TXH.test(value.toLowerCase()) ? value.toLowerCase() : null;
+  const quantity = value => typeof value === 'string' && /^0x(?:0|[1-9a-f][0-9a-f]{0,63})$/i.test(value);
+  if (hash(r.transactionHash) !== tx || !hash(r.blockHash) || !quantity(r.blockNumber) || !['0x0', '0x1'].includes(r.status) || !Array.isArray(r.logs) || r.logs.some(l => !l || typeof l !== 'object' || l.removed === true)) return pending;
   const block = await arb('eth_getBlockByNumber', [r.blockNumber, false]);
-  const at = block ? Number(BigInt(block.timestamp)) * 1000 : 0;
-  if (!at) return { error: 'could not read when that payment was made, try again in a minute', retry: true };
+  if (!block || hash(block.hash) !== hash(r.blockHash) || !quantity(block.number) || BigInt(block.number) !== BigInt(r.blockNumber) || !quantity(block.timestamp)) return pending;
+  const at = Number(BigInt(block.timestamp)) * 1000;
+  if (!Number.isSafeInteger(at) || at <= 0) return pending;
+  const pad = (a) => '0x' + a.replace(/^0x/, '').toLowerCase().padStart(64, '0');
+  let paid = 0n; const indices = new Set();
+  for (const l of r.logs) {
+    if (typeof l.address !== 'string' || l.address.toLowerCase() !== DMT || !Array.isArray(l.topics) || l.topics[0] !== TRANSFER) continue;
+    if (r.status === '0x0' || l.topics.length !== 3 || !l.topics.slice(1).every(hash) || typeof l.data !== 'string' || !/^0x[0-9a-f]{64}$/i.test(l.data) || hash(l.transactionHash) !== tx || hash(l.blockHash) !== hash(r.blockHash) || !quantity(l.blockNumber) || BigInt(l.blockNumber) !== BigInt(r.blockNumber) || !quantity(l.logIndex)) return pending;
+    const index = BigInt(l.logIndex);
+    if (indices.has(index)) return pending;
+    indices.add(index);
+    if (hash(l.topics[1]) !== pad(from) || hash(l.topics[2]) !== pad(COLLECT)) continue;
+    paid += BigInt(l.data);
+  }
+  // An unrelated or contradictory reverted receipt must not erase payment recovery.
+  if (r.status === '0x0') return { error: 'that payment failed on-chain' };
+  if (paid < race.wei) return { error: `that transaction did not send ${race.dmt} DMT from your wallet to the entry address` };
   if (at < sinceMs) return { error: 'that payment is too old to be an entry' };
   return { paid, at };
 }

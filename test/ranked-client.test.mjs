@@ -68,6 +68,28 @@ test('a confirmed reverted payment recovered after reload releases entry control
   assert.equal(localStorage.getItem('sq-ranked-payment'), null);
 });
 
+test('inconsistent receipt retries retain the payment until the same transaction is registered', async t => {
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage() });
+  const payment = { tx, signature: 'sig', nonce: 'signed' };
+  for (const store of [localStorage, sessionStorage]) store.setItem('sq-ranked-payment', JSON.stringify(payment));
+  const schedule = globalThis.setTimeout;
+  t.mock.method(globalThis, 'setTimeout', (fn, ms, ...args) => schedule(fn, ms === 3000 ? 0 : ms, ...args));
+  let attempts = 0, consistent = false;
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/api/ranked-enter');
+    assert.deepEqual(JSON.parse(options.body), payment); attempts++;
+    return consistent ? response({ entry: 'ticket', id: 1, week: 0, mode: 'normal' }) : response({ error: 'could not verify that payment on Arbitrum yet', retry: true }, 503);
+  });
+  await assert.rejects(client.recoverPayment('/', () => {}), error => error.status === 503 && error.retry === true);
+  assert.equal(attempts, 5, 'automatic retries are bounded');
+  for (const store of [localStorage, sessionStorage]) assert.deepEqual(JSON.parse(store.getItem('sq-ranked-payment')), payment);
+  consistent = true;
+  await client.recoverPayment('/', () => {});
+  assert.equal(attempts, 6);
+  for (const store of [localStorage, sessionStorage]) assert.equal(store.getItem('sq-ranked-payment'), null);
+  assert.equal(JSON.parse(localStorage.getItem('sq-ranked-entries'))[0].id, 1);
+});
+
 // a wallet stub that pays: records every request
 function payingWallet(requests) {
   return { p: { request: async (r) => {

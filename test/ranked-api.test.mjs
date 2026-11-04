@@ -79,8 +79,9 @@ const expectError = (r, code, error) => assert.deepEqual(r, { code, json: { erro
 async function nonce(w, opts = {}) { const r = await call('ranked-nonce?wallet=' + w.address + (opts.mode ? '&mode=' + opts.mode : ''), undefined, opts); assert.equal(r.code, 200, JSON.stringify(r)); return { nonce: r.json.nonce, signature: w.sign(r.json.message), message: r.json.message, amountWei: r.json.amountWei }; }
 function payment(w, { amount = 500000000000000000n, token = DMT, recipient = ranked.COLLECT, status = '0x1', at = now, amounts } = {}) {
   const tx = '0x' + (++serial).toString(16).padStart(64, '0'), blockNumber = '0x' + serial.toString(16);
-  chain.set(tx, { status, blockNumber, logs: (amounts ?? [amount]).map(n => ({ address: token, topics: [TRANSFER, pad(w.address), pad(recipient)], data: '0x' + n.toString(16) })) });
-  blocks.set(blockNumber, { timestamp: '0x' + Math.floor(at / 1000).toString(16) });
+  const blockHash = '0x' + (1000 + serial).toString(16).padStart(64, '0');
+  chain.set(tx, { transactionHash: tx, status, blockNumber, blockHash, logs: (status === '0x0' ? [] : amounts ?? [amount]).map((n, i) => ({ address: token, topics: [TRANSFER, pad(w.address), pad(recipient)], data: '0x' + n.toString(16).padStart(64, '0'), removed: false, transactionHash: tx, blockNumber, blockHash, transactionIndex: '0x0', logIndex: '0x' + i.toString(16) })) });
+  blocks.set(blockNumber, { number: blockNumber, hash: blockHash, timestamp: '0x' + Math.floor(at / 1000).toString(16) });
   return tx;
 }
 async function enter(w = wallet(), opts = {}) {
@@ -210,6 +211,83 @@ test('payment attacks have exact refusals; split transfers from one wallet count
   const again = await call('ranked-enter', { ...auth, tx }); assert.equal(again.json.id, first.json.id); assert.equal(again.json.again, true); assert.equal(db.rows.length, 1);
   const b = wallet(), bAuth = await nonce(b, { ip: '192.0.2.2' });
   expectError(await call('ranked-enter', { ...bAuth, tx }, { ip: '192.0.2.2' }), 400, 'that transaction did not send 0.5 DMT from your wallet to the entry address');
+});
+
+test('receipt proof inconsistencies cannot create an entry or refund', async t => {
+  for (const [label, mutate] of [
+    ['another transaction', r => r.transactionHash = '0x' + 'a'.repeat(64)],
+    ['missing transaction identity', r => delete r.transactionHash],
+    ['unmined receipt', r => { r.blockNumber = null; r.blockHash = null; }],
+    ['invalid block selector', r => r.blockNumber = 'latest'],
+    ['noncanonical block', (r, b) => b.hash = '0x' + 'b'.repeat(64)],
+    ['wrong block number', (r, b) => b.number = '0x987'],
+    ['missing canonical hash', (r, b) => delete b.hash],
+    ['unsafe timestamp', (r, b) => b.timestamp = '0x' + 'f'.repeat(64)],
+    ['invalid receipt status', r => r.status = '0x2'],
+    ['wrong reverted receipt', r => { r.status = '0x0'; r.transactionHash = '0x' + 'a'.repeat(64); }],
+    ['reverted receipt containing a Transfer', r => r.status = '0x0'],
+    ['removed log in a reverted receipt', r => { r.status = '0x0'; r.logs[0].removed = true; }],
+  ]) await t.test(label, async () => {
+    const w = wallet(), auth = await nonce(w), tx = payment(w), receipt = chain.get(tx);
+    mutate(receipt, blocks.get(receipt.blockNumber));
+    const out = await call('ranked-enter', { ...auth, tx });
+    assert.equal(out.code, 503, JSON.stringify(out));
+    assert.equal(out.json.retry, true);
+    assert.equal(db.rows.length, 0, 'inconsistent proof cannot create an entry or an owed refund');
+  });
+});
+
+test('receipt proof rejects removed or malformed matching Transfer events', async t => {
+  for (const [label, mutate] of [
+    ['removed event', l => l.removed = true],
+    ['event belongs to another transaction', l => l.transactionHash = '0x' + 'c'.repeat(64)],
+    ['event belongs to another block', l => l.blockHash = '0x' + 'd'.repeat(64)],
+    ['event block number differs', l => l.blockNumber = '0x888'],
+    ['short amount', l => l.data = '0x6f05b59d3b20000'],
+    ['decimal amount', l => l.data = '500000000000000000'],
+    ['extra indexed topic', l => l.topics.push('0x' + 'e'.repeat(64))],
+    ['missing event block identity', l => delete l.blockHash],
+    ['missing event index', l => delete l.logIndex],
+    ['invalid event index', l => l.logIndex = '0x'],
+  ]) await t.test(label, async () => {
+    const w = wallet(), auth = await nonce(w), tx = payment(w);
+    mutate(chain.get(tx).logs[0]);
+    const out = await call('ranked-enter', { ...auth, tx });
+    assert.equal(out.code, 503, JSON.stringify(out));
+    assert.equal(out.json.retry, true);
+    assert.equal(db.rows.length, 0);
+  });
+});
+
+for (const amount of [250000000000000000n, 500000000000000000n]) test(`receipt proof never counts duplicate ${amount} wei Transfer logs as separate payments`, async () => {
+  const w = wallet(), auth = await nonce(w), tx = payment(w, { amount }), logs = chain.get(tx).logs;
+  logs.push(structuredClone(logs[0]));
+  const out = await call('ranked-enter', { ...auth, tx });
+  assert.equal(out.code, 503, JSON.stringify(out)); assert.equal(out.json.retry, true);
+  assert.equal(db.rows.length, 0, 'duplicates cannot create an entry or an inflated refund');
+});
+
+test('receipt proof can be retried on the same saved payment after RPC consistency recovers', async () => {
+  const w = wallet(), auth = await nonce(w), tx = payment(w), receipt = structuredClone(chain.get(tx));
+  chain.get(tx).blockHash = '0x' + 'f'.repeat(64);
+  const pending = await call('ranked-enter', { ...auth, tx });
+  assert.equal(pending.code, 503); assert.equal(pending.json.retry, true); assert.equal(db.rows.length, 0);
+  chain.set(tx, receipt);
+  const ready = await call('ranked-enter', { ...auth, tx });
+  assert.equal(ready.code, 200);
+  const again = await call('ranked-enter', { ...auth, tx });
+  assert.equal(again.code, 200); assert.equal(again.json.id, ready.json.id); assert.equal(db.rows.length, 1);
+});
+
+test('receipt proof preserves valid mixed-case hashes and Hard split payments', async () => {
+  now += weekMs;
+  const w = wallet(), auth = await nonce(w, { mode: 'hard' });
+  const tx = payment(w, { amounts: [1000000000000000000n, 500000000000000000n] }), receipt = chain.get(tx), block = blocks.get(receipt.blockNumber);
+  const upper = value => '0x' + value.slice(2).toUpperCase();
+  receipt.transactionHash = upper(receipt.transactionHash); receipt.blockHash = upper(receipt.blockHash); block.hash = upper(block.hash);
+  for (const l of receipt.logs) { l.transactionHash = upper(l.transactionHash); l.blockHash = upper(l.blockHash); l.data = upper(l.data); }
+  assert.equal((await call('ranked-enter', { ...auth, tx })).code, 200);
+  assert.equal(db.rows.length, 1); assert.equal(db.rows[0].mode, 'hard'); assert.equal(db.rows[0].paid, '1500000000000000000');
 });
 
 test('pre-reset payments are owed; very old payments are refused without a refund', async () => {

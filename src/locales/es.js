@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Stronger payment checks": "Comprobaciones de pago más estrictas",
+  "Ranked payments stay saved while inconsistent chain receipts are checked again.": "Los pagos del modo competitivo permanecen guardados mientras se vuelven a comprobar los recibos inconsistentes de la cadena.",
   "Keep every character": "Conserva cada carácter",
   "Casual names and bug reports keep accented letters and emoji when a network request arrives in pieces.": "Los nombres del modo casual y los informes de errores conservan las letras acentuadas y los emojis cuando una solicitud de red llega por partes.",
   "A smoother Sankson walk": "Un caminar más natural para Sankson",
