@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.43.1', date: '4 Nov 2026', title: 'Know your starting bonuses',
+    items: ['Skills and Gear show the casual enemy scaling from your saved ranks and starting equipment.', 'The menus explain the existing cap and how gear counts. Ranked keeps its equal starts.'],
+  },
+  {
     version: '0.43', date: '4 Nov 2026', title: 'Clearer ranked prize estimates',
     items: ['Ranked pools and estimated prizes keep their exact DMT amounts, including the last winner’s rounding dust.', 'Unfilled places show their rollover. Incoming rollover appears when the previous race is settled; pending rollover is labelled separately.', 'Prize displays describe the current standings before review. Unavailable pool data no longer appears as an empty pot.'],
   },

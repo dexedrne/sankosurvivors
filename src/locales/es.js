@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Each skill rank adds 1.5% enemy HP/contact damage. Each starting gear piece counts as two ranks, up to +75%. Ranked ignores both.": "Cada rango de habilidad añade un 1.5% de vida/daño de contacto a los enemigos. Cada pieza equipada al inicio cuenta como dos rangos, hasta +75%. El modo competitivo ignora ambos.",
+  "Before armour and other modifiers.": "Antes de la armadura y otros modificadores.",
   "Estimated prize": "Premio estimado",
   "Estimates at current standings, before review.": "Estimaciones según la clasificación actual, antes de la revisión.",
   "Rollover pending settlement; prizes unavailable.": "El remanente espera liquidación; los premios aún no están disponibles.",
@@ -900,6 +902,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Escalado casual: vida/daño de contacto enemigos +{1}%; presión de aparición base +{2}%."],
   ["{1} entries · {2} DMT from entries.", "{1} participaciones · {2} DMT de las participaciones."],
   ["Includes {1} DMT rollover.", "Incluye {1} DMT de remanente."],
   ["Unfilled places: {1} DMT rollover.", "Puestos vacantes: {1} DMT de remanente."],

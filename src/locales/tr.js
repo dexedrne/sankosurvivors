@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Each skill rank adds 1.5% enemy HP/contact damage. Each starting gear piece counts as two ranks, up to +75%. Ranked ignores both.": "Her beceri kademesi düşman HP/temas hasarını %1.5 artırır. Başlangıçta giyilen her parça iki kademe sayılır; sınır +%75. Dereceli mod ikisini de kullanmaz.",
+  "Before armour and other modifiers.": "Zırh ve diğer değiştiricilerden önce.",
   "Estimated prize": "Tahmini ödül",
   "Estimates at current standings, before review.": "İnceleme öncesi, mevcut sıralamaya göre tahminler.",
   "Rollover pending settlement; prizes unavailable.": "Devreden tutar hesaplaşmayı bekliyor; ödüller henüz gösterilemiyor.",
@@ -900,6 +902,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Serbest mod ölçeklemesi: düşman HP/temas hasarı +{1}%; temel doğma baskısı +{2}%."],
   ["{1} entries · {2} DMT from entries.", "{1} katılım · katılımlardan {2} DMT."],
   ["Includes {1} DMT rollover.", "Devreden {1} DMT dahildir."],
   ["Unfilled places: {1} DMT rollover.", "Doldurulmayan sıralar: {1} DMT devreder."],

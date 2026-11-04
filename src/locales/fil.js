@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Each skill rank adds 1.5% enemy HP/contact damage. Each starting gear piece counts as two ranks, up to +75%. Ranked ignores both.": "Bawat antas ng kasanayan ay nagdaragdag ng 1.5% sa HP/pinsala sa pagdikit ng kalaban. Bawat gamit na suot sa simula ay katumbas ng dalawang antas, hanggang +75%. Hindi ginagamit ng Ranked ang pareho.",
+  "Before armour and other modifiers.": "Bago ang baluti at iba pang modifier.",
   "Estimated prize": "Tinatayang premyo",
   "Estimates at current standings, before review.": "Mga tantiya batay sa kasalukuyang ranggo, bago ang pagsusuri.",
   "Rollover pending settlement; prizes unavailable.": "Naghihintay pa ang natitirang pondo sa pagsasara; hindi pa maipapakita ang mga premyo.",
@@ -900,6 +902,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Casual scaling: HP/pinsala sa pagdikit ng kalaban +{1}%; batayang pagdami ng kalaban +{2}%."],
   ["{1} entries · {2} DMT from entries.", "{1} lahok · {2} DMT mula sa mga lahok."],
   ["Includes {1} DMT rollover.", "Kasama ang {1} DMT na natitirang pondo."],
   ["Unfilled places: {1} DMT rollover.", "Mga bakanteng puwesto: {1} DMT na natitirang pondo."],

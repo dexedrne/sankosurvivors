@@ -392,9 +392,16 @@ async function submitRanked() {
 $('rankedretry').onclick = submitRanked;
 
 // ---- skills shop ----------------------------------------------------------------------------------------------------
+function progressionText(meta, gear) {
+  const { vet } = createSim({ meta, players: [{ id: PLAYER, gear: runAdv().id !== selAdv ? {} : gear }] });
+  const strength = Math.round((vet - 1) * 100000) / 1000;
+  const spawns = Math.round(strength * 0.55 * 1000) / 1000;
+  return `Casual scaling: enemy HP/contact damage +${strength}%; base spawn pressure +${spawns}%.`;
+}
 function buildSkills() {
   const lv = getSkills(), coins = getCoins();
   $('coins2').textContent = coins;
+  $('skillpressure').textContent = progressionText(lv, getGear());
   $('skillgrid').innerHTML = SKILL_IDS.map((id) => {
     const s = SKILLS[id], l = lv[id] || 0, max = l >= s.max, cost = skillCost(id, l);
     return `<div class="skill"><img src="${asset('')}${s.icon}" alt=""><h4>${s.name}</h4><div class="pips">${'■'.repeat(l)}${'□'.repeat(s.max - l)}</div><p style="grid-column:1/-1">${s.blurb}</p><button data-id="${id}" ${max || coins < cost ? 'disabled' : ''}>${max ? 'Maxed' : `Train · ${cost} coins`}</button></div>`;
@@ -466,6 +473,7 @@ let gearSlotSel = 'head';
 const gearSlotName = slot => slot === 'back' ? 'Cape' : GEAR_SLOT_NAMES[slot];
 function buildGear() {
   const gear = getGear(), bank = getBank(), lvs = getGearLv(), coins = getCoins();
+  $('gearpressure').textContent = progressionText(getSkills(), gear);
   const owned = new Set(bank);
   // the slots as labelled tabs (owner 3 Nov: "organize everything in gear by slot type"): what you wear there, its name,
   // and how many of the slot's pieces you have found
