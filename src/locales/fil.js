@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Keep every character": "Panatilihin ang bawat karakter",
+  "Casual names and bug reports keep accented letters and emoji when a network request arrives in pieces.": "Napananatili ang mga titik na may tuldik at emoji sa mga pangalan sa casual at ulat ng bug kahit paunti-unting dumating ang network request.",
   "A smoother Sankson walk": "Mas maayos na paglakad ni Sankson",
   "Sankson's right knee bends naturally when he walks.": "Natural na ang pagyuko ng kanang tuhod ni Sankson kapag naglalakad siya.",
   "Drag to resume. The fight is paused.": "I-drag para magpatuloy. Naka-pause ang laban.",

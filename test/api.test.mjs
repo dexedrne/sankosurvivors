@@ -13,7 +13,7 @@ const calls = [];
 globalThis.fetch = async (url, opts) => { calls.push({ url: String(url), body: JSON.parse(opts.body) }); return new Response(JSON.stringify({ ok: true, rank: 1 }), { status: 200 }); };
 
 function call(method, route, body, headers = { 'content-type': 'application/json' }) {
-  const req = Readable.from(body === undefined ? [] : [typeof body === 'string' ? body : JSON.stringify(body)]);
+  const req = body instanceof Readable ? body : Readable.from(body === undefined ? [] : [typeof body === 'string' ? body : JSON.stringify(body)]);
   Object.assign(req, { method, url: `/api?route=${route}`, headers: { 'x-forwarded-for': '1.2.3.4', ...headers } });
   return new Promise((done) => {
     const res = { statusCode: 200, headers: {}, setHeader(k, v) { this.headers[k] = v; }, end(s) { done({ code: this.statusCode, json: JSON.parse(s) }); } };
@@ -134,6 +134,43 @@ test('optional report metadata never invokes object coercion or loses valid Unic
   assert.equal(report.text, 'Harita açılmıyor 🧀');
   assert.equal(report.map, ''); assert.equal(report.adv, ''); assert.equal(report.v, '');
   assert.deepEqual(report.errors, ['', 'ouch', '']); assert.deepEqual(report.settings, { sound: false });
+});
+
+test('report text survives every UTF-8 byte boundary in a request stream', async t => {
+  t.mock.method(console, 'log', () => {});
+  const report = { text: 'Harita açılmıyor 🧀 — español, 中文, 🇵🇭', errors: ['Seçim dondu 🧊'], settings: { note: 'Türkçe' } };
+  const bytes = Buffer.from(JSON.stringify(report));
+  for (let i = 1; i < bytes.length; i++) {
+    calls.length = 0;
+    const out = await call('POST', 'report', Readable.from([bytes.subarray(0, i), bytes.subarray(i)]));
+    assert.equal(out.code, 200);
+    const saved = calls.at(-1).body.p_report;
+    assert.equal(saved.text, report.text, `split at byte ${i}`);
+    assert.deepEqual(saved.errors, report.errors);
+    assert.deepEqual(saved.settings, report.settings);
+  }
+});
+
+test('casual names survive requests delivered one byte at a time', async () => {
+  const data = { ticket: ticket(120), map: 'greentown', name: 'Çağrı 🧀', t: 100, kills: 12, level: 3 };
+  const bytes = Buffer.from(JSON.stringify(data));
+  const out = await call('POST', 'score', Readable.from(Array.from(bytes, byte => Buffer.from([byte]))));
+  assert.equal(out.code, 200);
+  assert.equal(calls.at(-1).body.p_name, 'Çağrı 🧀');
+});
+
+test('stream decoding keeps the existing text limit and refuses truncated JSON', async t => {
+  t.mock.method(console, 'log', () => {});
+  const raw = JSON.stringify({ text: 'ç 🧀' });
+  const atLimit = raw + ' '.repeat(20000 - raw.length);
+  const bytes = Buffer.from(atLimit);
+  assert.equal((await call('POST', 'report', Readable.from([bytes.subarray(0, 10), bytes.subarray(10)]))).code, 200);
+  assert.equal(calls.at(-1).body.p_report.text, 'ç 🧀');
+  for (const bytes of [Buffer.from(atLimit + ' '), Buffer.from('{"text":"ç'), Buffer.concat([Buffer.from('{"text":"ok"}'), Buffer.from([0xc3])])]) {
+    calls.length = 0;
+    assert.equal((await call('POST', 'report', Readable.from([bytes]))).code, 400);
+    assert.equal(calls.length, 0);
+  }
 });
 
 test('text limits never send an unpaired surrogate to PostgreSQL', async () => {

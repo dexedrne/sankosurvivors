@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.3', date: '4 Nov 2026', title: 'Keep every character',
+    items: ['Casual names and bug reports keep accented letters and emoji when a network request arrives in pieces.'],
+  },
+  {
     version: '0.44.2', date: '4 Nov 2026', title: 'A smoother Sankson walk',
     items: ["Sankson's right knee bends naturally when he walks."],
   },

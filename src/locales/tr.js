@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep every character": "Her karakter korunsun",
+  "Casual names and bug reports keep accented letters and emoji when a network request arrives in pieces.": "Normal oyun adları ve hata raporları, ağ isteği parça parça ulaştığında Türkçe harfleri, aksanlı harfleri ve emojileri korur.",
   "A smoother Sankson walk": "Sankson daha doğal yürüyor",
   "Sankson's right knee bends naturally when he walks.": "Sankson'un sağ dizi artık yürürken doğal biçimde bükülüyor.",
   "Drag to resume. The fight is paused.": "Devam etmek için sürükle. Çatışma duraklatıldı.",

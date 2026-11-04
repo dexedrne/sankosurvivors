@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep every character": "Conserva cada carácter",
+  "Casual names and bug reports keep accented letters and emoji when a network request arrives in pieces.": "Los nombres del modo casual y los informes de errores conservan las letras acentuadas y los emojis cuando una solicitud de red llega por partes.",
   "A smoother Sankson walk": "Un caminar más natural para Sankson",
   "Sankson's right knee bends naturally when he walks.": "La rodilla derecha de Sankson se dobla de forma natural al caminar.",
   "Drag to resume. The fight is paused.": "Arrastra para continuar. El combate está en pausa.",

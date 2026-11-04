@@ -5,6 +5,7 @@
 //   POST /api/score   {map,name,t,kills,level,adv,won,hard,v}
 //   POST /api/report  {text,map,adv,settings,errors,ua,v}
 const crypto = require('node:crypto');
+const { StringDecoder } = require('node:string_decoder');
 const SB = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 // Run tickets: a run gets a signed, timestamped ticket when it starts; a score needs one, the run cannot claim more
 // time than has really passed since, and each ticket counts once. (Stops instant fake scores; a patient cheat can
@@ -64,11 +65,12 @@ async function rpc(fn, args) {
   return r.json();
 }
 const send = (res, code, obj, cache) => { res.statusCode = code; res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', cache || 'no-store'); res.end(JSON.stringify(obj)); };
-// a JSON object body (anything else, or more than 20 KB, reads as {})
+// a JSON object body (anything else, or more than 20,000 UTF-16 units, reads as {})
 const body = (req) => new Promise((ok) => {
+  const decoder = new StringDecoder('utf8'); // Network chunks can split a multibyte character.
   let s = '', done = false; const end = (v) => { if (!done) { done = true; ok(v); } };
-  req.on('data', (c) => { if (done) return; s += c; if (s.length > 20000) { end({}); req.destroy(); } });
-  req.on('end', () => { try { const v = JSON.parse(s || '{}'); end(v && typeof v === 'object' && !Array.isArray(v) ? v : {}); } catch { end({}); } });
+  req.on('data', (c) => { if (done) return; s += decoder.write(Buffer.isBuffer(c) ? c : Buffer.from(c)); if (s.length > 20000) { end({}); req.destroy(); } });
+  req.on('end', () => { if (done) return; s += decoder.end(); if (s.length > 20000) return end({}); try { const v = JSON.parse(s || '{}'); end(v && typeof v === 'object' && !Array.isArray(v) ? v : {}); } catch { end({}); } });
   req.on('error', () => end({}));
 });
 // PostgreSQL rejects lone surrogates, including a pair split by the length cap.
