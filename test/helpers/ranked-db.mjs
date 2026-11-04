@@ -22,6 +22,8 @@ export class RankedDB {
     const hard = (m) => (m === 'hard' ? 'Hard ' : '');
     if (!['sqs_ranked_board', 'sqs_ranked_settle', 'sqs_ranked_log'].includes(fn) && p.p_server_key !== 'server-key') return error('forbidden');
     switch (fn) {
+      // Rate windows are exercised against real PostgreSQL; API fixtures can inject a blocked connection.
+      case 'sqs_ranked_receipt_gate': return this.receiptBlocked ? error('slow down') : {ok:true};
       case 'sqs_ranked_can_enter':
         if (!raceOk(mode, week)) return error('no such race this week');
         if (sameIP()) return error('one wallet per player each week: this connection already entered with another wallet');
@@ -59,6 +61,25 @@ export class RankedDB {
       case 'sqs_ranked_claim':
         if (!e || e.started_at == null || e.claimed_at != null) return error('that run was already sent');
         e.claimed_at = Date.now(); return { ok: true };
+      case 'sqs_ranked_claim_v2':
+        if (!e || e.started_at == null || e.started_at !== p.p_started || e.refund_reason != null || !/^[a-f0-9]{64}$/.test(p.p_log_sha || '') || !p.p_attempt || (e.submit_sha != null && e.submit_sha !== p.p_log_sha)) return error('that run was already sent');
+        if (e.finished_at != null) return e.submit_result && e.submit_sha === p.p_log_sha ? { result:e.submit_result } : error('that run was already sent');
+        if (e.claimed_at != null && e.submit_sha == null) return error('an older submission is in progress: tell the dev if it does not finish');
+        if (e.submit_sha == null && p.p_allow_claim !== true) return error('that run was sent too late');
+        if (e.submit_until > Date.now()) return { busy:true };
+        Object.assign(e,{claimed_at:e.claimed_at ?? Date.now(),submit_sha:p.p_log_sha,submit_attempt:p.p_attempt,submit_until:Date.now()+900000});
+        return {ok:true,received:Math.round(e.claimed_at)};
+      case 'sqs_ranked_release_v2':
+        if (e && e.started_at === p.p_started && e.submit_sha === p.p_log_sha && e.submit_attempt === p.p_attempt && e.finished_at == null) e.submit_until=Date.now();
+        return {ok:true};
+      case 'sqs_ranked_finish_v2': {
+        if (!e || e.started_at !== p.p_started || e.submit_sha !== p.p_log_sha || e.submit_attempt !== p.p_attempt) return error('that run was already sent');
+        if (e.submit_result) return e.submit_result;
+        const out = await this.rpc('sqs_ranked_finish',p);
+        if (!out || out.error) return out;
+        e.submit_result={ok:true,t:e.t,kills:e.kills,level:e.level,won:e.won,mode:e.mode,rank:out.rank,verdict:e.verdict}; e.submit_until=null;
+        return e.submit_result;
+      }
       case 'sqs_ranked_finish': {
         if (this.finishError) return error(this.finishError);
         if (!e || e.claimed_at == null || e.finished_at != null) return error('that run was already sent');

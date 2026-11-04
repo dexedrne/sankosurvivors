@@ -167,6 +167,8 @@ async function handle(route, req, res, ctx) {
     const wallet = typeof b.signature === 'string' ? recoverSigner(enterMessage(b.nonce, n.w, mode), b.signature) : null;
     if (!wallet) return send(res, 400, { error: 'the signature did not check out' });
     const tx = typeof b.tx === 'string' ? b.tx.toLowerCase() : ''; if (!TXH.test(tx)) return send(res, 400, { error: 'bad transaction id' });
+    const gate = await rpc('sqs_ranked_receipt_gate', { p_server_key: SERVER_KEY, p_ip_hash: ipHash(ip, week, TICKET_KEY) });
+    if (!gate?.ok) return send(res, gate?.error === 'slow down' ? 429 : 503, { error: gate?.error || 'could not check payment yet', retry: true });
     const pay = await checkPayment(tx, wallet, g.weekStart(week - 1), mode);
     if (pay.error) return send(res, pay.retry ? 503 : 400, pay);
     if (pay.at < g.weekStart(week)) {
@@ -217,32 +219,48 @@ async function handle(route, req, res, ctx) {
 
   if (route === 'ranked-submit' && req.method === 'POST') {
     const b = await readBody(req); if (b.tooBig) return send(res, 413, { error: 'that run log is too big' });
-    const r = unsign(b.run); if (!r || r.k !== 'rrun') return send(res, 400, { error: 'no run' });
+    const r = unsign(b.run); if (!r || r.k !== 'rrun' || !Number.isSafeInteger(r.s) || r.s <= 0) return send(res, 400, { error: 'no run' });
     const played = typeof r.v === 'string' ? load(r.v) : null; // the version this run was played on
     // the run's longest length comes from its own version and week: 15 minutes in week 0, the time limit from week 1
     const runMax = played ? runSecondsIn(played.game, r.w) : LEGACY_RUN_SECONDS;
-    const real = (Date.now() - r.s) / 1000;
-    if (real > runMax + LATE_SECONDS) return send(res, 400, { error: 'that run was sent too late' });
+    const sentReal = (Date.now() - r.s) / 1000;
     const maxTicks = Math.ceil(runMax * 30);
     const shape = logShape(b.log, maxTicks); if (shape) return send(res, 400, { error: shape });
     if (!played) return send(res, 500, { error: 'server error: that game version is missing. Your run was not used up; tell the dev' });
-    // claim the entry first, so a run is only ever replayed (and counted) once
-    const claim = await rpc('sqs_ranked_claim', { p_server_key: SERVER_KEY, p_id: r.id, p_wallet: r.a });
-    if (!claim || claim.error) return send(res, 400, claim || { error: 'that run was already sent' });
-    // a log longer than the time since its start is refused before the (long, for endless runs) replay
-    const logTicks = b.log.runs.reduce((n, x) => n + x[0], 0), early = real < (logTicks / 30) * 0.97 - 5;
-    const result = early ? { t: 0, kills: 0, level: 0 } : played.game.replay(b.log, { seed: r.seed, mapId: played.game.weekMap(r.w), adv: r.adv, ground: played.ground, week: r.w, mode: modeOf(r) }, { maxTicks });
-    let verdict = 'ok';
-    if (early) verdict = 'rejected: faster than real time';
-    else if (result.error) verdict = 'rejected: ' + result.error;
-    else if (real < result.t * 0.97 - 5) verdict = 'rejected: faster than real time';
-    else if (real > result.t + pauseAllowance(result.t)) verdict = 'rejected: much slower than real time';
     const sha = crypto.createHash('sha256').update(JSON.stringify(b.log)).digest('hex');
-    const ok = verdict === 'ok';
-    const out = await rpc('sqs_ranked_finish', { p_server_key: SERVER_KEY, p_id: r.id, p_name: (typeof b.name === 'string' && clean(b.name, 16)) || 'Adventurer', p_t: ok ? result.t : 0, p_kills: ok ? result.kills : 0, p_level: ok ? result.level : 0, p_won: ok && result.won, p_verdict: verdict, p_log_sha: sha, p_log: ok ? zlib.gzipSync(JSON.stringify(b.log)).toString('base64') : null });
-    if (!out || out.error) return send(res, 400, out || { error: 'could not save the run' });
-    if (!ok) return send(res, 400, { error: 'this run did not check out (' + verdict.slice(10) + ')' });
-    return send(res, 200, { ok: true, t: result.t, kills: result.kills, level: result.level, won: result.won, mode: modeOf(r), rank: out && out.rank });
+    const ident = { p_server_key: SERVER_KEY, p_id: r.id, p_wallet: r.a, p_started: r.s, p_log_sha: sha, p_attempt: crypto.randomUUID() };
+    const reply = (out) => {
+      if (out.verdict !== 'ok') return send(res, 400, { error: 'this run did not check out (' + out.verdict.slice(10) + ')' });
+      const { verdict, ...score } = out;
+      return send(res, 200, score);
+    };
+    let release = true; // a lost claim response may still have acquired our UUID's lease
+    try {
+      const claim = await rpc('sqs_ranked_claim_v2', { ...ident, p_allow_claim: sentReal <= runMax + LATE_SECONDS });
+      if (claim && (claim.error || claim.busy || claim.result)) {
+        release = false;
+        if (claim.error) return /older submission|already settled/.test(claim.error) ? send(res, 409, { ...claim, retry: true }) : send(res, 400, claim);
+        if (claim.busy) return send(res, 409, { error: 'that run is still being checked. Retry shortly; after a server interruption recovery can take up to 15 minutes.', retry: true });
+        return reply(claim.result);
+      }
+      if (!claim || !claim.ok || !Number.isSafeInteger(claim.received)) throw new Error('ranked claim was not acknowledged');
+      // Retries use the original receipt time: a recovery wait cannot invalidate an honest run or cure a too-fast log.
+      const real = (claim.received - r.s) / 1000;
+      const logTicks = b.log.runs.reduce((n, x) => n + x[0], 0), early = real < (logTicks / 30) * 0.97 - 5;
+      const result = early ? { t: 0, kills: 0, level: 0 } : played.game.replay(b.log, { seed: r.seed, mapId: played.game.weekMap(r.w), adv: r.adv, ground: played.ground, week: r.w, mode: modeOf(r) }, { maxTicks });
+      let verdict = 'ok';
+      if (early) verdict = 'rejected: faster than real time';
+      else if (result.error) verdict = 'rejected: ' + result.error;
+      else if (real < result.t * 0.97 - 5) verdict = 'rejected: faster than real time';
+      else if (real > result.t + pauseAllowance(result.t)) verdict = 'rejected: much slower than real time';
+      const ok = verdict === 'ok';
+      const out = await rpc('sqs_ranked_finish_v2', { ...ident, p_name: (typeof b.name === 'string' && clean(b.name, 16)) || 'Adventurer', p_t: ok ? result.t : 0, p_kills: ok ? result.kills : 0, p_level: ok ? result.level : 0, p_won: ok && result.won, p_verdict: verdict, p_log: ok ? zlib.gzipSync(JSON.stringify(b.log)).toString('base64') : null });
+      if (!out || out.error) return send(res, 503, { error: out?.error || 'could not save the run', retry: true });
+      release = false;
+      return reply(out);
+    } finally {
+      if (release) await rpc('sqs_ranked_release_v2', ident).catch(() => {}); // otherwise the 15-minute lease expires safely
+    }
   }
   if (route === 'ranked-void' && req.method === 'POST') {
     // only when the game really changed since this run started: a reload into the new version cannot finish it faithfully

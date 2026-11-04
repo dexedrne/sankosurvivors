@@ -26,7 +26,7 @@ for(const [name,code] of [['input',input],['capture navigation',navigation]]) {
 }
 
 for(const [name,code] of [['input',input],['capture navigation',navigation]]) test(`payment and other text fields bypass ${name} game shortcuts`,()=>{
-  for(const tag of ['input','textarea']){
+  for(const tag of ['input','textarea','summary']){
     const callbacks=[];
     const state=Function('addEventListener',`
       const keys=new Set(),mode='title',navEl=null;

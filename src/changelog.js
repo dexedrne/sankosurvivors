@@ -1,6 +1,17 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.41', date: '4 Nov 2026', title: 'Better phone menus and ranked recovery',
+    items: [
+      'Compact Adventurer and Map rows expand into full-width phone choices, with larger cards and readable names.',
+      'The installed app paints the game to the bottom edge, with controls kept clear of the home indicator.',
+      'Rabby joins the phone wallet choices. Opening a wallet app returns to the connection panel; tap Connect there to continue.',
+      'Interrupted ranked submissions keep your saved run available to retry, including after a server error.',
+      'Retries recover the same result without counting a run twice. A server interruption can take up to 15 minutes to recover.',
+      'Stronger validation of ranked submissions and more reliable payment checks.',
+    ],
+  },
+  {
     version:'0.40.5', date:'4 Nov 2026', title:'More room to play',
     items:['A compact phone menu gives the adventurer more room. Play and the footer scroll together, clear of the home indicator.', 'The title preview stands in a clear village spot. Phone menu controls have larger touch targets.', 'The installed app uses SankoQuest’s native Air Shard icon.', 'Stronger entry-payment recovery and safer wallet chain checks. Interrupted restart checks keep your saved run.', 'Cloud sign-in ignores superseded sessions.', 'Character resources and visual effects clear between runs. Reduced effects preserve boss attack warnings.'],
   },

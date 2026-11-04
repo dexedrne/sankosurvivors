@@ -11,7 +11,7 @@ import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
 const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
 // prize place of each board row: the developer's wallet and (from week 1) runs under 3:00 take none, the places pass down
 const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
-import { wallets, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
+import { wallets, watchWallets, takeWalletHandoff, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
 import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
 import { quoteDmt, buyDmt } from './swap.js';
 import { connect as walletConnect, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
@@ -23,10 +23,17 @@ import {
 } from './content.js';
 
 const $ = (id) => document.getElementById(id);
+const walletHandoff = takeWalletHandoff();
+if (walletHandoff?.language) { try { localStorage.setItem('sq-language', walletHandoff.language); } catch { /* private mode */ } }
 initI18n();
+if (walletHandoff?.language && document.documentElement.lang !== walletHandoff.language) {
+  const control = document.querySelector('[data-language]');
+  if (control) { control.value = walletHandoff.language; control.dispatchEvent(new Event('change')); }
+}
 const BASE = import.meta.env.BASE_URL || './';
 const params = new URLSearchParams(location.search);
 const compactMenu = matchMedia('(max-width:760px), (max-width:1180px) and (max-height:500px)');
+for (const id of ['adventurerpick', 'mappick']) $(id).open = !compactMenu.matches;
 const PLAYER = 'p1';
 
 let sim = null, renderer = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0;
@@ -113,6 +120,7 @@ function buildAdventurers() {
     selAdv = a.id; save('sq-adv', a.id); buildAdventurers(); window.__idleSim = null;
   };
   const a = ADVENTURER_BY_ID[selAdv];
+  $('adventurerlabel').textContent = a.name;
   const bonus = Object.entries(a.bonus).map(([k, v]) => ({ speed: `+${Math.round(v * 100)}% speed`, armor: `+${v} armor`, magnet: `+${Math.round(v * 100)}% pickup range`, growth: `+${Math.round(v * 100)}% experience`, hp: `+${v} HP`, dmg: `+${Math.round(v * 100)}% damage`, haste: `-${Math.round(v * 100)}% cooldowns` }[k])).join(', ');
   $('ainfo').innerHTML = `<b>${a.name}</b> · starts with ${weaponTitle(a.weapon, 1)}<br>${a.blurb} <span style="opacity:.75">(${bonus})</span>`;
 }
@@ -128,9 +136,11 @@ function buildMaps() {
     pickMap(el.dataset.id);
   };
   const m = MAP_BY_ID[selMap];
+  $('maplabel').textContent = m.name;
+  $('adventurerlabel').textContent = ADVENTURER_BY_ID[m.forceAdv || selAdv].name;
   $('mapinfo').innerHTML = `<b>${m.name}</b> · ${m.blurb}<br>Final boss: ${bossName(m, m.finalBoss)}`;
   $('apick').classList.toggle('forced', !!m.forceAdv);
-  if (m.forceAdv) { const fa = ADVENTURER_BY_ID[m.forceAdv]; $('ainfo').innerHTML = `On ${m.name} you play as <b>${fa.name}</b>: ${weaponTitle(fa.weapon, 1)}, bronze armour, winged boots and extra health.`; }
+  if (m.forceAdv) { const fa = ADVENTURER_BY_ID[m.forceAdv]; $('adventurerlabel').textContent = fa.name; $('ainfo').innerHTML = `On ${m.name} you play as <b>${fa.name}</b>: ${weaponTitle(fa.weapon, 1)}, bronze armour, winged boots and extra health.`; }
   const cleared = cl.has(m.id) || params.has('unlock');
   // always shown (owner 3 Nov: "where is hard mode"): greyed out with how to unlock until the map is cleared
   for (const [w, id] of [['hardwrap', 'hard'], ['endlesswrap', 'endless']]) { $(w).classList.remove('hidden'); $(w).classList.toggle('locked', !cleared); $(id).disabled = !cleared; $(w).title = cleared ? '' : `Clear ${m.name} to unlock`; }
@@ -284,11 +294,15 @@ function renderRankedFrom() {
   enter.textContent = two ? `Enter ${RACE[rankedMode].name} for ${price} DMT` : `Enter for ${price} DMT`;
 }
 const plain = (text) => Object.assign(new Error(text), { plain: true });
+function showRankedWalletChoices() {
+  const wrap = $('rankedwallets');
+  const ch = walletChoices((w) => rankedAction(async () => { await walletConnect(w); await refreshBalances(true); rankedMessage('Connected. Check your balance, then enter.'); }), 'ranked');
+  wrap.innerHTML = ch.html; ch.bind(wrap); rankedMessage(wallets().length ? 'Pick your wallet.' : '');
+}
 $('rankedenter').onclick = () => {
   const c = walletNow(), wrap = $('rankedwallets'); wrap.replaceChildren();
   if (!c) {
-    const ch = walletChoices((w) => rankedAction(async () => { await walletConnect(w); await refreshBalances(true); rankedMessage('Connected. Check your balance, then enter.'); }));
-    wrap.innerHTML = ch.html; ch.bind(wrap); rankedMessage(wallets().length ? 'Pick your wallet.' : '');
+    showRankedWalletChoices();
     return;
   }
   const mode = raceList(rankedWeek).includes(rankedMode) ? rankedMode : 'normal', price = Number(RACE[mode].entryDmt);
@@ -356,15 +370,15 @@ async function submitRanked() {
   try {
     const d = await rankedApi(BASE, 'submit', body);
     const race = d.mode === 'hard' ? ' in the Hard race' : '';
-    const message = d.rank ? `Ranked run accepted. You are #${d.rank}${race} this week.` : 'Ranked run accepted.';
+    const message = d.rank ? `Ranked run accepted. Place when checked: #${d.rank}${race}.` : 'Ranked run accepted.';
     if (lastRun && lastRun.ranked && d.rank) lastRun.rank = d.rank; // for Share on X
     $('rankedresult').textContent = message; rankedMessage(message);
     localStorage.removeItem('sq-ranked-submit'); localStorage.removeItem('sq-ranked-live');
     rankedRun = null; rankedRec = null;
   } catch (e) {
-    if (e.status) { localStorage.removeItem('sq-ranked-submit'); localStorage.removeItem('sq-ranked-live'); rankedRun = null; rankedRec = null; }
+    if (e.status === 400 && !e.retry) { localStorage.removeItem('sq-ranked-submit'); localStorage.removeItem('sq-ranked-live'); rankedRun = null; rankedRec = null; }
     else $('rankedretry').classList.remove('hidden');
-    const text = e.status ? e.message : 'Could not reach ranked. Your run is saved: retry within half an hour of finishing.';
+    const text = e.status ? e.message : 'Could not reach ranked. Your run is saved: retry when your connection returns.';
     $('rankedresult').textContent = text; rankedMessage(text);
   } finally { rankedBusy = false; renderRanked(); }
 }
@@ -729,7 +743,7 @@ function renderDmt() {
   const c = walletNow(), ws = c ? [{ ...c.w, name: `${c.w.name} (${short(c.address)})` }] : wallets();
   body.innerHTML = `<p>Hold DMT on Arbitrum? Connect your wallet and sign a free message: no transaction, no gas, nothing leaves your wallet.</p>${DMT_PERKS}`
     + (ws.length ? `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${w.icon ? `<img src="${esc(w.icon)}" alt="">` : ''}Connect <span translate="no">${esc(w.name)}</span></button>`).join('')}</div>`
-      : `<p class="dim">No wallet in this browser. Open the game in your wallet app's browser:</p><div class="dmtwallets">${walletAppLinks().map(([n, u]) => `<a class="btnlink" href="${u}" rel="noopener">${n}</a>`).join('')}</div><p class="dim">On a computer, install a wallet such as MetaMask or Rabby, then come back.</p>`)
+      : `<p class="dim">No wallet in this browser. Open the game in your wallet app's browser:</p><div class="dmtwallets">${walletAppLinks('holder').map(([n, u]) => `<a class="btnlink" href="${esc(u)}" rel="noopener">${n}</a>`).join('')}</div><p class="dim">On a computer, install a wallet such as MetaMask or Rabby, then come back.</p>`)
     + '<p class="dim">The game only reads your public DMT balance (Arbitrum token 0x8B0E…04e8). A check lasts a day.</p>';
   for (const b of body.querySelectorAll('[data-w]')) b.onclick = () => connectDmt(ws[Number(b.dataset.w)]);
 }
@@ -749,17 +763,21 @@ $('dmt').addEventListener('click', (e) => { if (e.target.id === 'dmt') $('dmt').
 // ---- the wallet: one button in the corner (Rabby, MetaMask…), used by DMT perks and ranked ----
 const walletIcon = (w) => (w && w.icon ? `<img src="${esc(w.icon)}" alt="">` : '');
 const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+let walletConnecting = false;
 // a button for each wallet in this browser, or how to get one
-function walletChoices(onPick) {
+function walletChoices(onPick, intent = 'connect') {
   const ws = wallets();
-  if (ws.length) return { html: `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${walletIcon(w)}<span translate="no">${esc(w.name)}</span></button>`).join('')}</div>`, bind: (root) => { for (const b of root.querySelectorAll('[data-w]')) b.onclick = () => onPick(ws[Number(b.dataset.w)]); } };
+  if (ws.length) return { html: `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${walletIcon(w)}Connect <span translate="no">${esc(w.name)}</span></button>`).join('')}</div>`, bind: (root) => { for (const b of root.querySelectorAll('[data-w]')) b.onclick = () => onPick(ws[Number(b.dataset.w)]); } };
   const html = isPhone()
-    ? `<p class="dim">Phone browsers have no wallet inside. Open the game in your wallet app:</p><div class="dmtwallets">${walletAppLinks().map(([n, u]) => `<a class="btnlink" href="${u}" rel="noopener">${n}</a>`).join('')}</div>`
+    ? `<p class="dim">Phone browsers have no wallet inside. Open the game in your wallet app:</p><div class="dmtwallets">${walletAppLinks(intent).map(([n, u]) => `<a class="btnlink" href="${esc(u)}" rel="noopener">${n}</a>`).join('')}</div>`
     : '<p class="dim">No wallet found in this browser. Install <a href="https://rabby.io" target="_blank" rel="noopener">Rabby</a> or <a href="https://metamask.io/download/" target="_blank" rel="noopener">MetaMask</a>, then reload this page.</p>';
   return { html, bind: () => {} };
 }
 async function pickWallet(w, msg) {
+  if (walletConnecting) return;
+  walletConnecting = true;
   try { msg('Approve the connection in your wallet…'); await walletConnect(w); msg(''); } catch (e) { msg(why(e)); }
+  finally { walletConnecting = false; }
 }
 async function refreshBalances(force = false) {
   const c = walletNow(); if (!c) { walletBal = null; return null; }
@@ -859,11 +877,25 @@ function bindBuy(c, b, msg) {
   if (buyWant) { const pre = document.querySelector(`.wlbuyamt[data-dmt="${buyWant}"]`); if (pre && !buyQuote) pre.click(); else if (buyQuote) show(buyQuote); }
 }
 function openWallet() { $('walletmsg').textContent = ''; renderWallet(); $('wallet').classList.remove('hidden'); $('walletclose').focus(); refreshBalances(true); }
+function refreshWalletChoices() {
+  if (!$('wallet').classList.contains('hidden') && !walletConnecting) renderWallet();
+  if (!$('dmt').classList.contains('hidden') && !$('dmtbody').querySelector('button:disabled')) renderDmt();
+  if (!$('ranked').classList.contains('hidden') && !walletNow() && !rankedBusy && $('rankedwallets').hasChildNodes()) showRankedWalletChoices();
+}
+function resumeWalletHandoff(handoff) {
+  if (!handoff) return;
+  // Opening a panel is safe after an app switch. Connecting/signing still needs a fresh, explicit button tap.
+  if (handoff.intent === 'connect') openWallet();
+  else if (handoff.intent === 'holder') { $('dmtmsg').textContent = ''; renderDmt(); $('dmt').classList.remove('hidden'); }
+  else if (handoff.intent === 'ranked') { openRanked(); if (!walletNow()) showRankedWalletChoices(); }
+}
 $('walletchip').onclick = openWallet;
 $('walletclose').onclick = () => { $('wallet').classList.add('hidden'); (!$('ranked').classList.contains('hidden') ? $('rankedclose') : $('walletchip')).focus(); };
 $('wallet').addEventListener('click', (e) => { if (e.target.id === 'wallet') $('walletclose').click(); });
 onWallet(() => { walletBal = null; applyDmt(); if (!$('wallet').classList.contains('hidden')) renderWallet(); if (!$('ranked').classList.contains('hidden')) renderRanked(); refreshBalances(); });
 renderWalletChip(); walletRestore();
+watchWallets(refreshWalletChoices);
+resumeWalletHandoff(walletHandoff);
 // Tip in ETH (only when an address is set in src/config.js)
 const tipOk = /^0x[0-9a-fA-F]{40}$/.test(TIP_ETH) || /^[a-z0-9-]+(\.[a-z0-9-]+)*\.eth$/i.test(TIP_ETH);
 if (tipOk) { $('tipwrap').classList.remove('hidden'); $('tipaddr').textContent = TIP_ETH; }
@@ -1041,7 +1073,7 @@ function toMenu() {
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
 addEventListener('keydown', (e) => {
-  if (e.target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
+  if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
   if (e.repeat) return;
   const k = e.key.toLowerCase(); keys.add(k);
   if (mode === 'casket') {
@@ -1309,7 +1341,7 @@ function updateHud(view) {
 
 // ---- menus with a controller or the arrow keys: spatial focus, A/Enter picks, B/Esc goes back -----------------------
 const NAV_SCREENS = ['ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'pause', 'end', 'title'];
-const NAV_ITEMS = '.aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
+const NAV_ITEMS = 'summary, .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden')); }
@@ -1343,7 +1375,7 @@ function navBack() {
   return false;
 }
 addEventListener('keydown', (e) => {
-  if (e.target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
+  if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
   if (mode === 'play' || mode === 'levelup' || mode === 'casket') return;
   const k = e.key; const dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
   if (dir) { navMove(dir); e.preventDefault(); }
@@ -1450,7 +1482,7 @@ function loop(ts) {
 
 boot().then(async () => {
   applyDmt(); window.__sqReady = true; await refreshRanked();
-  if (rankedLive() || readRanked('sq-ranked-submit') || readRanked('sq-ranked-payment')) {
+  if (!walletHandoff && (rankedLive() || readRanked('sq-ranked-submit') || readRanked('sq-ranked-payment'))) {
     await openRanked();
     if (rankedLive()?.sim !== SIM_ID && rankedLive() && !readRanked('sq-ranked-submit')) recoverRankedRun();
   }

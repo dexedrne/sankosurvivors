@@ -105,6 +105,84 @@ function play(run) {
 async function ready(w, opts) { const e = await enter(w, opts), run = await start(e), played = play(run); now += (played.result.t + 10) * 1000; return { e, run, ...played }; }
 const submit = (r, log = r.log) => call('ranked-submit', { run: r.run.run, name: 'Tester', log });
 
+test('a pre-restart token cannot claim the replacement run', async () => {
+  const r = await ready(), token = decode(r.run.run);
+  await db.rpc('sqs_ranked_restart', { p_server_key:'server-key', p_id:token.id, p_wallet:token.a, p_started:token.s, p_seed:1234 });
+  now += 1000; await start(r.e);
+  expectError(await submit(r), 400, 'that run was already sent');
+  assert.equal(db.rows[0].claimed_at, undefined);
+});
+
+for (const stage of ['claim', 'finish']) test(`lost ${stage} response retries the same run without losing its score`, async t => {
+  const r = await ready(), original = db.rpc.bind(db);
+  let failed = false;
+  db.rpc = async (fn, p) => {
+    const out = await original(fn, p);
+    if (!failed && fn === 'sqs_ranked_' + stage + '_v2') { failed = true; throw new Error('fixture: response lost'); }
+    return out;
+  };
+  t.mock.method(console, 'error', () => {});
+  slowRefusalOk = true;
+  try { assert.equal((await submit(r)).code, 500); } finally { slowRefusalOk = false; }
+  assert.equal((await submit(r)).code, 200);
+  assert.equal(db.rows.filter(e => e.verdict === 'ok').length, 1);
+});
+
+test('a transient finish failure releases only the lease and keeps the original log binding', async () => {
+  const r = await ready(); db.finishError = 'temporary storage failure'; slowRefusalOk = true;
+  try { assert.equal((await submit(r)).code, 503); } finally { slowRefusalOk = false; }
+  db.finishError = null;
+  const changed = structuredClone(r.log); changed.runs[0][1] = changed.runs[0][1] === 0 ? 1 : 0;
+  expectError(await submit(r, changed), 400, 'that run was already sent');
+  assert.equal((await submit(r)).code, 200);
+});
+
+test('a crashed worker recovers after lease expiry using the original receipt time', async t => {
+  const r = await ready(), original = db.rpc.bind(db);
+  let crash = true;
+  db.rpc = async (fn,p) => {
+    if (crash && (fn === 'sqs_ranked_finish_v2' || fn === 'sqs_ranked_release_v2')) throw new Error('fixture: worker unavailable');
+    return original(fn,p);
+  };
+  t.mock.method(console,'error',()=>{});
+  slowRefusalOk = true;
+  try { assert.equal((await submit(r)).code,500); } finally { slowRefusalOk = false; }
+  assert.equal((await submit(r)).code,409);
+  now += 900001; crash = false;
+  assert.equal((await submit(r)).code,200,'waiting for recovery must not trigger the slower-than-real-time rejection');
+});
+
+test('waiting after a failed finish cannot cure a too-fast first submission', async () => {
+  const r = await ready(); now = decode(r.run.run).s; db.finishError='temporary failure';
+  assert.equal((await submit(r)).code,503);
+  now += 900001; db.finishError=null;
+  expectError(await submit(r),400,'this run did not check out (faster than real time)');
+  const finished = db.rows[0].finished_at;
+  expectError(await submit(r),400,'this run did not check out (faster than real time)');
+  assert.equal(db.rows[0].finished_at,finished,'rejected receipts are idempotent too');
+});
+
+test('missing submission migration fails closed without falling back to an unbound claim', async t => {
+  const r = await ready(), original = db.rpc.bind(db), calls=[];
+  db.rpc = async (fn,p) => { calls.push(fn); if(fn.endsWith('_v2')) throw new Error('fixture: migration missing'); return original(fn,p); };
+  t.mock.method(console,'error',()=>{});
+  assert.equal((await submit(r)).code,500);
+  assert.ok(!calls.includes('sqs_ranked_claim'));
+  assert.equal(db.rows[0].claimed_at,undefined);
+});
+
+test('receipt admission throttles before chain RPC and preserves the payment for retry', async t => {
+  const w=wallet(), auth=await nonce(w), tx=payment(w), original=globalThis.fetch;
+  let chainReads=0;
+  t.mock.method(globalThis,'fetch',async(url,opts)=>{ if(!String(url).startsWith('https://db.test/')) chainReads++; return original(url,opts); });
+  db.receiptBlocked=true;
+  const busy=await call('ranked-enter',{nonce:auth.nonce,signature:auth.signature,tx});
+  assert.equal(busy.code,429); assert.equal(busy.json.retry,true);
+  assert.equal(chainReads,0); assert.equal(db.rows.length,0);
+  db.receiptBlocked=false; now+=3000;
+  assert.equal((await call('ranked-enter',{nonce:auth.nonce,signature:auth.signature,tx})).code,200);
+});
+
 test('honest signed paid run is replayed, retained and listed once', async t => {
   const r = await ready();
   assert.deepEqual(await submit(r), { code: 200, json: { ok: true, ...r.result, mode: 'normal', rank: 1 } });
@@ -113,7 +191,10 @@ test('honest signed paid run is replayed, retained and listed once', async t => 
   assert.equal(board.json.rows.length, 1); assert.equal(board.json.rows[0].wallet, r.e.w.address);
   assert.equal(board.json.rows[0].t, r.result.t);
   assert.deepEqual(JSON.parse(gunzipSync(Buffer.from(db.rows[0].log, 'base64'))), JSON.parse(JSON.stringify(r.log)));
-  expectError(await submit(r), 400, 'that run was already sent');
+  const firstFinish = db.rows[0].finished_at;
+  now += 86400000;
+  assert.deepEqual(await submit(r), { code: 200, json: { ok: true, ...r.result, mode: 'normal', rank: 1 } });
+  assert.equal(db.rows[0].finished_at, firstFinish, 'cached receipt never rewrites finish time, even after the send window');
   t.diagnostic(`submit CPU (ms): ${submits.map(n => n.toFixed(1)).join(', ')}`);
 });
 
@@ -184,8 +265,8 @@ test('start rejects forged, wrong-wallet, old-week, stale-version and special ad
 test('parallel submissions count and replay only once', async t => {
   // the CPU clock is the process's: the refused one is charged for the other's replay, so no budget here
   const r = await ready(); slowRefusalOk = true; let results; try { results = await Promise.all([submit(r), submit(r)]); } finally { slowRefusalOk = false; }
-  assert.deepEqual(results.map(x => x.code).sort(), [200, 400]);
-  expectError(results.find(x => x.code === 400), 400, 'that run was already sent');
+  assert.deepEqual(results.map(x => x.code).sort(), [200, 409]);
+  assert.equal(results.find(x => x.code === 409).json.retry, true);
   assert.equal((await call('ranked-week')).json.rows.length, 1);
   t.diagnostic(`parallel submit CPU (ms): ${submits.map(n => n.toFixed(1)).join(', ')}`);
 });
@@ -309,7 +390,7 @@ test('a ranked run played in slow motion does not count (security pass)', async 
 
 test('database finish refusal must not be reported as an accepted score', async () => {
   const r = await ready(); db.finishError = 'that run was already sent'; slowRefusalOk = true;
-  try { expectError(await submit(r), 400, 'that run was already sent'); } finally { slowRefusalOk = false; }
+  try { assert.deepEqual(await submit(r), {code:503,json:{error:'that run was already sent',retry:true}}); } finally { slowRefusalOk = false; }
   assert.equal((await call('ranked-week')).json.rows.length, 0);
 });
 

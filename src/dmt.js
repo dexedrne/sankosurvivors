@@ -15,6 +15,28 @@ export function wallets() {
   return list;
 }
 
+// Providers may appear after the first panel is drawn. Readiness only redraws choices: it never asks to connect.
+export function watchWallets(onChange) {
+  let previous = wallets(), timer = null, polls = 0, stopped = false;
+  const check = () => {
+    if (stopped) return;
+    const next = wallets();
+    if (next.length !== previous.length || next.some((w, i) => w.p !== previous[i]?.p || w.name !== previous[i]?.name)) {
+      previous = next; onChange();
+    }
+  };
+  const poll = () => { check(); if (!stopped && ++polls < 20) timer = setTimeout(poll, 150); else timer = null; };
+  window.addEventListener('ethereum#initialized', check);
+  window.addEventListener('eip6963:announceProvider', check);
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+  timer = setTimeout(poll, 150);
+  return () => {
+    stopped = true; clearTimeout(timer);
+    window.removeEventListener('ethereum#initialized', check);
+    window.removeEventListener('eip6963:announceProvider', check);
+  };
+}
+
 export function savedPass() {
   try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && s.pass && s.exp > Date.now() ? s : null; } catch { return null; }
 }
@@ -47,14 +69,31 @@ export async function prove(wallet, base, onStep) {
 
 export const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
-// phone browsers have no wallet inside: open this page in a wallet app's own browser instead
-export function walletAppLinks() {
-  const here = location.host + location.pathname;
+const HANDOFF_INTENTS = ['connect', 'holder', 'ranked'];
+const HANDOFF_LANGUAGES = ['en', 'tr', 'es', 'fil'];
+// A handoff selects UI only. Never copy the original query/hash: it can contain progress, credentials or tickets.
+export function walletAppLinks(intent = 'connect', language = document.documentElement.lang) {
+  const here = new URL(location.origin + location.pathname);
+  here.searchParams.set('wallet', HANDOFF_INTENTS.includes(intent) ? intent : 'connect');
+  if (HANDOFF_LANGUAGES.includes(language)) here.searchParams.set('lang', language);
+  const encoded = encodeURIComponent(here.href);
   return [
-    ['MetaMask', `https://metamask.app.link/dapp/${here}`],
-    ['Coinbase Wallet', `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(location.origin + location.pathname)}`],
-    ['Trust Wallet', `https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(location.origin + location.pathname)}`],
+    ['MetaMask', `https://metamask.app.link/dapp/${here.host + here.pathname + here.search}`],
+    // Rabby Mobile: constant/universalLink.ts + hooks/universalLink.ts in RabbyHub/rabby-mobile.
+    ['Rabby', `https://go.rabby.io/mobile/?_cmd=open-dapp&dapp=${encoded}`],
+    ['Coinbase Wallet', `https://go.cb-w.com/dapp?cb_url=${encoded}`],
+    ['Trust Wallet', `https://link.trustwallet.com/open_url?coin_id=60&url=${encoded}`],
   ];
+}
+
+export function takeWalletHandoff() {
+  const here = new URL(location.href), intents = here.searchParams.getAll('wallet');
+  if (intents.length !== 1 || !HANDOFF_INTENTS.includes(intents[0])) return null;
+  const languages = here.searchParams.getAll('lang');
+  const language = languages.length === 1 && HANDOFF_LANGUAGES.includes(languages[0]) ? languages[0] : null;
+  here.searchParams.delete('wallet'); here.searchParams.delete('lang');
+  try { history.replaceState(history.state, '', here.pathname + here.search + here.hash); } catch { /* UI-only hint; no wallet request on reload */ }
+  return { intent: intents[0], language };
 }
 
 export function why(err) {

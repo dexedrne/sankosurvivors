@@ -9,6 +9,9 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #1c1814; color: var(--ink); font-family: "Trebuchet MS", Verdana, system-ui, sans-serif; user-select: none; }
 #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+/* Installed WebKit can subtract safe areas from percentage/inset heights. Paint the full viewport. */
+body.standalone { height:100vh; min-height:100vh; }
+body.standalone #c, body.standalone .screen { top:0; bottom:auto; height:100vh; }
 #fx { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
 .dn { position: absolute; left: 0; top: 0; font-weight: 800; font-size: 15px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; will-change: transform; }
 .dn.crit { font-size: 21px; }
@@ -79,6 +82,10 @@ button.ghost { background: transparent; color: var(--ink); border-color: var(--l
 #menu { position: absolute; left: 0; right: 0; bottom: 50px; display: flex; gap: 10px; justify-content: center; align-items: flex-end; padding: 0 14px; flex-wrap: wrap; }
 #menu section { background: var(--panel); border: 2px solid var(--line); padding: 10px 12px 12px; box-shadow: 0 6px 24px #000a; max-width: 96vw; }
 #menu h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); text-align: left; }
+#menu details { min-width:0; }
+#menu summary { cursor:pointer; font:20px RSQuill8,sans-serif; color:var(--cream); min-height:44px; padding:5px 0; }
+#menu summary b { font:16px RSPlain,sans-serif; color:var(--gold); margin-left:10px; overflow-wrap:anywhere; }
+#menu details[open] summary { margin-bottom:6px; }
 #apick { display: grid; grid-template-columns: repeat(4, 58px); gap: 5px; } #mpick { display: grid; grid-template-columns: repeat(3, 86px); gap: 5px; }
 .aopt { padding: 4px 2px; background: #2b241c; border: 2px solid var(--line); cursor: pointer; font-size: 10px; line-height: 1.15; text-align: center; position: relative; min-height: 54px; }
 .aopt img { width: 28px; height: 28px; image-rendering: pixelated; display: block; margin: 0 auto 2px; } .aopt.sel { border-color: var(--gold); background: #3a2f22; } .aopt.locked { opacity: .5; }
@@ -649,14 +656,14 @@ html:not([lang="en"]) .panel h2 { overflow-wrap:anywhere; }
   #coinbox { font-size:20px; } #coinbox img { width:20px; height:20px; }
   #walletchip { font-size:16px; min-height:44px; margin-top:2px; max-width:100%; }
   #best { display:none; }
-  #menu { position:relative; inset:auto; display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
-    margin-top:clamp(230px,48vh,430px); margin-top:clamp(230px,48dvh,430px); padding:0; gap:6px; align-items:stretch; }
+  #menu { position:relative; inset:auto; display:grid; grid-template-columns:minmax(0,1fr);
+    margin-top:clamp(210px,40vh,360px); margin-top:clamp(210px,40dvh,360px); padding:0; gap:6px; align-items:stretch; }
   #menu section { min-width:0; max-width:none; padding:6px; display:flex; flex-direction:column; }
   #menu h3 { font-size:16px; letter-spacing:1px; margin:0 0 5px; }
-  #apick, #mpick { display:grid; grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:64px; gap:4px; justify-content:start;
+  #apick, #mpick { display:grid; grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:92px; gap:6px; justify-content:start;
     overflow-x:auto; overscroll-behavior-x:contain; touch-action:pan-x; scrollbar-width:thin; padding-bottom:4px; scroll-snap-type:x proximity; }
-  #mpick { grid-auto-columns:80px; }
-  #apick .aopt, #mpick .mopt { min-height:60px; font-size:14px; line-height:1.05; padding:3px 1px; scroll-snap-align:start; }
+  #mpick { grid-auto-columns:110px; }
+  #apick .aopt, #mpick .mopt { min-height:76px; font-size:15px; line-height:1.1; padding:3px 2px; scroll-snap-align:start; }
   #apick .aopt img { width:24px; height:24px; }
   #mpick .mopt .thumb { height:24px; margin-bottom:2px; }
   #ainfo, #mapinfo { width:auto; height:auto; min-height:0; margin:4px 0 0; padding:0; font-size:14px; line-height:1.15; overflow:visible; }
