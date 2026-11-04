@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.1', date: '4 Nov 2026', title: 'More reliable bug reports',
+    items: ['Bug reports keep your message when optional diagnostic settings cannot be read.'],
+  },
+  {
     version: '0.44', date: '4 Nov 2026', title: 'Move safely after rewards',
     items: ['On mobile, a held movement drag survives level-up and gear choices. If you lift your thumb to choose, the fight waits until you drag again.', 'Boss warnings stay frozen while you get your movement back. No boss damage or ranked rules changed.'],
   },

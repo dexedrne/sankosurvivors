@@ -73,6 +73,18 @@ const body = (req) => new Promise((ok) => {
 });
 // PostgreSQL rejects lone surrogates, including a pair split by the length cap.
 const clean = (s, n) => (typeof s === 'string' ? s : '').replace(/[\u0000-\u001f<>\uD800-\uDFFF]/gu, '').trim().slice(0, n).replace(/[\uD800-\uDBFF]$/u, '');
+// Diagnostic settings are optional; unreadable JSON must not lose the player's report.
+function reportSettings(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  try {
+    const invalid = /[\u0000\uD800-\uDFFF]/u;
+    const encoded = JSON.stringify(value, (key, item) => {
+      if (invalid.test(key) || (typeof item === 'string' && invalid.test(item))) throw new Error('invalid settings text');
+      return item;
+    });
+    return encoded.length <= 3000 ? value : null;
+  } catch { return null; }
+}
 const int = (v) => Math.min(1e6, Math.max(0, Math.floor(Number(v)) || 0));
 // a run is won by surviving the map's length or by killing its final boss (the last one on the schedule), which cannot
 // appear before these times (src/content.js: each map's bosses and length; test/api.test.mjs checks they still match)
@@ -139,7 +151,7 @@ module.exports = async function handler(req, res) {
     }
     if (req.method === 'POST' && path === 'report') {
       const b = await body(req);
-      const report = { text: clean(b.text, 2000), map: clean(b.map, 20), adv: clean(b.adv, 20), v: clean(b.v, 10), ua: clean(req.headers['user-agent'], 200), settings: b.settings && typeof b.settings === 'object' && !Array.isArray(b.settings) && JSON.stringify(b.settings).length <= 3000 ? b.settings : null, errors: Array.isArray(b.errors) ? b.errors.slice(0, 8).map((e) => clean(e, 300)) : [] };
+      const report = { text: clean(b.text, 2000), map: clean(b.map, 20), adv: clean(b.adv, 20), v: clean(b.v, 10), ua: clean(req.headers['user-agent'], 200), settings: reportSettings(b.settings), errors: Array.isArray(b.errors) ? b.errors.slice(0, 8).map((e) => clean(e, 300)) : [] };
       if (!report.text) return send(res, 400, { error: 'write what happened first' });
       const out = await rpc('sqs_submit_report', { p_ip: ip, p_report: report, p_server_key: SERVER_KEY });
       if (out && out.error) return send(res, out.error === 'slow down' ? 429 : 400, out);
