@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.41.1', date: '4 Nov 2026', title: 'Lighter effects between runs',
+    items: ['Spells, thrown weapons and shrine effects now release their temporary graphics resources when they finish or a run resets.'],
+  },
+  {
     version: '0.41', date: '4 Nov 2026', title: 'Better phone menus and ranked recovery',
     items: [
       'Compact Adventurer and Map rows expand into full-width phone choices, with larger cards and readable names.',

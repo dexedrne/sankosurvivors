@@ -89,7 +89,7 @@ test('renderer reset releases enemy, corpse, player and NPC actors', () => {
   const resetCode = renderer.slice(renderer.indexOf('  function reset() {'), renderer.indexOf('  return { hop:', renderer.indexOf('  function reset() {')));
   Function('actors', 'corpses', 'playerActors', 'folkActors', 'dyn', 'entGroup', 'disposeActor', `
     const effects=[],pickupSprites=new Map(),numbers=[],parts=[],gemSets=[],partMesh={};
-    const projObjs=new Map(),shieldObjs=new Map(),eprojObjs=new Map(),msBursts=[],hazardPool=[],curMap={cx:0,cz:0},cam={};
+    const projObjs=new Map(),shieldObjs=new Map(),eprojObjs=new Map(),shrineObjs=new Map(),msBursts=[],hazardPool=[],curMap={cx:0,cz:0},cam={};
     let folkT=0,spTick=0; const removePickup=()=>{};
     ${resetCode}; reset();
   `)(new Map([[1, a]]), [{ a: corpse }], new Map([[1, player]]), new Map([[1, npc]]), dyn, entGroup, character.disposeActor);

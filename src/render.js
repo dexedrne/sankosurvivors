@@ -999,7 +999,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   function magicSphere(col, tier) {
     const o = new THREE.Group(), T = SPELL_TIER[tier];
-    const parts = new THREE.InstancedMesh(msGeo, msMat, 7); parts.frustumCulled = false; parts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    const parts = ownActorResource(new THREE.InstancedMesh(msGeo, msMat, 7)); parts.frustumCulled = false; parts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     const c = new THREE.Color(col), tmp = new THREE.Color(), tone = MS_TONE[col];
     for (let i = 0; i < 7; i++) parts.setColorAt(i, tone ? tmp.setRGB(...tone[i === 0 ? 0 : 1], THREE.LinearSRGBColorSpace) : tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.8 : 0.3));
     const glow = new THREE.Mesh(msGlowGeo, msGlowMat(col, tier)); glow.scale.setScalar(0.54 * T.size * MS_K);
@@ -1064,7 +1064,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   function stepMagicBursts(now) {
     for (let i = msBursts.length - 1; i >= 0; i--) {
       const b = msBursts[i], t = (now - b.born) / b.T.impact, d = b.o.userData.ms;
-      if (t >= 1) { dyn.remove(b.o); msBursts.splice(i, 1); continue; }
+      if (t >= 1) { disposeActor(b.o); msBursts.splice(i, 1); continue; }
       d.glow.quaternion.copy(camera.quaternion);
       d.glow.scale.setScalar((b.tier === 'blast' ? 1.35 * Math.sin(Math.PI * Math.sqrt(t)) : 0.82 * (1 - t)) * MS_K); d.glow.material.uniforms.uTime.value = now / 1000; // the game's impact
       for (let k = 0; k < 7; k++) {
@@ -1265,7 +1265,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
     gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
-  const glowSprite = (color, size, opacity = 0.6) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(color).multiplyScalar(1.3), transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending })); sp.scale.setScalar(size); return fxOnly(sp); };
+  const glowSprite = (color, size, opacity = 0.6) => { const sp = new THREE.Sprite(ownActorResource(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(color).multiplyScalar(1.3), transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending }))); sp.scale.setScalar(size); return fxOnly(sp); };
   // the Lighter's ring of fire (owner 3 Nov: "aoe for lighter needs to be improved just looks bland"): a ground shader
   // with a flickering rim, flame tongues licking inward and a faint heat on the floor, plus upright flames dancing round
   // the edge. Built at radius 1 and scaled to the weapon's radius; the flames keep their own size.
@@ -1865,7 +1865,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       spellSample(u, vt, b[1], groundAt(b[1], b[2]) + 1.3, b[2], hx * hx + hz * hz > 1e-4 ? Math.atan2(hx, hz) : (u.a1 ?? 0));
       spellDraw(o); stepMagicSphere(o.children[0], performance.now());
     }
-    for (const [id, o] of eprojObjs) if (!seenEp.has(id) && !spellLand(o, vt, false)) { dyn.remove(o); eprojObjs.delete(id); }
+    for (const [id, o] of eprojObjs) if (!seenEp.has(id) && !spellLand(o, vt, false)) { disposeActor(o); eprojObjs.delete(id); }
 
 
     // projectiles
@@ -1887,12 +1887,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           Object.assign(o.userData, evo ? { trail: 0x9fe6ff, every: 0.5 } : { trail: 0xb89a6a, every: 0.7 }); // the glacial bow's frost, or a little dust
         } else if (art === 'sword') { // a thrown short sword, point first, with a bright streak
           item(weaponModelPath('shortsword', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) o.add(orientedItem(p, 1.1)); });
-          o.add(new THREE.Mesh(new THREE.PlaneGeometry(0.14, 2.0).rotateX(-Math.PI / 2).translate(0, 0, -1.2), streakMat(evo ? 0x7fe0ff : 0xfff6dc, 0.55)));
+          o.add(new THREE.Mesh(ownActorResource(new THREE.PlaneGeometry(0.14, 2.0).rotateX(-Math.PI / 2).translate(0, 0, -1.2)), ownActorResource(streakMat(evo ? 0x7fe0ff : 0xfff6dc, 0.55))));
           if (evo) Object.assign(o.userData, { trail: 0x7fe0ff, every: 0.4 });
         } else if (art === 'ball') { // a baseball, stitches and all, spinning as it flies
           // owner 3 Nov: "baseball projectile is pretty huge": 0.64 across was 40% of a person; now 0.3 (its hit size is unchanged)
-          const ball = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 10), new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.7 }));
-          const seam = new THREE.Mesh(new THREE.TorusGeometry(0.152, 0.012, 6, 24), new THREE.MeshBasicMaterial({ color: 0xc8322a })); seam.rotation.x = 0.6; ball.add(seam);
+          const ball = new THREE.Mesh(ownActorResource(new THREE.SphereGeometry(0.15, 14, 10)), ownActorResource(new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.7 })));
+          const seam = new THREE.Mesh(ownActorResource(new THREE.TorusGeometry(0.152, 0.012, 6, 24)), ownActorResource(new THREE.MeshBasicMaterial({ color: 0xc8322a }))); seam.rotation.x = 0.6; ball.add(seam);
           if (evo) o.add(glowSprite(0xffd34d, 0.8, 0.5));
           o.add(ball); Object.assign(o.userData, { spinner: ball, trail: evo ? 0xffd34d : 0xfff6dc, every: 0.45 });
         } else if (art === 'axe') {
@@ -1911,7 +1911,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (o.userData.spinner) o.userData.spinner.rotation.z += dt * 12;
       if (o.userData.trail && Math.random() < o.userData.every) emit(x, o.position.y, z, 1, 0.3, { s: art === 'bolt' ? 0.7 : 0.45, life: 0.35, color: o.userData.trail, up: 0.25, g: 0 });
     }
-    for (const [id, o] of projObjs) if (!seenPr.has(id) && !(o.userData.spell && spellLand(o, vt, true))) { dyn.remove(o); projObjs.delete(id); }
+    for (const [id, o] of projObjs) if (!seenPr.has(id) && !(o.userData.spell && spellLand(o, vt, true))) { disposeActor(o); projObjs.delete(id); }
     for (const f of spFx.burst) if (!f.used) spellStray(f, view.players); // a bolt that hit in the tick it was cast was never drawn
     stepMagicBursts(performance.now());
 
@@ -1922,7 +1922,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (!o) {
         const col = SHRINE_COLORS[kind] || 0xffffff; o = new THREE.Group();
         loadGLB(A('world/scene-models/Altar.glb')).then((g) => { const m = g.scene.clone(true), b = boxOf(m), sz = b.getSize(new THREE.Vector3()), k = 1.3 / Math.max(sz.y, 1e-3); m.scale.setScalar(k); m.position.set(-(b.min.x + b.max.x) / 2 * k, -b.min.y * k, -(b.min.z + b.max.z) / 2 * k); m.traverse((c) => { if (c.isMesh) c.castShadow = true; }); o.add(m); }).catch(() => {});
-        const beam = fxOnly(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 9, 14, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })));
+        const beam = fxOnly(new THREE.Mesh(ownActorResource(new THREE.CylinderGeometry(0.5, 0.9, 9, 14, 1, true)), ownActorResource(new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }))));
         beam.position.y = 4.5;
         const edge = softRing(col, 2.35, 2.75, { opacity: 0.85, arcs: 4 }), fill = softRing(col, 0, 2.5, { opacity: 0.15, fill: 0.9 });
         edge.position.y = 0.09; fill.position.y = 0.08;
@@ -1932,7 +1932,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       P.edge.rotation.y = time * 0.6; P.fill.scale.setScalar(Math.max(0.06, ch)); P.fill.material.uniforms.uOp.value = 0.15 + 0.5 * ch;
       P.beam.material.opacity = 0.16 + 0.3 * ch + (ch > 0 ? 0.05 * Math.sin(time * 10) : 0);
     }
-    for (const [id, o] of shrineObjs) if (!seenS.has(id)) { dyn.remove(o); shrineObjs.delete(id); }
+    for (const [id, o] of shrineObjs) if (!seenS.has(id)) { disposeActor(o); shrineObjs.delete(id); }
 
     // pickups
     { const cnt = [0, 0, 0];
@@ -2023,11 +2023,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const a of actors.values()) disposeActor(a.root, a.mixer); actors.clear();
     for (const c of corpses) disposeActor(c.a.root, c.a.mixer); corpses.length = 0;
     for (const a of playerActors.values()) disposeActor(a.root, a.mixer); playerActors.clear();
-    for (const o of projObjs.values()) dyn.remove(o); projObjs.clear(); for (const b of msBursts) dyn.remove(b.o); msBursts.length = 0;
+    for (const o of projObjs.values()) disposeActor(o); projObjs.clear(); for (const b of msBursts) disposeActor(b.o); msBursts.length = 0;
+    for (const o of shrineObjs.values()) disposeActor(o); shrineObjs.clear();
     for (const o of shieldObjs.values()) dyn.remove(o); shieldObjs.clear();
     for (const p of parts) p.life = 0;
     for (const a of folkActors.values()) disposeActor(a.root, a.mixer); folkActors.clear(); folkT = 0;
-    for (const o of eprojObjs.values()) dyn.remove(o); eprojObjs.clear(); for (const h of hazardPool) h.visible = false;
+    for (const o of eprojObjs.values()) disposeActor(o); eprojObjs.clear(); for (const h of hazardPool) h.visible = false;
     spTick = -1;
     cam.x = curMap.cx; cam.z = curMap.cz;
   }

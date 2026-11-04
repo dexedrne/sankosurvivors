@@ -20,7 +20,7 @@ test('new runs remove transient effects, pickup materials and damage labels',()=
   const obj=()=>({geometry:{dispose(){disposed++;}},material:{dispose(){disposed++;}}});
   const effects=[obj(),obj()],pickupSprites=new Map([[1,obj()]]),numbers=[{el:{remove(){removed++;}}}],parts=[{life:1}],gemSets=[{geometry:{setDrawRange(){}}}],partMesh={count:700};
   Function('effects','pickupSprites','numbers','parts','gemSets','partMesh',`
-    const actors=new Map(),playerActors=new Map(),projObjs=new Map(),shieldObjs=new Map(),folkActors=new Map(),eprojObjs=new Map();
+    const actors=new Map(),playerActors=new Map(),projObjs=new Map(),shieldObjs=new Map(),folkActors=new Map(),eprojObjs=new Map(),shrineObjs=new Map();
     const corpses=[],msBursts=[],hazardPool=[],dyn={remove(){}},entGroup={remove(){}},curMap={cx:0,cz:0},cam={};let folkT=0,spTick=0;
     ${cleanup}${code};reset();
   `)(effects,pickupSprites,numbers,parts,gemSets,partMesh);

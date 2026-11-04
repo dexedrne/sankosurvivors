@@ -24,7 +24,7 @@ export function disposeActor(root, mixer) {
   if (mixer?.getRoot) mixer.uncacheRoot(mixer.getRoot());
   root.removeFromParent();
   root.traverse(o => {
-    for (const resource of [o.skeleton, o.geometry, ...[].concat(o.material || [])]) {
+    for (const resource of [o, o.skeleton, o.geometry, ...[].concat(o.material || [])]) {
       if (resource && actorResources.delete(resource)) resource.dispose();
     }
   });
