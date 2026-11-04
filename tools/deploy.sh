@@ -100,8 +100,13 @@ if [ -z "$PREVIEW" ] && [ -z "$FORCE_DEPLOY" ]; then
   fi
 fi
 env_check
-if [ -n "$PREVIEW" ]; then vercel deploy --prebuilt --yes 2>&1 | grep -E "Preview|Error|error|https://" | head -3
-else vercel deploy --prebuilt --prod --yes 2>&1 | grep -E "Production|Error|error" | head -3; fi
+DEPLOY_ARGS=(deploy --prebuilt)
+[ -n "$PREVIEW" ] || DEPLOY_ARGS+=(--prod)
+DEPLOY_ARGS+=(--yes)
+DEPLOY_RC=0
+DEPLOY_OUT=$(vercel "${DEPLOY_ARGS[@]}" 2>&1) || DEPLOY_RC=$?
+printf '%s\n' "$DEPLOY_OUT" | grep -E "Preview|Production|Error|error|https://" | head -3 || true
+[ "$DEPLOY_RC" = 0 ] || exit "$DEPLOY_RC"
 # warm jsDelivr in the background so the first players after a change do not wait on it fetching from GitHub
 if [ -n "$VITE_ASSET_BASE_1" ]; then
   ( cd public/assets && find . -type f -print0 | xargs -0 -P 6 -I{} sh -c 'p=$(printf %s "$2" | sed "s#^\./##; s# #%20#g"); case "$p" in models/*|music/*) b=$1;; *) b=$0;; esac; curl -s -o /dev/null -m 60 "$b$p"' "$VITE_ASSET_BASE_1" "$VITE_ASSET_BASE_2" {} ) > /dev/null 2>&1 &

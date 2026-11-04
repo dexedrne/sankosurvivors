@@ -1,6 +1,15 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.40.1', date: '3 Nov 2026', title: 'More languages',
+    items: [
+      'Choose English, Türkçe, Español or Filipino on the title screen or in Settings. This device remembers your choice.',
+      'Turkish, Spanish and Filipino text for menus, upgrades, quests, run results, ranked rules, wallet screens and cloud saves.',
+      'Player names, item saves, payment amounts and wallet signature messages stay unchanged.',
+      'More reliable payment and server checks during upstream outages.',
+    ],
+  },
+  {
     version: '0.40', date: '3 Nov 2026', title: 'More reliable cloud saves',
     items: [
       'Cloud saves retry temporary upload failures automatically while the game is open. Your progress stays saved on this device.',

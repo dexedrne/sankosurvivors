@@ -38,7 +38,7 @@ async function dmtBalance(addr) {
   const data = '0x70a08231' + addr.toLowerCase().replace(/^0x/, '').padStart(64, '0');
   for (const rpc of ARB_RPCS) {
     try {
-      const r = await fetch(rpc, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': 'sankosurvivors/1.0' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: DMT, data }, 'latest'] }) });
+      const r = await fetch(rpc, { signal: AbortSignal.timeout(10000), method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': 'sankosurvivors/1.0' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: DMT, data }, 'latest'] }) });
       const j = await r.json(); if (j && typeof j.result === 'string' && /^0x[0-9a-f]*$/i.test(j.result)) return BigInt(j.result === '0x' ? 0 : j.result);
     } catch { /* try the next one */ }
   }
@@ -58,7 +58,7 @@ function readTicket(t) {
 const KEY = process.env.SUPABASE_KEY || '';
 let MAPS = null; // every map with win rules below (the list was kept by hand and missed the Hidden Oasis)
 async function rpc(fn, args) {
-  const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+  const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, { signal: AbortSignal.timeout(10000), method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
   if (!r.ok) throw new Error(`${fn} ${r.status} ${(await r.text()).slice(0, 200)}`);
   return r.json();
 }

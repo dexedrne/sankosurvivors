@@ -60,7 +60,7 @@ const runSecondsIn = (g, w) => (typeof g.runSeconds === 'function' ? g.runSecond
 async function arb(method, params) {
   for (const url of ARB_RPCS) {
     try {
-      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': 'sankosurvivors/1.0' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
+      const r = await fetch(url, { signal: AbortSignal.timeout(10000), method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': 'sankosurvivors/1.0' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
       const j = await r.json(); if (j && 'result' in j) return j.result;
     } catch { /* next */ }
   }

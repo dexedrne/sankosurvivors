@@ -6,6 +6,7 @@ import { asset, pickAssetHost } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
+import { initI18n } from './i18n.js';
 import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
 const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
 // prize place of each board row: the developer's wallet and (from week 1) runs under 3:00 take none, the places pass down
@@ -22,6 +23,7 @@ import {
 } from './content.js';
 
 const $ = (id) => document.getElementById(id);
+initI18n();
 const BASE = import.meta.env.BASE_URL || './';
 const params = new URLSearchParams(location.search);
 const PLAYER = 'p1';
@@ -197,12 +199,20 @@ function renderRanked() {
     $('rankedraces').innerHTML = two ? races.map((m) => `<button role="tab" data-race="${m}" aria-selected="${m === rankedMode}" class="${m === rankedMode ? 'on' : 'ghost'}">${RACE[m].name} <span>${esc(raceOf(rankedWeek, m).entryDmt)} DMT</span></button>`).join('') : '';
     for (const b of $('rankedraces').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); renderRanked(); };
     $('rankedweek').textContent = `This week: ${MAP_BY_ID[rankedWeek.map]?.name || rankedWeek.map}${two ? ` · ${race.name} race${rankedMode === 'hard' ? ' (hard rules)' : ''}` : ''}`;
-    $('rankedpool').textContent = `${race.entries} entries · ${race.poolDmt} DMT pool. ` + rankedWeek.payouts.map((p, i) => `${['1st', '2nd', '3rd', '4th', '5th'][i] || `${i + 1}th`}: ${Number((race.poolDmt * p).toFixed(3))} DMT`).join(' · ');
+    const pool = $('rankedpool'), summary = document.createElement('span');
+    summary.textContent = `${race.entries} entries · ${race.poolDmt} DMT pool.`;
+    pool.replaceChildren(summary, ' ');
+    rankedWeek.payouts.forEach((p,i) => {
+      const prize = document.createElement('span');
+      prize.textContent = `${['1st','2nd','3rd','4th','5th'][i] || `${i+1}th`}: ${Number((race.poolDmt*p).toFixed(3))} DMT`;
+      pool.append(i ? ' · ' : '', prize);
+    });
     const list = document.createElement('ol'), place = prizePlaces(race.rows, rankedWeek.week);
     race.rows.forEach((r, i) => {
       const li = document.createElement('li'), short3 = kp && !placeable(rankedWeek.week, r);
-      li.textContent = kp ? `${r.name || 'Adventurer'} · ${short(r.wallet)} · ${fmtKpm(r)} kills/min · ${fmtT(r.t)} · ${r.kills} kills${short3 ? ' · too short' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`
-        : `${r.name || 'Adventurer'} · ${short(r.wallet)} · ${fmtT(r.t)} · ${r.kills} kills${r.won ? ' · ★ Winner' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`;
+      const name = document.createElement('span'); name.translate = false; name.textContent = r.name || 'Adventurer';
+      li.append(name, kp ? ` · ${short(r.wallet)} · ${fmtKpm(r)} kills/min · ${fmtT(r.t)} · ${r.kills} kills${short3 ? ' · too short' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`
+        : ` · ${short(r.wallet)} · ${fmtT(r.t)} · ${r.kills} kills${r.won ? ' · ★ Winner' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`);
       if (place[i] < 0) li.classList.add('noprize');
       list.appendChild(li);
     });
@@ -425,6 +435,7 @@ async function boot() {
 
 // ---- gear ------------------------------------------------------------------------------------------------------------
 let gearSlotSel = 'head';
+const gearSlotName = slot => slot === 'back' ? 'Cape' : GEAR_SLOT_NAMES[slot];
 function buildGear() {
   const gear = getGear(), bank = getBank(), lvs = getGearLv(), coins = getCoins();
   const owned = new Set(bank);
@@ -432,7 +443,7 @@ function buildGear() {
   // and how many of the slot's pieces you have found
   $('gearslots').innerHTML = GEAR_SLOTS.map((sl) => {
     const all = Object.keys(GEAR).filter((n) => GEAR[n].slot === sl), have = all.filter((n) => owned.has(n)).length;
-    return `<div class="gslot${sl === gearSlotSel ? ' sel' : ''}" data-slot="${sl}" role="tab" aria-selected="${sl === gearSlotSel}" title="${GEAR_SLOT_NAMES[sl]}${gear[sl] ? `: ${gear[sl]}` : ''}">${gear[sl] ? imgTag(gear[sl]) : '<span class="empty"></span>'}<small>${GEAR_SLOT_NAMES[sl]}</small><i>${have}/${all.length}</i></div>`;
+    return `<div class="gslot${sl === gearSlotSel ? ' sel' : ''}" data-slot="${sl}" role="tab" aria-selected="${sl === gearSlotSel}" title="${gearSlotName(sl)}${gear[sl] ? `: ${gear[sl]}` : ''}">${gear[sl] ? imgTag(gear[sl]) : '<span class="empty"></span>'}<small>${gearSlotName(sl)}</small><i>${have}/${all.length}</i></div>`;
   }).join('');
   for (const el of $('gearslots').children) el.onclick = () => { gearSlotSel = el.dataset.slot; buildGear(); };
   // inside the slot, every piece in its group: the metal ladder in order, then the sets, then the specials. Yours to
@@ -615,7 +626,7 @@ async function showBoard(mapId, mode) {
     const r = await fetch(`${BASE}api/scores?map=${encodeURIComponent(lbMap)}${lbEndless ? '&endless=1' : ''}`);
     if (r.status === 503) { $('lblist').innerHTML = '<p class="dim">The shared leaderboard opens soon. Your best run: ' + localBest() + '</p>'; return; }
     const d = await r.json(); const rows = d.rows || []; const myName = load('sq-name', ''); // your own runs stand out
-    $('lblist').innerHTML = rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Adventurer</th><th>Time</th><th class="opt">Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td class="opt">${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : (lbEndless ? '<p class="dim">No endless runs on this map yet. Clear the map, then tick Endless on the title screen and see how long you last.</p>' : '<p class="dim">No runs on this map yet. Be the first.</p>');
+    $('lblist').innerHTML = rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Adventurer</th><th>Time</th><th class="opt">Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span>${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td class="opt">${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : (lbEndless ? '<p class="dim">No endless runs on this map yet. Clear the map, then tick Endless on the title screen and see how long you last.</p>' : '<p class="dim">No runs on this map yet. Be the first.</p>');
   } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach the leaderboard.</p>'; }
 }
 // this week's ranked standings: each wallet's best run, and what the top places would win if the week ended now
@@ -633,8 +644,8 @@ async function showRankedBoard() {
     const prize = (i) => (place[i] < 0 ? `<span class="dim">${noPrize(rows[i].wallet) ? 'no prize (dev)' : 'too short'}</span>` : pays[place[i]] ? `${Math.round(pool * pays[place[i]] * 1000) / 1000} DMT` : '');
     const wal = (x) => esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4));
     $('lblist').innerHTML = head + (rows.length ? (kp
-      ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>KPM</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}</td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>`
-      : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td>${esc(x.name)}</td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>`)
+      ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>KPM</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>`
+      : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>`)
       : `<p class="dim">No ${two ? race.name + ' ' : ''}ranked runs yet this week. Enter from the Ranked button on the title screen.</p>`);
     for (const b of $('lblist').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); showRankedBoard(); };
   } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
@@ -703,7 +714,7 @@ function renderDmt() {
   }
   const c = walletNow(), ws = c ? [{ ...c.w, name: `${c.w.name} (${short(c.address)})` }] : wallets();
   body.innerHTML = `<p>Hold DMT on Arbitrum? Connect your wallet and sign a free message: no transaction, no gas, nothing leaves your wallet.</p>${DMT_PERKS}`
-    + (ws.length ? `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${w.icon ? `<img src="${esc(w.icon)}" alt="">` : ''}Connect ${esc(w.name)}</button>`).join('')}</div>`
+    + (ws.length ? `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${w.icon ? `<img src="${esc(w.icon)}" alt="">` : ''}Connect <span translate="no">${esc(w.name)}</span></button>`).join('')}</div>`
       : `<p class="dim">No wallet in this browser. Open the game in your wallet app's browser:</p><div class="dmtwallets">${walletAppLinks().map(([n, u]) => `<a class="btnlink" href="${u}" rel="noopener">${n}</a>`).join('')}</div><p class="dim">On a computer, install a wallet such as MetaMask or Rabby, then come back.</p>`)
     + '<p class="dim">The game only reads your public DMT balance (Arbitrum token 0x8B0E…04e8). A check lasts a day.</p>';
   for (const b of body.querySelectorAll('[data-w]')) b.onclick = () => connectDmt(ws[Number(b.dataset.w)]);
@@ -727,7 +738,7 @@ const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (
 // a button for each wallet in this browser, or how to get one
 function walletChoices(onPick) {
   const ws = wallets();
-  if (ws.length) return { html: `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${walletIcon(w)}${esc(w.name)}</button>`).join('')}</div>`, bind: (root) => { for (const b of root.querySelectorAll('[data-w]')) b.onclick = () => onPick(ws[Number(b.dataset.w)]); } };
+  if (ws.length) return { html: `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${walletIcon(w)}<span translate="no">${esc(w.name)}</span></button>`).join('')}</div>`, bind: (root) => { for (const b of root.querySelectorAll('[data-w]')) b.onclick = () => onPick(ws[Number(b.dataset.w)]); } };
   const html = isPhone()
     ? `<p class="dim">Phone browsers have no wallet inside. Open the game in your wallet app:</p><div class="dmtwallets">${walletAppLinks().map(([n, u]) => `<a class="btnlink" href="${u}" rel="noopener">${n}</a>`).join('')}</div>`
     : '<p class="dim">No wallet found in this browser. Install <a href="https://rabby.io" target="_blank" rel="noopener">Rabby</a> or <a href="https://metamask.io/download/" target="_blank" rel="noopener">MetaMask</a>, then reload this page.</p>';
@@ -761,7 +772,7 @@ function renderWallet() {
   }
   const pass = savedPass(), mine = pass && pass.address.toLowerCase() === c.address.toLowerCase();
   const b = walletBal && walletBal.address.toLowerCase() === c.address.toLowerCase() ? walletBal : null;
-  body.innerHTML = `<div class="wlhead">${walletIcon(c.w)}<div><b>${esc(c.w.name)}</b><br><a href="${arbiscanAddress(c.address)}" target="_blank" rel="noopener">${esc(short(c.address))}</a> <button id="wlcopy" class="linkbtn">Copy</button></div></div>`
+  body.innerHTML = `<div class="wlhead">${walletIcon(c.w)}<div><b translate="no">${esc(c.w.name)}</b><br><a href="${arbiscanAddress(c.address)}" target="_blank" rel="noopener">${esc(short(c.address))}</a> <button id="wlcopy" class="linkbtn">Copy</button></div></div>`
     + `<div class="wlbal">${b ? `<span><b>${esc(fmtDmt(b.dmt))}</b> DMT</span><span><b>${esc(fmtEth(b.eth))}</b> ETH</span><span class="dim">on Arbitrum</span>` : '<span class="dim">Reading your balances on Arbitrum…</span>'}</div>`
     + (mine ? `<p class="dmtok">DMT perks are on until ${new Date(pass.exp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.</p>`
       : b && b.dmt > 0 ? '<div class="dmtwallets"><button id="wlperks">Turn on DMT perks (free signature)</button></div>'
@@ -1015,6 +1026,7 @@ function toMenu() {
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
 addEventListener('keydown', (e) => {
+  if (e.target?.matches?.('[data-language]')) return;
   if (e.repeat) return;
   const k = e.key.toLowerCase(); keys.add(k);
   if (mode === 'casket') {
@@ -1187,7 +1199,7 @@ function pick(i) {
 
 // ---- reward casket card: the item, what it replaces, every stat change, and Wear or High alch ----------------------------
 const RARITY_NAME = { common: '', rare: 'Rare', unique: 'Unique' };
-const tierLabel = (n) => { const g = GEAR[n]; const metal = ARMOR_TIERS.includes(g.set) || / (Kite)?[Ss]hield$/.test(n) && g.rarity !== 'unique'; return [GEAR_SLOT_NAMES[g.slot], metal ? '' : RARITY_NAME[gearRarity(n)]].filter(Boolean).join(' · '); };
+const tierLabel = (n) => { const g = GEAR[n]; const metal = ARMOR_TIERS.includes(g.set) || / (Kite)?[Ss]hield$/.test(n) && g.rarity !== 'unique'; return [gearSlotName(g.slot), metal ? '' : RARITY_NAME[gearRarity(n)]].filter(Boolean).join(' · '); };
 function casketItemHTML(n, cls, label) {
   // a weapon metal or arrows: what it is for, and what it does to that weapon
   if (isWeaponItem(n)) return `<div class="ckitem ${cls}"><div class="cklabel">${label}</div>${imgTag(n)}<div class="cktext"><b>${n}</b><small>${weaponItemLabel(n)}</small><span>${weaponItemText(n)}</span></div></div>`;
@@ -1316,6 +1328,7 @@ function navBack() {
   return false;
 }
 addEventListener('keydown', (e) => {
+  if (e.target?.matches?.('[data-language]')) return;
   if (mode === 'play' || mode === 'levelup' || mode === 'casket') return;
   const k = e.key; const dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
   if (dir) { navMove(dir); e.preventDefault(); }

@@ -19,7 +19,10 @@ const fake = (name, body) => writeFileSync(path.join(bin, name), '#!/bin/bash\n'
 fake('vercel', `printf 'vercel %s\\n' "$*" >> "$FAKE_LOG"
 case "$1 $2" in
   "env ls") [ -n "$FAKE_ENV" ] && cat "$FAKE_ENV"; exit "\${FAKE_ENV_RC:-0}";;
-  "deploy --prebuilt") echo "Production: https://sqs-fake.vercel.app [2s]"; exit 0;;
+  "deploy --prebuilt")
+    if [ -n "$FAKE_VERBOSE" ]; then for ((i=0;i<3000;i++)); do echo "Production progress $i"; done; fi
+    if [ "\${FAKE_DEPLOY_RC:-0}" != 0 ]; then echo 'Error: deployment refused'; else echo "Production: https://sqs-fake.vercel.app [2s]"; fi
+    exit "\${FAKE_DEPLOY_RC:-0}";;
 esac
 echo "fake vercel: unexpected call: $*" >&2; exit 9
 `);
@@ -68,6 +71,18 @@ test('deploy: a list with only Sensitive, Production-only server secrets (plus S
   assert.equal(r.calls.match(/^vercel env ls --format json$/gm).length, 2, 'checked first and again right before the deploy');
   assert.match(r.calls, /^vercel deploy --prebuilt --prod --yes$/m);
   assert.doesNotMatch(r.calls, /^(ssh|rsync|publish|remote-build)/m);
+});
+
+test('deploy: a Vercel failure preserves its nonzero exit and does not report success', () => {
+  const r = deploy({ env: { FAKE_DEPLOY_RC: '17' } });
+  assert.equal(r.status, 17, r.out);
+  assert.match(r.out, /deployment refused/);
+});
+
+test('deploy: verbose successful output can be abbreviated without SIGPIPE failure', () => {
+  const r = deploy({ env: { FAKE_VERBOSE: '1' } });
+  assert.equal(r.status, 0, r.out);
+  assert.equal((r.out.match(/Production progress/g) || []).length, 3);
 });
 
 test("deploy: today's SQS_TICKET_SECRET (encrypted, Production and Preview) stops it before anything is built, and says exactly what to run", () => {
