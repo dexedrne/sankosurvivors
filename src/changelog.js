@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version:'0.40.2', date:'3 Nov 2026', title:'SankoSurvivors',
+    items:['The language picker now matches the game buttons, with a visible keyboard focus outline.', 'Updated title branding to SankoSurvivors.'],
+  },
+  {
     version: '0.40.1', date: '3 Nov 2026', title: 'More languages',
     items: [
       'Choose English, Türkçe, Español or Filipino on the title screen or in Settings. This device remembers your choice.',

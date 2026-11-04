@@ -624,8 +624,11 @@ body.touch .ckbtns .kb { display: none; }
 }
 
 /* The language choice is per device, available on the title and while paused. */
-.langpick { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:8px; font-size:16px; }
-.langpick select { padding:4px 8px; max-width:140px; font-family:system-ui,sans-serif; }
+.langpick { position:relative; display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:8px; font-size:16px; }
+.langpick select { appearance:none; padding:3px 25px 3px 10px; min-height:40px; max-width:150px; border:8px solid transparent; border-image:url(../assets/ui/sq/accept_button.png) 12 fill stretch; background:none; color:var(--cream); font:20px RSPlain,system-ui,sans-serif; text-shadow:var(--sh); image-rendering:pixelated; cursor:pointer; }
+.langpick::after { content:'▾'; position:absolute; right:12px; color:var(--cream); pointer-events:none; }
+.langpick select:focus-visible { outline:2px solid var(--gold); outline-offset:3px; }
+.langpick option { background:#1e1710; color:var(--cream); }
 html:not([lang="en"]) .panel h2 { overflow-wrap:anywhere; }
 @media (min-width:761px) and (max-width:1440px) {
   #menu { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
