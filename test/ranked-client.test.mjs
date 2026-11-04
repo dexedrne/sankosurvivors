@@ -1,4 +1,6 @@
-import test from 'node:test';
+import test, {beforeEach} from 'node:test';
+import {paymentBrowser} from './helpers/payment-browser.mjs';
+beforeEach(paymentBrowser);
 import assert from 'node:assert/strict';
 import * as client from '../src/ranked-client.js';
 const address = '0x' + '12'.repeat(20), token = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8', collect = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', tx = '0x' + 'ab'.repeat(32);
@@ -39,7 +41,7 @@ test('payment uses signed UTF-8, official chain add, exact transfer and durable 
   await client.payEntry(wallet, '/', (v) => progress.push(v));
   assert.ok(progress.length >= 6);
   const sent = requests.find((r) => r.method === 'eth_sendTransaction').params[0];
-  assert.deepEqual(sent, { from: address, to: token, value: '0x0', data: '0xa9059cbb' + collect.slice(2).padStart(64, '0') + BigInt(nonce.amountWei).toString(16).padStart(64, '0') });
+  assert.deepEqual(sent, { from: address, to: token, value: '0x0', chainId:'0xa4b1', data: '0xa9059cbb' + collect.slice(2).padStart(64, '0') + BigInt(nonce.amountWei).toString(16).padStart(64, '0') });
   const add = requests.find((r) => r.method === 'wallet_addEthereumChain').params[0];
   assert.equal(add.chainId, '0xa4b1'); assert.deepEqual(add.rpcUrls, ['https://arb1.arbitrum.io/rpc']);
   assert.deepEqual(JSON.parse(localStorage.getItem('sq-ranked-entries')), [{ entry: 'ticket', id: 1, week: 0, mode: 'normal' }]);

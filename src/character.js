@@ -11,6 +11,25 @@ const FOLDER = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', fee
 const SUFFIX = { head: 'Helmet', chest: 'Chestplate', hands: 'Gauntlets', legs: 'Leggings', feet: 'Boots' };
 const HAIR = ['Short', 'Long', 'Shaggy', 'Pomp', 'Middle Part', 'Buns', 'Sideswept', 'Liberty Spikes'];
 
+// Cached model geometry, maps and materials remain shared; only actor-created resources belong to cleanup.
+const actorResources = new WeakSet();
+export function ownActorResource(resource) { actorResources.add(resource); return resource; }
+export function cloneActor(scene) {
+  const root = SkeletonUtils.clone(scene);
+  root.traverse(o => { if (o.isSkinnedMesh) ownActorResource(o.skeleton); });
+  return root;
+}
+export function disposeActor(root, mixer) {
+  mixer?.stopAllAction?.();
+  if (mixer?.getRoot) mixer.uncacheRoot(mixer.getRoot());
+  root.removeFromParent();
+  root.traverse(o => {
+    for (const resource of [o.skeleton, o.geometry, ...[].concat(o.material || [])]) {
+      if (resource && actorResources.delete(resource)) resource.dispose();
+    }
+  });
+}
+
 export function armorSet(level) {
   if (!level) return {};
   const t = ARMOR_TIERS[Math.min(level, ARMOR_TIERS.length) - 1];
@@ -66,7 +85,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
 
   // The part files name their materials: SKIN_TOP (skin), Eyes.Color, Hair.Color, Color.* (clothing).
   const paint = (m, pal) => {
-    const c = m.clone();
+    const c = ownActorResource(m.clone());
     const n = m.name || '';
     if (n === 'SKIN_TOP') c.color.set(pal.skin);
     else if (n === 'Hair.Color') c.color.set(pal.hair);
@@ -84,7 +103,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     return { m: new THREE.Matrix4().makeBasis(side, up, fwd).setPosition(o), len };
   };
   function bindParts(masterRest, masterBones, gltf, pal) {
-    const clone = SkeletonUtils.clone(gltf.scene); const found = [];
+    const clone = cloneActor(gltf.scene); const found = [];
     clone.updateMatrixWorld(true);
     clone.traverse((o) => { if (o.isSkinnedMesh) found.push(o); });
     const armBones = new Map(); clone.traverse((o) => { if (o.isBone) armBones.set(o.name, o); });
@@ -99,7 +118,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
       const names = sm.skeleton.bones.map((b) => b.name);
       const bones = names.map((n) => masterBones.get(n) || sm.skeleton.bones[names.indexOf(n)]);
       const inv = names.map((n) => (masterRest.get(n) ? masterRest.get(n).clone().invert() : new THREE.Matrix4()));
-      sm.bind(new THREE.Skeleton(bones, inv), T.clone().multiply(sm.bindMatrix));
+      sm.bind(ownActorResource(new THREE.Skeleton(bones, inv)), T.clone().multiply(sm.bindMatrix));
       sm.frustumCulled = false;
       if (pal) paintMesh(sm, pal);
       sm.position.set(0, 0, 0); sm.quaternion.identity(); sm.scale.set(1, 1, 1); sm.updateMatrix();
@@ -110,7 +129,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
 
   // spec: { hair, skin, hairColor, shirt, pants, armor: {head,chest,hands,legs,feet,back}, h }
   function build(spec = {}) {
-    const master = SkeletonUtils.clone(masterGltf.scene);
+    const master = cloneActor(masterGltf.scene);
     master.updateMatrixWorld(true);
     const bones = new Map(), rest = new Map(); master.traverse((o) => { if (o.isBone) { bones.set(o.name, o); rest.set(o.name, o.matrixWorld.clone()); } });
     const skin = spec.skin ?? 0xdfaa8b, shirt = spec.shirt ?? 0xb98a45, pants = spec.pants ?? 0x4a4f63, hairC = spec.hairColor ?? 0x6b4423;
@@ -149,7 +168,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
       },
       play(name) { if (act[name]) { act[name].reset().setEffectiveWeight(1).fadeIn(0.05).play(); } },
       setArmor(a = {}) {
-        for (const sm of extra.armor) sm.parent && sm.parent.remove(sm);
+        for (const sm of extra.armor) disposeActor(sm);
         extra.armor = [];
         for (const slot of Object.keys(SUFFIX).concat('back')) {
           const name = a[slot]; if (!name) continue;
@@ -172,7 +191,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     // hands sit in the idle pose, so a blade points ahead, a staff stands up and a shield faces out, whatever the bone axes are.
     const heldObjs = [];
     inst.setHeld = (held = {}) => {
-      for (const o of heldObjs) o.parent && o.parent.remove(o);
+      for (const o of heldObjs) disposeActor(o);
       heldObjs.length = 0; root.updateMatrixWorld(true);
       for (const side of ['Right', 'Left']) {
         const key = side.toLowerCase(), g = held[key], bone = bones.get(`mixamorig_${side}Hand`);
@@ -255,7 +274,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     return c;
   }
   function animate(gltf, h = 1.6, clipName = 'walk', { zUp = false, fromRest = false } = {}) {
-    const master = SkeletonUtils.clone(gltf.scene);
+    const master = cloneActor(gltf.scene);
     const bones = new Map();
     master.traverse((o) => { o.frustumCulled = false; if (o.isBone) { if (/^mixamorig(?!_)/.test(o.name)) o.name = o.name.replace(/^mixamorig:?/, 'mixamorig_'); bones.set(o.name, o); } });
     const root = new THREE.Group(), holder = new THREE.Group(); holder.add(master); root.add(holder);

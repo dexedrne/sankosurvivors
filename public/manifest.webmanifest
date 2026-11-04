@@ -1,6 +1,6 @@
 {
   "name": "SankoSurvivors",
-  "short_name": "SQ Survivors",
+  "short_name": "SankoSurvivors",
   "description": "Survive the hordes in the real SankoQuest world. An unofficial fan game.",
   "id": "/",
   "start_url": "/?source=pwa",
@@ -12,8 +12,8 @@
   "theme_color": "#2b2118",
   "categories": ["games"],
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/icons/air-shard-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/air-shard-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/air-shard-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

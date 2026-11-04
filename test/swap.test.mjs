@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { quoteDmt, checkBuilt, KYBER_ROUTER, SLIPPAGE_BPS } from '../src/swap.js';
+import { quoteDmt, checkBuilt, buyDmt, KYBER_ROUTER, SLIPPAGE_BPS } from '../src/swap.js';
 import { rankedSim } from '../src/ranked.js';
 import { createSim } from '../src/sim.js';
 import { MAP_BY_ID } from '../src/content.js';
@@ -27,6 +27,8 @@ const descAt = (hex) => { const p = 8 + Number(BigInt('0x' + W(hex, 8))) * 2; re
 test('buy DMT: the game decodes the swap and refuses one that pays anyone else, gives less, or is not KyberSwap', () => {
   const q = { amountIn: real.summary.amountIn, summary: real.summary }, b = real.build, h = b.data.slice(2), d = descAt(h);
   assert.equal(checkBuilt(b, q, me), BigInt(q.amountIn));
+  const partial = { ...b, data: '0x' + put(h, d + 9 * 64, (BigInt('0x' + W(h, d + 9 * 64)) | 1n).toString(16).padStart(64, '0')) };
+  assert.throws(() => checkBuilt(partial, q, me), /partial fill/i, 'a partial fill does not enforce the displayed absolute DMT minimum');
   const thief = '000000000000000000000000' + '2'.repeat(40);
   const swapped = (at, w) => ({ ...b, data: '0x' + put(h, at, w) });
   assert.throws(() => checkBuilt(swapped(d + 6 * 64, thief), q, me), /did not pay your own wallet/, 'DMT to someone else');
@@ -44,6 +46,32 @@ test('buy DMT: the game decodes the swap and refuses one that pays anyone else, 
   assert.equal(checkBuilt(b, q, me.toUpperCase().replace('0X', '0x')), BigInt(q.amountIn), 'any letter case of the address');
 });
 const SWAP = 'e21fd0e9';
+test('buy DMT refuses a chain switch while its build is pending', async () => {
+  let chain = '0xa4b1', sends = 0;
+  const wallet = { p: { request: async ({ method }) => {
+    if (method === 'eth_chainId') return chain;
+    if (method === 'eth_sendTransaction') { sends++; return 'fixture-tx'; }
+    if (method === 'eth_getTransactionReceipt') return { status: '0x1' };
+  } } };
+  const q = { amountIn: real.summary.amountIn, summary: real.summary, ethIn: Number(real.summary.amountIn) / 1e18, minOut: 1 };
+  await assert.rejects(buyDmt(wallet, me, q, () => {}, async () => {
+    chain = '0x1';
+    return new Response(JSON.stringify({ code: 0, data: real.build }));
+  }), /Arbitrum|chain/i);
+  assert.equal(sends, 0);
+});
+
+test('buy DMT binds the wallet transaction to Arbitrum', async () => {
+  let sent;
+  const wallet = { p: { request: async ({ method, params }) => {
+    if (method === 'eth_chainId') return '0xa4b1';
+    if (method === 'eth_sendTransaction') { sent = params[0]; return 'fixture-tx'; }
+    if (method === 'eth_getTransactionReceipt') return { status: '0x1' };
+  } } };
+  const q = { amountIn: real.summary.amountIn, summary: real.summary, ethIn: Number(real.summary.amountIn) / 1e18, minOut: 1 };
+  await buyDmt(wallet, me, q, () => {}, async () => new Response(JSON.stringify({ code: 0, data: real.build })));
+  assert.equal(sent.chainId, '0xa4b1');
+});
 test('the crowd: casual runs on the denser pace; ranked week 0 keeps the pace it started on, week 1 the new one', () => {
   assert.equal(createSim({ seed: 1, map: MAP_BY_ID.greentown }).pace, 2);
   const base = { seed: 3, mapId: 'apache', adv: 'adventurer', ground: null };

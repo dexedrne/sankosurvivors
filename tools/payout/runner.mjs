@@ -157,13 +157,23 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
     }
     const work=[...recover,...due.filter(r=>!capped.includes(r))];
     // (security pass 3 review: checked only for the refunds about to be sent, so a flood of capped rows costs no chain calls)
-    for(const row of work.filter(r=>r.kind==='refund'&&r.status==='planned')){
+    for(const row of work.filter(r=>r.kind==='refund'&&!r.raw_tx)){
       const tx=String(row.source_tx??'').toLowerCase();
       if(!/^0x[0-9a-f]{64}$/.test(tx)){await alert('unverified refund row '+row.id);return;}
-      let r;try{r=await chain.rpc('eth_getTransactionReceipt',[tx]);}catch{await alert('chain unavailable');return;}
-      let paid=0n;
-      for(const l of r?.status==='0x1'?r.logs??[]:[])if(l.address?.toLowerCase()===DMT&&l.topics?.[0]===TRANSFER&&l.topics[1]?.toLowerCase()==='0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0')&&l.topics[2]?.toLowerCase()==='0x'+config.wallet.slice(2).toLowerCase().padStart(64,'0'))paid+=BigInt(l.data);
-      if(paid!==units(row.amount)){await alert('unverified refund row '+row.id);return;}
+      try {
+        const r=await chain.rpc('eth_getTransactionReceipt',[tx]);
+        if(r?.transactionHash?.toLowerCase()!==tx||r.status!=='0x1')throw Error('invalid source receipt');
+        let paid=0n;
+        for(const l of r.logs??[])if(l.address?.toLowerCase()===DMT&&l.topics?.length===3&&l.topics[0]===TRANSFER&&l.topics[1]?.toLowerCase()==='0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0')&&l.topics[2]?.toLowerCase()==='0x'+config.wallet.slice(2).toLowerCase().padStart(64,'0')){
+          if(!/^0x[0-9a-f]{64}$/i.test(l.data))throw Error('invalid Transfer amount');
+          paid+=BigInt(l.data);
+        }
+        if(paid!==units(row.amount))throw Error('source amount mismatch');
+        const block=quantityBigInt(r.blockNumber),head=quantityBigInt(await chain.rpc('eth_blockNumber'));
+        if(head<block+20n||!/^0x[0-9a-f]{64}$/i.test(r.blockHash))throw Error('source not confirmed');
+        const canonical=await chain.rpc('eth_getBlockByNumber',[quantity(block),false]);
+        if(canonical?.hash!==r.blockHash)throw Error('source is not canonical');
+      }catch{await alert('unverified refund row '+row.id);return;}
     }
     if(!work.length){log('No transfers due.');return;}
     let fees,gasById;

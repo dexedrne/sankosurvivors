@@ -323,7 +323,7 @@ body.touch #pausebtn { top: 258px; }
 /* ---- phones, the iPhone Duo (626x890 open, 890x626 turned) and the installed app ---- */
 body.touch .key { display: none; }
 /* keep the HUD and title clear of the Dynamic Island, rounded corners and home bar */
-#hud, #title { top: env(safe-area-inset-top, 0px); right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px); left: env(safe-area-inset-left, 0px); }
+#hud { top: env(safe-area-inset-top, 0px); right: env(safe-area-inset-right, 0px); bottom: env(safe-area-inset-bottom, 0px); left: env(safe-area-inset-left, 0px); }
 #installbtn { margin-top: 4px; }
 /* turned sideways or a short window: everything in one row under the logo */
 @media (min-width: 761px) and (max-width: 1180px) and (max-height: 760px) {
@@ -336,20 +336,8 @@ body.touch .key { display: none; }
   #brand h1 { font-size: 48px; } #brand h2 { font-size: 24px; } #tagline { display: none; }
   .keys { display: none; }
 }
-/* tall narrow screens: the start button stays on screen while you scroll the pickers */
-@media (max-width: 760px) {
-  #actions #start { position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 4; margin: 0; box-shadow: 0 6px 18px #000c; }
-  #menu { padding-bottom: 96px; }
-  #title .fine { padding-bottom: 0; }
-  /* the version sits under the credit line, and the space for the fixed Start bar (76px tall + its 10px gap) comes after it */
-  #version { position: static; display: block; width: max-content; margin: 4px auto calc(112px + env(safe-area-inset-bottom, 0px)); }
-  /* the Start button floats at the bottom, so the menu buttons start at the top of their panel; no empty modes row */
-  #actions { justify-content: flex-start; }
-  #modes:not(:has(label:not(.hidden))) { display: none; }
-  #actions #loadtext:empty { display: none; }
-}
 /* fingertip-sized buttons on touch screens */
-body.touch .panel button, body.touch #actions button, body.touch #lbtabs button { min-height: 42px; }
+body.touch .panel button, body.touch #actions button, body.touch #lbtabs button { min-height: 44px; }
 body.touch .seg button { min-height: 38px; min-width: 44px; }
 
 /* credit line, tip button and the tip panel */
@@ -647,4 +635,44 @@ html:not([lang="en"]) .panel h2 { overflow-wrap:anywhere; }
   #apick { grid-template-columns:repeat(5,minmax(0,1fr)); }
   #mpick { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .aopt, .mopt { min-width:0; overflow-wrap:anywhere; }
+}
+
+/* Phones: keep the adventurer visible, and let content determine button/footer positions. */
+@media (max-width:760px), (max-width:1180px) and (max-height:500px) {
+  #title { display:block; inset:0; overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y;
+    padding:0 max(10px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px)); }
+  #brand { position:absolute; top:calc(10px + env(safe-area-inset-top, 0px)); left:max(12px, env(safe-area-inset-left, 0px)); right:auto; width:44%; padding:0; text-align:left; }
+  #brand h1 { font-size:44px; } #brand h2 { font-size:20px; } #tagline { display:none; }
+  #topright { top:calc(8px + env(safe-area-inset-top, 0px)); right:max(12px, env(safe-area-inset-right, 0px)); max-width:49%; }
+  #topright .langpick { margin-bottom:2px; } #topright .langpick > span { display:none; }
+  #topright .langpick select { font-size:18px; min-height:44px; max-width:140px; }
+  #coinbox { font-size:20px; } #coinbox img { width:20px; height:20px; }
+  #walletchip { font-size:16px; min-height:44px; margin-top:2px; max-width:100%; }
+  #best { display:none; }
+  #menu { position:relative; inset:auto; display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+    margin-top:clamp(230px,48vh,430px); margin-top:clamp(230px,48dvh,430px); padding:0; gap:6px; align-items:stretch; }
+  #menu section { min-width:0; max-width:none; padding:6px; display:flex; flex-direction:column; }
+  #menu h3 { font-size:16px; letter-spacing:1px; margin:0 0 5px; }
+  #apick, #mpick { display:grid; grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:64px; gap:4px; justify-content:start;
+    overflow-x:auto; overscroll-behavior-x:contain; touch-action:pan-x; scrollbar-width:thin; padding-bottom:4px; scroll-snap-type:x proximity; }
+  #mpick { grid-auto-columns:80px; }
+  #apick .aopt, #mpick .mopt { min-height:60px; font-size:14px; line-height:1.05; padding:3px 1px; scroll-snap-align:start; }
+  #apick .aopt img { width:24px; height:24px; }
+  #mpick .mopt .thumb { height:24px; margin-bottom:2px; }
+  #ainfo, #mapinfo { width:auto; height:auto; min-height:0; margin:4px 0 0; padding:0; font-size:14px; line-height:1.15; overflow:visible; }
+  #actions { grid-column:1 / -1; min-width:0; gap:4px; justify-content:flex-start; }
+  #actions button { min-height:44px; padding:2px 6px; margin:0; font-size:18px; }
+  #actions #start { position:static; min-height:50px; font-size:24px; padding:5px 8px; box-shadow:none; }
+  #actions .btngrid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+  #actions .btngrid button { min-width:0; overflow-wrap:anywhere; }
+  #modes { flex-wrap:wrap; gap:8px; } #modes:not(:has(label:not(.hidden))) { display:none; }
+  #actions #loadtext:empty { display:none; }
+  #title .keys { display:none; }
+  #title .fine { position:static; font-size:14px; line-height:1.25; padding:8px 0 0; }
+  #version { position:static; display:block; width:max-content; max-width:100%; margin:5px auto 0; font-size:16px; }
+}
+@media (max-width:1180px) and (max-height:500px) and (orientation:landscape) {
+  #menu { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:180px; }
+  #actions { grid-column:auto; }
+  #brand h1 { font-size:36px; } #brand h2 { font-size:18px; }
 }

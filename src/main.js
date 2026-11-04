@@ -1,12 +1,12 @@
 import { RunRecorder, RANKED, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
-import { rankedApi, payEntry, recoverPayment, readRanked, writeRanked } from './ranked-client.js';
+import { rankedApi, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
 import { asset, pickAssetHost } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
-import { initI18n } from './i18n.js';
+import { initI18n, translateText } from './i18n.js';
 import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
 const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
 // prize place of each board row: the developer's wallet and (from week 1) runs under 3:00 take none, the places pass down
@@ -26,6 +26,7 @@ const $ = (id) => document.getElementById(id);
 initI18n();
 const BASE = import.meta.env.BASE_URL || './';
 const params = new URLSearchParams(location.search);
+const compactMenu = matchMedia('(max-width:760px), (max-width:1180px) and (max-height:500px)');
 const PLAYER = 'p1';
 
 let sim = null, renderer = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0;
@@ -189,8 +190,18 @@ function renderRanked() {
   const ready = $('rankedready'); ready.replaceChildren();
   const button = (text, fn) => { const b = document.createElement('button'); b.textContent = text; b.disabled = rankedBusy; b.onclick = fn; ready.appendChild(b); };
   if (pending || live?.ended) button('Retry ranked submission', () => submitRanked());
-  else if (live) button(live.sim === SIM_ID ? 'Resume your ranked run' : 'Game updated: request your refund', () => recoverRankedRun());
-  if (readRanked('sq-ranked-payment')) button('Check payment', () => rankedAction(() => recoverPayment(BASE, rankedMessage)));
+  else if (live) button(live.sim === SIM_ID ? 'Resume your ranked run' : 'Game updated: restart your run', () => recoverRankedRun());
+  const payment = readRanked('sq-ranked-payment');
+  if (payment?.tx) button('Check payment', () => rankedAction(() => recoverPayment(BASE, rankedMessage)));
+  else if (payment) {
+    const help = document.createElement('p'); help.textContent = 'Check your wallet activity. If the payment was sent, paste its Arbitrum transaction hash to recover it. Do not pay again.';
+    const hash = document.createElement('input'); hash.placeholder = 'Arbitrum transaction hash'; hash.setAttribute('aria-label', 'Arbitrum transaction hash'); hash.maxLength = 66; hash.spellcheck = false; hash.autocomplete = 'off';
+    ready.append(help, hash);
+    button('Recover this payment', () => rankedAction(() => recoverPayment(BASE, rankedMessage, hash.value.trim())));
+    button('My wallet shows no payment', () => {
+      if (confirm(translateText('Only clear this check if your wallet shows that no payment was sent. A sent payment must be recovered instead.', document.documentElement.lang))) rankedAction(clearUnsentPayment);
+    });
+  }
   if (!live && rankedWeek) for (const e of readRanked('sq-ranked-entries', []).filter((e) => e.week === rankedWeek.week)) button(`Entry ${e.id}${raceBadge(e.mode)} ready · Start`, () => startRankedEntry(e));
   if (rankedWeek) {
     const races = raceList(rankedWeek); if (!races.includes(rankedMode)) rankedMode = 'normal';
@@ -309,27 +320,22 @@ async function startRankedEntry(entry) {
   });
 }
 async function recoverRankedRun() {
+  let submit = false;
   await rankedAction(async () => {
     const live = rankedLive(); if (!live) return;
     if (live.sim !== SIM_ID) {
-      rankedMessage('The game changed during your run. Requesting your refund…');
-      try {
-        let d;
-        try { d = await rankedApi(BASE, 'void', { run: live.run, log: live.log }); }
-        catch (e) { if (/send it instead/.test(String(e.message))) { rankedMessage('Your run had already ended: sending it…'); await submitRanked(); return; } throw e; }
-        if (d && d.restart && d.entry) { // the same entry, ready to start again on this version
-          const entries = readRanked('sq-ranked-entries', []).filter((x) => x.id !== d.id);
-          entries.push({ entry: d.entry, id: d.id, week: d.week, mode: d.mode === 'hard' ? 'hard' : 'normal' });
-          writeRanked('sq-ranked-entries', entries); localStorage.removeItem('sq-ranked-live');
-          rankedMessage('The game changed during your run, so it could not finish. Your entry is ready to start again.'); renderRanked();
-          return;
-        }
-        localStorage.removeItem('sq-ranked-live');
-        rankedMessage(`Your ${RACE[liveRace(live).mode].entryDmt} DMT will be sent back.`);
-      } catch (e) {
-        if (e.status) localStorage.removeItem('sq-ranked-live');
-        throw e;
-      }
+      rankedMessage('The game changed during your run. Preparing your entry to start again…');
+      let d;
+      try { d = await rankedApi(BASE, 'void', { run: live.run, log: live.log }); }
+      catch (e) { if (/send it instead/.test(String(e.message))) { rankedMessage('Your run had already ended: sending it…'); submit = true; return; } throw e; }
+      const race = liveRace(live);
+      if (!d || d.restart !== true || !Number.isSafeInteger(d.id) || d.id < 1 || typeof d.entry !== 'string' || !d.entry.trim()
+        || !Number.isInteger(d.week) || d.week < 0 || d.week !== race.week || !['normal', 'hard'].includes(d.mode) || d.mode !== race.mode)
+        throw plain('The ranked server did not return a valid restart entry. Your run is saved. Try again.');
+      const entries = readRanked('sq-ranked-entries', []).filter((x) => x.id !== d.id);
+      entries.push({ entry: d.entry, id: d.id, week: d.week, mode: d.mode });
+      writeRanked('sq-ranked-entries', entries); localStorage.removeItem('sq-ranked-live');
+      rankedMessage('The game changed during your run, so it could not finish. Your entry is ready to start again.'); renderRanked();
     } else {
       // a long endless run is replayed from its start in this browser: say so, and let the message paint first
       const ticks = (live.log?.runs || []).reduce((n, r) => n + (Number(r[0]) || 0), 0);
@@ -337,6 +343,7 @@ async function recoverRankedRun() {
       await startRun(live);
     }
   });
+  if (submit) await submitRanked();
 }
 async function submitRanked() {
   if (rankedBusy) return;
@@ -1034,7 +1041,7 @@ function toMenu() {
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
 addEventListener('keydown', (e) => {
-  if (e.target?.matches?.('[data-language]')) return;
+  if (e.target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
   if (e.repeat) return;
   const k = e.key.toLowerCase(); keys.add(k);
   if (mode === 'casket') {
@@ -1336,7 +1343,7 @@ function navBack() {
   return false;
 }
 addEventListener('keydown', (e) => {
-  if (e.target?.matches?.('[data-language]')) return;
+  if (e.target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
   if (mode === 'play' || mode === 'levelup' || mode === 'casket') return;
   const k = e.key; const dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
   if (dir) { navMove(dir); e.preventDefault(); }
@@ -1388,9 +1395,14 @@ function loop(ts) {
     if (edges.a && mode === 'title' && !$('start').disabled) startRun(); else if (edges.a && mode === 'end') startRun();
     if (!sim) { // title backdrop: the chosen adventurer standing in the chosen map
       if (frame % 2 === 0) {
-        if (!window.__idleSim) { const T = renderer.terrain; window.__idleSim = createSim({ seed: 1, map: MAP_BY_ID[selMap], ground: T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null } : null, players: [{ id: PLAYER, name: 'You', adv: runAdv().id, gear: runAdv().id !== selAdv ? {} : getGear() }] }); }
+        if (!window.__idleSim) {
+          const T = renderer.terrain;
+          window.__idleSim = createSim({ seed: 1, map: MAP_BY_ID[selMap], ground: T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null } : null, players: [{ id: PLAYER, name: 'You', adv: runAdv().id, gear: runAdv().id !== selAdv ? {} : getGear() }] });
+          if (selMap === 'greentown' || selMap === 'world') { const p = window.__idleSim.players[0]; [p.x, p.z] = findWalkable(window.__idleSim, 390, 310); } // title-only clearing, away from the spawn tree
+        }
         const v = snapshot(window.__idleSim); v.players[0].f = Math.sin(performance.now() / 3000) * 0.5;
-        if (!params.has('qa')) renderer.setYaw(renderer.getYaw() + 0.0045); // the camera drifts slowly round the title scene
+        if (compactMenu.matches) renderer.setYaw(0);
+        else if (!params.has('qa')) renderer.setYaw(renderer.getYaw() + 0.0045); // the desktop title camera drifts slowly
         renderer.update(v, 0.033, PLAYER);
       }
       return;
@@ -1414,8 +1426,10 @@ function loop(ts) {
     if (sim.over) endRun();
   } else if (mode === 'levelup') {
     if (edges.left) { selCard = (selCard + 2) % 3; markCard(); } if (edges.right) { selCard = (selCard + 1) % 3; markCard(); } if (edges.a) pick(selCard);
+    const before = sim.pending[PLAYER];
     if (!rankedRec) step(sim, {}, dt); // ranked choices wait for the player
     if (shownPending && (!sim.pending[PLAYER] || sim.pending[PLAYER].casket)) { shownPending = false; audio.duck(false); mode = 'play'; $('levelup').classList.add('hidden'); } // (a casket card shows next)
+    else if (shownPending && sim.pending[PLAYER] !== before) showLevelUp();
   } else if (mode === 'casket') {
     // controller: A wears, B high alches; the stick or d-pad moves the highlight
     if (edges.left || edges.up) { selCard = 0; markCasket(); } if (edges.right || edges.down) { selCard = 1; markCasket(); }

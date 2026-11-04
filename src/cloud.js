@@ -80,22 +80,30 @@ const hex = (s) => '0x' + [...new TextEncoder().encode(s)].map((b) => b.toString
 
 /** A cloud save on one device. ui: { choose(cloud, local) -> Promise<'cloud'|'device'>, note(text), reload() } */
 export function createCloud(baseUrl, ui) {
-  let timer = 0, busy = false, again = false;
+  let timer = 0, busy = false, again = false, signInGeneration = 0;
 
   // sign in with a connected wallet ({ w: { p }, address }): the first save, or the choice between two
   async function signIn(conn, step = () => {}) {
+    const generation = ++signInGeneration;
+    let sessionKey = cloudState()?.key;
+    const checkCurrent = () => { if (generation !== signInGeneration || cloudState()?.key !== sessionKey) throw new Error('Cloud sign-in cancelled: the save session changed.'); };
     const n = await api(baseUrl, 'save-nonce'); if (!n.d.message) throw new Error('the game server is not answering');
+    checkCurrent();
     step('Sign the message in your wallet (free, no transaction)…');
     const signature = await conn.w.p.request({ method: 'personal_sign', params: [hex(n.d.message), conn.address] });
+    checkCurrent();
     step('Opening your cloud save…');
     const r = await api(baseUrl, 'save-login', { nonce: n.d.nonce, signature, address: conn.address });
+    checkCurrent();
     if (r.status !== 200) throw new Error(r.d.error || 'the cloud save did not open');
     const mine = snapshot();
     set(UPLOAD_KEY, null);
     setState({ a: r.d.address, key: r.d.key, rev: r.d.rev || 0 });
+    sessionKey = r.d.key;
     if (!r.d.rev || !r.d.data) { set(BASE_KEY, null); return await push(true) ? 'saved' : 'pending'; } // nothing there yet: this device's progress goes up
     if (same(mine, r.d.data)) { setState({ a: r.d.address, key: r.d.key, rev: r.d.rev }); set(BASE_KEY, JSON.stringify(r.d.data)); return 'same'; }
     const pick = isFresh(mine) ? 'cloud' : await ui.choose(summary(r.d.data), summary(mine));
+    checkCurrent();
     if (pick === 'cloud') { applySnapshot(r.d.data); ui.reload(); return 'loaded'; }
     set(BASE_KEY, JSON.stringify(r.d.data)); // keep this device's: it replaces the cloud one
     return await push(true, r.d.data) ? 'saved' : 'pending';
@@ -168,6 +176,6 @@ export function createCloud(baseUrl, ui) {
       return true;
     } catch { return false; }
   }
-  function signOut() { clearTimeout(timer); again = false; setState(null); set(BASE_KEY, null); set(UPLOAD_KEY, null); }
+  function signOut() { signInGeneration++; clearTimeout(timer); again = false; setState(null); set(BASE_KEY, null); set(UPLOAD_KEY, null); }
   return { signIn, changed, push, pull, signOut, state: cloudState };
 }

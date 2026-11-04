@@ -55,6 +55,8 @@ export function checkBuilt(b, q, address) {
   const num = (at) => BigInt('0x' + word(at)), addr = (at) => { const w = word(at); if (!/^0{24}/.test(w)) throw bad(); return '0x' + w.slice(24); };
   const off = (base, i) => { const o = num(base + i * 64); if (o > BigInt(h.length)) throw bad(); return base + Number(o) * 2; };
   const p = off(8, 0), d = off(p, 3), len = (i) => num(off(d, i)); // desc: src, dst, srcReceivers, srcAmounts, feeReceivers, feeAmounts, dstReceiver, amount, minReturn, flags, permit
+  // Partial fills enforce a proportional price, not the absolute DMT minimum shown to the player.
+  if (num(d + 9 * 64) & 1n) throw new Error('That swap allowed a partial fill: stopped for your safety.');
   const minOut = (BigInt(q.summary.amountOut) * BigInt(10000 - SLIPPAGE_BPS - 1)) / 10000n; // KyberSwap rounds its floor down: 0.01% of give
   if (addr(d) !== ETH.toLowerCase() || addr(d + 64) !== DMT_TOKEN.toLowerCase() || addr(d + 6 * 64) !== address.toLowerCase()
     || num(d + 7 * 64) !== value || num(d + 8 * 64) < minOut || len(4) !== 0n || len(5) !== 0n || len(10) !== 0n)
@@ -82,7 +84,8 @@ export async function buyDmt(wallet, address, q, onStep = () => {}, f = fetch) {
   if (!ok || d.code !== 0) throw new Error('The swap could not be prepared. Get a new quote.');
   const value = checkBuilt(d.data, q, address);
   onStep(`Confirm the swap in your wallet: ${q.ethIn.toFixed(5)} ETH for at least ${q.minOut} DMT…`);
-  const tx = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: KYBER_ROUTER, data: d.data.data, value: '0x' + value.toString(16) }] });
+  if (String(await p.request({ method: 'eth_chainId' })).toLowerCase() !== ARB.chainId) throw new Error('Switch to Arbitrum One first.');
+  const tx = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: KYBER_ROUTER, chainId: ARB.chainId, data: d.data.data, value: '0x' + value.toString(16) }] });
   onStep('Swap sent. Waiting for Arbitrum…');
   const until = Date.now() + 120000;
   while (Date.now() < until) {

@@ -13,7 +13,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, weaponLook, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR } from './content.js';
-import { createCharacterKit, armorSet } from './character.js';
+import { createCharacterKit, armorSet, cloneActor, ownActorResource, disposeActor } from './character.js';
 import { terrainFromTiles, WATER_Y } from './terrain.js';
 
 const BASE = import.meta.env.BASE_URL || './';
@@ -190,12 +190,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   function instantiate(proto, pickClip) {
     const root = new THREE.Group();
-    const inner = SkeletonUtils.clone(proto.gltf.scene);
+    const inner = cloneActor(proto.gltf.scene);
     inner.scale.setScalar(proto.k);
     inner.position.set(-proto.cx, -proto.minY, -proto.cz);
     // own materials, so a hit can flash this one monster white
     const mats = [];
-    inner.traverse((o) => { o.frustumCulled = false; if (o.isMesh) { o.castShadow = false; o.material = [].concat(o.material).map((m) => { const c = m.clone(); if (c.emissive) mats.push(c); return c; }); if (o.material.length === 1) o.material = o.material[0]; } });
+    inner.traverse((o) => { o.frustumCulled = false; if (o.isMesh) { o.castShadow = false; o.material = [].concat(o.material).map((m) => { const c = ownActorResource(m.clone()); if (c.emissive) mats.push(c); return c; }); if (o.material.length === 1) o.material = o.material[0]; } });
     root.add(inner);
     const clips = proto.gltf.animations || [];
     let mixer = null;
@@ -698,12 +698,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   let bossSankson = false; // while Survival Sankson fights you on Tutorial Island, the townsman of the same name steps away
   function updateFolk(dt) {
     if (!kit || !entData || !entData.folk) return;
-    if (bossSankson) for (const [i, a] of folkActors) if (entData.folk[i] && entData.folk[i][3] === 'npc_survival_sankson') { entGroup.remove(a.root); folkActors.delete(i); }
+    if (bossSankson) for (const [i, a] of folkActors) if (entData.folk[i] && entData.folk[i][3] === 'npc_survival_sankson') { disposeActor(a.root, a.mixer); folkActors.delete(i); }
     for (const a of folkActors.values()) a.mixer.update(dt);
     const now = performance.now(); if (now < folkT) return; folkT = now + 700; // by the clock, so slow frames do not delay it
     const want = entData.folk.map((f, i) => ({ i, f, d: (f[0] - cam.x) ** 2 + (f[1] - cam.z) ** 2 })).filter((o) => o.d < 42 * 42).sort((a, b) => a.d - b.d).slice(0, low ? 4 : 8);
     const keep = new Set(want.map((o) => o.i));
-    for (const [i, a] of folkActors) if (!keep.has(i)) { entGroup.remove(a.root); folkActors.delete(i); }
+    for (const [i, a] of folkActors) if (!keep.has(i)) { disposeActor(a.root, a.mixer); folkActors.delete(i); }
     for (const { i, f } of want) {
       if (folkActors.has(i)) continue;
       if (bossSankson && f[3] === 'npc_survival_sankson') continue;
@@ -1207,8 +1207,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const shardTex = new THREE.TextureLoader().load(A('ui/items/item_Bones.png'), (t) => { t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; for (const g of gemSets) { g.material.map = t; g.material.needsUpdate = true; } });
   const pickupSprites = new Map(); const iconCache = new Map();
   const shrineObjs = new Map(), SHRINE_COLORS = { strength: 0xff5a3c, prayer: 0xbfe8ff, magic: 0xb06aff, agility: 0x7be06a, fortune: 0xffd34d, wealth: 0xffb03a }; // as SHRINES in sim.js
-  const PICKUP_ICON = { coin: 'Gold', crawdad: 'Cooked Crawdad', trout: 'Cooked Brown Trout', catfish: 'Cooked Catfish', bass: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
-  const PICKUP_SIZE = { chest: 1.5, coin: 0.855, crawdad: 0.8, trout: 0.95, catfish: 1.0, bass: 1.1 };
+  const PICKUP_ICON = { coin: 'Gold', cheese: 'Cheese', crawdad: 'Cooked Crawdad', trout: 'Cooked Brown Trout', catfish: 'Cooked Catfish', bass: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
+  const PICKUP_SIZE = { chest: 1.5, coin: 0.855, cheese: 0.8, crawdad: 0.8, trout: 0.95, catfish: 1.0, bass: 1.1 };
+  function removePickup(sp) {
+    dyn.remove(sp); if (sp.material) sp.material.dispose();
+    const beam = sp.userData?.beam; if (beam) { beam.geometry.dispose(); beam.material.dispose(); }
+  }
   function iconTex(name) {
     if (!iconCache.has(name)) { const t = new THREE.TextureLoader().load(A(`ui/items/item_${name.replace(/ /g, '_')}.png`)); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; iconCache.set(name, t); } // no mipmaps: they blended the icons' black see-through pixels into a dark box
     return iconCache.get(name);
@@ -1256,7 +1260,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           a *= uOp * (1.0 - smoothstep(0.92, 1.0, r)); gl_FragColor = vec4(uColor * a, a); }`),
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     });
-    return fxOnly(new THREE.Mesh(new THREE.PlaneGeometry(R * 2, R * 2).rotateX(-Math.PI / 2), mat));
+    return fxOnly(new THREE.Mesh(ownActorResource(new THREE.PlaneGeometry(R * 2, R * 2).rotateX(-Math.PI / 2)), ownActorResource(mat)));
   };
   const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
     gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
@@ -1290,10 +1294,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
   const FLAMES = 22;
   function fireRingFx() {
-    const g = new THREE.Group(), floor = fxOnly(new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.3).rotateX(-Math.PI / 2), fireFloorMat));
+    const g = new THREE.Group(), floor = fxOnly(new THREE.Mesh(ownActorResource(new THREE.PlaneGeometry(2.3, 2.3).rotateX(-Math.PI / 2)), fireFloorMat));
     floor.position.y = 0.09; g.add(floor);
     const flames = [];
-    for (let i = 0; i < FLAMES; i++) { const sp = fxOnly(new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.85 }))); sp.userData.seed = i * 1.7 + Math.random() * 3; g.add(sp); flames.push(sp); }
+    for (let i = 0; i < FLAMES; i++) { const sp = fxOnly(new THREE.Sprite(ownActorResource(new THREE.SpriteMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.85 })))); sp.userData.seed = i * 1.7 + Math.random() * 3; g.add(sp); flames.push(sp); }
     g.userData.flames = flames; return g;
   }
   function stepFireRing(g, radius, t) {
@@ -1305,7 +1309,14 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     });
   }
   const effects = [];
-  function addEffect(mesh, life, grow) { Object.assign(mesh.userData, { life, max: life, grow, base: mesh.scale.x }); fxOnly(mesh); dyn.add(mesh); effects.push(mesh); }
+  function addEffect(mesh, life, grow) {
+    while (effects.length >= (settings.fx === 'reduced' ? 32 : 96)) {
+      const index = effects.findIndex(m => !m.userData.warning);
+      if (index < 0) { if (mesh.userData.warning) break; mesh.geometry.dispose(); mesh.material.dispose(); return; }
+      const [old] = effects.splice(index, 1); dyn.remove(old); old.geometry.dispose(); old.material.dispose();
+    }
+    Object.assign(mesh.userData, { life, max: life, grow, base: mesh.scale.x }); fxOnly(mesh); dyn.add(mesh); effects.push(mesh);
+  }
   // a sword swing: a crescent that sweeps across the arc, brightest at its leading edge and the blade's tip
   const slashMat = (color) => new THREE.ShaderMaterial({
     uniforms: { uProg: { value: 0 }, uColor: { value: new THREE.Color(color).multiplyScalar(1.6) }, uArc: { value: 1 }, uIn: { value: 0.25 } },
@@ -1388,6 +1399,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // a charge's telegraph: a red lane in front of the boss
   function aimFx(x, z, a, len, t) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, len).rotateX(-Math.PI / 2).translate(0, 0, len / 2), ringMat(0xff3b2f, false));
+    m.userData.warning = true; // decorative budgets must never hide an armed attack
     m.material.opacity = 0.45; m.position.set(x, groundAt(x, z) + 0.1, z); m.rotation.y = a; addEffect(m, t + 0.3, 0);
   }
   // boss attack warnings on the ground: a glowing rim with marching dashes, warning stripes over the ground still to be
@@ -1666,7 +1678,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'nuke') { ringFx(f.x, f.z, f.r, 0xff9a3c, 1, 0.7); ringFx(f.x, f.z, f.r * 0.55, 0xfff2a8, 0, 0.45); scorchFx(f.x, f.z, f.r * 0.8); cam.shake = 0.4; }
       else if (f.k === 'evolve') { cam.shake = 0.3; if (me) levelFx(me.x, me.z); }
       else if (f.k === 'level') { if (me) levelFx(me.x, me.z); }
-      else if (f.k === 'get') emit(f.x, groundAt(f.x, f.z) + 0.8, f.z, f.kind === 'casket' || f.kind === 'chest' ? 24 : 8, 2.5, { s: 0.6, life: 0.6, color: f.kind === 'coin' ? 0xffd34d : 0xbfe8ff, up: 4, g: 3 });
+      else if (f.k === 'get') {
+        const healed = f.heal > 0;
+        emit(f.x, groundAt(f.x, f.z) + 0.8, f.z, f.kind === 'casket' || f.kind === 'chest' ? 24 : 8, 2.5, { s: 0.6, life: 0.6, color: healed ? 0x8bffd0 : f.kind === 'coin' ? 0xffd34d : 0xbfe8ff, up: 4, g: 3 });
+        if (healed) { number(f.x, f.z, '+' + Math.round(f.heal * 10) / 10, 0, '#8bffd0'); ringFx(f.x, f.z, 1.6, 0x8bffd0, 0.5, 0.45); }
+      }
     }
 
     // players
@@ -1674,12 +1690,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const p of view.players) {
       seenP.add(p.id);
       let a = playerActors.get(p.id);
-      if (a && a.adv !== p.adv) { dyn.remove(a.root); playerActors.delete(p.id); a = null; } // picked someone else on the title screen
+      if (a && a.adv !== p.adv) { disposeActor(a.root, a.mixer); playerActors.delete(p.id); a = null; } // picked someone else on the title screen
       if (!a) {
         let inst = null;
         if (kit) { try { const look = (ADVENTURER_BY_ID[p.adv] || ADVENTURER_BY_ID.adventurer).look; const k = kit.build({ ...look, h: 1.6 }); /* SankoQuest's people stand ~1.6 (skeletons, the same size, measure 1.51 in the live game) */ inst = { root: k.root, inner: k.master, mixer: k.mixer, kit: k, armorLvl: 0, baseArmor: look.armor || {} }; } catch (e) { console.warn('player rig failed', e); } }
         if (!inst) inst = playerProto ? instantiate(playerProto) : makeEnemy('goblin');
         const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: SLOT_COLORS[p.slot % 4], side: THREE.DoubleSide }));
+        ownActorResource(ring.geometry); ownActorResource(ring.material);
         ring.position.y = 0.05; inst.root.add(ring); inst.ring = ring;
         inst.root.traverse((o) => { if (o.isMesh && o !== ring) o.castShadow = true; });
         inst.adv = p.adv; dyn.add(inst.root); a = inst; playerActors.set(p.id, a);
@@ -1708,10 +1725,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           const outer = softRing(0xffd34d, 0.8, 1.04, { opacity: 0.6, fill: 0.08 });
           const inner = softRing(0x5ff2d8, 0.86, 0.96, { opacity: 0.55, arcs: 3 });
           g.add(outer, inner); g.position.y = 0.07; a.root.add(g); a.aura = g;
-        } else { a.root.remove(a.aura); a.aura = null; }
+        } else { disposeActor(a.aura); a.aura = null; }
       }
       if (p.fire > 0 && !a.fireRing) { a.fireRing = fireRingFx(); a.root.add(a.fireRing); }
-      else if (!(p.fire > 0) && a.fireRing) { a.root.remove(a.fireRing); a.fireRing = null; }
+      else if (!(p.fire > 0) && a.fireRing) { disposeActor(a.fireRing); a.fireRing = null; }
       if (a.fireRing) {
         a.fireRing.scale.setScalar(p.fire); a.fireRing.rotation.y = -a.root.rotation.y; stepFireRing(a.fireRing, p.fire, time);
         if (a.root.visible && Math.random() < dt * 14) { const ang = Math.random() * 6.283; emit(a.px + Math.cos(ang) * p.fire, a.root.position.y + 0.2, a.pz + Math.sin(ang) * p.fire, 1, 0.6, { s: 0.7, life: 0.55, color: Math.random() < 0.5 ? 0xff7a2a : 0xffc04d, up: 2.2, g: 0 }); }
@@ -1767,7 +1784,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         }
       }
     }
-    for (const [id, a] of playerActors) if (!seenP.has(id)) { dyn.remove(a.root); playerActors.delete(id); }
+    for (const [id, a] of playerActors) if (!seenP.has(id)) { disposeActor(a.root, a.mixer); playerActors.delete(id); }
     for (const [k, o] of shieldObjs) if (!seenShield.has(k)) { dyn.remove(o); shieldObjs.delete(k); }
     seenShield.clear();
 
@@ -1810,7 +1827,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     // the fallen: play the death animation if the model has one, otherwise topple over; then sink into the ground
     for (const [id, a] of actors) if (!seenE.has(id)) {
       actors.delete(id);
-      if (corpses.length > 50) { dyn.remove(a.root); continue; }
+      if (corpses.length > 50) { disposeActor(a.root, a.mixer); continue; }
       if (a.mats) for (const m of a.mats) m.emissive.setRGB(0, 0, 0);
       if (a.mixer && a.deathClip) { a.mixer.stopAllAction(); const act = a.mixer.clipAction(a.deathClip); act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; act.reset().play(); }
       corpses.push({ a, t: 0, life: a.deathClip ? 1.3 : 0.9, tip: a.deathClip ? 0 : (Math.random() < 0.5 ? 1 : -1), y0: a.root.position.y });
@@ -1820,7 +1837,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (c.a.mixer && c.a.deathClip) c.a.mixer.update(dt);
       if (c.tip) c.a.root.rotation.z = c.tip * Math.min(1, c.t * 4) * Math.PI / 2 * 0.95;
       const sink = Math.max(0, (k - 0.55) / 0.45); c.a.root.position.y = c.y0 - sink * 1.6;
-      if (k >= 1) { dyn.remove(c.a.root); corpses.splice(i, 1); }
+      if (k >= 1) { disposeActor(c.a.root, c.a.mixer); corpses.splice(i, 1); }
     }
 
     // boss attack telegraphs: a red circle fills up, then the slam lands
@@ -1929,7 +1946,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (!sp && k[1] === 'casket') { // reward casket: the world's own treasure chest model, with a light beam over it
         sp = new THREE.Group(); sp.userData.casket = true;
         const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.6, 7, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
-        beam.position.y = 3.2; fxOnly(beam); sp.add(beam);
+        beam.position.y = 3.2; fxOnly(beam); sp.add(beam); sp.userData.beam = beam;
         loadGLB(A('world/scene-models/chest.glb')).then((g) => { const m = g.scene.clone(true); const b = boxOf(m), z = b.getSize(new THREE.Vector3()), kk = 0.9 / Math.max(z.x, z.y, z.z, 1e-3); m.scale.setScalar(kk); m.position.set(-(b.min.x + b.max.x) / 2 * kk, -b.min.y * kk, -(b.min.z + b.max.z) / 2 * kk); m.traverse((o) => { if (o.isMesh) o.castShadow = true; }); sp.add(m); }).catch(() => {});
         dyn.add(sp); pickupSprites.set(k[0], sp);
       }
@@ -1937,9 +1954,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (sp.userData.casket) { sp.position.set(k[2], groundAt(k[2], k[3]), k[3]); sp.rotation.y = time * 0.8; }
       else sp.position.set(k[2], groundAt(k[2], k[3]) + 0.8 + Math.sin(time * 4 + k[0]) * 0.1, k[3]);
     }
-    for (const [id, sp] of pickupSprites) if (!seenK.has(id)) { dyn.remove(sp); if (sp.material) sp.material.dispose(); pickupSprites.delete(id); }
+    for (const [id, sp] of pickupSprites) if (!seenK.has(id)) { removePickup(sp); pickupSprites.delete(id); }
 
     // particles
+    partMesh.count = PN;
     for (let i = 0; i < PN; i++) {
       const p = parts[i];
       if (p.life > 0) { p.life -= dt; p.vy -= p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; dummy.position.set(p.x, Math.max(p.y, groundAt(p.x, p.z)), p.z); dummy.scale.setScalar(Math.max(0.01, (p.life / p.max) * 1.2) * p.s); partMesh.setColorAt(i, p.c); }
@@ -1998,13 +2016,17 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const seenShield = new Set();
 
   function reset() {
-    for (const a of actors.values()) dyn.remove(a.root); actors.clear();
-    for (const c of corpses) dyn.remove(c.a.root); corpses.length = 0;
-    for (const a of playerActors.values()) dyn.remove(a.root); playerActors.clear();
+    for (const m of effects) { dyn.remove(m); m.geometry.dispose(); m.material.dispose(); } effects.length = 0;
+    for (const sp of pickupSprites.values()) removePickup(sp); pickupSprites.clear();
+    for (const n of numbers) n.el.remove(); numbers.length = 0;
+    partMesh.count = 0; for (const g of gemSets) g.geometry.setDrawRange(0, 0);
+    for (const a of actors.values()) disposeActor(a.root, a.mixer); actors.clear();
+    for (const c of corpses) disposeActor(c.a.root, c.a.mixer); corpses.length = 0;
+    for (const a of playerActors.values()) disposeActor(a.root, a.mixer); playerActors.clear();
     for (const o of projObjs.values()) dyn.remove(o); projObjs.clear(); for (const b of msBursts) dyn.remove(b.o); msBursts.length = 0;
     for (const o of shieldObjs.values()) dyn.remove(o); shieldObjs.clear();
     for (const p of parts) p.life = 0;
-    for (const a of folkActors.values()) entGroup.remove(a.root); folkActors.clear(); folkT = 0;
+    for (const a of folkActors.values()) disposeActor(a.root, a.mixer); folkActors.clear(); folkT = 0;
     for (const o of eprojObjs.values()) dyn.remove(o); eprojObjs.clear(); for (const h of hazardPool) h.visible = false;
     spTick = -1;
     cam.x = curMap.cx; cam.z = curMap.cz;

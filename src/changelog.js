@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version:'0.40.5', date:'4 Nov 2026', title:'More room to play',
+    items:['A compact phone menu gives the adventurer more room. Play and the footer scroll together, clear of the home indicator.', 'The title preview stands in a clear village spot. Phone menu controls have larger touch targets.', 'The installed app uses SankoQuest’s native Air Shard icon.', 'Stronger entry-payment recovery and safer wallet chain checks. Interrupted restart checks keep your saved run.', 'Cloud sign-in ignores superseded sessions.', 'Character resources and visual effects clear between runs. Reduced effects preserve boss attack warnings.'],
+  },
+  {
     version:'0.40.4', date:'4 Nov 2026', title:'Keep your best runs',
     items:['Personal bests now use victories, whole seconds survived and kill-count ties consistently.', 'Cloud sync keeps the strongest personal record for each map and mode across devices.', 'The new-best message follows the same rules as the saved record.'],
   },

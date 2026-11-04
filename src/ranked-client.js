@@ -4,9 +4,51 @@ const ENTRY_WALLET = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', DMT_CONTRACT 
 import { RANKED } from './ranked.js';
 const PAYMENT = 'sq-ranked-payment', ENTRIES = 'sq-ranked-entries';
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-export const readRanked = (key, fallback = null) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } };
+const pendingMemory = new WeakMap();
+let lastStorage;
+const parse = raw => { try { return JSON.parse(raw); } catch { return null; } };
+const plain = message => Object.assign(new Error(message), { plain:true });
+function paymentStorage() { try { return lastStorage = globalThis.localStorage; } catch { return lastStorage; } }
+export const readRanked = (key, fallback = null) => {
+  const store = paymentStorage();
+  if (key === PAYMENT) {
+    const memory = store && pendingMemory.get(store); if (memory) return memory;
+    try { const backup = parse(sessionStorage.getItem(PAYMENT)); if (backup) return backup; } catch {}
+  }
+  try { return JSON.parse(store.getItem(key)) ?? fallback; } catch { return fallback; }
+};
 // Paid tickets and runs must not silently disappear when storage is unavailable.
 export function writeRanked(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+const samePayment = (a, b) => a && b && a.nonce === b.nonce && a.signature === b.signature && (!a.tx || !b.tx || a.tx === b.tx);
+function forgetPayment(payment) {
+  const store = paymentStorage();
+  for (const storage of [store, (() => { try { return sessionStorage; } catch { return null; } })()]) {
+    try { if (samePayment(parse(storage.getItem(PAYMENT)), payment)) storage.removeItem(PAYMENT); } catch {}
+  }
+  if (store && samePayment(pendingMemory.get(store), payment)) pendingMemory.delete(store);
+}
+function keepPayment(payment, required = false) {
+  const store = paymentStorage(), encoded = JSON.stringify(payment); let saved = 0;
+  if (store) pendingMemory.set(store, payment);
+  for (const storage of [store, (() => { try { return sessionStorage; } catch { return null; } })()]) {
+    try {
+      const existing = parse(storage.getItem(PAYMENT));
+      if (existing && !samePayment(existing, payment)) continue;
+      storage.setItem(PAYMENT, encoded); if (storage.getItem(PAYMENT) === encoded) saved++;
+    } catch {}
+  }
+  if (required && saved !== 2) {
+    forgetPayment(payment);
+    throw plain('Payment recovery could not be saved on this device. No payment was requested.');
+  }
+}
+function paymentLock(action) {
+  if (!globalThis.navigator?.locks?.request) throw plain('Ranked payments are unavailable in this browser. Update your browser and try again.');
+  return navigator.locks.request('sqs-ranked-payment', { ifAvailable:true }, lock => {
+    if (!lock) throw plain('A payment is in progress in another tab. Finish checking it there first.');
+    return action();
+  });
+}
 
 export async function rankedApi(base, route, body) {
   const r = await fetch(`${base}api/ranked-${route}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -15,26 +57,44 @@ export async function rankedApi(base, route, body) {
   return d;
 }
 
-export async function recoverPayment(base, onStep) {
-  const payment = readRanked(PAYMENT);
-  if (!payment) return;
+async function recoverExact(base, onStep, payment, candidate = false) {
   onStep('Checking your saved payment. No new payment is needed…');
   for (let i = 0; ; i++) {
     try {
-      const d = await rankedApi(base, 'enter', payment);
+      const d = await rankedApi(base, 'enter', { tx:payment.tx, signature:payment.signature, nonce:payment.nonce });
+      if (!Number.isSafeInteger(d.id) || d.id < 1 || typeof d.entry !== 'string' || !d.entry || !Number.isInteger(d.week) || d.week < 0 || !['normal','hard'].includes(d.mode ?? 'normal')) throw plain('The ranked server did not return a usable entry. Your payment is saved. Use Check payment; do not pay again.');
       const entries = readRanked(ENTRIES, []);
-      if (!entries.some((e) => e.id === d.id)) entries.push({ entry: d.entry, id: d.id, week: d.week, mode: d.mode === 'hard' ? 'hard' : 'normal' });
-      writeRanked(ENTRIES, entries);
-      localStorage.removeItem(PAYMENT);
+      if (!entries.some(e => e.id === d.id)) entries.push({ entry:d.entry, id:d.id, week:d.week, mode:d.mode === 'hard' ? 'hard' : 'normal' });
+      try { writeRanked(ENTRIES, entries); }
+      catch { throw plain('Your payment is registered, but the entry could not be saved here. Keep this page open and use Check payment. Do not pay again.'); }
+      forgetPayment(payment);
       onStep('Entry ready. Pick an adventurer and start when ready.');
       return d;
     } catch (e) {
-      if (e.refund || (e.status === 400 && /payment failed on-chain/i.test(e.message))) localStorage.removeItem(PAYMENT);
+      if (!candidate && (e.refund || (e.status === 400 && /payment failed on-chain/i.test(e.message)))) forgetPayment(payment);
       if (!e.retry || i >= 4) throw e;
       onStep('Waiting for the server to see your Arbitrum payment…');
       await wait(3000);
     }
   }
+}
+export async function recoverPayment(base, onStep, transactionHash) {
+  return paymentLock(async () => {
+    const payment = readRanked(PAYMENT); if (!payment) return;
+    if (!payment.tx) {
+      if (!/^0x[0-9a-f]{64}$/i.test(transactionHash || '')) throw plain('Check your wallet activity. If the payment was sent, paste its Arbitrum transaction hash to recover it. Do not pay again.');
+      // A pasted hash can be unrelated; keep the original reservation until an entry is safely saved.
+      return recoverExact(base, onStep, { tx:transactionHash.toLowerCase(), signature:payment.signature, nonce:payment.nonce }, true);
+    }
+    return recoverExact(base, onStep, payment);
+  });
+}
+export async function clearUnsentPayment() {
+  return paymentLock(() => {
+    const payment = readRanked(PAYMENT); if (!payment) return;
+    if (payment.tx) throw plain('Check your saved payment before entering again.');
+    forgetPayment(payment);
+  });
 }
 
 // onTx(hash) hears about the payment as soon as the wallet sends it (for an Arbiscan link while it confirms).
@@ -42,42 +102,46 @@ export async function recoverPayment(base, onStep) {
 export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'normal') {
   const race = Object.hasOwn(RANKED.races, mode) ? RANKED.races[mode] : null;
   if (!race) throw new Error('Pick a ranked race first.');
-  if (readRanked(PAYMENT)) throw new Error('Check your saved payment before entering again.');
-  // Check persistence before asking for any money.
-  writeRanked(ENTRIES, readRanked(ENTRIES, []));
-  const p = wallet.p;
-  onStep('Approve the connection in your wallet…');
-  const [address] = await p.request({ method: 'eth_requestAccounts' });
-  if (!/^0x[\da-f]{40}$/i.test(address || '')) throw new Error('No account was shared.');
-  onStep('Checking your entries for this week…');
-  const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}`);
-  if (!n.message || !n.nonce || n.chainId !== 42161 || String(n.dmt).toLowerCase() !== DMT_CONTRACT || String(n.collect).toLowerCase() !== ENTRY_WALLET || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
-  onStep('Switch to Arbitrum One in your wallet…');
-  const chain = { chainId: '0xa4b1' };
-  try { await p.request({ method: 'wallet_switchEthereumChain', params: [chain] }); }
-  catch (e) {
-    if (Number(e.code) !== 4902) throw e;
-    // https://docs.arbitrum.io/chain-info
-    await p.request({ method: 'wallet_addEthereumChain', params: [{ ...chain, chainName: 'Arbitrum One', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: ['https://arb1.arbitrum.io/rpc'], blockExplorerUrls: ['https://arbiscan.io'] }] });
-    await p.request({ method: 'wallet_switchEthereumChain', params: [chain] });
-  }
-  if (String(await p.request({ method: 'eth_chainId' })).toLowerCase() !== chain.chainId) throw new Error('Switch to Arbitrum One before paying.');
-  onStep('Sign the message in your wallet (free)…');
-  const signature = await p.request({ method: 'personal_sign', params: [hex(n.message), address] });
-  onStep(`Approve the ${race.entryDmt} DMT ${race.name} entry in your wallet. Arbitrum gas is paid in ETH…`);
-  const data = '0xa9059cbb' + ENTRY_WALLET.slice(2).padStart(64, '0') + BigInt(n.amountWei).toString(16).padStart(64, '0');
-  const tx = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: DMT_CONTRACT, data, value: '0x0' }] });
-  writeRanked(PAYMENT, { tx, signature, nonce: n.nonce });
-  try { onTx(tx); } catch { /* display only */ }
-  onStep('Payment sent. Waiting for its Arbitrum receipt…');
-  const until = Date.now() + 120000;
-  while (Date.now() < until) {
-    const receipt = await p.request({ method: 'eth_getTransactionReceipt', params: [tx] });
-    if (receipt) {
-      if (receipt.status !== '0x1') { localStorage.removeItem(PAYMENT); throw new Error('That payment failed on-chain.'); }
-      return recoverPayment(base, onStep);
+  return paymentLock(async () => {
+    if (readRanked(PAYMENT)) throw plain('Check your saved payment before entering again.');
+    writeRanked(ENTRIES, readRanked(ENTRIES, []));
+    const p = wallet.p;
+    onStep('Approve the connection in your wallet…');
+    const [address] = await p.request({ method:'eth_requestAccounts' });
+    if (!/^0x[\da-f]{40}$/i.test(address || '')) throw new Error('No account was shared.');
+    onStep('Checking your entries for this week…');
+    const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}`);
+    if (!n.message || !n.nonce || n.chainId !== 42161 || String(n.dmt).toLowerCase() !== DMT_CONTRACT || String(n.collect).toLowerCase() !== ENTRY_WALLET || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
+    onStep('Switch to Arbitrum One in your wallet…');
+    const chain = { chainId:'0xa4b1' };
+    try { await p.request({ method:'wallet_switchEthereumChain', params:[chain] }); }
+    catch (e) {
+      if (Number(e.code) !== 4902) throw e;
+      await p.request({ method:'wallet_addEthereumChain', params:[{ ...chain, chainName:'Arbitrum One', nativeCurrency:{ name:'Ether', symbol:'ETH', decimals:18 }, rpcUrls:['https://arb1.arbitrum.io/rpc'], blockExplorerUrls:['https://arbiscan.io'] }] });
+      await p.request({ method:'wallet_switchEthereumChain', params:[chain] });
     }
-    await wait(2000);
-  }
-  throw new Error('Still waiting for the payment. Tap Check payment to try again without paying again.');
+    if (String(await p.request({ method:'eth_chainId' })).toLowerCase() !== chain.chainId) throw new Error('Switch to Arbitrum One before paying.');
+    onStep('Sign the message in your wallet (free)…');
+    const signature = await p.request({ method:'personal_sign', params:[hex(n.message), address] });
+    if (String(await p.request({ method:'eth_chainId' })).toLowerCase() !== chain.chainId) throw new Error('Switch to Arbitrum One before paying.');
+    // Reserve more room than the final record in both stores BEFORE asking the wallet to broadcast.
+    const reserved = { tx:null, signature, nonce:n.nonce, reserve:'0'.repeat(66) };
+    keepPayment(reserved, true);
+    onStep(`Approve the ${race.entryDmt} DMT ${race.name} entry in your wallet. Arbitrum gas is paid in ETH…`);
+    const data = '0xa9059cbb' + ENTRY_WALLET.slice(2).padStart(64, '0') + BigInt(n.amountWei).toString(16).padStart(64, '0');
+    let tx;
+    try { tx = await p.request({ method:'eth_sendTransaction', params:[{ from:address, to:DMT_CONTRACT, data, value:'0x0', chainId:chain.chainId }] }); }
+    catch (e) {
+      if (Number(e.code) === 4001) { forgetPayment(reserved); throw e; }
+      throw plain('Your wallet did not confirm whether it sent the payment. Check wallet activity before trying again.');
+    }
+    if (!/^0x[0-9a-f]{64}$/i.test(tx || '')) throw plain('Your wallet did not return a transaction hash. Check wallet activity before trying again.');
+    const payment = { tx:tx.toLowerCase(), signature, nonce:n.nonce };
+    const store = paymentStorage(); if (store) pendingMemory.set(store, payment);
+    try { onTx(payment.tx); } catch { /* display only */ }
+    keepPayment(payment);
+    onStep('Payment sent. Waiting for its Arbitrum receipt…');
+    // The server independently verifies the receipt; a stalled wallet receipt RPC cannot strand recovery.
+    return recoverExact(base, onStep, payment);
+  });
 }

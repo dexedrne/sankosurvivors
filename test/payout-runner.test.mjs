@@ -124,13 +124,13 @@ test('held money and rollover remain reserved while another week is paid',async(
 });
 test('too few confirmations defer payment completion and further transfers',async()=>{
   const f=fixture(3),original=f.chain.request.bind(f.chain);let mature=false;
-  f.chain.request=async(method,args)=>{const r=await original(method,args);return method==='eth_getTransactionReceipt'&&r&&!mature?{...r,blockNumber:'0x3e3'}:r;};
+  f.chain.request=async(method,args)=>{const r=await original(method,args);return method==='eth_getTransactionReceipt'&&r&&f.chain.transactions.some(t=>t.hash===r.transactionHash)&&!mature?{...r,blockNumber:'0x3e3'}:r;};
   await run(f.config,f.ports);assert.equal(f.chain.broadcasts.length,1);assert.equal(f.db.rows.filter(r=>r.status==='sent').length,1);
   mature=true;await run(f.config,f.ports);assert.equal(f.chain.broadcasts.length,5);
 });
 test('a noncanonical receipt is not confirmed or sent a second time',async()=>{
   const f=fixture(3),original=f.chain.request.bind(f.chain);
-  f.chain.request=async(method,args)=>{const r=await original(method,args);return method==='eth_getTransactionReceipt'&&r?{...r,blockHash:'0x'+'d'.repeat(64)}:r;};
+  f.chain.request=async(method,args)=>{const r=await original(method,args);return method==='eth_getTransactionReceipt'&&r&&f.chain.transactions.some(t=>t.hash===r.transactionHash)?{...r,blockHash:'0x'+'d'.repeat(64)}:r;};
   await run(f.config,f.ports);await run(f.config,f.ports);
   assert.equal(f.chain.broadcasts.length,1);assert.equal(f.db.rows.find(r=>r.nonce==='0').status,'sent');
 });
@@ -278,4 +278,53 @@ test('a flood of over-cap refunds is held back without a chain call each, and th
   assert.ok(!f.logs.some((s) => s.includes('unverified refund')), 'the capped rows were never checked, so never paused the run');
   assert.ok(receipts < 20, `receipt lookups stay small: ${receipts}`);
   assert.ok(f.logs.some((s) => s.includes('HELD BACK')));
+});
+
+// Refund sources use the same 20-block canonicality policy as outgoing transfers.
+for(const condition of ['shallow','orphan','wrong hash','missing block','missing block hash','malformed amount','extra topic','head unavailable','canonical unavailable'])test(`refund source ${condition} stops before signing`,async()=>{
+  const f=fixture(3);
+  await f.ports.rpc('sqs_payout_refunds',{p_key:'payout-key'});
+  const row=f.db.rows.find(r=>r.kind==='refund'),r=f.chain.receipts.get(row.source_tx);
+  if(condition==='shallow')r.blockNumber='0x3d5'; // 981: only 19 blocks behind head 1000
+  if(condition==='orphan')r.blockHash='0x'+'d'.repeat(64);
+  if(condition==='wrong hash')r.transactionHash='0x'+'d'.repeat(64);
+  if(condition==='missing block')delete r.blockNumber;
+  if(condition==='missing block hash')delete r.blockHash;
+  if(condition==='malformed amount')r.logs[0].data='not a quantity';
+  if(condition==='extra topic')r.logs[0].topics.push('0x'+'0'.repeat(64));
+  const original=f.chain.request.bind(f.chain);
+  f.chain.request=async(method,args)=>{
+    if(condition==='head unavailable'&&method==='eth_blockNumber'||condition==='canonical unavailable'&&method==='eth_getBlockByNumber')throw Error('fixture RPC unavailable');
+    return original(method,args);
+  };
+  let keys=0;f.ports.key=async()=>{keys++;throw Error('must not sign');};
+  await run(f.config,f.ports);
+  assert.equal(keys,0);
+  assert.equal(f.chain.broadcasts.length,0);
+  assert.ok(f.db.rows.every(r=>r.nonce==null),'no nonce claimed');
+  assert.ok(f.logs.some(s=>s.startsWith('PAUSED:')),'unsafe source pauses the run');
+});
+test('a mature canonical refund source at exactly 20 blocks authorizes payment once',async()=>{
+  const f=fixture(3);
+  await f.ports.rpc('sqs_payout_refunds',{p_key:'payout-key'});
+  const row=f.db.rows.find(r=>r.kind==='refund');
+  f.chain.receipts.get(row.source_tx).blockNumber='0x3d4'; // 980
+  const original=f.chain.request.bind(f.chain),canonical=[];
+  f.chain.request=async(method,args)=>{if(method==='eth_getBlockByNumber')canonical.push(args);return original(method,args);};
+  await run(f.config,f.ports);await run(f.config,f.ports);
+  assert.equal(row.status,'confirmed');
+  assert.equal(f.chain.broadcasts.length,5);
+  assert.ok(canonical.some(args=>args[0]==='0x3d4'&&args[1]===false),'source block is checked');
+});
+
+test('an unsigned refund nonce claim rechecks its source before recovery signs',async()=>{
+  const f=fixture(3);f.db.crashClaim=true;
+  await assert.rejects(run(f.config,f.ports));f.db.crashClaim=false;
+  const row=f.db.rows.find(r=>r.kind==='refund');
+  assert.equal(row.status,'sending');assert.equal(row.raw_tx,null);
+  f.chain.receipts.get(row.source_tx).blockHash='0x'+'d'.repeat(64);
+  let keys=0;f.ports.key=async()=>{keys++;throw Error('must not sign');};
+  await run(f.config,f.ports);
+  assert.equal(keys,0);assert.equal(f.chain.broadcasts.length,0);
+  assert.equal(row.nonce,'0');assert.equal(row.raw_tx,null);
 });
