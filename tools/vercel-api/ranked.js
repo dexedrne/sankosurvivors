@@ -85,8 +85,10 @@ async function checkPayment(tx, from, sinceMs, mode = 'normal') {
   const pad = (a) => '0x' + a.replace(/^0x/, '').toLowerCase().padStart(64, '0');
   let paid = 0n; const indices = new Set();
   for (const l of r.logs) {
-    if (typeof l.address !== 'string' || l.address.toLowerCase() !== DMT || !Array.isArray(l.topics) || l.topics[0] !== TRANSFER) continue;
-    if (r.status === '0x0' || l.topics.length !== 3 || !l.topics.slice(1).every(hash) || typeof l.data !== 'string' || !/^0x[0-9a-f]{64}$/i.test(l.data) || hash(l.transactionHash) !== tx || hash(l.blockHash) !== hash(r.blockHash) || !quantity(l.blockNumber) || BigInt(l.blockNumber) !== BigInt(r.blockNumber) || !quantity(l.logIndex)) return pending;
+    if (typeof l.address !== 'string' || !/^0x[0-9a-f]{40}$/i.test(l.address) || !Array.isArray(l.topics) || l.topics.length > 4 || !l.topics.every(hash) || typeof l.data !== 'string' || !/^0x(?:[0-9a-f]{2})*$/i.test(l.data)) return pending;
+    if (r.status === '0x0' && l.address.toLowerCase() === DMT) return pending;
+    if (l.address.toLowerCase() !== DMT || hash(l.topics[0]) !== TRANSFER) continue;
+    if (l.topics.length !== 3 || !l.topics.slice(1).every(hash) || typeof l.data !== 'string' || !/^0x[0-9a-f]{64}$/i.test(l.data) || hash(l.transactionHash) !== tx || hash(l.blockHash) !== hash(r.blockHash) || !quantity(l.blockNumber) || BigInt(l.blockNumber) !== BigInt(r.blockNumber) || !quantity(l.logIndex)) return pending;
     const index = BigInt(l.logIndex);
     if (indices.has(index)) return pending;
     indices.add(index);

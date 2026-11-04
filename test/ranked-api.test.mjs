@@ -279,13 +279,67 @@ test('receipt proof can be retried on the same saved payment after RPC consisten
   assert.equal(again.code, 200); assert.equal(again.json.id, ready.json.id); assert.equal(db.rows.length, 1);
 });
 
+test('malformed log headers keep payment recovery retryable until the same receipt is repaired', async t => {
+  for (const [label, mutate] of [
+    ['missing topics', l => delete l.topics],
+    ['null topics', l => l.topics = null],
+    ['object topics', l => l.topics = {}],
+    ['string topics', l => l.topics = TRANSFER],
+    ['missing event signature', l => l.topics[0] = null],
+    ['short event signature', l => l.topics[0] = '0x1234'],
+    ['non-string event signature', l => l.topics[0] = 123],
+    ['missing address', l => delete l.address],
+    ['invalid address', l => l.address = '0x1234'],
+    ['unrelated event with five topics', l => l.topics = Array(5).fill('0x' + 'a'.repeat(64))],
+    ['unrelated event with invalid data', l => { l.topics = []; l.data = '0x1'; }],
+    ['other token with malformed topics', l => { l.address = '0x' + '1'.repeat(40); l.topics = null; }],
+  ]) await t.test(label, async () => {
+    const w = wallet(), auth = await nonce(w), tx = payment(w), receipt = structuredClone(chain.get(tx));
+    mutate(chain.get(tx).logs[0]);
+    const out = await call('ranked-enter', { ...auth, tx });
+    assert.equal(out.code, 503, JSON.stringify(out)); assert.equal(out.json.retry, true);
+    assert.equal(db.rows.length, 0, 'ambiguous proof must not create an entry or refund');
+    chain.set(tx, receipt);
+    const ready = await call('ranked-enter', { ...auth, tx });
+    assert.equal(ready.code, 200);
+    const again = await call('ranked-enter', { ...auth, tx });
+    assert.equal(again.json.id, ready.json.id); assert.equal(db.rows.length, 1);
+  });
+});
+
+test('unrelated valid logs cannot turn a real underpayment into a retry or an entry', async t => {
+  for (const [label, mutate] of [
+    ['LOG0', l => { l.topics = []; l.data = '0x'; }],
+    ['DMT Approval', l => l.topics[0] = '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925'],
+    ['other token Transfer', l => l.address = '0x' + '1'.repeat(40)],
+  ]) await t.test(label, async () => {
+    const w = wallet(), auth = await nonce(w), tx = payment(w, { amount: 250000000000000000n }), receipt = chain.get(tx);
+    const unrelated = structuredClone(receipt.logs[0]); unrelated.logIndex = '0x1'; mutate(unrelated); receipt.logs.push(unrelated);
+    const out = await call('ranked-enter', { ...auth, tx });
+    assert.equal(out.code, 400); assert.match(out.json.error, /did not send 0.5 DMT/);
+    assert.equal(out.json.retry, undefined); assert.equal(db.rows.length, 0);
+  });
+});
+
+test('a reverted receipt with a non-Transfer DMT event cannot discard payment recovery', async () => {
+  const w = wallet(), auth = await nonce(w), tx = payment(w), receipt = structuredClone(chain.get(tx));
+  chain.get(tx).status = '0x0';
+  chain.get(tx).logs[0].topics[0] = '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925';
+  const out = await call('ranked-enter', { ...auth, tx });
+  assert.equal(out.code, 503, JSON.stringify(out)); assert.equal(out.json.retry, true);
+  assert.equal(db.rows.length, 0);
+  chain.set(tx, receipt);
+  assert.equal((await call('ranked-enter', { ...auth, tx })).code, 200);
+  assert.equal(db.rows.length, 1);
+});
+
 test('receipt proof preserves valid mixed-case hashes and Hard split payments', async () => {
   now += weekMs;
   const w = wallet(), auth = await nonce(w, { mode: 'hard' });
   const tx = payment(w, { amounts: [1000000000000000000n, 500000000000000000n] }), receipt = chain.get(tx), block = blocks.get(receipt.blockNumber);
   const upper = value => '0x' + value.slice(2).toUpperCase();
   receipt.transactionHash = upper(receipt.transactionHash); receipt.blockHash = upper(receipt.blockHash); block.hash = upper(block.hash);
-  for (const l of receipt.logs) { l.transactionHash = upper(l.transactionHash); l.blockHash = upper(l.blockHash); l.data = upper(l.data); }
+  for (const l of receipt.logs) { l.transactionHash = upper(l.transactionHash); l.blockHash = upper(l.blockHash); l.data = upper(l.data); l.topics = l.topics.map(upper); }
   assert.equal((await call('ranked-enter', { ...auth, tx })).code, 200);
   assert.equal(db.rows.length, 1); assert.equal(db.rows[0].mode, 'hard'); assert.equal(db.rows[0].paid, '1500000000000000000');
 });

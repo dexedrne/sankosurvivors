@@ -11,7 +11,18 @@ export class FakePayoutDB {
   report(week,mode){return this.reports.get(mode==='hard'?week+':hard':week);}
   async rpc(fn,p={}) {
     const copy=x=>structuredClone(x),err=error=>({error});
-    if(fn==='sqs_ranked_settle')return p.p_key==='reports-key'?copy(this.report(p.p_week,p.p_mode??'normal')??{week:p.p_week,mode:p.p_mode??'normal',paid:'0',top:[],refunds:[]}):err('forbidden');
+    if(fn==='sqs_ranked_settle'){
+      if(p.p_key!=='reports-key')return err('forbidden');
+      const mode=p.p_mode??'normal',report=copy(this.report(p.p_week,mode)??{week:p.p_week,mode,paid:'0',top:[]});
+      if(!Object.hasOwn(report,'week'))report.week=p.p_week;
+      if(!Object.hasOwn(report,'mode'))report.mode=mode;
+      if(!Object.hasOwn(report,'refunds'))report.refunds=[];
+      if(Array.isArray(report.refunds))for(const r of this.refunds.filter(r=>r.week===p.p_week&&(r.mode??'normal')===mode)){
+        const tx=r.tx??('0x'+r.id.padStart(64,'e'));
+        if(!report.refunds.some(r=>r.tx===tx))report.refunds.push({wallet:r.wallet,tx,paid:r.paid,why:'fixture refund'});
+      }
+      return report;
+    }
     if(p.p_key!=='payout-key')return err('forbidden');
     switch(fn.replace('sqs_payout_','')) {
       case 'read':return copy({weeks:this.weeks.filter(w=>p.p_week==null||w.week===p.p_week),rows:this.rows.filter(r=>p.p_week==null||r.week===p.p_week).map(r=>this.badAddress&&r.kind==='prize1'?{...r,wallet:'bad'}:r),holds:this.holds});
@@ -63,7 +74,7 @@ export class FakePayoutDB {
   }
 }
 export class FakeChain {
-  constructor(){this.chainId='0xa4b1';this.dmt=decimal('10000');this.eth=decimal('1');this.transactions=[];this.broadcasts=[];this.receipts=new Map();this.block=1000n;this.pending=0n;this.timeout=false;this.fail=false;this.unmined=false;this.reverted=false;this.missingLog=false;this.calls=[];}
+  constructor(){this.chainId='0xa4b1';this.dmt=decimal('10000');this.eth=decimal('1');this.transactions=[];this.broadcasts=[];this.receipts=new Map();this.block=1000n;this.finalized=1000n;this.now=()=>Date.UTC(2026,10,10,1);this.pending=0n;this.timeout=false;this.fail=false;this.unmined=false;this.reverted=false;this.missingLog=false;this.calls=[];}
   async request(method,params=[]) {
     this.calls.push(method);
     switch(method){
@@ -77,7 +88,11 @@ export class FakeChain {
       case 'eth_blockNumber':return quantity(this.block);
       case 'eth_getTransactionReceipt':return this.receipts.get(params[0])??null;
       case 'eth_getTransactionByHash':return this.transactions.find(t=>t.hash===params[0])??null;
-      case 'eth_getBlockByNumber':return {number:quantity(this.block),hash:'0x'+'c'.repeat(64),transactions:this.transactions};
+      case 'eth_getBlockByNumber':{
+        const height=params[0]==='finalized'?this.finalized:['latest','pending'].includes(params[0])?this.block:BigInt(params[0]);
+        if(height==null)return null;
+        return {number:quantity(height),hash:'0x'+'c'.repeat(64),timestamp:quantity(BigInt(Math.floor(this.now()/1000))-(this.block-height)/4n),transactions:this.transactions};
+      }
       case 'eth_sendRawTransaction':{
         if(this.fail)throw Error('broadcast rejected');
         const tx=decode1559(params[0]);
@@ -85,8 +100,8 @@ export class FakeChain {
         if(this.transactions.some(t=>BigInt(t.nonce)===tx.nonce))throw Error('nonce already used');
         this.broadcasts.push(tx);this.transactions.push({...tx,value:quantity(tx.value),nonce:quantity(tx.nonce),input:tx.data,blockNumber:quantity(this.block-30n)});this.pending=tx.nonce+1n;
         if(!this.unmined){
-          this.receipts.set(tx.hash,{transactionHash:tx.hash,status:this.reverted?'0x0':'0x1',blockNumber:quantity(this.block-30n),blockHash:'0x'+'c'.repeat(64),logs:this.missingLog?[]:[{address:DMT,topics:[TRANSFER,'0x'+tx.from.slice(2).padStart(64,'0'),'0x'+tx.data.slice(10,74)],data:'0x'+tx.data.slice(74)}]});
-          this.dmt-=BigInt('0x'+tx.data.slice(74));
+          this.receipts.set(tx.hash,{transactionHash:tx.hash,status:this.reverted?'0x0':'0x1',blockNumber:quantity(this.block-30n),blockHash:'0x'+'c'.repeat(64),logs:this.missingLog||this.reverted?[]:[{address:DMT,topics:[TRANSFER,'0x'+tx.from.slice(2).padStart(64,'0'),'0x'+tx.data.slice(10,74)],data:'0x'+tx.data.slice(74),removed:false,transactionHash:tx.hash,blockNumber:quantity(this.block-30n),blockHash:'0x'+'c'.repeat(64),logIndex:'0x0'}]});
+          if(!this.reverted)this.dmt-=BigInt('0x'+tx.data.slice(74));
         }
         if(this.timeout)throw Error('accepted but timed out');return tx.hash;
       }
@@ -97,6 +112,7 @@ export class FakeChain {
 }
 export function fixture(count=3) {
   const db=new FakePayoutDB(),chain=new FakeChain(),messages=[],logs=[];
+  chain.now=()=>db.now;
   db.reports.set(0,{week:0,paid:decimal('10').toString(),top:Array.from({length:count},(_,i)=>({id:String(i+1),wallet:wallet(i+1),name:'Player '+(i+1),t:900-i})),refunds:[]});
   db.refunds.push({id:'100',week:0,wallet:wallet(9),paid:decimal('0.5').toString()});
   const config={live:true,wallet:addressOf(key),weekCap:decimal('1000'),transferCap:decimal('500'),ethCap:decimal('0.005'),maxFee:2000000000n,payoutKey:'payout-key',reportsKey:'reports-key'};

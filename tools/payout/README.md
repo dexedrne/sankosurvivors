@@ -9,18 +9,43 @@ box never runs payouts.
 
 Each run announces finished weeks after the 180-minute submission grace (a 2:00:00
 ranked run, plus the API's 40 late minutes, plus its replay), then pays prizes/house
-24 hours after Monday 00:00 UTC. Refunds are due immediately.
+24 hours after Monday 00:00 UTC. Refunds are eligible as soon as their source
+payment is finalized; batch posting and Ethereum finality can take minutes.
 Each prize pool goes to five wallets: **40% / 25% / 15% / 12% / 8%**. Missing
 places roll over; the last actual winner gets rounding dust. Default is **dry
 run**: plans and Telegram previews, no key loading, signing or sending.
 
 Receipt checks bind counted refund Transfer events to their transaction and block,
 reject removed or repeated log indices, and preserve genuine split transfers.
-Refund sources and outgoing confirmations also require the current 20-L2-block
-depth and canonical-block checks. This is **soft confirmation**, not Ethereum
-finality; see [Arbitrum's confirmation model](https://developer.arbitrum.io/how-arbitrum-works/reference/finality-and-reorgs).
-Entry registration checks current canonical receipt consistency without adding a
-new confirmation wait. No short L2 block count proves a block irreversible.
+Refund sources require both the existing 20-L2-block depth/canonical checks and
+Arbitrum's `finalized` checkpoint. Each invocation checks that checkpoint against
+its numeric canonical header and current head. Missing or inconsistent finality
+data stops new signing/broadcasts; there is no fallback to a shorter block count.
+Saved refund transaction bytes recheck the source before rebroadcast too.
+See [Arbitrum's confirmation model](https://developer.arbitrum.io/how-arbitrum-works/reference/finality-and-reorgs).
+
+A planned immature refund waits while mature awards proceed. An already claimed
+nonce waits in order. Prize/house payments also wait until the finalized checkpoint
+has passed their week's end. Verified mined transfers can progress through the
+batch while their ledger rows remain `sent`; rows become `confirmed` only after
+finality. Run the tool again later to follow those same hashes. Saved bytes are
+never replaced or re-signed. All live invocations still require the owner's approval.
+
+The RPC's finality report remains trusted; this tool does not independently prove
+Ethereum consensus. Entry registration keeps its existing fast canonical checks.
+
+Before signing, the DMT budget also protects gross fees in every race without a
+payout plan, including active and submission-grace pots. Planned awards, held
+money and the latest rollover remain covered without counting their gross fees
+again. Current/previous-week reports also cover refunds registered since the
+initial ledger read, including a week-0 Hard reset refund. Imported, mined and
+confirmed refunds are matched by source transaction and amount to avoid duplicate
+reserves. These checks reuse the existing guarded read-only reports; no SQL update
+is needed. Unavailable or inconsistent reports pause the run before signing.
+
+This is a preflight snapshot of registered liabilities. It does not reconstruct
+unregistered chain payments or independently reconcile historical entries/plans.
+Keep the manual prize review and owner approval before live operations.
 
 ## Two pots from week 1
 

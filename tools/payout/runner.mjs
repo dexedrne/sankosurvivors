@@ -88,7 +88,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
         const amount=rows.find(r=>r.kind==='prize'+(i+1))?.amount??'0';
         return `${i+1}. ${clean(p.name)} ${short(p.wallet)} ${score(p)}: ${dmt(amount)} DMT`;
       }).join('\n')||'No ranked finishers.';
-      await notice('week:'+week.week+(mode==='normal'?'':':'+mode),`${config.live?'':'DRY RUN — ' }Week ${week.week} ${RACE[mode]} ranked results\nWinners\n${winners}\nHouse: ${dmt(week.house)} DMT. Rollover: ${dmt(week.rollover)} DMT.\nRefunds: ${refunds.length}, ${dmt(sum(refunds))} DMT; due immediately.\nPrizes/house due ${week.pay_at} (24 hours after week end).${config.live?'':' Sending is disabled.'}\nHold a winner before sending (holds cover both races):\nnode tools/payout/hold.mjs ${week.week} <wallet> "<reason>"\nUse the full wallet from the ledger. A hold after sending does nothing.`);
+      await notice('week:'+week.week+(mode==='normal'?'':':'+mode),`${config.live?'':'DRY RUN — ' }Week ${week.week} ${RACE[mode]} ranked results\nWinners\n${winners}\nHouse: ${dmt(week.house)} DMT. Rollover: ${dmt(week.rollover)} DMT.\nRefunds: ${refunds.length}, ${dmt(sum(refunds))} DMT; eligible after source finality.\nPrizes/house due ${week.pay_at} (24 hours after week end).${config.live?'':' Sending is disabled.'}\nHold a winner before sending (holds cover both races):\nnode tools/payout/hold.mjs ${week.week} <wallet> "<reason>"\nUse the full wallet from the ledger. A hold after sending does nothing.`);
     }
     try{validateState(state);}catch{await alert('invalid ledger');return;}
     const outstanding=state.rows.filter(r=>r.kind!=='rollover-note'&&r.status!=='confirmed');
@@ -97,18 +97,53 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       await call('mark',{p_id:row.id,p_status:status,...(row.tx_hash?{p_hash:row.tx_hash}:{}),...args});
       row.status=status;if(args.p_hash)row.tx_hash=args.p_hash;if(args.p_raw)row.raw_tx=args.p_raw;
     };
+    const hash=value=>typeof value==='string'&&value.length===66&&/^0x[0-9a-f]{64}$/i.test(value)?value.toLowerCase():null;
+    let checkpoint;
+    const finalizedHead=async()=>{
+      if(!checkpoint){
+        const tip=await chain.rpc('eth_getBlockByNumber',['finalized',false]);
+        const height=quantityBigInt(tip?.number),at=Number(quantityBigInt(tip?.timestamp))*1000;
+        if(!hash(tip.hash)||!Number.isSafeInteger(at)||at<=0)throw Error('invalid finalized checkpoint');
+        if(height>quantityBigInt(await chain.rpc('eth_blockNumber')))throw Error('finalized checkpoint is ahead of head');
+        const canonical=await chain.rpc('eth_getBlockByNumber',[quantity(height),false]);
+        if(hash(canonical?.hash)!==hash(tip.hash)||quantityBigInt(canonical?.number)!==height||quantityBigInt(canonical?.timestamp)!==quantityBigInt(tip.timestamp))throw Error('finalized checkpoint mismatch');
+        checkpoint={height,at};
+      }
+      return checkpoint;
+    };
+    const confirmation=async r=>{
+      const block=quantityBigInt(r.blockNumber),head=quantityBigInt(await chain.rpc('eth_blockNumber'));
+      const final=await finalizedHead();
+      if(final.height>head||!hash(r.blockHash))throw Error('invalid chain finality');
+      const canonical=await chain.rpc('eth_getBlockByNumber',[quantity(block),false]);
+      if(hash(canonical?.hash)!==hash(r.blockHash)||quantityBigInt(canonical?.number)!==block)throw Error('receipt is not canonical');
+      return {deep:head>=block+20n,finalized:final.height>=block};
+    };
+    const mined=new Set();
     const receipt=async row=>{
       const r=await chain.rpc('eth_getTransactionReceipt',[row.tx_hash]);if(!r)return false;
       if(r.transactionHash?.toLowerCase()!==row.tx_hash)throw Error('receipt hash mismatch');
-      if(r.status!=='0x1'){await mark(row,'failed',{p_error:'transaction reverted'});await alert('reverted row '+row.id);return false;}
-      const event=r.logs?.some(e=>e.address?.toLowerCase()===DMT&&e.topics?.length===3&&e.topics[0]===TRANSFER&&e.topics[1]?.toLowerCase()==='0x'+config.wallet.slice(2).padStart(64,'0')&&e.topics[2]?.toLowerCase()==='0x'+row.wallet.slice(2).padStart(64,'0')&&e.data?.toLowerCase()==='0x'+units(row.amount).toString(16).padStart(64,'0'));
-      if(!event){await mark(row,'failed',{p_error:'missing exact DMT Transfer event'});await alert('receipt mismatch row '+row.id);return false;}
-      const block=quantityBigInt(r.blockNumber),head=quantityBigInt(await chain.rpc('eth_blockNumber'));
-      if(head<block+20n)return false;
-      const canonical=await chain.rpc('eth_getBlockByNumber',[quantity(block),false]);
-      if(canonical?.hash!==r.blockHash)throw Error('receipt is not canonical');
+      if(!['0x0','0x1'].includes(r.status)||!Array.isArray(r.logs))throw Error('invalid receipt');
+      const proof=await confirmation(r);if(!proof.deep)return false;
+      for(const e of r.logs){
+        if(!e||typeof e.address!=='string'||e.address.length!==42||!/^0x[0-9a-f]{40}$/i.test(e.address))throw Error('invalid event address');
+        if(!Array.isArray(e.topics)||!e.topics.every(hash)||typeof e.data!=='string'||e.data.length%2||!/^0x(?:[0-9a-f]{2})*$/i.test(e.data))throw Error('invalid event data');
+        if(e.removed===true||hash(e.transactionHash)!==row.tx_hash||hash(e.blockHash)!==hash(r.blockHash)||quantityBigInt(e.blockNumber)!==quantityBigInt(r.blockNumber))throw Error('outgoing event mismatch');
+        quantityBigInt(e.logIndex);
+        if(e.address.toLowerCase()===DMT&&e.topics[0]===TRANSFER&&(e.topics.length!==3||e.data.length!==66))throw Error('invalid Transfer event');
+      }
+      if(r.status==='0x0'){
+        if(r.logs.some(e=>e.address?.toLowerCase()===DMT&&e.topics?.[0]===TRANSFER))throw Error('contradictory reverted receipt');
+        if(proof.finalized){await mark(row,'failed',{p_error:'transaction reverted'});await alert('reverted row '+row.id);}
+        return false;
+      }
+      const event=r.logs.find(e=>e.address?.toLowerCase()===DMT&&e.topics?.length===3&&e.topics[0]===TRANSFER&&e.topics[1]?.toLowerCase()==='0x'+config.wallet.slice(2).padStart(64,'0')&&e.topics[2]?.toLowerCase()==='0x'+row.wallet.slice(2).padStart(64,'0')&&e.data?.toLowerCase()==='0x'+units(row.amount).toString(16).padStart(64,'0'));
+      if(!event){if(proof.finalized){await mark(row,'failed',{p_error:'missing exact DMT Transfer event'});await alert('receipt mismatch row '+row.id);}return false;}
+      mined.add(row.id);
       if(row.status==='sending')await mark(row,'sent',{p_hash:row.tx_hash});
-      await mark(row,'confirmed');log(`CONFIRMED row ${row.id} ${dmt(row.amount)} DMT to ${row.wallet} ${row.tx_hash}`);return true;
+      if(proof.finalized){await mark(row,'confirmed');log(`CONFIRMED row ${row.id} ${dmt(row.amount)} DMT to ${row.wallet} ${row.tx_hash}`);}
+      else log(`MINED row ${row.id}; awaiting finalized checkpoint on a later invocation`);
+      return true;
     };
     const recover=[];
     try {
@@ -155,42 +190,68 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       log('HELD BACK: '+code);
       await notice('alert:'+code,'ALERT: '+code+'. The other payouts go ahead. Review those rows in the ledger; raise WEEK_DMT_CAP or TRANSFER_DMT_CAP in payout.env only if they are right.');
     }
-    const work=[...recover,...due.filter(r=>!capped.includes(r))];
+    const proposed=[...recover,...due.filter(r=>!capped.includes(r))],work=[];
     // (security pass 3 review: checked only for the refunds about to be sent, so a flood of capped rows costs no chain calls)
-    for(const row of work.filter(r=>r.kind==='refund'&&!r.raw_tx)){
+    const verifyRefund=async row=>{
       const tx=String(row.source_tx??'').toLowerCase();
-      if(!/^0x[0-9a-f]{64}$/.test(tx)){await alert('unverified refund row '+row.id);return;}
-      try {
-        const r=await chain.rpc('eth_getTransactionReceipt',[tx]);
-        if(r?.transactionHash?.toLowerCase()!==tx||r.status!=='0x1')throw Error('invalid source receipt');
-        let paid=0n;const indices=new Set();
-        for(const l of r.logs??[])if(l.address?.toLowerCase()===DMT&&l.topics?.length===3&&l.topics[0]===TRANSFER&&l.topics[1]?.toLowerCase()==='0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0')&&l.topics[2]?.toLowerCase()==='0x'+config.wallet.slice(2).toLowerCase().padStart(64,'0')){
-          if(!/^0x[0-9a-f]{64}$/i.test(l.data))throw Error('invalid Transfer amount');
-          if(l.removed===true||l.transactionHash?.toLowerCase()!==tx||l.blockHash?.toLowerCase()!==r.blockHash?.toLowerCase()||quantityBigInt(l.blockNumber)!==quantityBigInt(r.blockNumber))throw Error('source event mismatch');
-          const index=quantityBigInt(l.logIndex);
-          if(indices.has(index))throw Error('duplicate source event');
-          indices.add(index);
-          paid+=BigInt(l.data);
+      if(!hash(tx))throw Error('invalid refund transaction');
+      const r=await chain.rpc('eth_getTransactionReceipt',[tx]);
+      if(r?.transactionHash?.toLowerCase()!==tx||r.status!=='0x1')throw Error('invalid source receipt');
+      let paid=0n;const indices=new Set();
+      for(const l of r.logs??[])if(l.address?.toLowerCase()===DMT&&l.topics?.length===3&&l.topics[0]===TRANSFER&&l.topics[1]?.toLowerCase()==='0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0')&&l.topics[2]?.toLowerCase()==='0x'+config.wallet.slice(2).toLowerCase().padStart(64,'0')){
+        if(!/^0x[0-9a-f]{64}$/i.test(l.data))throw Error('invalid Transfer amount');
+        if(l.removed===true||l.transactionHash?.toLowerCase()!==tx||l.blockHash?.toLowerCase()!==r.blockHash?.toLowerCase()||quantityBigInt(l.blockNumber)!==quantityBigInt(r.blockNumber))throw Error('source event mismatch');
+        const index=quantityBigInt(l.logIndex);
+        if(indices.has(index))throw Error('duplicate source event');
+        indices.add(index);
+        paid+=BigInt(l.data);
+      }
+      if(paid!==units(row.amount))throw Error('source amount mismatch');
+      const proof=await confirmation(r);return proof.deep&&proof.finalized;
+    };
+    for(const row of proposed){
+      try{
+        const ready=row.kind==='refund'?await verifyRefund(row):(await finalizedHead()).at>=weekEnd(row.week);
+        if(!ready){
+          log(`${row.nonce==null?'HELD BACK':'FOLLOW UP'} row ${row.id}: waiting for finalized ${row.kind==='refund'?'source payment':'week'}`);
+          if(row.nonce!=null)return;
+          continue;
         }
-        if(paid!==units(row.amount))throw Error('source amount mismatch');
-        const block=quantityBigInt(r.blockNumber),head=quantityBigInt(await chain.rpc('eth_blockNumber'));
-        if(head<block+20n||!/^0x[0-9a-f]{64}$/i.test(r.blockHash))throw Error('source not confirmed');
-        const canonical=await chain.rpc('eth_getBlockByNumber',[quantity(block),false]);
-        if(canonical?.hash!==r.blockHash)throw Error('source is not canonical');
-      }catch{await alert('unverified refund row '+row.id);return;}
+        work.push(row);
+      }catch{await alert((row.kind==='refund'?'unverified refund row ':'finality unavailable row ')+row.id);return;}
     }
     if(!work.length){log('No transfers due.');return;}
     let fees,gasById;
     try {
       for(const row of recover)if(units(row.amount)>config.transferCap||(row.kind!=='refund'&&pot(row.week)>config.weekCap))throw Error('DMT cap'); // signed rows keep the old stop
       const balances=await chain.balances(config.wallet);
-      // Reserve held awards and each race's latest rollover as well as every unsettled week.
+      // Plans cover their awards/rollover; unplanned fees and late refunds remain separate liabilities.
       let reserve=0n;
       for(const mode of ['normal','hard']){const latest=state.weeks.filter(w=>modeOf(w)===mode).sort((a,b)=>a.week-b.week).at(-1);if(latest)reserve+=units(latest.rollover);}
-      if(balances.dmt<sum(outstanding.filter(r=>r.status!=='confirmed'))+reserve)throw Error('DMT balance');
+      const currentWeek=weekOf(now()),knownRefunds=new Map(state.rows.filter(r=>r.kind==='refund').map(r=>[hash(r.source_tx),units(r.amount)])),seenRefunds=new Set();
+      try{
+        for(let w=Math.min(0,currentWeek-1);w<=currentWeek;w++)for(const mode of ['normal','hard']){
+          const open=w>=0&&racesOf(w).includes(mode);
+          const planned=state.weeks.some(p=>p.week===w&&modeOf(p)===mode);
+          if((planned||!open)&&w<currentWeek-1)continue;
+          const report=await rpc('sqs_ranked_settle',{p_key:config.reportsKey,p_week:w,p_mode:mode});
+          if(!report||report.error||report.week!==w||report.mode!==mode||!Array.isArray(report.refunds))throw Error('invalid pot reserve report');
+          const paid=units(report.paid);
+          if(!open&&paid)throw Error('unexpected race funds');
+          if(open&&!planned)reserve+=paid;
+          for(const refund of report.refunds){
+            const tx=hash(refund?.tx),amount=units(refund?.paid);
+            if(!tx||!amount||seenRefunds.has(tx))throw Error('invalid reserve refund');
+            seenRefunds.add(tx);
+            if(knownRefunds.has(tx)){if(knownRefunds.get(tx)!==amount)throw Error('reserve refund mismatch');}
+            else reserve+=amount;
+          }
+        }
+      }catch{throw Error('pot reserve unavailable');}
+      if(balances.dmt<sum(outstanding.filter(r=>r.status!=='confirmed'&&!mined.has(r.id)))+reserve)throw Error('DMT balance');
       fees=await chain.fees(config.maxFee);gasById=new Map();let gasCost=0n;
       // gas for this run's transfers and the ones already in flight only (held or capped rows wait, and are not estimated)
-      for(const row of [...new Set([...work,...inFlight])]) {
+      for(const row of [...new Set([...work,...inFlight.filter(r=>!mined.has(r.id))])]) {
         const gas=row.raw_tx?savedTransaction(row,config).gas:await chain.estimate(config.wallet,row,fees);
         gasById.set(row.id,gas);gasCost+=gas*(row.raw_tx?savedTransaction(row,config).maxFee:fees.maxFee);
       }
@@ -198,7 +259,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       const runCost=work.reduce((s,r)=>s+gasById.get(r.id)*(r.raw_tx?savedTransaction(r,config).maxFee:fees.maxFee),0n);
       if(runCost>config.ethCap)throw Error('run gas cap');
     }catch(error){
-      const reason=['DMT cap','DMT balance','ETH balance','run gas cap','gas price cap'].includes(error.message)?error.message:'chain unavailable';
+      const reason=['DMT cap','DMT balance','ETH balance','run gas cap','gas price cap','pot reserve unavailable'].includes(error.message)?error.message:'chain unavailable';
       await alert('weeks '+[...new Set(work.map(r=>r.week))].join(',')+': '+reason);return;
     }
     if(!config.live){for(const row of work)log(`WOULD SEND row ${row.id} ${row.kind} week ${row.week}: ${dmt(row.amount)} DMT to ${row.wallet}`);return;}
@@ -218,16 +279,20 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
         await mark(row,'sending',{p_hash:signed.hash,p_raw:signed.raw});
       }
       savedTransaction(row,config);await renew();
+      if(row.kind==='refund'){
+        try{if(!await verifyRefund(row)){log(`FOLLOW UP row ${row.id}: waiting for finalized source payment`);return;}}
+        catch{await alert('unverified refund row '+row.id);return;}
+      }
       // An ambiguous broadcast stays in flight. Never create a replacement transaction.
       try {
         const returned=await chain.rpc('eth_sendRawTransaction',[row.raw_tx]);
         if(returned!==row.tx_hash)throw Error('broadcast hash mismatch');
       }catch{await alert('broadcast uncertain row '+row.id);return;}
       await mark(row,'sent');log(`SENT row ${row.id} ${dmt(row.amount)} DMT to ${row.wallet} ${row.tx_hash}`);
-      let confirmed=false;
-      try {for(let i=0;i<3;i++){if(await receipt(row)){confirmed=true;break;}if(row.status==='failed')break;if(i<2)await pause(5000);}}
+      let checked=false;
+      try {for(let i=0;i<3;i++){if(await receipt(row)){checked=true;break;}if(row.status==='failed')break;if(i<2)await pause(5000);}}
       catch{await alert('receipt follow-up row '+row.id);return;}
-      if(!confirmed){log(`FOLLOW UP row ${row.id} ${row.tx_hash} next invocation`);return;}
+      if(!checked){log(`FOLLOW UP row ${row.id} ${row.tx_hash} next invocation`);return;}
     }
   }finally {await call('lease',{p_owner:owner,p_release:true});}
 }

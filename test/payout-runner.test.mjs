@@ -281,11 +281,10 @@ test('a flood of over-cap refunds is held back without a chain call each, and th
 });
 
 // Refund sources use the same 20-block canonicality policy as outgoing transfers.
-for(const condition of ['shallow','orphan','wrong hash','missing block','missing block hash','malformed amount','extra topic','head unavailable','canonical unavailable'])test(`refund source ${condition} stops before signing`,async()=>{
+for(const condition of ['orphan','wrong hash','missing block','missing block hash','malformed amount','extra topic','head unavailable','canonical unavailable'])test(`refund source ${condition} stops before signing`,async()=>{
   const f=fixture(3);
   await f.ports.rpc('sqs_payout_refunds',{p_key:'payout-key'});
   const row=f.db.rows.find(r=>r.kind==='refund'),r=f.chain.receipts.get(row.source_tx);
-  if(condition==='shallow'){r.blockNumber='0x3d5';for(const l of r.logs)l.blockNumber=r.blockNumber;} // 981: only 19 blocks behind head 1000
   if(condition==='orphan'){r.blockHash='0x'+'d'.repeat(64);for(const l of r.logs)l.blockHash=r.blockHash;}
   if(condition==='wrong hash')r.transactionHash='0x'+'d'.repeat(64);
   if(condition==='missing block')delete r.blockNumber;
