@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep your wallet choice": "Se conserva tu elección de billetera",
+  "Delayed wallet responses respect a newer wallet choice or Disconnect. Invalid account responses are refused.": "Las respuestas tardías de la billetera respetan una elección más reciente o la desconexión. Se rechazan las respuestas de cuenta no válidas.",
+  "Wallet selection changed. Please connect again.": "La selección de billetera ha cambiado. Conéctate de nuevo.",
   "Wallet menu controls": "Controles del menú de billetera",
   "Keyboard and controller shortcuts stay in the wallet or cloud-save choice panel instead of starting a run behind it. Back from the wallet returns to the previous menu.": "Los atajos de teclado y mando permanecen en el panel de la billetera o de selección de partida en la nube, sin iniciar una partida detrás. Volver desde la billetera regresa al menú anterior.",
   "Stronger payment checks": "Comprobaciones de pago más estrictas",

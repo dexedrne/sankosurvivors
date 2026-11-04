@@ -14,6 +14,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let cur = null; // { w: { name, icon, rdns, p }, address }
 let bal = null; // { address, dmt, eth, at }
+let generation = 0, connecting = 0;
+const firstAccount = (a) => Array.isArray(a) && typeof a[0] === 'string' && /^0x[\da-f]{40}$/i.test(a[0]) ? a[0] : null;
 const subs = new Set();
 const emit = () => { for (const f of subs) { try { f(cur); } catch (e) { console.warn(e); } } };
 export const onWallet = (f) => { subs.add(f); return () => subs.delete(f); };
@@ -31,7 +33,8 @@ function attach(w, address) {
     // switching account or locking the wallet follows along
     w.p.on('accountsChanged', (a) => {
       if (!cur || cur.w.p !== w.p) return;
-      if (a && a[0]) attach(w, a[0]); else { cur = null; bal = null; remember(null); emit(); }
+      const address = firstAccount(a);
+      if (address) attach(w, address); else { cur = null; bal = null; remember(null); emit(); }
     });
   }
   emit();
@@ -39,25 +42,38 @@ function attach(w, address) {
 
 /** Ask the wallet to connect (its own prompt), and remember it for next time. */
 export async function connect(w) {
-  const [a] = await w.p.request({ method: 'eth_requestAccounts' });
-  if (!/^0x[\da-f]{40}$/i.test(a || '')) throw new Error('No account was shared.');
-  attach(w, a);
-  return cur;
+  const attempt = ++generation, before = cur; connecting = attempt;
+  try {
+    const a = firstAccount(await w.p.request({ method: 'eth_requestAccounts' }));
+    // Wallets can emit the newly approved account before resolving their connection prompt.
+    if (attempt !== generation || cur !== before && (!cur || cur.w.p !== w.p || cur.address.toLowerCase() !== a?.toLowerCase())) throw new Error('Wallet selection changed. Please connect again.');
+    if (!a) throw new Error('No account was shared.');
+    if (cur === before) attach(w, a);
+    return cur;
+  } finally { if (connecting === attempt) connecting = 0; }
 }
 
 /** Forget the wallet here (and ask it to drop this site's permission, where it supports that). */
 export function disconnect() {
+  generation++; connecting = 0;
   const w = cur && cur.w; cur = null; bal = null; remember(null); emit();
   try { if (w) w.p.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] }).catch(() => {}); } catch { /* not supported */ }
 }
 
 /** Reconnect last visit's wallet without a prompt. Wallets announce themselves a moment after load, so wait briefly. */
 export async function restore() {
+  if (cur || connecting) return cur;
+  const attempt = generation;
   const s = saved(); if (!s) return null;
-  for (let i = 0; i < 12 && !cur; i++) {
+  for (let i = 0; i < 12 && !cur && attempt === generation; i++) {
     const w = wallets().find((x) => (s.rdns && x.rdns === s.rdns) || x.name === s.name);
     if (w) {
-      try { const a = await w.p.request({ method: 'eth_accounts' }); if (a && a[0]) attach(w, a[0]); else remember(null); } catch { /* wallet locked or gone */ }
+      try {
+        const a = firstAccount(await w.p.request({ method: 'eth_accounts' }));
+        if (attempt !== generation || cur || connecting) return cur;
+        generation++;
+        if (a) attach(w, a); else remember(null);
+      } catch { /* wallet locked or gone */ }
       return cur;
     }
     await wait(150);

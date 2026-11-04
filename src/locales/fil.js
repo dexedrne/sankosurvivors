@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Keep your wallet choice": "Panatilihin ang piniling wallet",
+  "Delayed wallet responses respect a newer wallet choice or Disconnect. Invalid account responses are refused.": "Iginagalang ng mga nahuling tugon ng wallet ang mas bagong pagpili ng wallet o pag-disconnect. Tinatanggihan ang mga hindi wastong tugon ng account.",
+  "Wallet selection changed. Please connect again.": "Nagbago ang piniling wallet. Kumonekta muli.",
   "Wallet menu controls": "Mga kontrol sa menu ng wallet",
   "Keyboard and controller shortcuts stay in the wallet or cloud-save choice panel instead of starting a run behind it. Back from the wallet returns to the previous menu.": "Nananatili ang mga shortcut ng keyboard at controller sa panel ng wallet o pagpili ng cloud save sa halip na magsimula ng laro sa likod nito. Babalik sa naunang menu ang Back mula sa wallet.",
   "Stronger payment checks": "Mas mahigpit na pagsusuri sa bayad",
