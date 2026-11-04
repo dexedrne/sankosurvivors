@@ -432,6 +432,9 @@ body.touch .seg button { min-height: 38px; min-width: 44px; }
 .lbrace { display: flex; gap: 6px; justify-content: center; margin: 2px 0 6px; }
 .lbrace button { flex: 0 1 220px; margin: 0; }
 .lbtable tr.short td { color: #b8a48a; }
+.lbtable .prizeamt { white-space:normal; overflow-wrap:anywhere; }
+#rankedpool, .lbweek { overflow-wrap:anywhere; }
+#rankedpool small { display:block; margin-top:4px; }
 #ranked p { margin: 8px 0; }
 #rankedready button, #rankedwallets button { white-space: normal; }
 

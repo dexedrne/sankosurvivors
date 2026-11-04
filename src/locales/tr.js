@@ -1,5 +1,11 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Estimated prize": "Tahmini ödül",
+  "Estimates at current standings, before review.": "İnceleme öncesi, mevcut sıralamaya göre tahminler.",
+  "Rollover pending settlement; prizes unavailable.": "Devreden tutar hesaplaşmayı bekliyor; ödüller henüz gösterilemiyor.",
+  "Pool details are updating. Refresh shortly.": "Havuz ayrıntıları güncelleniyor. Birazdan yenileyin.",
+  "Could not refresh ranked standings. Try again shortly.": "Dereceli sıralama yenilenemedi. Birazdan tekrar deneyin.",
+
   "Game updated: restart your run": "Oyun güncellendi: turunu yeniden başlat",
   "The game changed during your run. Preparing your entry to start again…": "Turun sırasında oyun değişti. Aynı katılımla yeniden başlaman için hazırlık yapılıyor…",
   "The ranked server did not return a valid restart entry. Your run is saved. Try again.": "Dereceli yarış sunucusu yeniden başlamak için geçerli bir katılım kaydı döndürmedi. Turun kayıtlı. Tekrar dene.",
@@ -894,6 +900,10 @@ export const text = {
 };
 
 export const patterns = [
+  ["{1} entries · {2} DMT from entries.", "{1} katılım · katılımlardan {2} DMT."],
+  ["Includes {1} DMT rollover.", "Devreden {1} DMT dahildir."],
+  ["Unfilled places: {1} DMT rollover.", "Doldurulmayan sıralar: {1} DMT devreder."],
+
   ["#{1} vs starting board", "başlangıç tablosuna göre #{1}"],
   ["Ranked run accepted. Place when checked: #{1} in the Hard race.", "Dereceli turun kabul edildi. Kontrol edildiğindeki Zor yarış sıralaman: #{1}."],
   ["Ranked run accepted. Place when checked: #{1}.", "Dereceli turun kabul edildi. Kontrol edildiğindeki sıralaman: #{1}."],

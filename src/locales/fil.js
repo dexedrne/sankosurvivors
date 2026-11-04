@@ -1,5 +1,11 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Estimated prize": "Tinatayang premyo",
+  "Estimates at current standings, before review.": "Mga tantiya batay sa kasalukuyang ranggo, bago ang pagsusuri.",
+  "Rollover pending settlement; prizes unavailable.": "Naghihintay pa ang natitirang pondo sa pagsasara; hindi pa maipapakita ang mga premyo.",
+  "Pool details are updating. Refresh shortly.": "Ina-update ang mga detalye ng pondo. I-refresh muli maya-maya.",
+  "Could not refresh ranked standings. Try again shortly.": "Hindi ma-refresh ang ranggo. Subukan muli maya-maya.",
+
   "Game updated: restart your run": "Na-update ang laro: simulan muli ang takbo mo",
   "The game changed during your run. Preparing your entry to start again…": "Nagbago ang laro habang naglalaro ka. Inihahanda ang pagsali mo para makapagsimula muli…",
   "The ranked server did not return a valid restart entry. Your run is saved. Try again.": "Hindi nagbalik ang ranked server ng wastong pagsali para makapagsimula muli. Naka-save ang takbo mo. Subukang muli.",
@@ -894,6 +900,10 @@ export const text = {
 };
 
 export const patterns = [
+  ["{1} entries · {2} DMT from entries.", "{1} lahok · {2} DMT mula sa mga lahok."],
+  ["Includes {1} DMT rollover.", "Kasama ang {1} DMT na natitirang pondo."],
+  ["Unfilled places: {1} DMT rollover.", "Mga bakanteng puwesto: {1} DMT na natitirang pondo."],
+
   ["#{1} vs starting board", "#{1} kumpara sa talaan sa simula"],
   [
     "Ranked run accepted. Place when checked: #{1} in the Hard race.",

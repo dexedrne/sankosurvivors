@@ -126,14 +126,25 @@ async function handle(route, req, res, ctx) {
   if (!sim) return send(res, 503, { error: 'ranked runs open soon' });
   const g = sim.game, week = g.weekOf(), mapId = g.weekMap(week);
   if (route === 'ranked-week' && req.method === 'GET') {
-    // each race's pot: 90% of what its entries paid this week (the previous week's unclaimed places roll over on top)
     const races = {};
-    await Promise.all(racesIn(g, week).map(async (mode) => {
-      const board = await rpc('sqs_ranked_board', { p_week: week, p_mode: mode }).catch(() => null);
-      const entries = board && board.entries ? Number(board.entries) : 0;
-      const paid = board && /^\d+$/.test(String(board.paid)) ? Number(BigInt(board.paid) / 1000000000000000n) / 1000 : entries * Number(RACES[mode].dmt);
-      races[mode] = { mode, name: RACES[mode].name, entryDmt: RACES[mode].dmt, entries, poolDmt: Math.round(paid * (1 - g.RANKED.houseShare) * 1000) / 1000, rows: (board && board.rows) || [] };
-    }));
+    try {
+      await Promise.all(racesIn(g, week).map(async (mode) => {
+        const board = await rpc('sqs_ranked_board', { p_week: week, p_mode: mode });
+        const units = value => typeof value === 'string' && /^(0|[1-9]\d{0,77})$/.test(value) && BigInt(value) < 1n << 256n;
+        if (!board || board.error || !units(board.paid) || !Number.isSafeInteger(board.entries) || board.entries < 0 || !Array.isArray(board.rows)) throw Error('pool unavailable');
+        const paid = BigInt(board.paid), house = paid / 10n, entryPool = paid - house;
+        const first = week === (mode === 'hard' ? g.RANKED.kpmWeek : 0);
+        const rolloverReady = first || board.incoming_ready === true;
+        if (rolloverReady && !first && !units(board.incoming)) throw Error('rollover unavailable');
+        const incoming = first ? 0n : rolloverReady ? BigInt(board.incoming) : null;
+        const pool = incoming === null ? null : entryPool + incoming;
+        if (pool !== null && pool >= 1n << 256n) throw Error('pool overflow');
+        races[mode] = { mode, name: RACES[mode].name, entryDmt: RACES[mode].dmt, entries: board.entries, rows: board.rows,
+          paidWei: String(paid), houseWei: String(house), entryPoolWei: String(entryPool), incomingWei: incoming === null ? null : String(incoming), poolWei: pool === null ? null : String(pool), rolloverReady,
+          // Compatibility estimate for older pages; new displays use the exact base-unit fields above.
+          poolDmt: Number(pool ?? entryPool) / 1e18 };
+      }));
+    } catch { return send(res, 503, { error: 'Could not read ranked pools. Try again shortly.' }); }
     const kpm = typeof g.kpmWeek === 'function' && g.kpmWeek(week);
     // week 0 on an endless build: runs are endless and rank by time survived ('time'); 'classic' = the old 15:00 runs
     const timed = !kpm && typeof g.runSeconds === 'function' && g.runSeconds(week) > LEGACY_RUN_SECONDS;

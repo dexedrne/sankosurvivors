@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.43', date: '4 Nov 2026', title: 'Clearer ranked prize estimates',
+    items: ['Ranked pools and estimated prizes keep their exact DMT amounts, including the last winner’s rounding dust.', 'Unfilled places show their rollover. Incoming rollover appears when the previous race is settled; pending rollover is labelled separately.', 'Prize displays describe the current standings before review. Unavailable pool data no longer appears as an empty pot.'],
+  },
+  {
     version: '0.42', date: '4 Nov 2026', title: 'Every level counts',
     items: [
       'Collecting several levels at once keeps every earned upgrade. Choices queue until you pick, skip or time out.',

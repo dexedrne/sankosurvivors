@@ -1,5 +1,11 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Estimated prize": "Premio estimado",
+  "Estimates at current standings, before review.": "Estimaciones según la clasificación actual, antes de la revisión.",
+  "Rollover pending settlement; prizes unavailable.": "El remanente espera liquidación; los premios aún no están disponibles.",
+  "Pool details are updating. Refresh shortly.": "Se están actualizando los detalles del fondo. Actualiza en breve.",
+  "Could not refresh ranked standings. Try again shortly.": "No se pudo actualizar la clasificación. Inténtalo de nuevo en breve.",
+
   "Game updated: restart your run": "Juego actualizado: reinicia tu partida",
   "The game changed during your run. Preparing your entry to start again…": "El juego cambió durante tu partida. Preparando tu inscripción para volver a empezar…",
   "The ranked server did not return a valid restart entry. Your run is saved. Try again.": "El servidor del modo competitivo no devolvió una inscripción válida para reiniciar. Tu partida está guardada. Vuelve a intentarlo.",
@@ -894,6 +900,10 @@ export const text = {
 };
 
 export const patterns = [
+  ["{1} entries · {2} DMT from entries.", "{1} participaciones · {2} DMT de las participaciones."],
+  ["Includes {1} DMT rollover.", "Incluye {1} DMT de remanente."],
+  ["Unfilled places: {1} DMT rollover.", "Puestos vacantes: {1} DMT de remanente."],
+
   ["#{1} vs starting board", "n.º {1} frente a la tabla inicial"],
   [
     "Ranked run accepted. Place when checked: #{1} in the Hard race.",

@@ -6,6 +6,7 @@ import { asset, pickAssetHost } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
+import { dmtText, poolReadout, prizeEstimate, prizeNotes } from './prize-display.js';
 import { initI18n, translateText } from './i18n.js';
 import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
 const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
@@ -166,7 +167,7 @@ let rankedMode = load('sq-ranked-mode', 'normal') === 'hard' ? 'hard' : 'normal'
 const RACE = RANKED.races;
 const raceList = (d) => (d && d.races ? ['normal', 'hard'].filter((m) => d.races[m]) : ['normal']);
 // one race's numbers from /api/ranked-week (an older server only sends the Normal race, at the top level)
-const raceOf = (d, m) => (d && d.races && d.races[m]) || (m === 'normal' && d ? { mode: 'normal', name: 'Normal', entryDmt: d.entryDmt, entries: d.entries, poolDmt: d.poolDmt, rows: d.rows || [] } : null);
+const raceOf = (d, m) => (d && d.races && d.races[m]) || (m === 'normal' && d ? { ...d, mode: 'normal', name: 'Normal', rows: d.rows || [] } : null);
 const kpmRules = (d) => !!d && d.rules === 'kpm';
 const fmtKpm = (r) => kpm(r.kills, r.t).toFixed(2);
 const setRace = (m) => { rankedMode = m === 'hard' ? 'hard' : 'normal'; save('sq-ranked-mode', rankedMode); };
@@ -221,14 +222,16 @@ function renderRanked() {
     for (const b of $('rankedraces').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); renderRanked(); };
     $('rankedweek').textContent = `This week: ${MAP_BY_ID[rankedWeek.map]?.name || rankedWeek.map}${two ? ` · ${race.name} race${rankedMode === 'hard' ? ' (hard rules)' : ''}` : ''}`;
     const pool = $('rankedpool'), summary = document.createElement('span');
-    summary.textContent = `${race.entries} entries · ${race.poolDmt} DMT pool.`;
+    const place = prizePlaces(race.rows, rankedWeek.week), estimate = prizeEstimate(race, place, rankedWeek.payouts);
+    summary.textContent = poolReadout(race);
     pool.replaceChildren(summary, ' ');
-    rankedWeek.payouts.forEach((p,i) => {
+    estimate?.prizes.forEach((amount,i) => {
       const prize = document.createElement('span');
-      prize.textContent = `${['1st','2nd','3rd','4th','5th'][i] || `${i+1}th`}: ${Number((race.poolDmt*p).toFixed(3))} DMT`;
+      prize.textContent = `${['1st','2nd','3rd','4th','5th'][i] || `${i+1}th`}: ${dmtText(amount)} DMT`;
       pool.append(i ? ' · ' : '', prize);
     });
-    const list = document.createElement('ol'), place = prizePlaces(race.rows, rankedWeek.week);
+    for (const text of prizeNotes(race, estimate)) { const note = document.createElement('small'); note.textContent = text; pool.append(note); }
+    const list = document.createElement('ol');
     race.rows.forEach((r, i) => {
       const li = document.createElement('li'), short3 = kp && !placeable(rankedWeek.week, r);
       const name = document.createElement('span'); name.translate = false; name.textContent = r.name || 'Adventurer';
@@ -256,7 +259,11 @@ function rankedTime() {
 setInterval(rankedTime, 30000);
 async function refreshRanked() {
   try { rankedWeek = await rankedApi(BASE, 'week'); $('rankedbtn').classList.toggle('hidden', !rankedWeek.open); renderRanked(); }
-  catch { $('rankedbtn').classList.add('hidden'); }
+  catch {
+    rankedWeek = null; $('rankedbtn').classList.add('hidden');
+    $('rankedpool').textContent = 'Could not refresh ranked standings. Try again shortly.';
+    $('rankedstandings').replaceChildren(); renderRanked();
+  }
 }
 async function openRanked() {
   $('ranked').classList.remove('hidden'); renderRanked(); $('rankedclose').focus(); refreshBalances(true); await refreshRanked();
@@ -653,20 +660,21 @@ async function showBoard(mapId, mode) {
 // this week's ranked standings: each wallet's best run, and what the top places would win if the week ended now
 async function showRankedBoard() {
   try {
-    const r = await fetch(`${BASE}api/ranked-week`); const d = await r.json();
+    const r = await fetch(`${BASE}api/ranked-week`); if (!r.ok) throw Error('ranked unavailable'); const d = await r.json();
     const races = raceList(d); if (!races.includes(rankedMode)) rankedMode = 'normal';
     const race = raceOf(d, rankedMode), kp = kpmRules(d), two = races.length > 1;
-    const rows = race.rows || [], pays = d.payouts || [], pool = Number(race.poolDmt) || 0, myName = load('sq-name', '');
+    const rows = race.rows || [], pays = d.payouts || [], myName = load('sq-name', '');
+    const place = prizePlaces(rows, d.week), estimate = prizeEstimate(race, place, pays);
     const left = Math.max(0, (d.endsAt || 0) - Date.now()), dd = Math.floor(left / 86400000), hh = Math.floor((left % 86400000) / 3600000);
     const tabs = two ? `<div class="lbmode lbrace" role="tablist" aria-label="Ranked race">${races.map((m) => `<button role="tab" data-race="${m}" aria-selected="${m === rankedMode}" class="${m === rankedMode ? 'on' : 'ghost'}">${RACE[m].name} <span>${esc(raceOf(d, m).entryDmt)} DMT</span></button>`).join('')}</div>` : '';
-    const head = `${tabs}<p class="lbweek">${esc((MAP_BY_ID[d.map] || {}).name || d.map)}${two ? ` · ${race.name}` : ''} · ${race.entries} entries · <b>${pool} DMT pot</b> · resets in ${dd}d ${hh}h</p>`
+    const head = `${tabs}<p class="lbweek">${esc((MAP_BY_ID[d.map] || {}).name || d.map)}${two ? ` · ${race.name}` : ''} · <b>${esc(poolReadout(race))}</b> · resets in ${dd}d ${hh}h</p>`
+      + prizeNotes(race, estimate).map(text => `<p class="lbweek dim">${esc(text)}</p>`).join('')
       + (kp ? `<p class="lbweek dim">Score: kills per minute. Runs under ${fmtT(d.minSeconds || RANKED.minSeconds)} cannot win.</p>` : '');
-    const place = prizePlaces(rows, d.week);
-    const prize = (i) => (place[i] < 0 ? `<span class="dim">${noPrize(rows[i].wallet) ? 'no prize (dev)' : 'too short'}</span>` : pays[place[i]] ? `${Math.round(pool * pays[place[i]] * 1000) / 1000} DMT` : '');
+    const prize = (i) => (place[i] < 0 ? `<span class="dim">${noPrize(rows[i].wallet) ? 'no prize (dev)' : 'too short'}</span>` : estimate?.prizes[place[i]] !== undefined ? `${dmtText(estimate.prizes[place[i]])} DMT` : '—');
     const wal = (x) => esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4));
     $('lblist').innerHTML = head + (rows.length ? (kp
-      ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>KPM</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>`
-      : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td>${prize(i)}</td></tr>`).join('')}</table>`)
+      ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>KPM</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`
+      : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`)
       : `<p class="dim">No ${two ? race.name + ' ' : ''}ranked runs yet this week. Enter from the Ranked button on the title screen.</p>`);
     for (const b of $('lblist').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); showRankedBoard(); };
   } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
