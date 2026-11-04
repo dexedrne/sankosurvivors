@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.43.3', date: '4 Nov 2026', title: 'Clearer request handling',
+    items: ['Malformed score and sign-in fields receive a clear refusal. Bug reports keep valid text when optional details are unreadable.'],
+  },
+  {
     version: '0.43.2', date: '4 Nov 2026', title: 'Wallet security maintenance',
     items: ['Stricter wallet sign-in checks, with existing progress and ranked runs preserved.'],
   },

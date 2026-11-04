@@ -94,3 +94,89 @@ test('endless runs: their own boards, never a win, and an old database (before u
     assert.equal(calls.at(-1).body.p_endless, undefined);
   } finally { globalThis.fetch = real; }
 });
+
+test('casual score fields reject poisoned objects and coerced arrays before upstream work', async () => {
+  const base = { ticket: ticket(120), map: 'greentown', name: 'Ranger', adv: 'knight', t: 100, kills: 12, level: 3 };
+  for (const field of ['map', 'name', 'adv', 't', 'kills', 'level']) {
+    const bad = ['map', 'name', 'adv'].includes(field) ? [{ toString: 1 }, { valueOf: 1 }, [], ['greentown'], false, 42] : [{ toString: 1 }, { valueOf: 1 }, [], [100], false, true, 'NaN', 'Infinity'];
+    for (const value of bad) {
+      calls.length = 0;
+      const out = await call('POST', 'score', { ...base, [field]: value });
+      assert.equal(out.code, 400, field + ': ' + JSON.stringify(value));
+      assert.equal(calls.length, 0, field + ' did not reach upstream');
+    }
+  }
+});
+
+test('casual validation preserves legacy numeric strings, Unicode and strict-true flags', async () => {
+  calls.length = 0;
+  const out = await call('POST', 'score', { ticket: ticket(120), map: 'greentown', name: 'Çağrı 🧀', adv: 'knight', t: '100.9', kills: '12.8', level: '3.6', won: 'false', hard: 'no' });
+  assert.equal(out.code, 200);
+  const saved = calls.at(-1).body;
+  assert.equal(saved.p_name, 'Çağrı 🧀'); assert.equal(saved.p_adv, 'knight');
+  assert.equal(saved.p_t, 100); assert.equal(saved.p_kills, 12); assert.equal(saved.p_level, 3);
+  assert.equal(saved.p_won, false); assert.equal(saved.p_hard, false);
+});
+
+test('required report text rejects non-strings before upstream work', async () => {
+  for (const text of [{ toString: 1 }, { valueOf: 1 }, {}, ['help'], true, 42]) {
+    calls.length = 0;
+    assert.equal((await call('POST', 'report', { text })).code, 400, JSON.stringify(text));
+    assert.equal(calls.length, 0);
+  }
+});
+
+test('optional report metadata never invokes object coercion or loses valid Unicode text', async () => {
+  calls.length = 0;
+  const out = await call('POST', 'report', { text: 'Harita açılmıyor 🧀', map: { toString: 1 }, adv: [], v: 42, errors: [{ toString: 1 }, '<ouch>', 17], settings: { sound: false } });
+  assert.equal(out.code, 200);
+  const report = calls.at(-1).body.p_report;
+  assert.equal(report.text, 'Harita açılmıyor 🧀');
+  assert.equal(report.map, ''); assert.equal(report.adv, ''); assert.equal(report.v, '');
+  assert.deepEqual(report.errors, ['', 'ouch', '']); assert.deepEqual(report.settings, { sound: false });
+});
+
+test('text limits never send an unpaired surrogate to PostgreSQL', async () => {
+  calls.length = 0;
+  assert.equal((await call('POST', 'score', { ticket: ticket(120), map: 'greentown', name: 'a'.repeat(15) + '🧀', adv: 'knight', t: 100, kills: 12, level: 3 })).code, 200);
+  assert.equal(calls.at(-1).body.p_name, 'a'.repeat(15));
+  assert.equal((await call('POST', 'report', { text: 'a'.repeat(1999) + '🧀', errors: ['b'.repeat(299) + '🧀', 'good 🧀', 'x\ud800y'] })).code, 200);
+  const report = calls.at(-1).body.p_report;
+  assert.equal(report.text, 'a'.repeat(1999));
+  assert.deepEqual(report.errors, ['b'.repeat(299), 'good 🧀', 'xy']);
+});
+
+test('required report text containing only invalid surrogate code units is refused', async () => {
+  calls.length = 0;
+  assert.equal((await call('POST', 'report', { text: '\udfff\ud800' })).code, 400);
+  assert.equal(calls.length, 0);
+});
+
+const { secp256k1, keccak_256 } = require('../tools/vercel-api/noble-crypto.cjs');
+const fixtureAddress = '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf';
+function fixtureSign(message) {
+  const bytes = Buffer.from(message), hash = keccak_256(Buffer.concat([Buffer.from(`\x19Ethereum Signed Message:\n${bytes.length}`), bytes]));
+  const sig = secp256k1.sign(hash, Buffer.from('01'.padStart(64, '0'), 'hex'), { prehash: false, format: 'recovered' });
+  return '0x' + Buffer.concat([sig.subarray(1), Buffer.from([sig[0] + 27])]).toString('hex');
+}
+test('holder and cloud authentication reject non-string supplied addresses before upstream work', async () => {
+  for (const [route, nonceRoute] of [['holder', 'nonce'], ['save-login', 'save-nonce']]) {
+    const n = (await call('GET', nonceRoute)).json, signature = fixtureSign(n.message);
+    for (const address of [{ toString: 1 }, {}, [], [fixtureAddress], 0, false, '']) {
+      calls.length = 0;
+      const out = await call('POST', route, { nonce: n.nonce, signature, address });
+      assert.equal(out.code, 400, route + ': ' + JSON.stringify(address));
+      assert.equal(calls.length, 0, route + ' did not read balances or saves');
+    }
+  }
+});
+
+test('cloud authentication preserves omitted/null addresses and case-insensitive matching strings', async () => {
+  const n = (await call('GET', 'save-nonce')).json, signature = fixtureSign(n.message);
+  for (const address of [undefined, null, fixtureAddress, fixtureAddress.toUpperCase()]) {
+    calls.length = 0;
+    const out = await call('POST', 'save-login', { nonce: n.nonce, signature, address });
+    assert.equal(out.code, 200); assert.equal(out.json.address, fixtureAddress);
+    assert.equal(calls.at(-1).body.p_wallet, fixtureAddress);
+  }
+});

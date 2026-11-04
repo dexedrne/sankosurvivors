@@ -71,7 +71,8 @@ const body = (req) => new Promise((ok) => {
   req.on('end', () => { try { const v = JSON.parse(s || '{}'); end(v && typeof v === 'object' && !Array.isArray(v) ? v : {}); } catch { end({}); } });
   req.on('error', () => end({}));
 });
-const clean = (s, n) => String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n);
+// PostgreSQL rejects lone surrogates, including a pair split by the length cap.
+const clean = (s, n) => (typeof s === 'string' ? s : '').replace(/[\u0000-\u001f<>\uD800-\uDFFF]/gu, '').trim().slice(0, n).replace(/[\uD800-\uDBFF]$/u, '');
 const int = (v) => Math.min(1e6, Math.max(0, Math.floor(Number(v)) || 0));
 // a run is won by surviving the map's length or by killing its final boss (the last one on the schedule), which cannot
 // appear before these times (src/content.js: each map's bosses and length; test/api.test.mjs checks they still match)
@@ -102,7 +103,7 @@ module.exports = async function handler(req, res) {
       const b = await body(req), n = unsign(b.nonce);
       if (!n || n.k !== 'nonce' || Date.now() - n.s > 15 * 60 * 1000) return send(res, 400, { error: 'that sign-in expired, try again' });
       const addr = recoverSigner(holderMessage(b.nonce), b.signature);
-      if (!addr || (b.address && String(b.address).toLowerCase() !== addr)) return send(res, 400, { error: 'the signature did not match the wallet' });
+      if (!addr || (b.address != null && (typeof b.address !== 'string' || b.address.toLowerCase() !== addr))) return send(res, 400, { error: 'the signature did not match the wallet' });
       const bal = await dmtBalance(addr);
       if (bal === null) return send(res, 502, { error: 'could not read the DMT balance right now, try again in a minute' });
       const out = { address: addr, balance: fmtDmt(bal), holder: bal > 0n };
@@ -116,8 +117,10 @@ module.exports = async function handler(req, res) {
     if (req.method === 'POST' && path === 'score') {
       const b = await body(req);
       const tk = readTicket(b.ticket); if (!tk) return send(res, 400, { error: 'no ticket' });
-      const map = String(b.map || ''), endless = b.endless === true, won = b.won === true && !endless, t = int(b.t);
+      const map = typeof b.map === 'string' ? b.map : '';
       if (!MAPS.has(map)) return send(res, 400, { error: 'bad map' });
+      if ([b.name, b.adv].some(v => v != null && typeof v !== 'string') || [b.t, b.kills, b.level].some(v => v != null && (!['number', 'string'].includes(typeof v) || !Number.isFinite(Number(v))))) return send(res, 400, { error: 'bad score' });
+      const endless = b.endless === true, won = b.won === true && !endless, t = int(b.t);
       if (won && (t < WIN[map][0] || t > WIN[map][1] + 10)) return send(res, 400, { error: 'bad score' });
       const real = (Date.now() - tk.s) / 1000, claimed = Number(b.t) || 0;
       if (real < claimed * 0.97 - 5 || real > 4 * 3600) return send(res, 400, { error: 'bad ticket' });

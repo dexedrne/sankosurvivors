@@ -54,7 +54,7 @@ async function handle(path, req, res, { rpc, send, signed, unsign, recoverSigner
     const n = unsign(b.nonce);
     if (!n || n.k !== 'snonce' || !(Date.now() - n.s < 15 * 60 * 1000)) return send(res, 400, { error: 'that sign-in expired, try again' });
     const addr = recoverSigner(saveMessage(b.nonce), b.signature);
-    if (!addr || (b.address && String(b.address).toLowerCase() !== addr)) return send(res, 400, { error: 'the signature did not match the wallet' });
+    if (!addr || (b.address != null && (typeof b.address !== 'string' || b.address.toLowerCase() !== addr))) return send(res, 400, { error: 'the signature did not match the wallet' });
     const key = signed({ k: 'save', a: addr, exp: Date.now() + KEY_DAYS * 86400000 });
     const cur = await rpc('sqs_save_get', { p_server_key: SERVER_KEY, p_wallet: addr });
     if (cur && cur.error) return send(res, 500, { error: 'cloud saves are not set up yet' });
