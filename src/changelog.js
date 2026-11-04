@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.5', date: '4 Nov 2026', title: 'Wallet menu controls',
+    items: ['Keyboard and controller shortcuts stay in the wallet or cloud-save choice panel instead of starting a run behind it. Back from the wallet returns to the previous menu.'],
+  },
+  {
     version: '0.44.4', date: '4 Nov 2026', title: 'Stronger payment checks',
     items: ['Ranked payments stay saved while inconsistent chain receipts are checked again.'],
   },

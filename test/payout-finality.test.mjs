@@ -117,11 +117,11 @@ test('a self-consistent future finalized checkpoint cannot authorize an award',a
   const check=noSigning(f);await run(f.config,f.ports);check();
 });
 
-for(const condition of ['removed','wrong transaction','wrong block','wrong number','invalid status','contradictory revert','malformed topics','malformed data','missing address','missing context'])test(`outgoing ${condition} proof never irreversibly settles a transfer`,async()=>{
-  const f=await refundOnly(),original=f.chain.request.bind(f.chain);
+for(const condition of ['removed','wrong transaction','wrong block','wrong number','invalid status','contradictory revert','malformed topics','malformed data','missing address','missing context','duplicate index','aliased duplicate index','conflicting duplicate index','too many unrelated topics','bad sender padding','bad recipient padding','reverted Approval','uppercase reverted Transfer'])test(`outgoing ${condition} proof never irreversibly settles a transfer`,async()=>{
+  const f=await refundOnly(),original=f.chain.request.bind(f.chain);let broken=true;
   f.chain.request=async(method,args)=>{
     const r=await original(method,args);
-    if(method!=='eth_getTransactionReceipt'||!r||args[0]===f.row.source_tx)return r;
+    if(!broken||method!=='eth_getTransactionReceipt'||!r||args[0]===f.row.source_tx)return r;
     const copy=structuredClone(r),event=copy.logs[0];
     if(condition==='removed')event.removed=true;
     if(condition==='wrong transaction')event.transactionHash='0x'+'d'.repeat(64);
@@ -133,8 +133,53 @@ for(const condition of ['removed','wrong transaction','wrong block','wrong numbe
     if(condition==='malformed data')event.data='not ABI data';
     if(condition==='missing address')delete event.address;
     if(condition==='missing context')delete event.blockHash;
+    if(condition==='duplicate index')copy.logs.push(structuredClone(event));
+    if(condition==='aliased duplicate index')copy.logs.push({...structuredClone(event),logIndex:'0x00'});
+    if(condition==='conflicting duplicate index'){const other=structuredClone(event);other.topics[2]='0x'+'0'.repeat(24)+'d'.repeat(40);copy.logs.push(other);}
+    if(condition==='too many unrelated topics')event.topics=['0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925',...event.topics.slice(1),'0x'+'a'.repeat(64),'0x'+'b'.repeat(64)];
+    if(condition==='bad sender padding')event.topics[1]='0x'+'f'.repeat(24)+event.topics[1].slice(-40);
+    if(condition==='bad recipient padding')event.topics[2]='0x'+'f'.repeat(24)+event.topics[2].slice(-40);
+    if(condition==='reverted Approval'){copy.status='0x0';event.topics[0]='0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925';}
+    if(condition==='uppercase reverted Transfer'){copy.status='0x0';event.topics[0]='0x'+event.topics[0].slice(2).toUpperCase();}
     return copy;
   };
   await run(f.config,f.ports);await run(f.config,f.ports);
   assert.equal(f.chain.broadcasts.length,1);assert.equal(f.row.status,'sent');
+  const {tx_hash,raw_tx}=f.row;broken=false;await run(f.config,f.ports);
+  assert.equal(f.row.status,'confirmed');assert.equal(f.chain.broadcasts.length,1);
+  assert.equal(f.row.tx_hash,tx_hash);assert.equal(f.row.raw_tx,raw_tx);
+});
+
+test('uppercase outgoing Transfer signature confirms the same signed payment once',async()=>{
+  const f=await refundOnly(),request=f.chain.request.bind(f.chain);
+  f.chain.request=async(method,args)=>{
+    const r=await request(method,args);if(method!=='eth_getTransactionReceipt'||!r||args[0]===f.row.source_tx)return r;
+    const copy=structuredClone(r);for(const event of copy.logs)event.topics[0]='0x'+event.topics[0].slice(2).toUpperCase();return copy;
+  };
+  await run(f.config,f.ports);await run(f.config,f.ports);
+  assert.equal(f.row.status,'confirmed');assert.equal(f.chain.broadcasts.length,1);
+});
+
+for(const count of [0,4])test(`a valid unrelated event with ${count} topics does not poison an outgoing receipt`,async()=>{
+  const f=await refundOnly(),request=f.chain.request.bind(f.chain);
+  f.chain.request=async(method,args)=>{
+    const r=await request(method,args);if(method!=='eth_getTransactionReceipt'||!r||args[0]===f.row.source_tx)return r;
+    const copy=structuredClone(r);copy.logs.push({...copy.logs[0],address:'0x'+'d'.repeat(40),topics:Array(count).fill('0x'+'a'.repeat(64)),data:'0x01',logIndex:'0x1'});return copy;
+  };
+  await run(f.config,f.ports);assert.equal(f.row.status,'confirmed');assert.equal(f.chain.broadcasts.length,1);
+});
+
+test('uppercase source Transfer signature remains valid through the final refund recheck',async()=>{
+  const f=await refundOnly();for(const event of f.source.logs)event.topics[0]='0x'+event.topics[0].slice(2).toUpperCase();
+  await run(f.config,f.ports);await run(f.config,f.ports);
+  assert.equal(f.row.status,'confirmed');assert.equal(f.chain.broadcasts.length,1);
+});
+
+test('uppercase source Transfer signature recovers prepared bytes without another key request',async()=>{
+  const f=await refundOnly();f.db.crashPrepared=true;await assert.rejects(run(f.config,f.ports));f.db.crashPrepared=false;
+  const {raw_tx,tx_hash}=f.row;for(const event of f.source.logs)event.topics[0]='0x'+event.topics[0].slice(2).toUpperCase();
+  f.ports.key=async()=>{throw Error('prepared recovery must not request a key');};
+  await run(f.config,f.ports);
+  assert.equal(f.row.status,'confirmed');assert.equal(f.chain.broadcasts.length,1);
+  assert.equal(f.row.raw_tx,raw_tx);assert.equal(f.row.tx_hash,tx_hash);
 });

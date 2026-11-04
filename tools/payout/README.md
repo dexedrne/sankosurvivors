@@ -17,6 +17,10 @@ run**: plans and Telegram previews, no key loading, signing or sending.
 
 Receipt checks bind counted refund Transfer events to their transaction and block,
 reject removed or repeated log indices, and preserve genuine split transfers.
+Event signatures compare hex values without case sensitivity. Outgoing proof also
+checks topic counts and address encoding before terminal decisions. Contradictory
+failed receipts containing DMT events stay in flight; corrected proof follows the
+same saved transaction, without preparing a replacement payment.
 Refund sources require both the existing 20-L2-block depth/canonical checks and
 Arbitrum's `finalized` checkpoint. Each invocation checks that checkpoint against
 its numeric canonical header and current head. Missing or inconsistent finality
@@ -46,6 +50,13 @@ is needed. Unavailable or inconsistent reports pause the run before signing.
 This is a preflight snapshot of registered liabilities. It does not reconstruct
 unregistered chain payments or independently reconcile historical entries/plans.
 Keep the manual prize review and owner approval before live operations.
+
+After preflight, a nonce claim cannot change the approved recipient, amount,
+race or refund source. The tool keeps the checked source transaction and accepts
+only a validated nonce reservation from the acknowledgment, before loading a key.
+Inconsistent claims pause without signing; a key-loading failure leaves the
+unsigned claim recoverable on a later invocation. This uses the existing SQL
+contract and needs no migration.
 
 ## Two pots from week 1
 

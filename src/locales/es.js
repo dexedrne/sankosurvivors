@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Wallet menu controls": "Controles del menú de billetera",
+  "Keyboard and controller shortcuts stay in the wallet or cloud-save choice panel instead of starting a run behind it. Back from the wallet returns to the previous menu.": "Los atajos de teclado y mando permanecen en el panel de la billetera o de selección de partida en la nube, sin iniciar una partida detrás. Volver desde la billetera regresa al menú anterior.",
   "Stronger payment checks": "Comprobaciones de pago más estrictas",
   "Ranked payments stay saved while inconsistent chain receipts are checked again.": "Los pagos del modo competitivo permanecen guardados mientras se vuelven a comprobar los recibos inconsistentes de la cadena.",
   "Keep every character": "Conserva cada carácter",

@@ -50,7 +50,7 @@ test('the full runner uses real SQL over fake Supabase and fake Arbitrum HTTP', 
   try{
     const config={...f.config,url:s.url,supabaseKey:'fixture-public',telegramToken:'fixture-bot',telegramChat:'fixture-chat'};
     const ports={...f.ports,rpc:database(config),chain:new Arbitrum(fetch,[s.url+'/arb']),notify:telegram(config,(_,opts)=>fetch(s.url+'/telegram',opts))};
-    await run(config,ports);await run(config,ports);
+    await run(config,ports);assert.equal(f.chain.broadcasts.length,5,'the first invocation must complete refunds too');await run(config,ports);
     assert.equal(f.chain.broadcasts.length,5);
     const state=await pg.rpc('sqs_payout_read',{p_key:'payout-key'});
     assert.equal(state.rows.filter(r=>r.kind!=='rollover-note'&&r.status==='confirmed').length,5);
@@ -78,7 +78,10 @@ test('SQL and the fake agree on the full RPC lifecycle', {skip:!process.env.SQS_
     const both=async(name,p={})=>{
       const args={p_key:'payout-key',...p};const actual=await pg.rpc('sqs_payout_'+name,args),expected=await fake.rpc('sqs_payout_'+name,args);
       if(name!=='read'&&name!=='claim')assert.deepEqual(actual,expected,name);
-      if(name==='claim'&&actual.row)assert.equal(actual.row.nonce,expected.row.nonce);
+      if(name==='claim'&&actual.row){
+        for(const key of ['id','week','mode','kind','wallet','amount','status','nonce','scan_block','source_entry_id','raw_tx','tx_hash'])assert.deepEqual(actual.row[key],expected.row[key],key);
+        assert.equal(Object.hasOwn(actual.row,'source_tx'),false);assert.equal(Object.hasOwn(expected.row,'source_tx'),false);
+      }
       const real=await pg.rpc('sqs_payout_read',{p_key:'payout-key'});
       const cols=['id','week','kind','wallet','amount','status','nonce','tx_hash','raw_tx','source_entry_id'];
       const project=rows=>rows.map(r=>Object.fromEntries(cols.map(k=>[k,r[k]??null])));

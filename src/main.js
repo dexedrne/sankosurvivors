@@ -272,9 +272,10 @@ $('rankedbtn').onclick = openRanked;
 $('rankedupdate').onclick = () => $('updatebtn').click();
 $('rankedclose').onclick = () => { $('ranked').classList.add('hidden'); $('rankedbtn').focus(); };
 $('ranked').addEventListener('click', (e) => { if (e.target.id === 'ranked') $('rankedclose').click(); });
-$('ranked').addEventListener('keydown', (e) => {
+for (const id of ['ranked', 'wallet', 'cloudpick']) $(id).addEventListener('keydown', (e) => {
   if (e.key !== 'Tab') return;
-  const nodes = [...$('ranked').querySelectorAll('button:not(:disabled), input, select, a')].filter((n) => n.offsetParent !== null);
+  const nodes = [...$(id).querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]')].filter((n) => n.offsetParent !== null);
+  if (!nodes.length) return;
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 });
@@ -842,6 +843,7 @@ const cloud = createCloud(BASE, {
     $('cloudwal').textContent = line(wal); $('clouddev').textContent = line(dev); $('cloudpick').classList.remove('hidden');
     const pick = (v) => { $('cloudpick').classList.add('hidden'); done(v); };
     $('cloudusewal').onclick = () => pick('cloud'); $('cloudusedev').onclick = () => pick('device');
+    $('cloudusewal').focus();
   }),
   note: (t) => banner(t, 4000),
   reload: () => { banner('Loading your progress from your wallet…', 3000); setTimeout(() => location.reload(), 500); },
@@ -1091,10 +1093,13 @@ function toMenu() {
 }
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
+const MENU_SCREENS = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests'];
 addEventListener('keydown', (e) => {
   if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
   if (e.repeat) return;
-  const k = e.key.toLowerCase(); keys.add(k);
+  const k = e.key.toLowerCase();
+  if ((k === 'enter' || k === ' ') && e.target?.matches?.('button, a[href]')) return;
+  keys.add(k);
   if (mode === 'casket') {
     if (k === '1' || k === '2') pickCasket(Number(k) - 1);
     else if (k === 'arrowleft' || k === 'a' || k === 'arrowup' || k === 'w') { selCard = 0; markCasket(); }
@@ -1114,9 +1119,8 @@ addEventListener('keydown', (e) => {
   if (k === 'm') { audio.setMuted(!audio.muted); banner(audio.muted ? 'Sound off' : 'Sound on', 900); }
   if (mode === 'play' && k >= '1' && k <= '4') pendingUse = Number(k) - 1;
   if (mode === 'play' && k === ' ') { hop(); e.preventDefault(); } // a hop, just for the look (owner 3 Nov: "jump is a vanity thing")
-  if (k === 'escape') { if (mode === 'play') pause(true); else if (mode === 'pause') pause(false); else for (const id of ['skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden'); }
-  if ((k === 'enter' || k === ' ') && mode === 'title' && !$('start').disabled && ['skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked'].every((id) => $(id).classList.contains('hidden'))) startRun();
-  if ((k === 'enter' || k === ' ') && mode === 'end') startRun();
+  if (k === 'escape' && !navBack() && mode === 'play') pause(true);
+  if ((k === 'enter' || k === ' ') && (mode === 'title' && !$('start').disabled || mode === 'end') && MENU_SCREENS.every((id) => $(id).classList.contains('hidden'))) startRun();
 });
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => { keys.clear(); clearTouch(); if (mode === 'play') pause(true); });
@@ -1371,12 +1375,12 @@ function updateHud(view) {
 }
 
 // ---- menus with a controller or the arrow keys: spatial focus, A/Enter picks, B/Esc goes back -----------------------
-const NAV_SCREENS = ['ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'pause', 'end', 'title'];
+const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
 const NAV_ITEMS = 'summary, .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden')); }
-function navFocus(el) { if (navEl) navEl.classList.remove('navfocus'); navEl = el; if (el) { el.classList.add('navfocus'); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
+function navFocus(el) { if (navEl) navEl.classList.remove('navfocus'); navEl = el; if (el) { el.classList.add('navfocus'); if (el.tabIndex < 0) el.tabIndex = -1; el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
 function navMove(dir) {
   const scr = navScreen(); if (!scr) return;
   const items = navItems(scr); if (!items.length) return;
@@ -1401,15 +1405,25 @@ function navPress() {
   navEl.click(); return true;
 }
 function navBack() {
-  for (const id of ['ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests']) if (!$(id).classList.contains('hidden')) { $(id).classList.add('hidden'); navFocus(null); return true; }
+  if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
+  for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
+    if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
+    navFocus(null); return true;
+  }
   if (mode === 'pause') { pause(false); return true; }
   return false;
 }
 addEventListener('keydown', (e) => {
-  if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
+  const k = e.key, dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
+  if (k === 'Tab' && navEl) navFocus(null);
+  const spatialControl = e.target === navEl && e.target?.matches?.('summary, input[data-vol]');
+  if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]') && !(spatialControl && (dir || k === 'Escape'))) return;
   if (mode === 'play' || mode === 'levelup' || mode === 'casket') return;
-  const k = e.key; const dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
-  if (dir) { navMove(dir); e.preventDefault(); }
+  const scr = navScreen();
+  if ((k === 'Enter' || k === ' ') && scr && MENU_SCREENS.includes(scr.id) && !scr.contains(e.target)) { e.preventDefault(); return; }
+  if (k === 'Escape' && spatialControl && navBack()) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target?.matches?.('button, a[href]')) return;
+  if (dir) { navMove(dir); e.preventDefault(); e.stopImmediatePropagation(); }
   else if (k === 'Enter' && navEl && navScreen() && navScreen().contains(navEl)) { if (navPress()) { e.stopImmediatePropagation(); e.preventDefault(); } }
 }, true);
 
@@ -1452,10 +1466,10 @@ function loop(ts) {
     for (const d of ['up', 'down', 'left', 'right']) if (edges[d]) navMove(d);
     if (edges.b) navBack();
     if (edges.a && navPress()) edges.a = false;
-    if (edges.start && mode === 'title' && !$('start').disabled && !navScreen().id.match(/settings|updates|skills|gear|quests|board|bug|tip|dmt|ranked/)) edges.a = true;
+    if (edges.start && mode === 'title' && !$('start').disabled && navScreen()?.id === 'title') edges.a = true;
   }
   if (mode === 'title' || mode === 'end') {
-    if (edges.a && mode === 'title' && !$('start').disabled) startRun(); else if (edges.a && mode === 'end') startRun();
+    if (edges.a && mode === 'title' && !$('start').disabled && navScreen()?.id === 'title') startRun(); else if (edges.a && mode === 'end' && navScreen()?.id === 'end') startRun();
     if (!sim) { // title backdrop: the chosen adventurer standing in the chosen map
       if (frame % 2 === 0) {
         if (!window.__idleSim) {

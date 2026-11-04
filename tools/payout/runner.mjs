@@ -125,19 +125,20 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       if(r.transactionHash?.toLowerCase()!==row.tx_hash)throw Error('receipt hash mismatch');
       if(!['0x0','0x1'].includes(r.status)||!Array.isArray(r.logs))throw Error('invalid receipt');
       const proof=await confirmation(r);if(!proof.deep)return false;
+      const indices=new Set();
       for(const e of r.logs){
         if(!e||typeof e.address!=='string'||e.address.length!==42||!/^0x[0-9a-f]{40}$/i.test(e.address))throw Error('invalid event address');
-        if(!Array.isArray(e.topics)||!e.topics.every(hash)||typeof e.data!=='string'||e.data.length%2||!/^0x(?:[0-9a-f]{2})*$/i.test(e.data))throw Error('invalid event data');
+        if(!Array.isArray(e.topics)||e.topics.length>4||!e.topics.every(hash)||typeof e.data!=='string'||e.data.length%2||!/^0x(?:[0-9a-f]{2})*$/i.test(e.data))throw Error('invalid event data');
         if(e.removed===true||hash(e.transactionHash)!==row.tx_hash||hash(e.blockHash)!==hash(r.blockHash)||quantityBigInt(e.blockNumber)!==quantityBigInt(r.blockNumber))throw Error('outgoing event mismatch');
-        quantityBigInt(e.logIndex);
-        if(e.address.toLowerCase()===DMT&&e.topics[0]===TRANSFER&&(e.topics.length!==3||e.data.length!==66))throw Error('invalid Transfer event');
+        const index=quantityBigInt(e.logIndex);if(indices.has(index))throw Error('duplicate outgoing event');indices.add(index);
+        if(e.address.toLowerCase()===DMT&&hash(e.topics[0])===TRANSFER&&(e.topics.length!==3||e.data.length!==66||!e.topics.slice(1).every(t=>/^0x0{24}[0-9a-f]{40}$/i.test(t))))throw Error('invalid Transfer event');
       }
       if(r.status==='0x0'){
-        if(r.logs.some(e=>e.address?.toLowerCase()===DMT&&e.topics?.[0]===TRANSFER))throw Error('contradictory reverted receipt');
+        if(r.logs.some(e=>e.address.toLowerCase()===DMT))throw Error('contradictory reverted receipt');
         if(proof.finalized){await mark(row,'failed',{p_error:'transaction reverted'});await alert('reverted row '+row.id);}
         return false;
       }
-      const event=r.logs.find(e=>e.address?.toLowerCase()===DMT&&e.topics?.length===3&&e.topics[0]===TRANSFER&&e.topics[1]?.toLowerCase()==='0x'+config.wallet.slice(2).padStart(64,'0')&&e.topics[2]?.toLowerCase()==='0x'+row.wallet.slice(2).padStart(64,'0')&&e.data?.toLowerCase()==='0x'+units(row.amount).toString(16).padStart(64,'0'));
+      const event=r.logs.find(e=>e.address?.toLowerCase()===DMT&&e.topics?.length===3&&hash(e.topics[0])===TRANSFER&&e.topics[1]?.toLowerCase()==='0x'+config.wallet.slice(2).padStart(64,'0')&&e.topics[2]?.toLowerCase()==='0x'+row.wallet.slice(2).padStart(64,'0')&&e.data?.toLowerCase()==='0x'+units(row.amount).toString(16).padStart(64,'0'));
       if(!event){if(proof.finalized){await mark(row,'failed',{p_error:'missing exact DMT Transfer event'});await alert('receipt mismatch row '+row.id);}return false;}
       mined.add(row.id);
       if(row.status==='sending')await mark(row,'sent',{p_hash:row.tx_hash});
@@ -198,7 +199,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       const r=await chain.rpc('eth_getTransactionReceipt',[tx]);
       if(r?.transactionHash?.toLowerCase()!==tx||r.status!=='0x1')throw Error('invalid source receipt');
       let paid=0n;const indices=new Set();
-      for(const l of r.logs??[])if(l.address?.toLowerCase()===DMT&&l.topics?.length===3&&l.topics[0]===TRANSFER&&l.topics[1]?.toLowerCase()==='0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0')&&l.topics[2]?.toLowerCase()==='0x'+config.wallet.slice(2).toLowerCase().padStart(64,'0')){
+      for(const l of r.logs??[])if(l.address?.toLowerCase()===DMT&&l.topics?.length===3&&hash(l.topics[0])===TRANSFER&&l.topics[1]?.toLowerCase()==='0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0')&&l.topics[2]?.toLowerCase()==='0x'+config.wallet.slice(2).toLowerCase().padStart(64,'0')){
         if(!/^0x[0-9a-f]{64}$/i.test(l.data))throw Error('invalid Transfer amount');
         if(l.removed===true||l.transactionHash?.toLowerCase()!==tx||l.blockHash?.toLowerCase()!==r.blockHash?.toLowerCase()||quantityBigInt(l.blockNumber)!==quantityBigInt(r.blockNumber))throw Error('source event mismatch');
         const index=quantityBigInt(l.logIndex);
@@ -267,14 +268,21 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
     for(let row of work) {
       await renew();
       if(!row.raw_tx) {
-        privateKey??=await key();
         const pending=quantityBigInt(await chain.rpc('eth_getTransactionCount',[config.wallet,'pending']));
         const block=quantityBigInt(await chain.rpc('eth_blockNumber'));
         if(row.status==='planned'){
           const claim=await rpc('sqs_payout_claim',{p_key:config.payoutKey,p_id:row.id,p_pending:pending.toString(),p_block:block.toString()});
-          if(claim.error)continue;
-          row=claim.row;
+          if(claim?.error)continue;
+          try{
+            const c=claim?.row;
+            if(claim?.ok!==true||!c||['id','week','kind','wallet','amount'].some(k=>c[k]!==row[k])||modeOf(c)!==modeOf(row)||String(c.source_entry_id??'')!==String(row.source_entry_id??'')||(c.source_entry_id!=null&&typeof c.source_entry_id!=='string'&&!Number.isSafeInteger(c.source_entry_id))||c.status!=='sending'||c.raw_tx!=null||c.tx_hash!=null)throw Error('claim changed payout');
+            const nonce=units(c.nonce);
+            if(nonce<pending||state.rows.some(r=>r.nonce!=null&&units(r.nonce)===nonce)||units(c.scan_block)!==block)throw Error('invalid claim nonce');
+            // Claim omits read-only source_tx; keep the approved payment and accept only its nonce reservation.
+            Object.assign(row,{status:'sending',nonce:c.nonce,scan_block:c.scan_block});
+          }catch{await alert('invalid payout claim row '+row.id);return;}
         }
+        privateKey??=await key();
         const signed=sign1559({chainId:42161,nonce:row.nonce,priority:fees.priority,maxFee:fees.maxFee,gas:gasById.get(row.id),to:DMT,data:transferData(row.wallet,row.amount)},privateKey);
         await mark(row,'sending',{p_hash:signed.hash,p_raw:signed.raw});
       }

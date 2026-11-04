@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Wallet menu controls": "Cüzdan menüsü kontrolleri",
+  "Keyboard and controller shortcuts stay in the wallet or cloud-save choice panel instead of starting a run behind it. Back from the wallet returns to the previous menu.": "Klavye ve oyun kumandası kısayolları, arka planda bir oyun başlatmak yerine cüzdan veya bulut kaydı seçim panelinde kalır. Cüzdandan Geri ile önceki menüye dönülür.",
   "Stronger payment checks": "Daha güçlü ödeme kontrolleri",
   "Ranked payments stay saved while inconsistent chain receipts are checked again.": "Tutarsız zincir işlem makbuzları yeniden kontrol edilirken dereceli oyun ödemeleri kayıtlı kalır.",
   "Keep every character": "Her karakter korunsun",

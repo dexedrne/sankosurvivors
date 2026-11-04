@@ -57,7 +57,9 @@ export class FakePayoutDB {
         if(r.kind.startsWith('prize')&&this.holds.some(h=>h.week===r.week&&h.wallet===r.wallet))return err('held');
         let nonce=BigInt(p.p_pending);for(const x of this.rows)if(x.nonce!=null&&BigInt(x.nonce)>=nonce)nonce=BigInt(x.nonce)+1n;
         Object.assign(r,{status:'sending',nonce:String(nonce),scan_block:p.p_block});
-        if(this.crashClaim)throw Error('simulated crash after claim');return {ok:true,row:copy(r)};
+        if(this.crashClaim)throw Error('simulated crash after claim');
+        const row=copy(r);delete row.source_tx;row.source_entry_id=row.source_entry_id==null?null:Number(row.source_entry_id);
+        return {ok:true,row};
       }
       case 'mark':{
         const r=this.rows.find(r=>r.id===String(p.p_id));if(!r)return err('missing payout');

@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Wallet menu controls": "Mga kontrol sa menu ng wallet",
+  "Keyboard and controller shortcuts stay in the wallet or cloud-save choice panel instead of starting a run behind it. Back from the wallet returns to the previous menu.": "Nananatili ang mga shortcut ng keyboard at controller sa panel ng wallet o pagpili ng cloud save sa halip na magsimula ng laro sa likod nito. Babalik sa naunang menu ang Back mula sa wallet.",
   "Stronger payment checks": "Mas mahigpit na pagsusuri sa bayad",
   "Ranked payments stay saved while inconsistent chain receipts are checked again.": "Nananatiling naka-save ang mga bayad sa ranked habang muling sinusuri ang mga hindi tugmang resibo sa chain.",
   "Keep every character": "Panatilihin ang bawat karakter",
