@@ -15,6 +15,7 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const NM = path.join(ROOT, 'node_modules');
 const base = mkdtempSync(path.join(tmpdir(), 'sqs-build-'));
 test.after(() => rmSync(base, { recursive: true, force: true }));
+test.afterEach(() => { for (const name of readdirSync(base)) if (name.startsWith('case-')) rmSync(path.join(base, name), { recursive: true, force: true }); });
 const CURRENT = readFileSync(path.join(ROOT, 'tools/vercel-api/sims/current.txt'), 'utf8').trim();
 
 const bin = path.join(base, 'bin');
@@ -274,4 +275,8 @@ test('remote-build.sh: without VERIFY_HOST it refuses, unless SQS_TRUST_BUILD_HO
   const box = makeRepo(), r = run(box, ['tools/remote-build.sh', 'alexbl'], { SQS_TRUST_BUILD_HOST: '' });
   assert.notEqual(r.status, 0); assert.match(r.out, /set VERIFY_HOST=/);
   assert.doesNotMatch(r.calls, /\bssh\b|\brsync\b/, 'nothing reached the box');
+});
+
+test('completed generated build fixtures are removed before the next check', () => {
+  assert.deepEqual(readdirSync(base).filter(name => name.startsWith('case-')), []);
 });

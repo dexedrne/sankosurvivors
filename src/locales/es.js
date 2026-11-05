@@ -1,5 +1,15 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Finish interrupted run saves": "Completa guardados de partidas interrumpidos",
+  "Completed-run rewards now save together. If browser storage interrupts the save, retry before playing or uploading progress.": "Las recompensas de cada partida se guardan juntas. Si el almacenamiento del navegador interrumpe el guardado, reinténtalo antes de jugar o subir el progreso.",
+  "Save your finished run": "Guarda tu partida terminada",
+  "This run has not been confirmed saved. Keep this page open, free some browser storage, then retry before playing or saving to your wallet.": "No se ha confirmado el guardado de esta partida. Mantén esta página abierta, libera espacio en el navegador y reinténtalo antes de jugar o guardar en tu billetera.",
+  "Retry saving run": "Reintentar guardar la partida",
+  "Finish your wallet action before saving this run.": "Termina la acción de tu billetera antes de guardar esta partida.",
+  "This browser still cannot save the run. Keep this page open, free some storage and try again.": "El navegador aún no puede guardar la partida. Mantén esta página abierta, libera espacio y vuelve a intentarlo.",
+  "Ranked submission could not be queued on this device. Keep this page open, free some storage and retry.": "No se pudo poner en cola el envío de la partida clasificatoria en este dispositivo. Mantén esta página abierta, libera espacio y reinténtalo.",
+  "Run rewards must finish saving before playing.": "Las recompensas de la partida deben terminar de guardarse antes de jugar.",
+
   "Tumble": "Rodar",
   "Tumble · Space / A": "Rodar · Espacio / A",
   "Tumble and build choices": "Rodar y más combinaciones",

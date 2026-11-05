@@ -8,7 +8,7 @@
 // for anything else this device wins. Nothing one device earned is lost.
 import { current, walletRevision } from './wallet.js';
 import { numberValue, finiteNumber } from './progress-values.js';
-import { importProgress, IMPORT_BACKUP_KEY } from './progress-import.js';
+import { importProgress, IMPORT_BACKUP_KEY, RUN_SAVE_KEY } from './progress-import.js';
 
 export const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
 const ST = 'sq-cloud', BASE_KEY = 'sq-cloud-base', UPLOAD_KEY = 'sq-cloud-upload';
@@ -76,7 +76,7 @@ const base = () => parse(read(BASE_KEY), null);
 // Same lock as manual progress imports. Never hold it while awaiting a wallet or API.
 // shortcut: without Web Locks only this tab is serialized; native locks are needed for cross-tab commits.
 const progressLock = fn => globalThis.navigator?.locks?.request ? navigator.locks.request('sqs-progress-import', fn) : fn();
-const requireStorageReady = () => { if (read(IMPORT_BACKUP_KEY) !== null) throw Object.assign(storageError(), { recovery: true }); };
+const requireStorageReady = () => { if (read(RUN_SAVE_KEY) !== null) throw Object.assign(storageError(), { recovery: true, runRecovery: true }); if (read(IMPORT_BACKUP_KEY) !== null) throw Object.assign(storageError(), { recovery: true }); };
 const same = (a, b) => SAVE_KEYS.every((k) => (a[k] ?? null) === (b[k] ?? null));
 
 async function api(baseUrl, route, body) {
@@ -94,7 +94,7 @@ export function createCloud(baseUrl, ui) {
   const canSave = () => !!state() && (!ui.canSave || ui.canSave());
   const storageNote = error => {
     if (!error.storage && !error.recovery) return;
-    if (error.recovery) { ui.recover?.(); ui.note('Progress recovery is required before playing.'); }
+    if (error.recovery) { ui.recover?.(error); ui.note('Progress recovery is required before playing.'); }
     else ui.note('Browser storage is unavailable. Progress is not confirmed saved.');
   };
   function replaceProgress(data, session, baseline, pending = null) {

@@ -3,6 +3,16 @@ import assert from 'node:assert/strict';
 import { translateText } from '../src/i18n.js';
 
 const messages = [
+  "Finish interrupted run saves",
+  "Completed-run rewards now save together. If browser storage interrupts the save, retry before playing or uploading progress.",
+  "Save your finished run",
+  "This run has not been confirmed saved. Keep this page open, free some browser storage, then retry before playing or saving to your wallet.",
+  "Retry saving run",
+  "Finish your wallet action before saving this run.",
+  "This browser still cannot save the run. Keep this page open, free some storage and try again.",
+  "Ranked submission could not be queued on this device. Keep this page open, free some storage and retry.",
+  "Run rewards must finish saving before playing.",
+
   'Tumble', 'Tumble · Space / A', 'Tumble and build choices',
   'A sole healing reward now continues automatically. Evolutions have alternate passive pairings, listed on upgrade cards.',
   'Tumble with Space, controller A or the touch button. It crosses reachable low fences, keeps buildings solid and recharges in five seconds. No added invincibility. Ranked week 0 keeps its original rules and cosmetic jump.',

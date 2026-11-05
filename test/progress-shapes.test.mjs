@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as content from '../src/content.js';
 import { translateText } from '../src/i18n.js';
-import { TRANSFER_KEYS } from '../src/progress-import.js';
+import { TRANSFER_KEYS, saveRunProgress } from '../src/progress-import.js';
+import {prepareRunRewards} from '../src/run-rewards.js';
+import {createSim} from '../src/sim.js';
 import { summary, mergeSaves, betterRun } from '../src/cloud.js';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),J=JSON.stringify;
 const profileSource=main.slice(main.indexOf('const load = '),main.indexOf('// ---- icons:'));
 const bestSource=main.slice(main.indexOf('const bestKey ='),main.indexOf('// a label whose longest word'));
 const codecSource=main.slice(main.indexOf('const b64 = '),main.indexOf("$('xferbtn').onclick ="));
-const statStart=main.indexOf('  const st = getStats(), add ='),statUpdate=main.slice(statStart,main.indexOf('  const done = questsDone()',statStart));
 const copySource=main.slice(main.indexOf("$('xfercopy').onclick ="),main.indexOf("$('xferin').oninput ="));
 let helpers={};try{helpers=await import('../src/progress-values.js');}catch(e){if(e.code!=='ERR_MODULE_NOT_FOUND')throw e;}
 const bad={valueOf:0,toString:0};
@@ -17,15 +18,15 @@ function fixture(data={}){
  const values=new Map(Object.entries({'sq-coins':'850','sq-gear-reset1':'1',...data})),nodes=new Map();
  const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,String(v)),removeItem:k=>values.delete(k)};
  const $=id=>{if(!nodes.has(id))nodes.set(id,{textContent:'',value:'',selected:false,select(){this.selected=true;}});return nodes.get(id);};
- const run=Function('localStorage','content','$','profileValue','validProfileValue','numberValue','finiteNumber','transferKeys','profileBest',`'use strict';
+ const run=Function('localStorage','content','$','profileValue','validProfileValue','numberValue','finiteNumber','transferKeys','profileBest','prepareRunRewards','saveRunProgress','createSim',`'use strict';
   const {MAPS,MAP_BY_ID,ADVENTURER_BY_ID,GEAR,GEAR_SLOTS,GEAR_MAX_LV,clampSkills}=content,params=new URLSearchParams();
   const fmtT=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'),XFER_KEYS=transferKeys;
   ${profileSource}
   ${bestSource}
   ${codecSource}
-  function updateStats(){const sim={kills:1,bossKills:0,evolves:0,loot:[],killsByType:{},t:1};${statUpdate}}
+  function updateStats(){const sim=createSim();Object.assign(sim,{kills:1,t:1,over:'dead'});saveRunProgress(localStorage,prepareRunRewards(localStorage,sim,{earned:0}).data);}
   return{load,clearedMaps,questsDone,getCoins,getSkills,getGearLv,getStats,getBests,showBest,updateStats,read:xferRead,code:xferCode,pack:data=>{const body=b64(JSON.stringify(data));return 'SQS1.'+body+'.'+xferSum(body);}};
- `)(storage,content,$,helpers.profileValue,helpers.validProfileValue,helpers.numberValue,helpers.finiteNumber,TRANSFER_KEYS,helpers.profileBest);
+ `)(storage,content,$,helpers.profileValue,helpers.validProfileValue,helpers.numberValue,helpers.finiteNumber,TRANSFER_KEYS,helpers.profileBest,prepareRunRewards,saveRunProgress,createSim);
  return{...run,values,$,storage};
 }
 test('healthy legacy code keeps format, UTF8 and raw values',()=>{

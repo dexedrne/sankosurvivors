@@ -1,5 +1,15 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Finish interrupted run saves": "Tapusin ang naantalang pag-save ng laro",
+  "Completed-run rewards now save together. If browser storage interrupts the save, retry before playing or uploading progress.": "Sabay-sabay nang sine-save ang mga gantimpala ng natapos na laro. Kung maantala ang pag-save dahil sa browser storage, subukan muli bago maglaro o mag-upload ng progreso.",
+  "Save your finished run": "I-save ang natapos mong laro",
+  "This run has not been confirmed saved. Keep this page open, free some browser storage, then retry before playing or saving to your wallet.": "Hindi pa nakumpirmang na-save ang larong ito. Panatilihing bukas ang pahinang ito, magbakante ng browser storage, at subukan muli bago maglaro o mag-save sa wallet mo.",
+  "Retry saving run": "Subukang i-save muli ang laro",
+  "Finish your wallet action before saving this run.": "Tapusin muna ang ginagawa sa wallet bago i-save ang larong ito.",
+  "This browser still cannot save the run. Keep this page open, free some storage and try again.": "Hindi pa rin ma-save ng browser ang laro. Panatilihing bukas ang pahinang ito, magbakante ng storage at subukan muli.",
+  "Ranked submission could not be queued on this device. Keep this page open, free some storage and retry.": "Hindi maipila ang ranked submission sa device na ito. Panatilihing bukas ang pahinang ito, magbakante ng storage at subukan muli.",
+  "Run rewards must finish saving before playing.": "Kailangang matapos ang pag-save ng mga gantimpala bago maglaro.",
+
   "Tumble": "Gumulong",
   "Tumble · Space / A": "Gumulong · Space / A",
   "Tumble and build choices": "Pagulong at mga pagpipiliang build",

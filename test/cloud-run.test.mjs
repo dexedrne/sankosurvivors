@@ -6,7 +6,7 @@ import { cleanSettings } from '../src/settings.js';
 import { profileValue, profileBest } from '../src/progress-values.js';
 import * as W from '../src/wallet.js';
 import { prove as proveHolder } from '../src/dmt.js';
-import { importProgress as importProgressImpl, recoverProgressImport as recoverProgressImportImpl } from '../src/progress-import.js';
+import { importProgress as importProgressImpl, recoverProgressImport as recoverProgressImportImpl, recoverRunProgress as recoverRunProgressImpl } from '../src/progress-import.js';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const rankedNameInput=main.split('\n').find(s=>s.startsWith("$('rankedname').oninput ="));
 const cloudBlock=main.slice(main.indexOf('let cloudConnecting ='),main.indexOf('onSaved = (k)'));
@@ -61,8 +61,8 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
   const nodes=new Map(),$=id=>{
     if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{value:id==='rankedadv'?'adventurer':id==='rankedname'?(initialName??'Fixture'):id==='lbname'?(initialName??''):'',textContent:'',disabled:false,dataset:{},focus(){if(id==='cloudusewal')gates.choice.hit.resolve();},children:[],querySelectorAll:()=>[],replaceChildren(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);
   };
-  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings',`
-    let buyBusy=null,walletConnecting=null,walletRequests=0,walletUi=false,walletBal=null,recoveryCanRestart=null;const walletModalOpen=()=>walletUi;
+  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings','recoverRunProgress',`
+    let buyBusy=null,walletConnecting=null,walletRequests=0,walletUi=false,walletBal=null,recoveryCanRestart=null,recoveryOptions=null;const walletModalOpen=()=>walletUi;
     let mode='title',sim=null,rankedRun=null,rankedRec=null,rankedBusy=false,storedLive=null,runTicket=null,mapLoading=false,loadedMapId='greentown',selMap='greentown',selAdv='adventurer',acc=0,selCard=0,shownPending=false,waitingForMove=false,rewardWasShown=false,pendingUse=null,slowmo=0,runBest=null,passedBest=false,chase=null;
     const audioApplied=[];const walletHandoff=null;const BASE='./',PLAYER='p',SIM_ID='fixture-sim',params=new URLSearchParams(),keys=new Set(),slotCache={},WEAPONS={},PASSIVES={};
     const map={id:'greentown',name:'Greentown',length:900,finalBoss:'dragon',music:'fixture'},tutorial={...map,id:'tutorial',name:'Tutorial Island',special:true,forceAdv:'alex'},MAPS=[map,tutorial],MAP_BY_ID={greentown:map,tutorial};
@@ -89,7 +89,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     const cloudFor=c=>{const s=cloud.state();return s&&c&&s.a.toLowerCase()===c.address.toLowerCase()?s:null;};
     ${bind}
     ${lock}
-    function showProgressRecovery(canRestart=()=>true){mode='recovery';recoveryCanRestart=canRestart;}
+    function showProgressRecovery(canRestart=()=>true,settingsOnly=false,runRecovery=null){mode='recovery';recoveryCanRestart=canRestart;recoveryOptions=runRecovery;}
     const stopWallet=${observer}
     ${updater}
     ${importer}
@@ -101,10 +101,10 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     const pickAssetHost=async()=>{},createRenderer=async()=>renderer,requestAnimationFrame=()=>{},loop=()=>{};
     ${preferenceHelpers}
     ${bootSource}
-    return{cloud,pickMap,audioApplied:()=>audioApplied,connect:walletConnect,canRestartRecovery:()=>recoveryCanRestart?.(),boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
+    return{cloud,pickMap,recoveryOptions:()=>recoveryOptions,audioApplied:()=>audioApplied,connect:walletConnect,canRestartRecovery:()=>recoveryCanRestart?.(),boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
   `)(createCloud,W.current,W.walletRevision,W.onWallet,$,{reload(){reloads++;}},()=>stage('gear'),()=>stage('map'),failStart,
     noBrowserApis?{}:{locks:{request:async(name,fn)=>{calls.push('import-lock');await stage('import-lock');return fn();}},serviceWorker:{getRegistrations:async()=>{await browserStage('registrations');return[{update:async()=>browserStage('worker-update')}];}}},
-    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'),cleanSettings,profileValue,profileBest,failSettings);
+    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'),cleanSettings,profileValue,profileBest,failSettings,recoverRunProgressImpl);
   const track=p=>{pending.push(p);p.catch(()=>{});return p;};
   t.after(async()=>{for(const x of Object.values(gates))x.gate.resolve();t.mock.timers.tick(1000);await Promise.allSettled(pending);app.dispose();writesBlocked=false;W.disconnect();globalThis.localStorage=previous;globalThis.window=previousWindow;});
   return{app,store,writes,gates,calls,$,allowWrites:()=>writesBlocked=false,reloads:()=>reloads,sign:()=>track(app.cloud.signIn(W.current())),pull:()=>track(app.pull()),update:()=>track(app.update()),check:()=>track(app.check()),
@@ -459,4 +459,8 @@ for(const source of ['import','sign-in','pull'])test(`accepted ${source} deliber
  f.$('rankedname').value='Draft ';f.$('lbname').value='EndDraft';
  if(source==='import')await f.app.load();else if(source==='sign-in')await f.sign();else await f.pull();
  assert.deepEqual([f.$('rankedname').value,f.$('lbname').value],['Accepted','Accepted']);await f.start();assert.equal(f.store.get('sq-name'),'"Accepted"');assert.deepEqual([f.$('rankedname').value,f.$('lbname').value],['Accepted','Accepted']);t.mock.timers.tick(1000);assert.equal(f.reloads(),0);
+});
+
+test('manual import routes pending-run recovery correctly and never reorders simultaneous journals',async t=>{
+ const f=await setup(t,{pause:null,holdStart:false});f.store.set('sq-coins','500');f.store.set('sq-run-save-v1',JSON.stringify({v:1,data:{'sq-coins':'609'}}));f.store.set('sq-import-backup-v1',JSON.stringify({v:1,before:{'sq-coins':'100'}}));const before=new Map(f.store);await f.app.load();assert.equal(f.app.state().mode,'recovery');const options=f.app.recoveryOptions();assert.equal(typeof options?.retry,'function','must select completed-run recovery');assert.equal(options.reload,true);f.app.walletBusy('buy',true);assert.equal(f.app.canRestartRecovery(),false);f.app.walletBusy('buy',false);assert.equal(f.app.canRestartRecovery(),true);assert.throws(()=>options.retry());assert.deepEqual(f.store,before);assert.equal(f.reloads(),0);
 });

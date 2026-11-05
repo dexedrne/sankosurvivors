@@ -17,7 +17,8 @@ const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
 const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
 import { wallets, watchWallets, takeWalletHandoff, savedPass, forget, prove, short, walletAppLinks, isPhone, walletModalOpen, walletConnectState, watchWalletConnect, cancelWalletConnect, dismissWalletConnect, why, DMT_COIN_BONUS } from './dmt.js';
 import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
-import { TRANSFER_KEYS as XFER_KEYS, IMPORT_BACKUP_KEY, importProgress, recoverProgressImport } from './progress-import.js';
+import { TRANSFER_KEYS as XFER_KEYS, IMPORT_BACKUP_KEY, RUN_SAVE_KEY, importProgress, recoverProgressImport, saveRunProgress, recoverRunProgress } from './progress-import.js';
+import { prepareRunRewards } from './run-rewards.js';
 import { quoteDmt, buyDmt } from './swap.js';
 import { walletConnectLinks } from './wallet-connect.js';
 import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
@@ -53,7 +54,13 @@ const titled = (map, type) => BOSS_TITLES[map && map.id]?.[type] || BOSS_TITLES[
 const bossName = (map, type) => titled(map, type) || ENEMIES[type].name;
 const slayName = (map, type) => titled(map, type) || `the ${ENEMIES[type].name}`;
 
-// A previous import must be restored before any startup code can change or upload progress.
+// A previous import or completed run must settle before startup can change or upload progress.
+let pendingRunSave = false;
+try { pendingRunSave = localStorage.getItem(RUN_SAVE_KEY) !== null; } catch { /* existing session-only boot when storage is blocked */ }
+if (pendingRunSave) {
+  try { recoverRunProgress(localStorage); }
+  catch { showProgressRecovery(() => true, false, { retry: () => recoverRunProgress(localStorage), reload: true }); throw Error('Run rewards must finish saving before playing.'); }
+}
 let pendingImport = false;
 try { pendingImport = localStorage.getItem(IMPORT_BACKUP_KEY) !== null; } catch { /* storage blocked */ }
 if (pendingImport) { showProgressRecovery(); throw Error('Progress recovery is required before playing.'); }
@@ -199,9 +206,9 @@ const rankedLive = () => readRanked('sq-ranked-live');
 const rankedPlaying = () => !!rankedRun && !!sim && !sim.over;
 const rankedMessage = (text) => { $('rankedmsg').textContent = text; };
 function persistRanked() {
-  if (!rankedRun || !rankedRec) return;
-  try { writeRanked('sq-ranked-live', { ...rankedRun, log: rankedRec.log() }); }
-  catch { banner('Run could not be saved. Keep this page open.', 5000); }
+  if (!rankedRun || !rankedRec) return false;
+  try { writeRanked('sq-ranked-live', { ...rankedRun, log: rankedRec.log() }); return true; }
+  catch { banner('Run could not be saved. Keep this page open.', 5000); return false; }
 }
 setInterval(() => { if (rankedPlaying()) persistRanked(); }, 3000);
 addEventListener('pagehide', persistRanked);
@@ -388,7 +395,11 @@ async function submitRanked() {
   if (rankedBusy) return;
   const saved = readRanked('sq-ranked-submit') || rankedLive(); if (!saved) return;
   const body = { run: saved.run, name: saved.name, log: saved.log };
-  writeRanked('sq-ranked-submit', body);
+  try { writeRanked('sq-ranked-submit', body); }
+  catch {
+    const text = 'Ranked submission could not be queued on this device. Keep this page open, free some storage and retry.';
+    $('rankedresult').textContent = text; rankedMessage(text); $('rankedretry').classList.remove('hidden'); return;
+  }
   rankedBusy = true; renderRanked(); $('rankedretry').classList.add('hidden');
   const checking = `Checking your ranked run…${(saved.log?.runs || []).reduce((n, r) => n + (r[0] || 0), 0) > 30 * 60 * 30 ? ' Long runs take a few minutes: keep this page open.' : ''}`;
   $('rankedresult').textContent = checking; rankedMessage(checking);
@@ -676,26 +687,33 @@ $('xferin').oninput = () => {
 function withImportLock(fn) {
   return navigator.locks?.request ? navigator.locks.request('sqs-progress-import', fn) : fn();
 }
-function showProgressRecovery(canRestart = () => true, settingsOnly = false) {
+function showProgressRecovery(canRestart = () => true, settingsOnly = false, runRecovery = null) {
   mode = 'recovery';
   const screen = $('progressrecovery'), retry = $('progressretry');
-  $('progressrecoverytitle').textContent = settingsOnly ? 'Finish applying settings' : 'Restore progress before playing';
-  $('progressrecoverytext').textContent = settingsOnly ? 'Your imported progress is saved. Reload the game to finish applying display and sound settings before playing.' : 'A progress save could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.';
-  retry.textContent = settingsOnly ? 'Reload game' : 'Restore previous progress';
+  $('progressrecoverytitle').textContent = runRecovery ? 'Save your finished run' : settingsOnly ? 'Finish applying settings' : 'Restore progress before playing';
+  $('progressrecoverytext').textContent = runRecovery ? 'This run has not been confirmed saved. Keep this page open, free some browser storage, then retry before playing or saving to your wallet.' : settingsOnly ? 'Your imported progress is saved. Reload the game to finish applying display and sound settings before playing.' : 'A progress save could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.';
+  retry.textContent = runRecovery ? 'Retry saving run' : settingsOnly ? 'Reload game' : 'Restore previous progress';
   screen.classList.remove('hidden'); screen.inert = walletModalOpen();
   if (!screen.inert) retry.focus();
   screen.onkeydown = e => { if (e.key === 'Tab' || e.key === 'Escape') { e.preventDefault(); retry.focus(); } e.stopPropagation(); };
   retry.onclick = async () => {
     if (retry.disabled) return;
-    const waiting = () => { $('progressrecoverystatus').textContent = 'Finish your wallet action before restarting the game.'; retry.disabled = false; if (!walletModalOpen()) retry.focus(); };
+    const waiting = () => { $('progressrecoverystatus').textContent = runRecovery ? 'Finish your wallet action before saving this run.' : 'Finish your wallet action before restarting the game.'; retry.disabled = false; if (!walletModalOpen()) retry.focus(); };
     if (!canRestart()) { waiting(); return; }
     retry.disabled = true; $('progressrecoverystatus').textContent = '';
     try {
-      await withImportLock(() => { if (canRestart() && !settingsOnly) recoverProgressImport(localStorage); });
+      let applied = false;
+      await withImportLock(() => {
+        if (!canRestart()) return;
+        if (runRecovery) runRecovery.retry(); else if (!settingsOnly) recoverProgressImport(localStorage);
+        applied = true;
+      });
+      if (!applied) { waiting(); return; }
+      if (runRecovery && !runRecovery.reload) { screen.classList.add('hidden'); retry.disabled = false; return; }
       if (!canRestart()) { waiting(); return; }
       location.reload();
     }
-    catch { $('progressrecoverystatus').textContent = settingsOnly ? 'The game could not restart. Try again.' : 'This browser still cannot restore progress. Free some storage and try again. Keep this app installed.'; retry.disabled = false; if (!walletModalOpen()) retry.focus(); }
+    catch { $('progressrecoverystatus').textContent = runRecovery ? 'This browser still cannot save the run. Keep this page open, free some storage and try again.' : settingsOnly ? 'The game could not restart. Try again.' : 'This browser still cannot restore progress. Free some storage and try again. Keep this app installed.'; retry.disabled = false; if (!walletModalOpen()) retry.focus(); }
   };
 }
 $('xferload').onclick = async () => {
@@ -715,7 +733,7 @@ $('xferload').onclick = async () => {
       $('xfermsg').textContent = 'Loaded. Restarting…'; queuePageReload('Loaded. Restarting…', 600);
     });
   } catch (e) {
-    if (e.recovery) { cancelPendingLoads(); showProgressRecovery(); }
+    if (e.recovery) { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen() && !rankedBusy, false, e.runRecovery ? { retry: () => recoverRunProgress(localStorage), reload: true } : null); }
     else $('xfermsg').textContent = 'This browser will not save (private mode?).';
   } finally {
     if (importAttempt === attempt) { importAttempt = null; $('xferload').disabled = false; }
@@ -1004,7 +1022,7 @@ const cloud = createCloud(BASE, {
     titleProgressPending = true;
     refreshPendingTitleProgress();
   },
-  recover: () => { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen() && !rankedBusy); },
+  recover: error => { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen() && !rankedBusy, false, error?.runRecovery ? { retry: () => recoverRunProgress(localStorage), reload: true } : null); },
   choose: (wal, dev) => new Promise((done) => {
     const revision = walletRevision();
     let settled = false;
@@ -1266,16 +1284,6 @@ function endRun() {
   const wasRanked = !!rankedRun;
   const won = sim.over === 'win';
   const p = sim.players[0];
-  const prev = load('sq-best', null);
-  const runRecord = { t: Math.floor(sim.t), level: sim.level, kills: sim.kills, won };
-  if (betterRun(prev, runRecord) === runRecord) save('sq-best', runRecord);
-  let unlockNote = '';
-  if (won) {
-    const cl = clearedMaps(), before = cl.size; cl.add(sim.map.id); save('sq-cleared', [...cl]);
-    const idx = MAPS.findIndex((m) => m.id === sim.map.id), next = sim.map.special ? null : MAPS.slice(idx + 1).find((m) => !m.special);
-    if (cl.size > before && next) unlockNote = ` · ${next.name} unlocked`;
-    for (const a of ADVENTURERS) if (a.unlock === cl.size && cl.size > before) unlockNote += ` · ${a.name} unlocked`;
-  }
   lastRun = { map: sim.map.id, t: Math.floor(sim.t), kills: sim.kills, level: sim.level, adv: sim.players[0].adv, won, hard: !!sim.hard, endless: !!sim.endless, v: LATEST, sent: false, ticket: runTicket };
   $('lbsubmit').disabled = wasRanked; $('lbmsg').textContent = '';
   $('endlb').classList.toggle('hidden', wasRanked || $('lbbtn').classList.contains('hidden'));
@@ -1283,59 +1291,50 @@ function endRun() {
   if (wasRanked) { lastRun.sent = true; lastRun.ranked = true; lastRun.race = sim.hard ? 'hard' : 'normal'; if (sim.endless && kpmWeek(liveRace(rankedRun).week)) lastRun.kpm = kpm(sim.kills, Math.floor(sim.t)); } // week 0 ranks by time
   $('again').textContent = wasRanked ? 'Next ranked run' : 'Run it back'; // after ranked, play again goes back to Ranked (a free casual run was mistaken for ranked)
   if (!wasRanked && load('sq-name', '') && sim.t >= 30) setTimeout(submitScore, 300); // named players send runs of 30 s or more automatically
-  const dmtOn = !!savedPass(); // DMT holders: +25% coins
-  // high alch coins are added as the casket card promised them, after the multipliers
-  const alchCoins = Math.max(0, Math.floor(p.alch || 0));
-  const earned = runCoins(sim, won);
-  save('sq-coins', getCoins() + earned);
-  // caskets opened this run go to the bank (the collection), worn or high alched; a duplicate you kept is sold, one you
-  // high alched already paid its coins
-  const worn = sim.players[0].gear || {}, alched = [...(sim.alched || [])];
-  const lootNotes = sim.loot.map((n) => {
-    const ai = alched.indexOf(n), wasAlched = ai >= 0; if (wasAlched) alched.splice(ai, 1);
-    // weapon metals and arrows are for the run they dropped in: never banked, never sold
-    if (isWeaponItem(n)) return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}` : 'this run only'}</em>`;
-    const fresh = bankItem(n, !wasAlched), on = Object.values(worn).includes(n);
-    return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}${fresh ? ', new' : ''}` : on ? (fresh ? 'worn this run, new' : 'worn this run') : fresh ? 'new' : 'sold, +25 coins'}</em>`;
-  });
-  // casket gear stays in your collection (the Gear panel) but is not worn next run: every run starts with only what you
-  // chose in the Gear panel (owner 3 Nov: "my casket gear from the last run is still on my character should be reset every run")
-  // lifetime stats, then quests
-  const st = getStats(), add = (k, v) => { st[k] = finiteNumber(st[k]) + v; };
-  add('kills', sim.kills); add('bosses', sim.bossKills); add('evolves', sim.evolves); add('caskets', sim.loot.length);
-  for (const [ty, n] of Object.entries(sim.killsByType)) add('kills.' + ty, n);
-  add('kills.spiders', (sim.killsByType.spider || 0) + (sim.killsByType.jspider || 0) + (sim.killsByType.pspider || 0));
-  add('dragons', sim.killsByType.dragon || 0);
-  st.bestTime = Math.max(finiteNumber(st.bestTime), Math.floor(sim.t)); st.cleared = clearedMaps().size;
-  save('sq-stats', st);
-  const done = questsDone(), questNotes = [];
-  for (const q of QUESTS) {
-    if (done.has(q.id) || statVal(st, q.stat) < q.goal) continue;
-    done.add(q.id); save('sq-coins', getCoins() + q.coins);
-    if (q.item) bankItem(q.item);
-    questNotes.push(`Quest complete: <b>${q.name}</b> · +${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}`);
-  }
-  save('sq-quests', [...done]);
-  // damage by weapon, Run Escape style
-  const dmgRows = Object.entries(sim.dmgBy || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6), top = dmgRows.length ? dmgRows[0][1] : 1;
-  const wname = (id) => (WEAPONS[id] ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other');
-  const wicon = (id) => (WEAPONS[id] ? iconHTML('weapon', id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)) : imgTag(id === 'pumpkin' ? 'Pumpkin' : 'Gold'));
-  $('enddmg').innerHTML = dmgRows.map(([id, v]) => `<div class="drow">${wicon(id)}<span>${wname(id)}</span><div class="dbar"><i style="width:${(v / top) * 100}%"></i></div><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
-  $('endloot').innerHTML = (lootNotes.length ? `<div class="lootline"><b>Caskets</b> ${lootNotes.join(' · ')}</div>` : '') + questNotes.map((x) => `<div class="questline">${x}</div>`).join('');
-  buildMaps(); buildAdventurers(); showBest();
-  $('endtitle').textContent = won ? `${sim.map.name} holds!` : sim.over === 'time' ? `The hunt is over at ${fmtT(sim.endAt)}` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
-  const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
-  let bestNote = '';
-  if (!wasRanked) {
-    const all = getBests(), k = bestKey(sim), b = profileBest(all[k]);
-    if (betterRun(b, runRecord) === runRecord) { all[k] = runRecord; save('sq-bests', all); bestNote = b ? ` · new best (was ${fmtT(b.t)})!` : ''; }
-    else bestNote = sim.t < b.t ? ` · ${fmtT(b.t - sim.t)} short of your best (${fmtT(b.t)})` : ` · best ${fmtT(b.t)}`;
-  }
-  $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${kpmNote}${bestNote}${unlockNote}`;
-  $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
-  $('end').classList.remove('hidden');
-  if (wasRanked) { rankedRun.ended = true; persistRanked(); submitRanked(); }
-  cloud.push(true);
+  const dmtOn = !!savedPass(), alchCoins = Math.max(0, Math.floor(p.alch || 0)), earned = runCoins(sim, won);
+  let receipt = null, rankedSaved = !wasRanked, submitted = false;
+  const finish = () => {
+    if (!rankedSaved) {
+      rankedRun.ended = true; rankedSaved = persistRanked();
+      if (!rankedSaved) throw Error('Run could not be saved. Keep this page open.');
+    }
+    if (wasRanked && !submitted) { submitted = true; submitRanked(); }
+    receipt ||= prepareRunRewards(localStorage, sim, { earned, ranked: wasRanked });
+    saveRunProgress(localStorage, receipt.data);
+    mode = 'end';
+    let unlockNote = '';
+    if (won && receipt.cleared.length > receipt.clearedBefore) {
+      const idx = MAPS.findIndex(m => m.id === sim.map.id), next = sim.map.special ? null : MAPS.slice(idx + 1).find(m => !m.special);
+      if (next) unlockNote = ` · ${next.name} unlocked`;
+      for (const a of ADVENTURERS) if (a.unlock === receipt.cleared.length) unlockNote += ` · ${a.name} unlocked`;
+    }
+    const lootNotes = receipt.loot.map(({ name: n, wasAlched, fresh, on }) => {
+      if (isWeaponItem(n)) return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}` : 'this run only'}</em>`;
+      return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}${fresh ? ', new' : ''}` : on ? (fresh ? 'worn this run, new' : 'worn this run') : fresh ? 'new' : 'sold, +25 coins'}</em>`;
+    });
+    const questNotes = receipt.quests.map(q => `Quest complete: <b>${q.name}</b> · +${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}`);
+    // damage by weapon, Run Escape style
+    const dmgRows = Object.entries(sim.dmgBy || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6), top = dmgRows.length ? dmgRows[0][1] : 1;
+    const wname = (id) => (WEAPONS[id] ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other');
+    const wicon = (id) => (WEAPONS[id] ? iconHTML('weapon', id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)) : imgTag(id === 'pumpkin' ? 'Pumpkin' : 'Gold'));
+    $('enddmg').innerHTML = dmgRows.map(([id, v]) => `<div class="drow">${wicon(id)}<span>${wname(id)}</span><div class="dbar"><i style="width:${(v / top) * 100}%"></i></div><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
+    $('endloot').innerHTML = (lootNotes.length ? `<div class="lootline"><b>Caskets</b> ${lootNotes.join(' · ')}</div>` : '') + questNotes.map((x) => `<div class="questline">${x}</div>`).join('');
+    buildMaps(); buildAdventurers(); showBest();
+    $('endtitle').textContent = won ? `${sim.map.name} holds!` : sim.over === 'time' ? `The hunt is over at ${fmtT(sim.endAt)}` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
+    const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
+    let bestNote = '';
+    if (!wasRanked) {
+      const b = receipt.personalBest;
+      if (receipt.newPersonalBest) bestNote = b ? ` · new best (was ${fmtT(b.t)})!` : '';
+      else bestNote = sim.t < b.t ? ` · ${fmtT(b.t - sim.t)} short of your best (${fmtT(b.t)})` : ` · best ${fmtT(b.t)}`;
+    }
+    $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${kpmNote}${bestNote}${unlockNote}`;
+    $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
+    $('end').classList.remove('hidden');
+    cloud.push(true);
+  };
+  try { finish(); }
+  catch { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen(), false, { retry: finish, reload: false }); }
 }
 function toMenu() {
   if (rankedPlaying()) return;

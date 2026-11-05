@@ -3,17 +3,20 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as cloud from '../src/cloud.js';
 import { profileBest } from '../src/progress-values.js';
+import {createSim} from '../src/sim.js';
+import {prepareRunRewards} from '../src/run-rewards.js';
+import {saveRunProgress} from '../src/progress-import.js';
 const J=JSON.stringify;
 const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
-const globalRecord=source.slice(source.indexOf("  const prev = load('sq-best'"),source.indexOf("  let unlockNote = ''"));
 const perMap=source.slice(source.indexOf('  let bestNote ='),source.indexOf("  $('endtext').textContent"));
 const fmtT=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 function finish(prev,candidate){
-  const data={'sq-best':prev,'sq-bests':{'greentown:n:r':prev}};
-  const note=Function('sim','won','load','save','getBests','bestKey','fmtT','betterRun','profileBest',`
-    const wasRanked=false; ${globalRecord} ${perMap} return bestNote;
-  `)(candidate,candidate.won,(k,d)=>data[k]??d,(k,v)=>{data[k]=v;},()=>data['sq-bests'],()=> 'greentown:n:r',fmtT,cloud.betterRun,profileBest);
-  return {...data,note};
+  const values=new Map([['sq-best',J(prev)],['sq-bests',J({'greentown:n:r':prev})]]);
+  const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,String(v)),removeItem:k=>values.delete(k)};
+  const sim=createSim();Object.assign(sim,{t:candidate.t,kills:candidate.kills,level:candidate.level,over:candidate.won?'win':'dead'});
+  const receipt=prepareRunRewards(storage,sim,{earned:0});saveRunProgress(storage,receipt.data);
+  const note=Function('sim','receipt','fmtT',`const wasRanked=false;${perMap};return bestNote;`)(sim,receipt,fmtT);
+  return{'sq-best':JSON.parse(values.get('sq-best')),'sq-bests':JSON.parse(values.get('sq-bests')),note};
 }
 test('local and per-map best retain a victory over a longer failed run',()=>{
   const win={t:600,kills:300,level:20,won:true};

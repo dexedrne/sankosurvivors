@@ -1,5 +1,15 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Finish interrupted run saves": "Kesilen oyun kayıtlarını tamamla",
+  "Completed-run rewards now save together. If browser storage interrupts the save, retry before playing or uploading progress.": "Biten oyunun ödülleri artık birlikte kaydedilir. Tarayıcı depolaması kaydı keserse oynamadan veya ilerlemeyi yüklemeden önce yeniden dene.",
+  "Save your finished run": "Biten oyununu kaydet",
+  "This run has not been confirmed saved. Keep this page open, free some browser storage, then retry before playing or saving to your wallet.": "Bu oyunun kaydedildiği henüz doğrulanmadı. Bu sayfayı açık tut, tarayıcıda biraz depolama alanı aç ve oynamadan veya cüzdanına kaydetmeden önce yeniden dene.",
+  "Retry saving run": "Oyunu kaydetmeyi yeniden dene",
+  "Finish your wallet action before saving this run.": "Bu oyunu kaydetmeden önce cüzdan işlemini tamamla.",
+  "This browser still cannot save the run. Keep this page open, free some storage and try again.": "Bu tarayıcı oyunu hâlâ kaydedemiyor. Bu sayfayı açık tut, biraz depolama alanı aç ve yeniden dene.",
+  "Ranked submission could not be queued on this device. Keep this page open, free some storage and retry.": "Dereceli oyun gönderimi bu cihazda sıraya alınamadı. Bu sayfayı açık tut, biraz depolama alanı aç ve yeniden dene.",
+  "Run rewards must finish saving before playing.": "Oynamadan önce oyun ödüllerinin kaydı tamamlanmalı.",
+
   "Tumble": "Takla",
   "Tumble · Space / A": "Takla · Boşluk / A",
   "Tumble and build choices": "Takla ve farklı gelişim yolları",

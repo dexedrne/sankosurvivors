@@ -14,6 +14,12 @@ function setup(t,{choice='cloud'}={}){
  t.after(async()=>{blocked=false;fail=()=>false;await cloud.signOut();disconnect();globalThis.localStorage=previous;});
  return{cloud,store,storage,calls,notes,responses,writes,recoveries:()=>recoveries,fail:fn=>fail=fn,block:()=>blocked=true,allow:()=>{blocked=false;fail=()=>false;},flush:async()=>{for(let i=0;i<100;i++)await Promise.resolve();}};
 }
+test('a pending completed-run journal blocks an upload before any request or metadata mutation',async t=>{
+ const f=setup(t),raw=J({v:1,data:{'sq-coins':'609'}});f.store.set('sq-run-save-v1',raw);const baseline=f.store.get('sq-cloud-base');assert.equal(await f.cloud.push(true),false);assert.equal(f.calls.length,0);assert.equal(f.recoveries(),1);assert.equal(f.store.get('sq-coins'),'500');assert.equal(f.store.get('sq-cloud-base'),baseline);assert.equal(f.store.get('sq-run-save-v1'),raw);
+});
+test('an acknowledgement arriving during partial run saving cannot acknowledge or replace the run journal',async t=>{
+ const f=setup(t);let finish;f.responses.push(()=>new Promise(resolve=>finish=resolve));const saving=f.cloud.push(true);await f.flush();const raw=J({v:1,data:{'sq-coins':'609'}});f.store.set('sq-run-save-v1',raw);const baseline=f.store.get('sq-cloud-base');finish(response({ok:true,rev:2}));assert.equal(await saving,false);assert.equal(f.cloud.state().rev,1);assert.equal(f.store.get('sq-cloud-base'),baseline);assert.equal(f.store.get('sq-run-save-v1'),raw);assert.equal(f.recoveries(),1);
+});
 test('an upload cannot leave the device unless its interrupted-upload record is durable',async t=>{
  const f=setup(t);f.fail((op,k)=>op==='set'&&k==='sq-cloud-upload');assert.equal(await f.cloud.push(true),false);assert.equal(f.calls.length,0);assert.equal(f.store.get('sq-coins'),'500');
 });
