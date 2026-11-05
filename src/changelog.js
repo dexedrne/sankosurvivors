@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.13', date: '4 Nov 2026', title: 'Room for menu labels',
+    items: ['Mobile menu buttons have more room for Leaderboard and translated labels.'],
+  },
+  {
     version: '0.44.12', date: '4 Nov 2026', title: 'Keep runs uninterrupted',
     items: ['Cloud progress only loads between runs. Starting a run stops delayed cloud loads and reloads while earned progress keeps saving.'],
   },

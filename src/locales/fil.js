@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Room for menu labels": "Mas maluwag na mga label sa menu",
+  "Mobile menu buttons have more room for Leaderboard and translated labels.": "Mas maluwag ang mga button ng mobile menu para sa talaan ng ranggo at mga isinaling label.",
+
   "Keep runs uninterrupted": "Tuloy-tuloy na paglalaro",
   "Cloud progress only loads between runs. Starting a run stops delayed cloud loads and reloads while earned progress keeps saving.": "Sa pagitan lang ng mga laro nilo-load ang progreso mula sa cloud. Kapag nagsimula ang laro, hihinto ang mga naantalang cloud load at reload habang patuloy na sine-save ang nakuhang progreso.",
   "Cloud sign-in cancelled: another action started.": "Kinansela ang pag-sign in sa cloud: may ibang aksyong nagsimula.",

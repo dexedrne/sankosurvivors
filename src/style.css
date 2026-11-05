@@ -677,7 +677,7 @@ html:not([lang="en"]) .panel h2 { overflow-wrap:anywhere; }
   #actions { grid-column:1 / -1; min-width:0; gap:4px; justify-content:flex-start; }
   #actions button { min-height:44px; padding:2px 6px; margin:0; font-size:18px; }
   #actions #start { position:static; min-height:50px; font-size:24px; padding:5px 8px; box-shadow:none; }
-  #actions .btngrid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+  #actions .btngrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,125px),1fr)); gap:4px; }
   #actions .btngrid button { min-width:0; overflow-wrap:anywhere; }
   #modes { flex-wrap:wrap; gap:8px; } #modes:not(:has(label:not(.hidden))) { display:none; }
   #actions #loadtext:empty { display:none; }

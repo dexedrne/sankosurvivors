@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Room for menu labels": "Menü yazıları için daha fazla yer",
+  "Mobile menu buttons have more room for Leaderboard and translated labels.": "Mobil menü düğmelerinde Sıralama ve çevrilmiş yazılar için daha fazla yer var.",
+
   "Keep runs uninterrupted": "Oyun kesintiye uğramasın",
   "Cloud progress only loads between runs. Starting a run stops delayed cloud loads and reloads while earned progress keeps saving.": "Buluttaki ilerleme yalnızca oyunlar arasında yüklenir. Oyun başlayınca gecikmiş bulut yüklemeleri ve sayfa yenilemeleri durur; kazanılan ilerleme kaydedilmeye devam eder.",
   "Cloud sign-in cancelled: another action started.": "Bulut kaydına giriş iptal edildi: başka bir işlem başladı.",

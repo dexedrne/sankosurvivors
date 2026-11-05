@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Room for menu labels": "Espacio para los textos del menú",
+  "Mobile menu buttons have more room for Leaderboard and translated labels.": "Los botones del menú móvil tienen más espacio para Clasificación y los textos traducidos.",
+
   "Keep runs uninterrupted": "Partidas sin interrupciones",
   "Cloud progress only loads between runs. Starting a run stops delayed cloud loads and reloads while earned progress keeps saving.": "El progreso de la nube solo se carga entre partidas. Al empezar una partida se detienen las cargas y recargas pendientes, mientras el progreso ganado sigue guardándose.",
   "Cloud sign-in cancelled: another action started.": "Inicio de sesión en la nube cancelado: se inició otra acción.",
