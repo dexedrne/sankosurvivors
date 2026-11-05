@@ -22,7 +22,7 @@ import { quoteDmt, buyDmt } from './swap.js';
 import { walletConnectLinks } from './wallet-connect.js';
 import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
-  MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, clampSkills, skillCost,
+  MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, evolutionPassives, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
   GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, bonusText, QUESTS, deltaText, gearRarity, alchValue, ARMOR_TIERS,
   gearGroups, isWeaponItem, WEAPON_ITEMS, weaponItemText, weaponItemLabel, weaponStep, CARD_RARITIES, CARD_RARITY_NAMES, CARD_HEAL,
@@ -1374,14 +1374,14 @@ addEventListener('keydown', (e) => {
   }
   if (k === 'm') { audio.setMuted(!audio.muted); banner(audio.muted ? 'Sound off' : 'Sound on', 900); }
   if (mode === 'play' && k >= '1' && k <= '4') pendingUse = Number(k) - 1;
-  if (mode === 'play' && k === ' ') { hop(); e.preventDefault(); } // a hop, just for the look (owner 3 Nov: "jump is a vanity thing")
+  if (mode === 'play' && k === ' ') { hop(); e.preventDefault(); }
   if (k === 'escape' && !navBack() && mode === 'play') pause(true);
   if ((k === 'enter' || k === ' ') && (mode === 'title' && !$('start').disabled || mode === 'end') && MENU_SCREENS.every((id) => $(id).classList.contains('hidden'))) startRun();
 });
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => { keys.clear(); clearTouch(); if (mode === 'play') pause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); if (mode === 'play') pause(true); } });
-function pause(on) { clearTouch(); audio.duck(on); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); }
+function pause(on) { clearTouch(); pendingUse = null; audio.duck(on); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); }
 $('start').onclick = startRun; $('again').onclick = () => { if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
 $('quit').onclick = () => { if (rankedPlaying()) return; pause(false); sim.over = 'dead'; };
 
@@ -1460,7 +1460,14 @@ addEventListener('pointermove', (e) => {
 const endTouch = (e) => { if (e.pointerId === touch.id) clearTouch(); };
 addEventListener('pointerup', endTouch); addEventListener('pointercancel', endTouch);
 $('pausebtn').onclick = () => { if (mode === 'play') pause(true); };
-const hop = () => { if (!renderer || !renderer.hop) return; renderer.hop(); audio.play('choose', { minGap: 0.3, vol: 0.3, rate: 1.6 }); }; // Space or A, just for the look
+const hop = () => {
+  if (mode !== 'play' || !sim) return;
+  if (sim.pace >= 2) {
+    const p = sim.players.find(p => p.id === PLAYER);
+    if (p?.alive && !sim.pending[PLAYER] && !sim.over && !(p.rollCd > 0)) pendingUse = 4;
+  } else if (renderer?.hop) { renderer.hop(); audio.play('choose', { minGap: 0.3, vol: 0.3, rate: 1.6 }); }
+};
+$('tumblebtn').onclick = hop;
 
 
 let padPrev = [], pendingUse = null, slowmo = 0, stickDir = null, stickNext = 0; // belt slot to use on the next tick (1-4, a tap, or LB/RB/X/Y)
@@ -1509,7 +1516,12 @@ function resumeAfterReward() {
 }
 function showLevelUp() {
   if (sim) preloadNextIcons(sim.players.find((q) => q.id === PLAYER));
-  const pend = sim.pending[PLAYER]; if (!pend) return;
+  let pend = sim.pending[PLAYER];
+  while (pend && !pend.casket && pend.choices.length === 1 && pend.choices[0].kind === 'heal') {
+    const before = pend; pick(0); pend = sim.pending[PLAYER];
+    if (pend === before) break; // a refused choice must not spin the UI
+  }
+  if (!pend) return;
   if (pend.casket) { showCasket(); return; }
   shownPending = rewardWasShown = true; mode = 'levelup'; selCard = 0; audio.duck(true);
   waitingForMove = false; $('movehint').classList.add('hidden'); stickEl.classList.add('hidden');
@@ -1527,12 +1539,14 @@ function showLevelUp() {
     } else if (c.kind === 'weapon') {
       const w = WEAPONS[c.id], ups = []; for (let l = Math.max(1, from); l < c.level; l++) ups.push(w.next(l));
       name = weaponTitle(c.id, c.level, stepOf(c.id)); tag = lvTag(); text = from === 0 ? w.blurb + (ups.length ? ` Starts with ${ups.join(', ')}.` : '') : 'Upgrade: ' + ups.join(', '); icon = iconHTML('weapon', c.id, c.level, false, stepOf(c.id));
-      const need = Object.entries(EVOLUTIONS).find(([id]) => id === c.id);
-      if (need && c.level === 6) text += ` Evolves with ${PASSIVES[need[1].passive].name}.`;
+      if (c.level === 6) {
+        const needs = evolutionPassives(c.id, sim.pace).map(id => PASSIVES[id].name);
+        if (needs.length) text += needs.length === 2 ? ` Evolves with ${needs[0]} or ${needs[1]}.` : ` Evolves with ${needs[0]}.`;
+      }
     } else if (c.kind === 'passive') {
       const p = PASSIVES[c.id]; name = passiveTitle(c.id, c.level); tag = lvTag(); text = p.blurb; icon = iconHTML('passive', c.id, c.level);
-      const ev = Object.entries(EVOLUTIONS).find(([, e]) => e.passive === c.id);
-      if (ev) text += ` Evolves ${weaponTitle(ev[0], 6, stepOf(ev[0]))}.`;
+      const ev = Object.keys(EVOLUTIONS).filter(id => evolutionPassives(id, sim.pace).includes(c.id));
+      if (ev.length) text += ` Evolves ${ev.map(id => weaponTitle(id, 6, stepOf(id))).join(', ')}.`;
     } else { const hp = CARD_HEAL[Math.max(0, ri)]; name = 'Cooked Bubba Bass'; tag = 'Heal'; text = hp >= 9999 ? 'Restore all your health.' : `Restore ${hp} health.`; icon = iconHTML('item', 'Cooked Bubba Bass'); }
     if (ri === 3 && c.kind !== 'heal') text += ' Heals you to full.';
     const rar = ri >= 0 ? `<div class="rarity">${CARD_RARITY_NAMES[ri]}</div>` : '';
@@ -1603,8 +1617,14 @@ $('ckwear').onclick = () => pickCasket(0); $('ckalch').onclick = () => pickCaske
 
 // ---- HUD -----------------------------------------------------------------------------------------------------------------------------
 let hudT = 0; const slotCache = { w: '', p: '', b: '' };
+function updateTumbleHud(me) {
+  $('tumblebtn').classList.toggle('hidden', sim.pace < 2);
+  $('tumblebtn').disabled = me.rollCd > 0;
+  $('tumblecd').textContent = me.rollCd > 0 ? String(Math.ceil(me.rollCd)) : '';
+}
 function updateHud(view) {
   const me = view.players[0];
+  updateTumbleHud(me);
   $('hpfill').style.width = Math.min(100, Math.max(0, (me.hp / me.mhp) * 100)) + '%';
   $('hptext').textContent = `${me.hp} / ${me.mhp}`;
   $('xpfill').style.width = Math.min(100, (view.xp / view.xpNeed) * 100) + '%';
@@ -1764,12 +1784,13 @@ function loop(ts) {
   }
   if (!sim) return;
   if (mode === 'play') {
-    if (edges.start) pause(true);
-    if (waitingForMove && Math.hypot(inp.mx, inp.mz) > 0.01) { waitingForMove = false; $('movehint').classList.add('hidden'); audio.duck(false); }
+    if (edges.start) { pause(true); return; }
+    if (edges.a) hop();
+    if (waitingForMove && (Math.hypot(inp.mx, inp.mz) > 0.01 || pendingUse === 4)) { waitingForMove = false; $('movehint').classList.add('hidden'); audio.duck(false); }
     if (waitingForMove) acc = 0;
     else { acc += dt * (slowmo > 0 ? 0.3 : 1); slowmo -= dt; } // a moment of slow motion when a boss falls
     let n = 0;
-    if (edges.lb) pendingUse = 0; if (edges.rb) pendingUse = 1; if (edges.x) pendingUse = 2; if (edges.y) pendingUse = 3; if (edges.a) hop(); // A hops (a look only)
+    if (edges.lb) pendingUse = 0; if (edges.rb) pendingUse = 1; if (edges.x) pendingUse = 2; if (edges.y) pendingUse = 3;
     while (acc >= TICK && n++ < 4) {
       if (rankedRec) {
         if (sim.pending[PLAYER] || sim.over) { acc = 0; break; }

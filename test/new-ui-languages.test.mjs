@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { translateText } from '../src/i18n.js';
 
 const messages = [
+  'Tumble', 'Tumble · Space / A', 'Tumble and build choices',
+  'A sole healing reward now continues automatically. Evolutions have alternate passive pairings, listed on upgrade cards.',
+  'Tumble with Space, controller A or the touch button. It crosses reachable low fences, keeps buildings solid and recharges in five seconds. No added invincibility. Ranked week 0 keeps its original rules and cosmetic jump.',
   'Payment recovery could not be saved on this device. No payment was requested.',
   'Ranked payments are unavailable in this browser. Update your browser and try again.',
   'A payment is in progress in another tab. Finish checking it there first.',
@@ -35,3 +38,7 @@ for (const [language, cheese] of [['tr', 'Peynir'], ['es', 'Queso'], ['fil', 'Ke
     for (const value of ['sq-ranked-payment', 'eth_sendTransaction', '0x' + 'ab'.repeat(32)]) assert.equal(translateText(value, language), value);
   });
 }
+
+for(const[language,either]of [['tr',' veya '],['es',' o '],['fil',' o ']])test(`${language}: alternative evolution requirements describe either passive`,()=>{
+ const message='Upgrade: +range. Evolves with Winged Boots or Amanita.',translated=translateText(message,language);assert.ok(translated.includes(either),translated);assert.ok(!translated.includes(' or '),translated);assert.ok(translated.includes(translateText('Winged Boots',language)),translated);assert.ok(translated.includes(translateText('Amanita',language)),translated);
+});

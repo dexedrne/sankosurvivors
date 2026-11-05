@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Tumble": "Takla",
+  "Tumble · Space / A": "Takla · Boşluk / A",
+  "Tumble and build choices": "Takla ve farklı gelişim yolları",
+  "A sole healing reward now continues automatically. Evolutions have alternate passive pairings, listed on upgrade cards.": "Tek seçenek iyileştirme olduğunda oyun artık otomatik devam eder. Evrimler için alternatif pasif eşleşmeleri geliştirme kartlarında gösterilir.",
+  "Tumble with Space, controller A or the touch button. It crosses reachable low fences, keeps buildings solid and recharges in five seconds. No added invincibility. Ranked week 0 keeps its original rules and cosmetic jump.": "Boşluk, kontrolcüde A veya dokunmatik düğmeyle takla at. Yürüyerek ulaşılabilen alçak çitleri aşar; binalardan geçmez ve beş saniyede yenilenir. Ek dokunulmazlık vermez. Dereceli 0. hafta eski kurallarını ve görsel zıplamasını korur.",
   "Screen layout": "Ekran düzeni",
   "Standard": "Standart",
   "DS": "DS",
@@ -1027,6 +1032,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["{1} Evolves with {2} or {3}.", "{1} {2} veya {3} ile evrimleşir."],
   ["Swap for {1}: {2}", "{1} için takas: {2}"],
   ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Serbest mod ölçeklemesi: düşman HP/temas hasarı +{1}%; temel doğma baskısı +{2}%."],
   ["{1} entries · {2} DMT from entries.", "{1} katılım · katılımlardan {2} DMT."],

@@ -2,9 +2,9 @@
 import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in every browser and on the server (ranked replays)
 import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
-  ADVENTURER_BY_ID, EVOLUTIONS, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
+  ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll,
-  weaponSlotItem,
+  weaponSlotItem, TUMBLE,
 } from './content.js';
 
 export const TICK = 1 / 30;
@@ -114,8 +114,8 @@ function wallsOf(sim) {
   }
   return sim._W;
 }
-function noWall(sim, x0, z0, x1, z1) {
-  const g = sim.ground, W = wallsOf(sim); if (!g || !W || !g.cell) return true;
+function noWall(sim, x0, z0, x1, z1, tumble = false) {
+  const g = sim.ground, W = tumble ? g?.walls : wallsOf(sim); if (!g || !W || !g.cell) return true;
   const n = g.n;
   // the move itself must not go through a wall...
   if (!crossOK(W, n, x0, z0, x1, z1)) return false;
@@ -127,17 +127,18 @@ function noWall(sim, x0, z0, x1, z1) {
   return true;
 }
 // move, sliding along cliffs, shores and walls instead of stopping dead
-function moveTo(sim, o, nx, nz) {
-  if (walkable(sim, nx, nz) && noWall(sim, o.x, o.z, nx, nz)) { o.x = nx; o.z = nz; return; }
-  if (walkable(sim, nx, o.z) && noWall(sim, o.x, o.z, nx, o.z)) { o.x = nx; return; }
-  if (walkable(sim, o.x, nz) && noWall(sim, o.x, o.z, o.x, nz)) o.z = nz;
+function moveTo(sim, o, nx, nz, tumble = false) {
+  if (walkable(sim, nx, nz) && (!tumble || !sim.ground || flowAt(sim, nx, nz) >= 0) && noWall(sim, o.x, o.z, nx, nz, tumble)) { o.x = nx; o.z = nz; return; }
+  if (walkable(sim, nx, o.z) && (!tumble || !sim.ground || flowAt(sim, nx, o.z) >= 0) && noWall(sim, o.x, o.z, nx, o.z, tumble)) { o.x = nx; return; }
+  if (walkable(sim, o.x, nz) && (!tumble || !sim.ground || flowAt(sim, o.x, nz) >= 0) && noWall(sim, o.x, o.z, o.x, nz, tumble)) o.z = nz;
 }
 const FLOW_R = 60, FLOW_W = FLOW_R * 2 + 1, FLOW_NONE = 65535;
-function updateFlow(sim) {
+function updateFlow(sim, anchor = null) {
   const g = sim.ground; if (!g) { sim.flow = null; return; }
   const alive = sim.players.filter((p) => p.alive); if (!alive.length) return;
   const W = wallsOf(sim);
-  const x0 = gIdx(g, alive[0].x) - FLOW_R, z0 = gIdx(g, alive[0].z) - FLOW_R;
+  const origin = anchor || alive[0];
+  const x0 = gIdx(g, origin.x) - FLOW_R, z0 = gIdx(g, origin.z) - FLOW_R;
   const f = sim.flow && sim.flow.dist ? sim.flow : { dist: new Uint16Array(FLOW_W * FLOW_W), queue: new Int32Array(FLOW_W * FLOW_W) };
   f.x0 = x0; f.z0 = z0; f.dist.fill(FLOW_NONE);
   let qh = 0, qt = 0;
@@ -388,7 +389,7 @@ function recycleStrays(sim, dt) {
 export function rollChoices(sim, p) {
   const opts = [], st = playerStats(p);
   for (const id of Object.keys(EVOLUTIONS)) {
-    if ((p.weapons[id] || 0) >= MAX_WEAPON_LEVEL && !p.evo[id] && (p.passives[EVOLUTIONS[id].passive] || 0) >= 1) opts.push({ kind: 'evolve', id, level: 1, w: 1000 });
+    if ((p.weapons[id] || 0) >= MAX_WEAPON_LEVEL && !p.evo[id] && evolutionPassives(id, sim.pace).some(key => (p.passives[key] || 0) >= 1)) opts.push({ kind: 'evolve', id, level: 1, w: 1000 });
   }
   for (const id of WEAPON_IDS) {
     const lvl = p.weapons[id] || 0;
@@ -973,11 +974,29 @@ export function step(sim, inputs = {}, dt = TICK) {
     if (!p.alive) continue;
     const st = playerStats(p);
     const inp = inputs[p.id] || { mx: 0, mz: 0 };
-    // (the jump is a look only, owner 3 Nov: "jump is a vanity thing": the renderer hops the hero; nothing here)
-    if (inp.use != null) useBelt(sim, p.id, inp.use);
     const len = hyp(inp.mx, inp.mz);
-    p.moving = len > 0.01;
-    if (p.moving) {
+    if (sim.pace >= 2) {
+      p.rollCd = Math.max(0, (p.rollCd || 0) - dt);
+      if (p.rollCd < 1e-9) p.rollCd = 0;
+      if (inp.use === 4 && p.rollCd === 0) {
+        p.rollCd = TUMBLE.cooldown; p.rollT = TUMBLE.duration;
+        p.rollFace = len > 0.01 ? datan2(inp.mx, inp.mz) : p.moveFace ?? p.face;
+        // Spend cooldown even against a closed pen, bounding navigation work from repeated input.
+        sim.fx.push({ k: 'land-hop', x: p.x, z: p.z });
+      }
+    }
+    if (inp.use != null && !(sim.pace >= 2 && inp.use === 4)) useBelt(sim, p.id, inp.use);
+    p.moving = len > 0.01 || (sim.pace >= 2 && p.rollT > 1e-9);
+    if (sim.pace >= 2 && p.rollT > 1e-9) {
+      // Co-op's shared field may have moved to another player since this roll's last tick.
+      if (p.rollT === TUMBLE.duration || sim.players.length > 1) updateFlow(sim, p);
+      const distance = TUMBLE.speed * Math.min(dt, p.rollT), parts = Math.ceil(distance / 0.5);
+      const dx = dsin(p.rollFace) * distance / parts, dz = dcos(p.rollFace) * distance / parts;
+      // Small substeps keep blocked terrain solid even when a caller supplies a long frame.
+      for (let i = 0; i < parts; i++) moveTo(sim, p, p.x + dx, p.z + dz, true);
+      p.face = p.moveFace = p.rollFace; p.rollT = Math.max(0, p.rollT - dt);
+      if (p.rollT < 1e-9) p.rollT = 0;
+    } else if (p.moving) {
       const mx = inp.mx / Math.max(1, len), mz = inp.mz / Math.max(1, len);
       moveTo(sim, p, p.x + mx * st.speed * dt, p.z + mz * st.speed * dt);
       p.face = datan2(mx, mz);
@@ -1095,7 +1114,7 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
   const fx = sim.fx; sim.fx = [];
   return {
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
-    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null })),
+    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),
     hazards: sim.hazards.map((h) => [r1(h.x), r1(h.z), h.r, Math.round((1 - h.t / h.max) * 100) / 100, h.meteor ? 1 : 0]),
     eproj: sim.eproj.map((b) => [b.id, r1(b.x), r1(b.z), b.art]),

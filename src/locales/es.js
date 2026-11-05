@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Tumble": "Rodar",
+  "Tumble · Space / A": "Rodar · Espacio / A",
+  "Tumble and build choices": "Rodar y más combinaciones",
+  "A sole healing reward now continues automatically. Evolutions have alternate passive pairings, listed on upgrade cards.": "Si la única recompensa es curación, la partida continúa automáticamente. Las evoluciones tienen combinaciones pasivas alternativas, indicadas en las cartas de mejora.",
+  "Tumble with Space, controller A or the touch button. It crosses reachable low fences, keeps buildings solid and recharges in five seconds. No added invincibility. Ranked week 0 keeps its original rules and cosmetic jump.": "Rueda con Espacio, A del mando o el botón táctil. Permite cruzar vallas bajas hacia zonas accesibles, mantiene los edificios sólidos y se recarga en cinco segundos. No añade invencibilidad. La semana 0 de clasificatoria conserva sus reglas y el salto visual.",
   "Screen layout": "Distribución de pantalla",
   "Standard": "Estándar",
   "DS": "DS",
@@ -1027,6 +1032,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["{1} Evolves with {2} or {3}.", "{1} Evoluciona con {2} o {3}."],
   ["Swap for {1}: {2}", "Intercambio para {1}: {2}"],
   ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Escalado casual: vida/daño de contacto enemigos +{1}%; presión de aparición base +{2}%."],
   ["{1} entries · {2} DMT from entries.", "{1} participaciones · {2} DMT de las participaciones."],

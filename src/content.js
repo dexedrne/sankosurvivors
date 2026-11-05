@@ -276,6 +276,12 @@ export const EVOLUTIONS = {
   baseball: { passive: 'amount', name: 'Home Run',      item: 'Baseball',       blurb: 'Two balls at once that bounce eight times and knock monsters flying.' },
   lighter:  { passive: 'crit',   name: 'Inferno',       item: 'Fire Shard',     blurb: 'A wide blazing ring that burns twice as hard.' },
 };
+const EVOLUTION_ALTERNATIVES = { katana: 'thorns', bow: 'crit', axe: 'amount', shield: 'thorns', staff: 'area', pickaxe: 'area', greatsword: 'armor', shortsword: 'boots', baseball: 'might', lighter: 'growth' };
+export function evolutionPassives(id, pace) {
+  if (!Object.hasOwn(EVOLUTIONS, id)) return [];
+  const original = EVOLUTIONS[id].passive, alternative = pace >= 2 && EVOLUTION_ALTERNATIVES[id];
+  return alternative ? [original, alternative] : [original];
+}
 export function weaponDisplay(id, level, evo, step = null) {
   if (evo && EVOLUTIONS[id]) return { name: EVOLUTIONS[id].name, item: EVOLUTIONS[id].item };
   return { name: weaponTitle(id, level, step), item: weaponItem(id, level, step) };
@@ -372,6 +378,7 @@ export const ADVENTURERS = [
 export const ADVENTURER_BY_ID = Object.fromEntries(ADVENTURERS.map((a) => [a.id, a]));
 
 export const PLAYER_BASE = { hp: 100, speed: 5.4, magnet: 2.8, radius: 0.5 };
+export const TUMBLE = { duration: 0.2, speed: 18, cooldown: 5 };
 
 export function xpForLevel(level) {
   return Math.round(4 + level * 2.6 + level * level * 0.65);

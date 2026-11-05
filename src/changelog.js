@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.29', date: '5 Nov 2026', title: 'Tumble and build choices',
+    items: ['A sole healing reward now continues automatically. Evolutions have alternate passive pairings, listed on upgrade cards.', 'Tumble with Space, controller A or the touch button. It crosses reachable low fences, keeps buildings solid and recharges in five seconds. No added invincibility. Ranked week 0 keeps its original rules and cosmetic jump.'],
+  },
+  {
     version: '0.44.28', date: '5 Nov 2026', title: 'Half-fold DS layout',
     items: ['Choose Auto, Standard or DS in Settings. DS puts the game above the fold, with movement, the minimap and upgrade choices below.'],
   },

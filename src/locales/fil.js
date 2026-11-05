@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Tumble": "Gumulong",
+  "Tumble · Space / A": "Gumulong · Space / A",
+  "Tumble and build choices": "Pagulong at mga pagpipiliang build",
+  "A sole healing reward now continues automatically. Evolutions have alternate passive pairings, listed on upgrade cards.": "Kapag pagpapagaling lang ang gantimpala, awtomatikong magpapatuloy ang laro. May alternatibong passive na kapareha ang mga evolution, na nakalista sa mga upgrade card.",
+  "Tumble with Space, controller A or the touch button. It crosses reachable low fences, keeps buildings solid and recharges in five seconds. No added invincibility. Ranked week 0 keeps its original rules and cosmetic jump.": "Gumulong gamit ang Space, A sa controller o ang touch button. Makakatawid sa mababang bakod patungo sa mapupuntahang lugar, hindi makakalusot sa gusali, at muling magagamit pagkalipas ng limang segundo. Walang dagdag na invincibility. Mananatili ang orihinal na patakaran at pandekorasyong talon sa ranked week 0.",
   "Screen layout": "Ayos ng screen",
   "Standard": "Karaniwan",
   "DS": "DS",
@@ -1027,6 +1032,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["{1} Evolves with {2} or {3}.", "{1} Nag-e-evolve gamit ang {2} o {3}."],
   ["Swap for {1}: {2}", "Swap para sa {1}: {2}"],
   ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Casual scaling: HP/pinsala sa pagdikit ng kalaban +{1}%; batayang pagdami ng kalaban +{2}%."],
   ["{1} entries · {2} DMT from entries.", "{1} lahok · {2} DMT mula sa mga lahok."],

@@ -13,7 +13,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, weaponLook, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR } from './content.js';
+import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, weaponLook, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR, TUMBLE } from './content.js';
 import { createCharacterKit, armorSet, cloneActor, ownActorResource, disposeActor } from './character.js';
 import { terrainFromTiles, WATER_Y } from './terrain.js';
 
@@ -26,6 +26,20 @@ const MAP_SIZE = 512; // minimap covers world x,z in [0,512] (4 px per unit)
 const AREA_SCENES = [{ file: 'desertAdventure.json', dx: 0, dz: -192 }];
 const TILE = { cx: 352, cz: 288 };
 const SLOT_COLORS = [0xffd34d, 0x4dd2ff, 0xff6b6b, 0x8dff6b];
+
+function applyTumblePose(a, p) {
+  if (!a.rollPivot && p.rollT > 0) {
+    const body = a.kit ? a.inner.parent : a.inner, parent = body.parent;
+    a.rollPivot = new THREE.Group(); parent.add(a.rollPivot); a.rollPivot.add(body);
+    const yaw = a.kit?.yaw0 || 0;
+    a.rollAxis = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+  }
+  if (!a.rollPivot) return;
+  const angle = p.rollT > 0 ? (1 - p.rollT / TUMBLE.duration) * Math.PI * 2 : 0;
+  a.rollPivot.quaternion.setFromAxisAngle(a.rollAxis, angle);
+  // Pivot around the native body's waist; the selection ring and auras stay at ground level.
+  a.rollPivot.position.set(a.rollAxis.z * .8 * Math.sin(angle), .8 * (1 - Math.cos(angle)), -a.rollAxis.x * .8 * Math.sin(angle));
+}
 
 export async function createRenderer(canvas, onProgress = () => {}) {
   const QS = new URLSearchParams(location.search);
@@ -1730,7 +1744,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       // (the run direction and the swing direction alternate every frame otherwise)
       if (a.yaw === undefined) a.yaw = p.f;
       a.swingT = Math.max(0, (a.swingT || 0) - dt);
-      const wantYaw = a.swingT > 0 ? a.swingA : p.f;
+      const wantYaw = p.rollT > 0 ? p.rollFace : a.swingT > 0 ? a.swingA : p.f;
       let dYaw = wantYaw - a.yaw; dYaw = ((dYaw + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
       a.yaw += dYaw * Math.min(1, dt * (a.swingT > 0 ? 30 : 16));
       a.root.rotation.y = a.yaw - (a.kit ? a.kit.yaw0 : 0);
@@ -1784,6 +1798,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         a.inner.position.y = (playerProto ? -playerProto.minY : 0) + Math.abs(bob);
         if (a.mixer) a.mixer.update(dt * (p.mv ? 1.2 : 0.2));
       }
+      applyTumblePose(a, p);
       if (p.hurt) a.root.scale.setScalar(1.08); else a.root.scale.setScalar(1);
       // kiteshields
       const sl = p.w.shield;
