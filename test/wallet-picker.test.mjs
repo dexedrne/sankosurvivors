@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
 const picker = main.slice(main.indexOf('async function pickWallet('), main.indexOf('\nasync function refreshBalances('));
 const observerStart = main.indexOf('onWallet(', main.indexOf("$('wallet').addEventListener"));
-const observer = main.slice(observerStart, main.indexOf('renderWalletChip(); walletRestore();', observerStart));
+const observer = main.slice(observerStart, main.indexOf('function renderWalletConnect(', observerStart));
 const disconnectStart = main.indexOf("$('wldisc').onclick");
 const disconnect = main.slice(disconnectStart, main.indexOf('\n', disconnectStart));
 const initial = main.match(/let walletConnecting = [^;]+;/)[0];

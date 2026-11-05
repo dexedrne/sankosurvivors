@@ -1,5 +1,24 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Scan with any WalletConnect wallet": "Herhangi bir WalletConnect cüzdanıyla tara",
+  "WalletConnect pairing QR code": "WalletConnect bağlantı QR kodu",
+  "QR code unavailable. Use a wallet button above.": "QR kodu kullanılamıyor. Yukarıdaki cüzdan düğmelerinden birini kullan.",
+
+  "Choose your wallet. After approving in the wallet app, switch back to this game.": "Cüzdanını seç. Cüzdan uygulamasında onayladıktan sonra bu oyuna geri dön.",
+  "Mobile wallet connections are being configured. Please try again soon.": "Mobil cüzdan bağlantıları hazırlanıyor. Lütfen biraz sonra tekrar dene.",
+  "Approve in your wallet": "Cüzdanında onayla",
+  "Open your wallet to approve this connection, then switch back to this app. Your game stays here.": "Bağlantıyı onaylamak için cüzdanını aç, ardından bu uygulamaya geri dön. Oyunun burada kalır.",
+  "Approve the request in your connected wallet, then switch back to this app. Your game stays here.": "İsteği bağlı cüzdanında onayla, ardından bu uygulamaya geri dön. Oyunun burada kalır.",
+  "Cancel connection": "Bağlantıyı iptal et",
+  "Back to game": "Oyuna dön",
+  "Open MetaMask": "MetaMask’i aç",
+  "Open Rabby": "Rabby’yi aç",
+  "Wallet connection cancelled.": "Cüzdan bağlantısı iptal edildi.",
+  "Connect your wallet again.": "Cüzdanını yeniden bağla.",
+  "This connection supports Arbitrum One.": "Bu bağlantı Arbitrum One’ı destekliyor.",
+  "Connect from this game": "Bu oyundan bağlan",
+  "WalletConnect keeps your connection in this game while you approve in your wallet app. Return here after approving.": "WalletConnect, cüzdan uygulamasında onay verirken bağlantını bu oyunda tutar. Onayladıktan sonra buraya geri dön.",
+
   "Cloud saves follow your choice": "Bulut kaydında seçim sende",
   "Cloud sign-in stops when your wallet choice changes. Your existing save stays in place until you choose which progress to keep.": "Cüzdan seçimin değişirse bulut kaydına giriş durur. Hangi ilerlemeyi tutacağını seçene kadar mevcut kaydın korunur.",
   "Cloud sign-in cancelled: the wallet or save session changed.": "Bulut kaydına giriş iptal edildi: cüzdan veya kayıt oturumu değişti.",

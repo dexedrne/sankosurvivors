@@ -1,6 +1,16 @@
 // DMT holder perks. The player connects an EVM wallet and signs a free message (no transaction, no gas); the game
 // server recovers the signer, reads its DMT balance on Arbitrum and hands back a holder pass for 24 hours.
 // Perks are cosmetic and coins only: a DMT glow, +25% coins after a run, and a DMT badge on the leaderboard.
+import { createWalletConnect } from './wallet-connect.js';
+import { WALLETCONNECT_PROJECT_ID } from './config.js';
+
+export const isPhone = () => typeof navigator !== 'undefined' && (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)));
+const relayWallet = typeof location === 'undefined' ? null : createWalletConnect(WALLETCONNECT_PROJECT_ID, location.origin);
+export const walletModalOpen = () => !!relayWallet?.p.ui;
+export const walletConnectState = () => relayWallet?.p.ui || null;
+export const watchWalletConnect = fn => { relayWallet?.p.on('ui', fn); return () => relayWallet?.p.removeListener('ui', fn); };
+export const cancelWalletConnect = () => relayWallet?.p.cancelConnect();
+export const dismissWalletConnect = () => relayWallet?.p.dismiss();
 export const DMT_COIN_BONUS = 0.25;
 const KEY = 'sq-dmt';
 
@@ -12,6 +22,7 @@ if (typeof window !== 'undefined') {
 export function wallets() {
   const list = [...found.values()].map((d) => ({ name: d.info.name, icon: d.info.icon, rdns: d.info.rdns || '', p: d.provider }));
   if (!list.length && window.ethereum && window.ethereum.request) list.push({ name: 'Browser wallet', icon: null, p: window.ethereum });
+  if (relayWallet) list.push(relayWallet);
   return list;
 }
 

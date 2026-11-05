@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.11', date: '4 Nov 2026', title: 'Connect from this game',
+    items: ['WalletConnect keeps your connection in this game while you approve in your wallet app. Return here after approving.'],
+  },
+  {
     version: '0.44.10', date: '4 Nov 2026', title: 'Cloud saves follow your choice',
     items: ['Cloud sign-in stops when your wallet choice changes. Your existing save stays in place until you choose which progress to keep.'],
   },

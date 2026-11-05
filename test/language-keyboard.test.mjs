@@ -9,7 +9,7 @@ for(const [name,code] of [['input',input],['capture navigation',navigation]]) {
   test(`language selector keyboard input bypasses ${name} game shortcuts`,()=>{
     const callbacks=[];
     const state=Function('addEventListener',`
-      const keys=new Set(),mode='title',navEl=null;
+      const keys=new Set(),mode='title',navEl=null,walletModalOpen=()=>false;
       let started=0,moved=0;
       const $=()=>({disabled:false,classList:{contains:()=>true}}),startRun=()=>started++,navMove=()=>moved++;
       ${code}
@@ -29,7 +29,7 @@ for(const [name,code] of [['input',input],['capture navigation',navigation]]) te
   for(const tag of ['input','textarea','summary']){
     const callbacks=[];
     const state=Function('addEventListener',`
-      const keys=new Set(),mode='title',navEl=null;
+      const keys=new Set(),mode='title',navEl=null,walletModalOpen=()=>false;
       let started=0,moved=0;
       const $=()=>({disabled:false,classList:{contains:()=>true}}),startRun=()=>started++,navMove=()=>moved++;
       ${code}

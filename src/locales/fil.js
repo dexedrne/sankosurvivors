@@ -1,5 +1,24 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Scan with any WalletConnect wallet": "I-scan gamit ang anumang WalletConnect wallet",
+  "WalletConnect pairing QR code": "QR code para sa koneksyon ng WalletConnect",
+  "QR code unavailable. Use a wallet button above.": "Hindi magamit ang QR code. Gamitin ang isang wallet button sa itaas.",
+
+  "Choose your wallet. After approving in the wallet app, switch back to this game.": "Piliin ang wallet mo. Pagkatapos mag-apruba sa wallet app, bumalik sa larong ito.",
+  "Mobile wallet connections are being configured. Please try again soon.": "Inihahanda pa ang mga koneksyon ng mobile wallet. Pakisubukan ulit mamaya.",
+  "Approve in your wallet": "Aprubahan sa wallet mo",
+  "Open your wallet to approve this connection, then switch back to this app. Your game stays here.": "Buksan ang wallet mo para aprubahan ang koneksyon, tapos bumalik sa app na ito. Mananatili rito ang laro mo.",
+  "Approve the request in your connected wallet, then switch back to this app. Your game stays here.": "Aprubahan ang kahilingan sa nakakonektang wallet mo, tapos bumalik sa app na ito. Mananatili rito ang laro mo.",
+  "Cancel connection": "Kanselahin ang koneksyon",
+  "Back to game": "Bumalik sa laro",
+  "Open MetaMask": "Buksan ang MetaMask",
+  "Open Rabby": "Buksan ang Rabby",
+  "Wallet connection cancelled.": "Kinansela ang koneksyon ng wallet.",
+  "Connect your wallet again.": "Ikonekta muli ang wallet mo.",
+  "This connection supports Arbitrum One.": "Arbitrum One ang sinusuportahan ng koneksyong ito.",
+  "Connect from this game": "Kumonekta mula sa larong ito",
+  "WalletConnect keeps your connection in this game while you approve in your wallet app. Return here after approving.": "Pinapanatili ng WalletConnect ang koneksyon sa larong ito habang nag-aapruba ka sa wallet app. Bumalik dito pagkatapos mag-apruba.",
+
   "Cloud saves follow your choice": "Ikaw ang pumipili ng cloud save",
   "Cloud sign-in stops when your wallet choice changes. Your existing save stays in place until you choose which progress to keep.": "Hihinto ang cloud sign-in kapag nagbago ang pinili mong wallet. Mananatili ang kasalukuyan mong save hanggang piliin mo kung aling progreso ang itatago.",
   "Cloud sign-in cancelled: the wallet or save session changed.": "Nakansela ang cloud sign-in: nagbago ang wallet o save session.",

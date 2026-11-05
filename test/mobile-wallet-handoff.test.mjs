@@ -12,13 +12,13 @@ function browser(href = 'https://sankosurvivors.quest/play/?token=private&autost
     removeEventListener(name, fn) { listeners.get(name)?.delete(fn); },
     dispatchEvent(event) { for (const fn of listeners.get(event.type) || []) fn(event); return true; },
   };
-  const context = { window, URL, URLSearchParams, Event, TextEncoder, document: { documentElement: { lang } }, location: new URL(href),
+  const context = { window, createWalletConnect:()=>null, WALLETCONNECT_PROJECT_ID:'', URL, URLSearchParams, Event, TextEncoder, document: { documentElement: { lang } }, location: new URL(href),
     Date: class extends Date { static now() { return now; } },
     setTimeout(fn, ms) { const id = ++next; timers.set(id, { fn, at: now + ms }); return id; },
     clearTimeout(id) { timers.delete(id); },
   };
   context.history = { state: null, replaceState(state, title, url) { context.location = new URL(url, context.location); } };
-  vm.runInNewContext(dmtSource.replace(/^export /gm, '') + `\nthis.api = { wallets, walletAppLinks,
+  vm.runInNewContext(dmtSource.replace(/^import .*;\n/gm, '').replace(/^export /gm, '') + `\nthis.api = { wallets, walletAppLinks,
     takeWalletHandoff: typeof takeWalletHandoff === 'function' ? takeWalletHandoff : undefined,
     watchWallets: typeof watchWallets === 'function' ? watchWallets : undefined };`, context);
   return { ...context.api, context, window, timers, listeners,
@@ -96,12 +96,12 @@ test('arrival opens the requested panel but never calls connect, sign or payment
   resume(null); resume({ intent: 'pay' }); assert.deepEqual(opened, []);
   assert.match(main, /resumeWalletHandoff\(walletHandoff\)/, 'arrival is wired at startup');
 });
-test('wallet choices keep an explicit Connect button and preserve the initiating panel in app links', () => {
+test('wallet choices keep explicit Connect buttons without redirecting a PWA into wallet browsers', () => {
   const code = mainFunction('walletChoices', '\nasync function pickWallet');
   const h = browser(), esc = s => s;
   const choices = Function('wallets', 'walletIcon', 'esc', 'isPhone', 'walletAppLinks', 'document', code + '; return walletChoices;')(
     () => [], () => '', esc, () => true, h.walletAppLinks, h.context.document);
-  assert.match(choices(() => {}, 'ranked').html, /wallet(?:=|%3D)ranked/);
+  assert.doesNotMatch(choices(() => {}, 'ranked').html, /open-dapp|metamask.app.link\/dapp/);
   const picked = [], provider = { name: 'MetaMask', p: {} };
   const available = Function('wallets', 'walletIcon', 'esc', 'isPhone', 'walletAppLinks', 'document', code + '; return walletChoices;')(
     () => [provider], () => '', esc, () => true, h.walletAppLinks, h.context.document);

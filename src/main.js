@@ -12,9 +12,10 @@ import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
 const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
 // prize place of each board row: the developer's wallet and (from week 1) runs under 3:00 take none, the places pass down
 const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
-import { wallets, watchWallets, takeWalletHandoff, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
+import { wallets, watchWallets, takeWalletHandoff, savedPass, forget, prove, short, walletAppLinks, isPhone, walletModalOpen, walletConnectState, watchWalletConnect, cancelWalletConnect, dismissWalletConnect, why, DMT_COIN_BONUS } from './dmt.js';
 import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
 import { quoteDmt, buyDmt } from './swap.js';
+import { walletConnectLinks } from './wallet-connect.js';
 import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, clampSkills, skillCost,
@@ -272,7 +273,8 @@ $('rankedbtn').onclick = openRanked;
 $('rankedupdate').onclick = () => $('updatebtn').click();
 $('rankedclose').onclick = () => { $('ranked').classList.add('hidden'); $('rankedbtn').focus(); };
 $('ranked').addEventListener('click', (e) => { if (e.target.id === 'ranked') $('rankedclose').click(); });
-for (const id of ['ranked', 'wallet', 'cloudpick']) $(id).addEventListener('keydown', (e) => {
+for (const id of ['ranked', 'wallet', 'cloudpick', 'walletlink']) $(id).addEventListener('keydown', (e) => {
+  if (id !== 'walletlink' && walletModalOpen()) return;
   if (e.key !== 'Tab') return;
   const nodes = [...$(id).querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]')].filter((n) => n.offsetParent !== null);
   if (!nodes.length) return;
@@ -760,7 +762,7 @@ function renderDmt() {
   const c = walletNow(), ws = c ? [{ ...c.w, name: `${c.w.name} (${short(c.address)})` }] : wallets();
   body.innerHTML = `<p>Hold DMT on Arbitrum? Connect your wallet and sign a free message: no transaction, no gas, nothing leaves your wallet.</p>${DMT_PERKS}`
     + (ws.length ? `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${w.icon ? `<img src="${esc(w.icon)}" alt="">` : ''}Connect <span translate="no">${esc(w.name)}</span></button>`).join('')}</div>`
-      : `<p class="dim">No wallet in this browser. Open the game in your wallet app's browser:</p><div class="dmtwallets">${walletAppLinks('holder').map(([n, u]) => `<a class="btnlink" href="${esc(u)}" rel="noopener">${n}</a>`).join('')}</div><p class="dim">On a computer, install a wallet such as MetaMask or Rabby, then come back.</p>`)
+      : walletChoices(() => {}, 'holder').html)
     + '<p class="dim">The game only reads your public DMT balance (Arbitrum token 0x8B0E…04e8). A check lasts a day.</p>';
   for (const b of body.querySelectorAll('[data-w]')) b.onclick = () => connectDmt(ws[Number(b.dataset.w)]);
 }
@@ -779,7 +781,6 @@ $('dmtclose').onclick = () => $('dmt').classList.add('hidden');
 $('dmt').addEventListener('click', (e) => { if (e.target.id === 'dmt') $('dmt').classList.add('hidden'); });
 // ---- the wallet: one button in the corner (Rabby, MetaMask…), used by DMT perks and ranked ----
 const walletIcon = (w) => (w && w.icon ? `<img src="${esc(w.icon)}" alt="">` : '');
-const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
 let walletConnecting = null;
 async function walletConnect(w, owner = null) {
   if (walletConnecting !== owner) { walletConnecting = owner; $('walletmsg').textContent = ''; }
@@ -788,9 +789,9 @@ async function walletConnect(w, owner = null) {
 // a button for each wallet in this browser, or how to get one
 function walletChoices(onPick, intent = 'connect') {
   const ws = wallets();
-  if (ws.length) return { html: `<div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${walletIcon(w)}Connect <span translate="no">${esc(w.name)}</span></button>`).join('')}</div>`, bind: (root) => { for (const b of root.querySelectorAll('[data-w]')) b.onclick = () => onPick(ws[Number(b.dataset.w)]); } };
+  if (ws.length) return { html: `<p class="dim">Choose your wallet. After approving in the wallet app, switch back to this game.</p><div class="dmtwallets">${ws.map((w, i) => `<button data-w="${i}">${walletIcon(w)}Connect <span translate="no">${esc(w.name)}</span></button>`).join('')}</div>`, bind: (root) => { for (const b of root.querySelectorAll('[data-w]')) b.onclick = () => onPick(ws[Number(b.dataset.w)]); } };
   const html = isPhone()
-    ? `<p class="dim">Phone browsers have no wallet inside. Open the game in your wallet app:</p><div class="dmtwallets">${walletAppLinks(intent).map(([n, u]) => `<a class="btnlink" href="${esc(u)}" rel="noopener">${n}</a>`).join('')}</div>`
+    ? '<p class="dim">Mobile wallet connections are being configured. Please try again soon.</p>'
     : '<p class="dim">No wallet found in this browser. Install <a href="https://rabby.io" target="_blank" rel="noopener">Rabby</a> or <a href="https://metamask.io/download/" target="_blank" rel="noopener">MetaMask</a>, then reload this page.</p>';
   return { html, bind: () => {} };
 }
@@ -972,6 +973,25 @@ onWallet((c) => {
   if (!$('ranked').classList.contains('hidden')) renderRanked();
   refreshBalances();
 });
+function renderWalletConnect(state) {
+  const screen = $('walletlink'), qr = $('walletlinkqr'), canvas = $('walletlinkcanvas');
+  screen.classList.toggle('hidden', !state); qr.classList.toggle('hidden', state?.phase !== 'pair');
+  canvas.width = canvas.height = 0;
+  if (!state) { if (screen.contains(document.activeElement)) navScreen()?.querySelector('button, a[href]')?.focus(); return; }
+  $('walletlinktext').textContent = state.phase === 'pair' ? 'Open your wallet to approve this connection, then switch back to this app. Your game stays here.' : 'Approve the request in your connected wallet, then switch back to this app. Your game stays here.';
+  $('walletlinkapps').innerHTML = walletConnectLinks(state.phase === 'pair' ? state.uri : null).map(([name, url]) => `<a class="btnlink" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open ${name}</a>`).join('');
+  $('walletlinkback').textContent = state.phase === 'pair' ? 'Cancel connection' : 'Back to game';
+  $('walletlinkapps').querySelector('a')?.focus();
+  if (state.phase === 'pair') {
+    $('walletlinkqrtext').textContent = 'Scan with any WalletConnect wallet';
+    import('qrcode').then(({default: encoder}) => {
+      if (walletConnectState() === state) return encoder.toCanvas(canvas, state.uri, { width: 256, margin: 4 });
+    }).catch(() => { if (walletConnectState() === state) $('walletlinkqrtext').textContent = 'QR code unavailable. Use a wallet button above.'; });
+  }
+}
+
+watchWalletConnect(renderWalletConnect);
+$('walletlinkback').onclick = () => { if (walletConnectState()?.phase === 'pair') cancelWalletConnect(); else dismissWalletConnect(); };
 renderWalletChip(); walletRestore();
 watchWallets(refreshWalletChoices);
 resumeWalletHandoff(walletHandoff);
@@ -1156,6 +1176,7 @@ function toMenu() {
 // ---- input ------------------------------------------------------------------------------------------------------------------
 const MENU_SCREENS = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests'];
 addEventListener('keydown', (e) => {
+  if (walletModalOpen()) return;
   if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
   if (e.repeat) return;
   const k = e.key.toLowerCase();
@@ -1439,7 +1460,7 @@ function updateHud(view) {
 const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
 const NAV_ITEMS = 'summary, .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
-function navScreen() { return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
+function navScreen() { if (walletModalOpen()) return null; return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden')); }
 function navFocus(el) { if (navEl) navEl.classList.remove('navfocus'); navEl = el; if (el) { el.classList.add('navfocus'); if (el.tabIndex < 0) el.tabIndex = -1; el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
 function navMove(dir) {
@@ -1466,6 +1487,7 @@ function navPress() {
   navEl.click(); return true;
 }
 function navBack() {
+  if (walletModalOpen()) return true;
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
@@ -1475,6 +1497,7 @@ function navBack() {
   return false;
 }
 addEventListener('keydown', (e) => {
+  if (walletModalOpen()) return;
   const k = e.key, dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
   if (k === 'Tab' && navEl) navFocus(null);
   const spatialControl = e.target === navEl && e.target?.matches?.('summary, input[data-vol]');

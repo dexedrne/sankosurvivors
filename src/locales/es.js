@@ -1,5 +1,24 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Scan with any WalletConnect wallet": "Escanea con cualquier cartera WalletConnect",
+  "WalletConnect pairing QR code": "Código QR de conexión WalletConnect",
+  "QR code unavailable. Use a wallet button above.": "Código QR no disponible. Usa un botón de cartera de arriba.",
+
+  "Choose your wallet. After approving in the wallet app, switch back to this game.": "Elige tu cartera. Tras aprobar en la aplicación de la cartera, vuelve a este juego.",
+  "Mobile wallet connections are being configured. Please try again soon.": "Se están configurando las conexiones de carteras móviles. Vuelve a intentarlo pronto.",
+  "Approve in your wallet": "Aprueba en tu cartera",
+  "Open your wallet to approve this connection, then switch back to this app. Your game stays here.": "Abre tu cartera para aprobar la conexión y vuelve a esta aplicación. Tu partida se queda aquí.",
+  "Approve the request in your connected wallet, then switch back to this app. Your game stays here.": "Aprueba la solicitud en tu cartera conectada y vuelve a esta aplicación. Tu partida se queda aquí.",
+  "Cancel connection": "Cancelar conexión",
+  "Back to game": "Volver al juego",
+  "Open MetaMask": "Abrir MetaMask",
+  "Open Rabby": "Abrir Rabby",
+  "Wallet connection cancelled.": "Conexión de cartera cancelada.",
+  "Connect your wallet again.": "Vuelve a conectar tu cartera.",
+  "This connection supports Arbitrum One.": "Esta conexión admite Arbitrum One.",
+  "Connect from this game": "Conecta desde este juego",
+  "WalletConnect keeps your connection in this game while you approve in your wallet app. Return here after approving.": "WalletConnect mantiene tu conexión en este juego mientras apruebas en la aplicación de tu cartera. Vuelve aquí tras aprobar.",
+
   "Cloud saves follow your choice": "Tú eliges el progreso en la nube",
   "Cloud sign-in stops when your wallet choice changes. Your existing save stays in place until you choose which progress to keep.": "El inicio de sesión en la nube se detiene si cambias de billetera. Tu partida actual se conserva hasta que elijas qué progreso mantener.",
   "Cloud sign-in cancelled: the wallet or save session changed.": "Inicio de sesión en la nube cancelado: cambió la billetera o la sesión de guardado.",

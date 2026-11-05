@@ -38,15 +38,16 @@ function menu(mode = 'title') {
     if (parent) { parent.children.push(el); classes.delete('hidden'); }
     elements.set(id, el); return el;
   }
-  for (const id of ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'pause', 'end', 'title']) element(id);
-  for (const [id, parent] of [['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
+  for (const id of ['cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'pause', 'end', 'title']) element(id);
+  for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('volume', elements.get('settings'), 'input'); element('settingsclose', elements.get('settings'));
   for (const id of ['walletchip', 'cloudwal', 'clouddev']) element(id);
   const $ = id => { assert.ok(elements.has(id), `unknown DOM id ${id}`); return elements.get(id); };
   $(mode).classList.remove('hidden');
   const app = Function('$', 'addEventListener', 'document', 'initialMode', 'onWallet', 'walletRevision', `
-    let mode=initialMode, started=0, connected=0;
+    let mode=initialMode, started=0, connected=0, mobileModal=false;
+    const walletModalOpen=()=>mobileModal;
     const keys=new Set(), startRun=()=>{started++;}, pause=on=>{mode=on?'pause':'play';};
     $('start').onclick=startRun; $('again').onclick=startRun;
     $('walletconnect').onclick=()=>{connected++;};
@@ -59,7 +60,7 @@ function menu(mode = 'title') {
     const cloud={${choose}};
     return {back:navBack, move:navMove, screen:()=>navScreen()?.id,
       frame(edges){${pad}},
-      choose:cloud.choose, focus(id){navFocus($(id));},
+      modal:on=>mobileModal=on, choose:cloud.choose, focus(id){navFocus($(id));},
       state:()=>({started,connected,mode})};
   `)($, (event, fn, capture = false) => listeners.push({ event, fn, capture }), { get activeElement() { return active; } }, mode, () => () => {}, () => 0);
   return {
@@ -78,6 +79,7 @@ function menu(mode = 'title') {
           all[(all.indexOf(active)+(shiftKey?-1:1)+all.length)%all.length]?.focus();
         }
       }
+      return {prevented,stopped};
     },
   };
 }
@@ -194,4 +196,10 @@ test('Escape closes settings from a spatially selected volume slider',()=>{
 test('ordinary native volume editing bypasses spatial shortcuts',()=>{
   const m=menu(); m.open('settings'); m.$('volume').focus(); m.key('ArrowDown');
   assert.equal(m.active,'volume'); assert.equal(Number(m.$('volume').value),50);
+});
+
+test('wallet approval screen keeps native keys and controller input away from the game',()=>{
+  const m=menu();m.app.modal(true);const key=m.key('ArrowDown');m.app.frame({a:true,start:true});
+  assert.equal(m.app.state().started,0);assert.equal(m.active,undefined);assert.equal(key.prevented,false);
+  m.open('wallet');m.app.back();assert.equal(m.$('wallet').classList.contains('hidden'),false);
 });

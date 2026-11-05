@@ -690,3 +690,7 @@ html:not([lang="en"]) .panel h2 { overflow-wrap:anywhere; }
   #actions { grid-column:auto; }
   #brand h1 { font-size:36px; } #brand h2 { font-size:18px; }
 }
+
+#walletlink { z-index: 100; }
+
+#walletlinkcanvas { width: min(256px, 65vw); height: auto; background: #fff; }
