@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Reconnect without waiting": "Vuelve a conectarte sin esperar",
+  "Disconnect frees the game's wallet picker while an older reply is pending. Old replies cannot overwrite status or unlock a newer request.": "Desconectarte libera el selector de billetera del juego mientras una respuesta anterior sigue pendiente. Las respuestas antiguas no pueden sobrescribir el estado ni desbloquear una solicitud más reciente.",
   "Keep your wallet choice": "Se conserva tu elección de billetera",
   "Delayed wallet responses respect a newer wallet choice or Disconnect. Invalid account responses are refused.": "Las respuestas tardías de la billetera respetan una elección más reciente o la desconexión. Se rechazan las respuestas de cuenta no válidas.",
   "Wallet selection changed. Please connect again.": "La selección de billetera ha cambiado. Conéctate de nuevo.",

@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Reconnect without waiting": "Beklemeden yeniden bağlan",
+  "Disconnect frees the game's wallet picker while an older reply is pending. Old replies cannot overwrite status or unlock a newer request.": "Eski bir yanıt beklenirken bağlantıyı kesmek, oyunun cüzdan seçicisini yeniden kullanılabilir hale getirir. Eski yanıtlar durum mesajını değiştiremez veya daha yeni bir isteğin kilidini kaldıramaz.",
   "Keep your wallet choice": "Cüzdan seçimin korunsun",
   "Delayed wallet responses respect a newer wallet choice or Disconnect. Invalid account responses are refused.": "Geciken cüzdan yanıtları, daha yeni bir cüzdan seçimini veya bağlantıyı kesme işlemini geçersiz kılmaz. Geçersiz hesap yanıtları reddedilir.",
   "Wallet selection changed. Please connect again.": "Cüzdan seçimi değişti. Lütfen yeniden bağlan.",

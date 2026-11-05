@@ -15,7 +15,7 @@ const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
 import { wallets, watchWallets, takeWalletHandoff, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
 import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
 import { quoteDmt, buyDmt } from './swap.js';
-import { connect as walletConnect, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
+import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
@@ -780,7 +780,11 @@ $('dmt').addEventListener('click', (e) => { if (e.target.id === 'dmt') $('dmt').
 // ---- the wallet: one button in the corner (Rabby, MetaMask…), used by DMT perks and ranked ----
 const walletIcon = (w) => (w && w.icon ? `<img src="${esc(w.icon)}" alt="">` : '');
 const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
-let walletConnecting = false;
+let walletConnecting = null;
+async function walletConnect(w, owner = null) {
+  if (walletConnecting !== owner) { walletConnecting = owner; $('walletmsg').textContent = ''; }
+  return requestWallet(w);
+}
 // a button for each wallet in this browser, or how to get one
 function walletChoices(onPick, intent = 'connect') {
   const ws = wallets();
@@ -792,9 +796,10 @@ function walletChoices(onPick, intent = 'connect') {
 }
 async function pickWallet(w, msg) {
   if (walletConnecting) return;
-  walletConnecting = true;
-  try { msg('Approve the connection in your wallet…'); await walletConnect(w); msg(''); } catch (e) { msg(why(e)); }
-  finally { walletConnecting = false; }
+  const attempt = walletConnecting = { w };
+  try { msg('Approve the connection in your wallet…'); await walletConnect(w, attempt); if (walletConnecting === attempt) msg(''); }
+  catch (e) { if (walletConnecting === attempt) msg(why(e)); }
+  finally { if (walletConnecting === attempt) walletConnecting = null; }
 }
 async function refreshBalances(force = false) {
   const c = walletNow(); if (!c) { walletBal = null; return null; }
@@ -910,7 +915,13 @@ function resumeWalletHandoff(handoff) {
 $('walletchip').onclick = openWallet;
 $('walletclose').onclick = () => { $('wallet').classList.add('hidden'); (!$('ranked').classList.contains('hidden') ? $('rankedclose') : $('walletchip')).focus(); };
 $('wallet').addEventListener('click', (e) => { if (e.target.id === 'wallet') $('walletclose').click(); });
-onWallet(() => { walletBal = null; applyDmt(); if (!$('wallet').classList.contains('hidden')) renderWallet(); if (!$('ranked').classList.contains('hidden')) renderRanked(); refreshBalances(); });
+onWallet((c) => {
+  if (walletConnecting && (!c || c.w.p !== walletConnecting.w.p)) { walletConnecting = null; $('walletmsg').textContent = ''; }
+  walletBal = null; applyDmt();
+  if (!$('wallet').classList.contains('hidden')) renderWallet();
+  if (!$('ranked').classList.contains('hidden')) renderRanked();
+  refreshBalances();
+});
 renderWalletChip(); walletRestore();
 watchWallets(refreshWalletChoices);
 resumeWalletHandoff(walletHandoff);

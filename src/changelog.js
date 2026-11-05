@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.7', date: '4 Nov 2026', title: 'Reconnect without waiting',
+    items: ["Disconnect frees the game's wallet picker while an older reply is pending. Old replies cannot overwrite status or unlock a newer request."],
+  },
+  {
     version: '0.44.6', date: '4 Nov 2026', title: 'Keep your wallet choice',
     items: ['Delayed wallet responses respect a newer wallet choice or Disconnect. Invalid account responses are refused.'],
   },

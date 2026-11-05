@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Reconnect without waiting": "Kumonekta muli nang hindi naghihintay",
+  "Disconnect frees the game's wallet picker while an older reply is pending. Old replies cannot overwrite status or unlock a newer request.": "Magagamit muli ang pagpili ng wallet sa laro kapag nag-disconnect ka kahit may hinihintay pang lumang tugon. Hindi mababago ng lumang tugon ang status o maaalis ang lock ng mas bagong request.",
   "Keep your wallet choice": "Panatilihin ang piniling wallet",
   "Delayed wallet responses respect a newer wallet choice or Disconnect. Invalid account responses are refused.": "Iginagalang ng mga nahuling tugon ng wallet ang mas bagong pagpili ng wallet o pag-disconnect. Tinatanggihan ang mga hindi wastong tugon ng account.",
   "Wallet selection changed. Please connect again.": "Nagbago ang piniling wallet. Kumonekta muli.",
