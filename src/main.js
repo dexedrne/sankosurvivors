@@ -960,12 +960,20 @@ async function checkDmt(w, onStep) {
     current(); return result;
   } finally { if (holderChecking === attempt) holderChecking = null; }
 }
+let titleName = $('rankedname').value;
+function syncTitleNames(force = false) {
+  const value = load('sq-name', ''), name = typeof value === 'string' ? value : '';
+  for (const id of ['rankedname', 'lbname']) {
+    const input = $(id);
+    if ((force || input.value === titleName) && input.value !== name) input.value = name;
+  }
+  titleName = name;
+}
 function syncTitleProgress() {
   titleProgressPending = false;
   selMap = savedChoice('sq-map', MAP_BY_ID, 'greentown');
   selAdv = savedChoice('sq-adv', ADVENTURER_BY_ID, 'adventurer');
-  const name = load('sq-name', '');
-  $('rankedname').value = $('lbname').value = typeof name === 'string' ? name : '';
+  syncTitleNames();
   buildAdventurers(); buildMaps(); showBest(); window.__idleSim = null;
 }
 function refreshTitleProgress() {
@@ -977,6 +985,7 @@ function refreshPendingTitleProgress() {
 }
 function queuePageReload(text, delay) {
   if (!cloudCanLoad()) return;
+  syncTitleNames(true);
   refreshTitleProgress();
   if (!canReloadGame()) return;
   clearTimeout(reloadTimer); banner(text, 3000);
@@ -986,11 +995,8 @@ const cloud = createCloud(BASE, {
   signing: active => { walletRequests += active ? 1 : -1; },
   canLoad: progressCanLoad,
   canSave: () => mode !== 'recovery',
-  merged: (before) => {
-    let previousName = '';
-    try { previousName = JSON.parse(before['sq-name'] || '""'); } catch { /* old malformed name */ }
-    const name = load('sq-name', '');
-    for (const id of ['rankedname', 'lbname']) if ($(id).value === (typeof previousName === 'string' ? previousName : '')) $(id).value = typeof name === 'string' ? name : '';
+  merged: () => {
+    syncTitleNames();
     titleProgressPending = true;
     refreshPendingTitleProgress();
   },

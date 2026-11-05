@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep the name you are typing": "Yazdığın adı koru",
+  "Background cloud merges now preserve edited leaderboard names when the main menu refreshes.": "Ana menü yenilendiğinde arka plandaki bulut birleştirmeleri artık düzenlediğin skor tablosu adlarını korur.",
+
   "Mute every music track": "Tüm müzik parçalarını sustur",
   "Mute, music volume and pause now apply to outgoing music as well as the current song.": "Sessize alma, müzik sesi ve duraklatma artık çalan şarkının yanı sıra kapanan müzik parçalarına da uygulanır.",
 

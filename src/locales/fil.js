@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Keep the name you are typing": "Panatilihin ang pangalang tina-type mo",
+  "Background cloud merges now preserve edited leaderboard names when the main menu refreshes.": "Pinapanatili na ng background cloud merge ang mga na-edit na pangalan sa leaderboard kapag nag-refresh ang main menu.",
+
   "Mute every music track": "I-mute ang lahat ng music track",
   "Mute, music volume and pause now apply to outgoing music as well as the current song.": "Nalalapat na ang mute, music volume at pause sa papahinang music track pati sa kasalukuyang kanta.",
 

@@ -8,6 +8,7 @@ import * as W from '../src/wallet.js';
 import { prove as proveHolder } from '../src/dmt.js';
 import { importProgress as importProgressImpl, recoverProgressImport as recoverProgressImportImpl } from '../src/progress-import.js';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+const rankedNameInput=main.split('\n').find(s=>s.startsWith("$('rankedname').oninput ="));
 const cloudBlock=main.slice(main.indexOf('let cloudConnecting ='),main.indexOf('onSaved = (k)'));
 const pull=main.slice(main.indexOf('const cloudPull ='),main.indexOf("document.addEventListener('visibilitychange'",main.indexOf('const cloudPull =')));
 const preferenceHelpers=main.slice(main.indexOf('function applySavedGraphics('),main.indexOf('async function boot()'));
@@ -32,8 +33,9 @@ const lockStart=main.indexOf('function withImportLock(');
 const lock=lockStart<0?'':main.slice(lockStart,main.indexOf('function showProgressRecovery(',lockStart));
 const A='0x'+'1'.repeat(40),deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 const reply=(value,status=200)=>new Response(JSON.stringify(value),{status});
-async function setup(t,{pause='login',established=false,holdStart=true,failStart=false,browserFailure=null,noBrowserApis=false,importData={'sq-coins':'100'},importFailure=null,holderReply=false,cloudData={'sq-coins':'100'},pullData={'sq-coins':'700'},failMap=false,putResponses=[],failSettings=false}={}){
+async function setup(t,{pause='login',established=false,holdStart=true,failStart=false,browserFailure=null,noBrowserApis=false,importData={'sq-coins':'100'},importFailure=null,holderReply=false,cloudData={'sq-coins':'100'},pullData={'sq-coins':'700'},failMap=false,putResponses=[],failSettings=false,initialName=null}={}){
   const previous=globalThis.localStorage,previousWindow=globalThis.window,store=new Map(established?[['sq-coins','500'],['sq-cloud',JSON.stringify({a:A,key:'fixture-key',rev:1})],['sq-cloud-base',JSON.stringify({'sq-coins':'500'})]]:[]);
+  if(initialName!==null)store.set('sq-name',JSON.stringify(initialName));
   const writes=[];let writesBlocked=false,importFailed=false,holderActive=false,traceConnect=false;
   globalThis.localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>{if(importFailure==='reserve'&&k==='sq-import-backup-v1')throw Error('fixture quota');if(writesBlocked)throw Error('fixture storage blocked');if(importFailure&&k==='sq-name'&&v==='\"Imported\"'&&!importFailed){importFailed=true;writesBlocked=importFailure==='persistent';throw Error('fixture import write failure');}writes.push(k);store.set(k,String(v));},removeItem:k=>{if(writesBlocked)throw Error('fixture storage blocked');store.delete(k);}};globalThis.window={};
   t.mock.timers.enable({apis:['setTimeout']});
@@ -57,7 +59,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
   });
   const browserStage=async name=>{calls.push(name);await stage(name);if(browserFailure===name)throw Error('fixture browser API failure');};
   const nodes=new Map(),$=id=>{
-    if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{value:id==='rankedadv'?'adventurer':id==='rankedname'?'Fixture':'',textContent:'',disabled:false,dataset:{},focus(){if(id==='cloudusewal')gates.choice.hit.resolve();},children:[],querySelectorAll:()=>[],replaceChildren(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);
+    if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{value:id==='rankedadv'?'adventurer':id==='rankedname'?(initialName??'Fixture'):id==='lbname'?(initialName??''):'',textContent:'',disabled:false,dataset:{},focus(){if(id==='cloudusewal')gates.choice.hit.resolve();},children:[],querySelectorAll:()=>[],replaceChildren(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);
   };
   const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings',`
     let buyBusy=null,walletConnecting=null,walletRequests=0,walletUi=false,walletBal=null,recoveryCanRestart=null;const walletModalOpen=()=>walletUi;
@@ -77,6 +79,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     const renderWallet=()=>{},renderDmt=()=>{},refreshBalances=()=>{},wallets=()=>[],short=a=>a,renderRanked=()=>{},rankedMessage=()=>{},openRanked=()=>{},why=e=>e.message,plain=s=>Error(s),applyDmt=()=>{},buildAdventurers=()=>{},showBest=()=>{},buildSettings=()=>{},submitRanked=async()=>{};
     const readRanked=(key,fallback=null)=>key==='sq-ranked-live'?storedLive:fallback,writeRanked=(key,value)=>{if(key==='sq-ranked-live')storedLive=value;};
     const rankedApi=async()=>({run:'fixture-run',seed:1,map:'greentown',week:0,mode:'normal'}),RunRecorder=class{log(){return{runs:[]};}};
+    ${rankedNameInput}
     ${choices}
     ${mapBuilder}
     ${cloudBlock}
@@ -317,7 +320,7 @@ test('startup pull waits for a saved nondefault map after both early pull opport
 });
 
 async function mergedTitle(t,{map='greentown',...options}={}){
- const f=await setup(t,{pause:null,holdStart:false,established:true,...options,putResponses:[{status:409,body:{conflict:true,rev:2,data:{'sq-coins':'200','sq-map':JSON.stringify(map),'sq-adv':'"wizard"','sq-name':'"Merged"','sq-cleared':'["greentown"]'}}}]});
+ const f=await setup(t,{pause:null,holdStart:false,established:true,initialName:'Before',...options,putResponses:[{status:409,body:{conflict:true,rev:2,data:{'sq-coins':'200','sq-map':JSON.stringify(map),'sq-adv':'"wizard"','sq-name':'"Merged"','sq-cleared':'["greentown"]'}}}]});
  const before={'sq-coins':'100','sq-map':'"greentown"','sq-adv':'"adventurer"','sq-name':'"Before"'};f.store.set('sq-cloud-base',JSON.stringify(before));for(const key of ['sq-map','sq-adv','sq-name'])f.store.set(key,before[key]);f.$('rankedname').value=f.$('lbname').value='Before';return f;
 }
 test('a committed upload conflict refreshes the title choices used by the next run',async t=>{
@@ -408,4 +411,36 @@ test('completed holder proof leaves the older cancelled cloud signature guarded'
 
 test('failed committed display application requires recovery before fast Start or ranked actions',async t=>{
  const data={'sq-coins':'650','sq-settings':'{"v":2,"res":"0.5"}','sq-muted':'1','sq-vol':'{"s":20,"m":70}'},f=await setup(t,{pause:null,holdStart:false,importData:data,failSettings:true});await f.app.load();assert.equal(f.store.get('sq-coins'),'650');assert.equal(f.store.has('sq-import-backup-v1'),false);await f.app.startRun();assert.equal(f.app.state().mode,'recovery');assert.deepEqual(f.app.audioApplied(),[data]);await f.app.rankedAction('start');t.mock.timers.tick(1000);assert.equal(f.reloads(),0);assert.equal(f.calls.includes('run'),false);assert.equal(f.store.get('sq-muted'),'1');
+});
+
+// Mutations caught: unconditional saved-name writes during title reconciliation lose drafts;
+// omitting explicit adoption refresh leaves stale names after an accepted import or cloud pull.
+for(const draft of ['Before ','  ','Before ı'])test(`a title conflict merge preserves Ranked draft ${JSON.stringify(draft)}`,async t=>{
+ const f=await mergedTitle(t);f.$('rankedname').value=draft;f.$('rankedname').oninput();
+ await f.app.cloud.push(true);
+ assert.equal(f.$('rankedname').value,draft);assert.equal(f.$('lbname').value,draft.trim()==='Before'?'Merged':draft.trim());
+ assert.equal(f.app.state().selAdv,'wizard');assert.equal(f.reloads(),0);
+});
+test('title reconciliation preserves an unsaved end-screen draft after returning from a merged run',async t=>{
+ const f=await mergedTitle(t);await f.start();f.app.mode('end');f.$('lbname').value='MyEdit';await f.app.cloud.push(true);
+ assert.equal(f.$('lbname').value,'MyEdit');f.app.toMenu();await f.flush();assert.equal(f.$('lbname').value,'MyEdit');assert.equal(f.$('rankedname').value,'Merged');assert.equal(f.app.state().selAdv,'wizard');
+});
+test('fast Start after a deferred conflict merge preserves the edited name',async t=>{
+ const f=await mergedTitle(t);await f.start();f.app.mode('end');f.$('lbname').value='KeepMe';await f.app.cloud.push(true);await f.start();
+ assert.equal(f.$('lbname').value,'KeepMe');assert.equal(f.app.state().sim.players[0].adv,'wizard');
+});
+test('a conflict finishing during a title map load preserves both draft fields',async t=>{
+ const f=await mergedTitle(t,{pause:'map'}),picking=f.track(f.app.pickMap('tutorial'));await f.gates.map.hit.promise;
+ f.$('rankedname').value='Before ';f.$('rankedname').oninput();f.$('lbname').value='EndEdit';await f.app.cloud.push(true);f.finish();await picking;await f.flush();
+ assert.deepEqual([f.$('rankedname').value,f.$('lbname').value],['Before ','EndEdit']);assert.equal(f.app.state().loadedMapId,'tutorial');assert.equal(f.$('start').disabled,false);
+});
+test('an input edit arriving during a cloud PUT survives the resulting title refresh',async t=>{
+ const f=await mergedTitle(t,{pause:'push'}),saving=f.track(f.app.cloud.push(true));await f.gates.push.hit.promise;f.$('rankedname').value='Before ';f.$('rankedname').oninput();f.gates.push.gate.resolve();await saving;
+ assert.equal(f.$('rankedname').value,'Before ');assert.equal(f.store.get('sq-name'),'"Merged"');assert.equal(f.$('lbname').value,'Merged');
+});
+for(const source of ['import','sign-in','pull'])test(`accepted ${source} deliberately refreshes edited names before a fast Start`,async t=>{
+ const data={'sq-coins':'250','sq-name':'"Accepted"'},f=await setup(t,{pause:null,holdStart:false,established:source==='pull',importData:data,cloudData:data,pullData:data});
+ f.$('rankedname').value='Draft ';f.$('lbname').value='EndDraft';
+ if(source==='import')await f.app.load();else if(source==='sign-in')await f.sign();else await f.pull();
+ assert.deepEqual([f.$('rankedname').value,f.$('lbname').value],['Accepted','Accepted']);await f.start();assert.equal(f.store.get('sq-name'),'"Accepted"');assert.deepEqual([f.$('rankedname').value,f.$('lbname').value],['Accepted','Accepted']);t.mock.timers.tick(1000);assert.equal(f.reloads(),0);
 });

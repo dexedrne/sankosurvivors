@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.24', date: '5 Nov 2026', title: 'Keep the name you are typing',
+    items: ['Background cloud merges now preserve edited leaderboard names when the main menu refreshes.'],
+  },
+  {
     version: '0.44.23', date: '5 Nov 2026', title: 'Mute every music track',
     items: ['Mute, music volume and pause now apply to outgoing music as well as the current song.'],
   },

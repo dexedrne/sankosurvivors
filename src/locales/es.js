@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep the name you are typing": "Conserva el nombre que escribes",
+  "Background cloud merges now preserve edited leaderboard names when the main menu refreshes.": "Las fusiones en segundo plano con la nube ahora conservan los nombres editados de la clasificación al actualizar el menú principal.",
+
   "Mute every music track": "Silencia todas las pistas de música",
   "Mute, music volume and pause now apply to outgoing music as well as the current song.": "Silenciar, ajustar el volumen de música y pausar ahora también afecta a las pistas que se desvanecen, además de la canción actual.",
 
