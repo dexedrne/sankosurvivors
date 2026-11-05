@@ -90,7 +90,7 @@ export function createCloud(baseUrl, ui) {
     const checkCurrent = () => {
       const c = current();
       if (generation !== signInGeneration) throw new Error('Cloud sign-in cancelled: another action started.');
-      if (ui.canLoad && !ui.canLoad()) throw new Error('Cloud loading is paused while a run is starting or in progress.');
+      if (ui.canLoad && !ui.canLoad()) throw new Error('Cloud loading is paused while the game loads or a run is starting or in progress.');
       if (cloudState()?.key !== sessionKey || walletRevision() !== revision
         || !c || c.w.p !== conn.w.p || c.address.toLowerCase() !== conn.address.toLowerCase()) throw new Error('Cloud sign-in cancelled: the wallet or save session changed.');
     };

@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.15', date: '5 Nov 2026', title: 'Your loaded adventurer and map',
+    items: ['Loaded progress now refreshes your adventurer, map and name before the next run, even if you cancel the page reload.'],
+  },
+  {
     version: '0.44.14', date: '5 Nov 2026', title: 'Update without interrupting a run',
     items: ['Starting a run cancels pending page updates and progress-import reloads. Finish wallet actions before using Update.', 'Progress imports keep a recovery backup until every change has saved.'],
   },

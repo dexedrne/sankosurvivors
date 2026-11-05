@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Your loaded adventurer and map": "Ang na-load mong adventurer at mapa",
+  "Loaded progress now refreshes your adventurer, map and name before the next run, even if you cancel the page reload.": "Ina-update na ngayon ng na-load na progreso ang adventurer, mapa at pangalan mo bago ang susunod na laro, kahit makansela ang pag-reload ng page.",
+  "Cloud loading is paused while the game loads or a run is starting or in progress.": "Naka-pause ang pag-load mula sa cloud habang naglo-load ang game, nagsisimula ang laro, o may larong nagpapatuloy.",
+
   "Restore progress before playing": "Ibalik ang progreso bago maglaro",
   "An import could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.": "Hindi natapos ang pag-import. Naka-back up sa device na ito ang dati mong progreso. Ibalik ito bago maglaro o mag-save sa wallet mo.",
   "Restore previous progress": "Ibalik ang dating progreso",

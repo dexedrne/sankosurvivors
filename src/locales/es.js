@@ -1,5 +1,9 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Your loaded adventurer and map": "Tu aventurero y mapa cargados",
+  "Loaded progress now refreshes your adventurer, map and name before the next run, even if you cancel the page reload.": "El progreso cargado ahora actualiza tu aventurero, mapa y nombre antes de la siguiente partida, aunque canceles la recarga de la página.",
+  "Cloud loading is paused while the game loads or a run is starting or in progress.": "La carga desde la nube se pausa mientras se carga el juego o se inicia o está en curso una partida.",
+
   "Restore progress before playing": "Restaura el progreso antes de jugar",
   "An import could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.": "No se pudo completar la importación. Tu progreso anterior está respaldado en este dispositivo. Restáuralo antes de jugar o guardar en tu cartera.",
   "Restore previous progress": "Restaurar el progreso anterior",

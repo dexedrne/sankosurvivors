@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Your loaded adventurer and map": "Yüklediğin maceracı ve harita",
+  "Loaded progress now refreshes your adventurer, map and name before the next run, even if you cancel the page reload.": "Yüklenen ilerleme artık sayfa yenilemesini iptal etsen bile bir sonraki oyundan önce maceracını, haritanı ve adını günceller.",
+  "Cloud loading is paused while the game loads or a run is starting or in progress.": "Oyun yüklenirken, bir oyun başlatılırken veya devam ederken buluttan yükleme duraklatılır.",
+
   "Restore progress before playing": "Oynamadan önce ilerlemeyi geri yükle",
   "An import could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.": "İçe aktarma tamamlanamadı. Önceki ilerlemen bu cihazda yedeklendi. Oynamadan veya cüzdanına kaydetmeden önce geri yükle.",
   "Restore previous progress": "Önceki ilerlemeyi geri yükle",

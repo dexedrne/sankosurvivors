@@ -65,8 +65,12 @@ const clearedMaps = () => new Set(load('sq-cleared', []));
 const getCoins = () => Number(load('sq-coins', 0)) || 0;
 const clampLv = (o, max) => { const out = {}; if (o && typeof o === 'object' && !Array.isArray(o)) for (const k of Object.keys(o)) out[k] = Math.max(0, Math.min(max, Math.floor(Number(o[k])) || 0)); return out; }; // saved levels can be edited or arrive in a #carry= link: never trust them as numbers
 const getSkills = () => clampSkills(load('sq-skills', {}));
-let selMap = load('sq-map', 'greentown'); if (!MAP_BY_ID[selMap]) selMap = 'greentown';
-let selAdv = load('sq-adv', 'adventurer'); if (!ADVENTURER_BY_ID[selAdv]) selAdv = 'adventurer';
+function savedChoice(key, known, fallback) {
+  const id = load(key, fallback);
+  return typeof id === 'string' && Object.hasOwn(known, id) ? id : fallback;
+}
+let selMap = savedChoice('sq-map', MAP_BY_ID, 'greentown');
+let selAdv = savedChoice('sq-adv', ADVENTURER_BY_ID, 'adventurer');
 let loadedMapId = 'greentown', mapLoading = false, hardOn = false, endlessOn = false;
 // gear you own (from caskets and quests) and what you wear; lifetime stats that quests read
 const getBank = () => { const b = load('sq-bank', []); return Array.isArray(b) ? b.filter((n) => typeof n === 'string' && Object.hasOwn(GEAR, n)) : []; }; // old saves: unknown names are ignored
@@ -154,8 +158,8 @@ function buildMaps() {
   for (const [w, id] of [['hardwrap', 'hard'], ['endlesswrap', 'endless']]) { $(w).classList.remove('hidden'); $(w).classList.toggle('locked', !cleared); $(id).disabled = !cleared; $(w).title = cleared ? '' : `Clear ${m.name} to unlock`; }
   if (!cleared && (hardOn || endlessOn)) { hardOn = false; $('hard').checked = false; endlessOn = false; $('endless').checked = false; showBest(); }
 }
-async function pickMap(id) {
-  if (mapLoading) return; selMap = id; save('sq-map', id); window.__idleSim = null;
+async function pickMap(id, remember = true) {
+  if (mapLoading) return; selMap = id; if (remember) save('sq-map', id); window.__idleSim = null;
   const map = MAP_BY_ID[id];
   if (loadedMapId !== id) {
     mapLoading = true; $('start').disabled = true; $('loadtext').textContent = `Loading ${map.name}…`;
@@ -454,7 +458,7 @@ async function boot() {
     await renderer.preloadGear(Object.values(getGear()));
     { const st = load('sq-settings', {}); if ((st.v || 1) < 2) { st.roofs = 'off'; st.quality = 'auto'; st.v = 2; save('sq-settings', st); } renderer.applySettings(st); }
     $('start').disabled = false; buildAdventurers(); buildMaps(); showBest(); renderer.setZoom(0.45); renderer.setShift(2.4);
-    if (selMap !== 'greentown') pickMap(selMap);
+    if (selMap !== 'greentown') await pickMap(selMap);
     if (params.has('clean')) $('title').classList.add('hidden');
     if (params.has('autostart') && !rankedLive()) {
       for (const ch of (params.get('hold') || '')) keys.add(ch);
@@ -649,14 +653,14 @@ function showProgressRecovery() {
 }
 $('xferload').onclick = async () => {
   if (importAttempt) return;
-  if (!canManuallyReload()) { $('xfermsg').textContent = 'Finish your run or wallet action before loading progress.'; return; }
+  if (!canManuallyReload() || !progressCanLoad()) { $('xfermsg').textContent = 'Finish your run or wallet action before loading progress.'; return; }
   const r = xferRead($('xferin').value); if (r.error) { $('xfermsg').textContent = r.error; return; }
   if ($('xferload').dataset.sure !== '1') { $('xferload').dataset.sure = '1'; $('xferload').textContent = 'Replace this device\'s progress?'; $('xfermsg').textContent = `This device has ${getCoins().toLocaleString()} coins now. Click again to load the code.`; return; }
   cancelPendingLoads();
   const attempt = importAttempt = {}; $('xferload').disabled = true;
   try {
     await withImportLock(() => {
-      if (importAttempt !== attempt || !canManuallyReload()) return;
+      if (importAttempt !== attempt || !canManuallyReload() || !progressCanLoad()) return;
       importProgress(localStorage, r.data);
       $('xfermsg').textContent = 'Loaded. Restarting…'; queuePageReload('Loaded. Restarting…', 600);
     });
@@ -882,6 +886,7 @@ function renderWallet() {
 // ---- cloud save on the wallet (src/cloud.js): the same progress on every device ---------------------------------------
 let cloudConnecting = null, cloudChoice = null, reloadTimer = 0, runStarting = false, updateAttempt = null, importAttempt = null, holderChecking = null;
 const cloudCanLoad = () => mode === 'title' && !runStarting && !rankedBusy && !rankedLive();
+const progressCanLoad = () => cloudCanLoad() && !!renderer && !mapLoading && !$('start').disabled;
 const canReloadGame = () => cloudCanLoad() && !buyBusy && !walletConnecting && !holderChecking && !walletModalOpen();
 const canManuallyReload = () => canReloadGame() && !cloudConnecting;
 function cancelPendingLoads() {
@@ -908,13 +913,23 @@ async function checkDmt(w, onStep) {
     current(); return result;
   } finally { if (holderChecking === attempt) holderChecking = null; }
 }
+function refreshTitleProgress() {
+  selMap = savedChoice('sq-map', MAP_BY_ID, 'greentown');
+  selAdv = savedChoice('sq-adv', ADVENTURER_BY_ID, 'adventurer');
+  const name = load('sq-name', '');
+  $('rankedname').value = $('lbname').value = typeof name === 'string' ? name : '';
+  buildAdventurers(); buildMaps(); showBest(); window.__idleSim = null;
+  pickMap(selMap, false).catch(e => banner('Could not load the world: ' + (e?.message || e), 4000));
+}
 function queuePageReload(text, delay) {
+  if (!cloudCanLoad()) return;
+  refreshTitleProgress();
   if (!canReloadGame()) return;
   clearTimeout(reloadTimer); banner(text, 3000);
   reloadTimer = setTimeout(() => { reloadTimer = 0; if (canReloadGame()) location.reload(); }, delay);
 }
 const cloud = createCloud(BASE, {
-  canLoad: cloudCanLoad,
+  canLoad: progressCanLoad,
   canSave: () => mode !== 'recovery',
   choose: (wal, dev) => new Promise((done) => {
     const revision = walletRevision();
@@ -961,7 +976,7 @@ function bindCloud(c, msg) {
   if (off) off.onclick = () => { if ($('wlcloudoff') !== off || !sameSession()) return; cloudConnecting = null; cloud.signOut(); msg('Cloud save is off on this device. Your saved progress stays on the wallet.'); renderWallet(); };
 }
 // open the game or come back to it: a newer save from another device loads (only between runs)
-const cloudPull = async () => { if (!cloud.state() || !cloudCanLoad()) return; if (await cloud.pull()) queuePageReload('Loading your progress from your other device…', 600); else cloud.changed(); };
+const cloudPull = async () => { if (!cloud.state() || !progressCanLoad()) return; if (await cloud.pull()) queuePageReload('Loading your progress from your other device…', 600); else cloud.changed(); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); else if (cloud.state()) cloud.push(true); });
 setTimeout(cloudPull, 1500);
 // ---- buy DMT with ETH without leaving the game (src/swap.js: KyberSwap, checked before the wallet sees it) -------------
@@ -1707,7 +1722,7 @@ function loop(ts) {
 }
 
 boot().then(async () => {
-  applyDmt(); window.__sqReady = true; await refreshRanked();
+  applyDmt(); window.__sqReady = true; cloudPull(); await refreshRanked();
   if (!walletHandoff && (rankedLive() || readRanked('sq-ranked-submit') || readRanked('sq-ranked-payment'))) {
     await openRanked();
     if (rankedLive()?.sim !== SIM_ID && rankedLive() && !readRanked('sq-ranked-submit')) recoverRankedRun();
