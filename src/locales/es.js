@@ -1,5 +1,14 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Cloud saves recover cleanly": "Recuperación segura de guardados en la nube",
+  "Cloud saves now stop when browser storage cannot save safely, and keep a recovery backup before merging progress.": "Los guardados en la nube ahora se detienen si el navegador no puede guardar de forma segura y conservan una copia de recuperación antes de combinar el progreso.",
+  "Progress merged from another device updates your menu without changing a run already in progress.": "El progreso combinado desde otro dispositivo actualiza tu menú sin cambiar una partida en curso.",
+  "Browser storage is unavailable. Progress is not confirmed saved.": "El almacenamiento del navegador no está disponible. No se ha confirmado que el progreso se haya guardado.",
+  "Progress recovery is required before playing.": "Debes recuperar el progreso antes de jugar.",
+  "Cloud save paused because the previous save could not be confirmed. Your local progress is safe. Turn cloud save on again and choose which progress to keep.": "El guardado en la nube se pausó porque no se pudo confirmar el guardado anterior. Tu progreso local está a salvo. Activa de nuevo el guardado en la nube y elige qué progreso conservar.",
+  "Finish your wallet action before restarting the game.": "Termina la acción de tu cartera antes de reiniciar el juego.",
+  "A progress save could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.": "No se pudo completar un guardado de progreso. Tu progreso anterior está respaldado en este dispositivo. Restáuralo antes de jugar o guardar en tu cartera.",
+
   "Your loaded adventurer and map": "Tu aventurero y mapa cargados",
   "Loaded progress now refreshes your adventurer, map and name before the next run, even if you cancel the page reload.": "El progreso cargado ahora actualiza tu aventurero, mapa y nombre antes de la siguiente partida, aunque canceles la recarga de la página.",
   "Cloud loading is paused while the game loads or a run is starting or in progress.": "La carga desde la nube se pausa mientras se carga el juego o se inicia o está en curso una partida.",

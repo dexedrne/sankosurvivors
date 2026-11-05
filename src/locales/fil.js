@@ -1,5 +1,14 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Cloud saves recover cleanly": "Ligtas na pagbawi ng cloud save",
+  "Cloud saves now stop when browser storage cannot save safely, and keep a recovery backup before merging progress.": "Humihinto na ang cloud save kapag hindi ligtas na makapag-save ang browser storage, at may backup bago pagsamahin ang progreso.",
+  "Progress merged from another device updates your menu without changing a run already in progress.": "Ina-update ng progresong pinagsama mula sa ibang device ang menu mo nang hindi binabago ang kasalukuyang laro.",
+  "Browser storage is unavailable. Progress is not confirmed saved.": "Hindi magamit ang browser storage. Hindi kumpirmadong na-save ang progreso.",
+  "Progress recovery is required before playing.": "Kailangang maibalik ang progreso bago maglaro.",
+  "Cloud save paused because the previous save could not be confirmed. Your local progress is safe. Turn cloud save on again and choose which progress to keep.": "Naka-pause ang cloud save dahil hindi makumpirma ang dating save. Ligtas ang lokal mong progreso. I-on muli ang cloud save at piliin kung aling progreso ang pananatilihin.",
+  "Finish your wallet action before restarting the game.": "Tapusin muna ang ginagawa sa wallet bago i-restart ang laro.",
+  "A progress save could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.": "Hindi natapos ang pag-save ng progreso. Naka-back up sa device na ito ang dati mong progreso. Ibalik ito bago maglaro o mag-save sa wallet mo.",
+
   "Your loaded adventurer and map": "Ang na-load mong adventurer at mapa",
   "Loaded progress now refreshes your adventurer, map and name before the next run, even if you cancel the page reload.": "Ina-update na ngayon ng na-load na progreso ang adventurer, mapa at pangalan mo bago ang susunod na laro, kahit makansela ang pag-reload ng page.",
   "Cloud loading is paused while the game loads or a run is starting or in progress.": "Naka-pause ang pag-load mula sa cloud habang naglo-load ang game, nagsisimula ang laro, o may larong nagpapatuloy.",

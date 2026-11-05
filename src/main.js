@@ -166,6 +166,7 @@ async function pickMap(id, remember = true) {
     try { await renderer.loadMap(map); loadedMapId = id; renderer.reset(); } finally { mapLoading = false; $('start').disabled = false; $('loadtext').textContent = ''; }
   }
   buildMaps(); showBest(); $('tagline').textContent = `${map.name}: ${map.blurb}`; window.__idleSim = null;
+  return refreshPendingTitleProgress();
 }
 $('hard').onchange = (e) => { hardOn = e.target.checked; showBest(); };
 $('endless').onchange = (e) => { endlessOn = e.target.checked; showBest(); };
@@ -639,16 +640,23 @@ $('xferin').oninput = () => {
 function withImportLock(fn) {
   return navigator.locks?.request ? navigator.locks.request('sqs-progress-import', fn) : fn();
 }
-function showProgressRecovery() {
+function showProgressRecovery(canRestart = () => true) {
   mode = 'recovery';
   const screen = $('progressrecovery'), retry = $('progressretry');
-  screen.classList.remove('hidden'); retry.focus();
+  screen.classList.remove('hidden'); screen.inert = walletModalOpen();
+  if (!screen.inert) retry.focus();
   screen.onkeydown = e => { if (e.key === 'Tab' || e.key === 'Escape') { e.preventDefault(); retry.focus(); } e.stopPropagation(); };
   retry.onclick = async () => {
     if (retry.disabled) return;
+    const waiting = () => { $('progressrecoverystatus').textContent = 'Finish your wallet action before restarting the game.'; retry.disabled = false; if (!walletModalOpen()) retry.focus(); };
+    if (!canRestart()) { waiting(); return; }
     retry.disabled = true; $('progressrecoverystatus').textContent = '';
-    try { await withImportLock(() => recoverProgressImport(localStorage)); location.reload(); }
-    catch { $('progressrecoverystatus').textContent = 'This browser still cannot restore progress. Free some storage and try again. Keep this app installed.'; retry.disabled = false; retry.focus(); }
+    try {
+      await withImportLock(() => { if (canRestart()) recoverProgressImport(localStorage); });
+      if (!canRestart()) { waiting(); return; }
+      location.reload();
+    }
+    catch { $('progressrecoverystatus').textContent = 'This browser still cannot restore progress. Free some storage and try again. Keep this app installed.'; retry.disabled = false; if (!walletModalOpen()) retry.focus(); }
   };
 }
 $('xferload').onclick = async () => {
@@ -884,10 +892,10 @@ function renderWallet() {
   $('wldisc').onclick = () => { walletDisconnect(); msg('Disconnected.'); };
 }
 // ---- cloud save on the wallet (src/cloud.js): the same progress on every device ---------------------------------------
-let cloudConnecting = null, cloudChoice = null, reloadTimer = 0, runStarting = false, updateAttempt = null, importAttempt = null, holderChecking = null;
+let cloudConnecting = null, cloudChoice = null, reloadTimer = 0, runStarting = false, updateAttempt = null, importAttempt = null, holderChecking = null, titleProgressPending = false, cloudSignatures = 0;
 const cloudCanLoad = () => mode === 'title' && !runStarting && !rankedBusy && !rankedLive();
 const progressCanLoad = () => cloudCanLoad() && !!renderer && !mapLoading && !$('start').disabled;
-const canReloadGame = () => cloudCanLoad() && !buyBusy && !walletConnecting && !holderChecking && !walletModalOpen();
+const canReloadGame = () => cloudCanLoad() && !buyBusy && !walletConnecting && !holderChecking && !cloudSignatures && !walletModalOpen();
 const canManuallyReload = () => canReloadGame() && !cloudConnecting;
 function cancelPendingLoads() {
   cloud.cancelPending(); cloudConnecting = null; cloudChoice?.();
@@ -913,13 +921,20 @@ async function checkDmt(w, onStep) {
     current(); return result;
   } finally { if (holderChecking === attempt) holderChecking = null; }
 }
-function refreshTitleProgress() {
+function syncTitleProgress() {
+  titleProgressPending = false;
   selMap = savedChoice('sq-map', MAP_BY_ID, 'greentown');
   selAdv = savedChoice('sq-adv', ADVENTURER_BY_ID, 'adventurer');
   const name = load('sq-name', '');
   $('rankedname').value = $('lbname').value = typeof name === 'string' ? name : '';
   buildAdventurers(); buildMaps(); showBest(); window.__idleSim = null;
-  pickMap(selMap, false).catch(e => banner('Could not load the world: ' + (e?.message || e), 4000));
+}
+function refreshTitleProgress() {
+  syncTitleProgress();
+  return pickMap(selMap, false).catch(e => banner('Could not load the world: ' + (e?.message || e), 4000));
+}
+function refreshPendingTitleProgress() {
+  if (titleProgressPending && progressCanLoad()) return refreshTitleProgress();
 }
 function queuePageReload(text, delay) {
   if (!cloudCanLoad()) return;
@@ -929,8 +944,18 @@ function queuePageReload(text, delay) {
   reloadTimer = setTimeout(() => { reloadTimer = 0; if (canReloadGame()) location.reload(); }, delay);
 }
 const cloud = createCloud(BASE, {
+  signing: active => { cloudSignatures += active ? 1 : -1; },
   canLoad: progressCanLoad,
   canSave: () => mode !== 'recovery',
+  merged: (before) => {
+    let previousName = '';
+    try { previousName = JSON.parse(before['sq-name'] || '""'); } catch { /* old malformed name */ }
+    const name = load('sq-name', '');
+    for (const id of ['rankedname', 'lbname']) if ($(id).value === (typeof previousName === 'string' ? previousName : '')) $(id).value = typeof name === 'string' ? name : '';
+    titleProgressPending = true;
+    refreshPendingTitleProgress();
+  },
+  recover: () => { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !cloudSignatures && !walletModalOpen() && !rankedBusy); },
   choose: (wal, dev) => new Promise((done) => {
     const revision = walletRevision();
     let settled = false;
@@ -1065,6 +1090,7 @@ onWallet((c) => {
 function renderWalletConnect(state) {
   const screen = $('walletlink'), qr = $('walletlinkqr'), canvas = $('walletlinkcanvas');
   screen.classList.toggle('hidden', !state); qr.classList.toggle('hidden', state?.phase !== 'pair');
+  $('progressrecovery').inert = !!state;
   canvas.width = canvas.height = 0;
   if (!state) { if (screen.contains(document.activeElement)) navScreen()?.querySelector('button, a[href]')?.focus(); return; }
   $('walletlinktext').textContent = state.phase === 'pair' ? 'Open your wallet to approve this connection, then switch back to this app. Your game stays here.' : 'Approve the request in your connected wallet, then switch back to this app. Your game stays here.';
@@ -1137,23 +1163,28 @@ async function startRun(live = null) {
   if (!live?.run && (rankedLive() || rankedPlaying())) { openRanked(); return; }
   const isRanked = !!live?.run;
   if (isRanked && live.sim !== SIM_ID) return;
+  if (!isRanked && titleProgressPending) syncTitleProgress();
   cancelPendingLoads(); runStarting = true;
   try {
     if (isRanked && loadedMapId !== live.map) await pickMap(live.map);
+    if (mode === 'recovery') return;
     rankedRun = isRanked ? live : null; rankedRec = null;
     runTicket = null; if (!isRanked) fetch(`${BASE}api/run`).then((r) => (r.ok ? r.json() : null)).then((d) => { runTicket = d && d.ticket; }).catch(() => {});
     preloadIcons([...Object.keys(WEAPONS).map((w) => weaponItem(w, 1)), ...Object.keys(PASSIVES).map((k) => passiveItem(k, 1))]);
     if (mapLoading) return;
     const map = MAP_BY_ID[isRanked ? live.map : selMap];
     if (loadedMapId !== map.id) await pickMap(map.id);
+    if (mode === 'recovery') return;
     audio.init().then(() => audio.music(map.music)).catch(() => {});
     const seed = Number(params.get('seed')) || (Math.random() * 1e9) | 0;
     const adv = runAdv(), forced = adv.id !== selAdv;
     const gear = isRanked || forced ? {} : getGear();
     await renderer.preloadGear(Object.values(gear));
+    if (mode === 'recovery') return;
     if (isRanked) {
       const restored = await resumeRankedAsync(live.log, { seed: live.seed, mapId: live.map, adv: live.adv, ground: runGround(), ...liveRace(live) },
         (done, all) => rankedMessage(`Restoring your ranked run: ${fmtT(done / 30)} of ${fmtT(all / 30)}…`));
+      if (mode === 'recovery') return;
       sim = restored.sim; rankedRec = restored.rec; persistRanked();
       $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
     } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
@@ -1263,7 +1294,7 @@ function toMenu() {
   waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
   for (const id of ['end', 'pause', 'levelup', 'casket', 'hud']) $(id).classList.add('hidden');
   $('hud').classList.add('hidden'); $('title').classList.remove('hidden'); renderer.reset(); renderer.setZoom(0.45); renderer.setShift(2.4);
-  buildAdventurers(); buildMaps(); showBest();
+  buildAdventurers(); buildMaps(); showBest(); refreshPendingTitleProgress();
 }
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
@@ -1569,7 +1600,7 @@ function updateHud(view) {
 const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
 const NAV_ITEMS = 'summary, .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
-function navScreen() { if (mode === 'recovery') return $('progressrecovery'); if (walletModalOpen()) return null; return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
+function navScreen() { if (walletModalOpen()) return null; if (mode === 'recovery') return $('progressrecovery'); return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden')); }
 function navFocus(el) { if (navEl) navEl.classList.remove('navfocus'); navEl = el; if (el) { el.classList.add('navfocus'); if (el.tabIndex < 0) el.tabIndex = -1; el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
 function navMove(dir) {
@@ -1722,7 +1753,7 @@ function loop(ts) {
 }
 
 boot().then(async () => {
-  applyDmt(); window.__sqReady = true; cloudPull(); await refreshRanked();
+  applyDmt(); await refreshPendingTitleProgress(); window.__sqReady = true; cloudPull(); await refreshRanked();
   if (!walletHandoff && (rankedLive() || readRanked('sq-ranked-submit') || readRanked('sq-ranked-payment'))) {
     await openRanked();
     if (rankedLive()?.sim !== SIM_ID && rankedLive() && !readRanked('sq-ranked-submit')) recoverRankedRun();

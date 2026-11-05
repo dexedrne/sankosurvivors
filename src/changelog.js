@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.16', date: '5 Nov 2026', title: 'Cloud saves recover cleanly',
+    items: ['Cloud saves now stop when browser storage cannot save safely, and keep a recovery backup before merging progress.', 'Progress merged from another device updates your menu without changing a run already in progress.'],
+  },
+  {
     version: '0.44.15', date: '5 Nov 2026', title: 'Your loaded adventurer and map',
     items: ['Loaded progress now refreshes your adventurer, map and name before the next run, even if you cancel the page reload.'],
   },

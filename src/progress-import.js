@@ -9,6 +9,7 @@ export function recoverProgressImport(storage) {
   try {
     const record = JSON.parse(raw), before = record?.before;
     if (record?.v !== 1 || !object(before) || !Object.keys(before).length || Object.entries(before).some(([key, value]) => !TRANSFER_KEYS.includes(key) || value !== null && typeof value !== 'string')) throw Error();
+    if (record.cloud === true) for (const key of ['sq-cloud', 'sq-cloud-base', 'sq-cloud-upload']) storage.removeItem(key);
     // Free imported space first; keep the journal until every original value is restored.
     for (const key of Object.keys(before)) storage.removeItem(key);
     for (const [key, value] of Object.entries(before)) if (value !== null) storage.setItem(key, value);
@@ -21,13 +22,18 @@ export function recoverProgressImport(storage) {
   }
 }
 
-export function importProgress(storage, data) {
+export function importProgress(storage, data, cloudCommit = null) {
   recoverProgressImport(storage);
-  if (!object(data) || !Object.keys(data).length || Object.entries(data).some(([key, value]) => !TRANSFER_KEYS.includes(key) || typeof value !== 'string' || value.length > 20000)) throw Error('Invalid progress.');
+  if (!object(data) || !Object.keys(data).length || Object.entries(data).some(([key, value]) => !TRANSFER_KEYS.includes(key) || !(cloudCommit && value === null) && (typeof value !== 'string' || !cloudCommit && value.length > 20000))) throw Error('Invalid progress.');
   const before = Object.fromEntries(Object.keys(data).map(key => [key, storage.getItem(key)]));
-  storage.setItem(IMPORT_BACKUP_KEY, JSON.stringify({ v: 1, before }));
+  const record = { v: 1, before };
+  if (cloudCommit) record.cloud = true;
+  storage.setItem(IMPORT_BACKUP_KEY, JSON.stringify(record));
   try {
-    for (const [key, value] of Object.entries(data)) storage.setItem(key, value);
+    // Old v1 recovery is safe too: any interrupted cloud mutation leaves its session off.
+    if (cloudCommit) storage.removeItem('sq-cloud');
+    for (const [key, value] of Object.entries(data)) { if (value === null) storage.removeItem(key); else storage.setItem(key, value); }
+    cloudCommit?.();
     storage.removeItem(IMPORT_BACKUP_KEY);
   } catch (error) {
     try { recoverProgressImport(storage); }

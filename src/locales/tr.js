@@ -1,5 +1,14 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Cloud saves recover cleanly": "Bulut kayıtları güvenle kurtarılır",
+  "Cloud saves now stop when browser storage cannot save safely, and keep a recovery backup before merging progress.": "Tarayıcı depolaması güvenle kaydedemediğinde bulut kaydı artık durur; ilerleme birleştirilmeden önce kurtarma yedeği tutulur.",
+  "Progress merged from another device updates your menu without changing a run already in progress.": "Başka bir cihazdan birleştirilen ilerleme, devam eden oyunu değiştirmeden menünü günceller.",
+  "Browser storage is unavailable. Progress is not confirmed saved.": "Tarayıcı depolaması kullanılamıyor. İlerlemenin kaydedildiği doğrulanamadı.",
+  "Progress recovery is required before playing.": "Oynamadan önce ilerleme kurtarılmalıdır.",
+  "Cloud save paused because the previous save could not be confirmed. Your local progress is safe. Turn cloud save on again and choose which progress to keep.": "Önceki kayıt doğrulanamadığı için bulut kaydı duraklatıldı. Yerel ilerlemen güvende. Bulut kaydını yeniden aç ve hangi ilerlemeyi tutacağını seç.",
+  "Finish your wallet action before restarting the game.": "Oyunu yeniden başlatmadan önce cüzdan işlemini tamamla.",
+  "A progress save could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.": "İlerleme kaydı tamamlanamadı. Önceki ilerlemen bu cihazda yedeklendi. Oynamadan veya cüzdanına kaydetmeden önce geri yükle.",
+
   "Your loaded adventurer and map": "Yüklediğin maceracı ve harita",
   "Loaded progress now refreshes your adventurer, map and name before the next run, even if you cancel the page reload.": "Yüklenen ilerleme artık sayfa yenilemesini iptal etsen bile bir sonraki oyundan önce maceracını, haritanı ve adını günceller.",
   "Cloud loading is paused while the game loads or a run is starting or in progress.": "Oyun yüklenirken, bir oyun başlatılırken veya devam ederken buluttan yükleme duraklatılır.",

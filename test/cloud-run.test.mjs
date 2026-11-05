@@ -29,12 +29,12 @@ const lockStart=main.indexOf('function withImportLock(');
 const lock=lockStart<0?'':main.slice(lockStart,main.indexOf('function showProgressRecovery(',lockStart));
 const A='0x'+'1'.repeat(40),deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 const reply=(value,status=200)=>new Response(JSON.stringify(value),{status});
-async function setup(t,{pause='login',established=false,holdStart=true,failStart=false,browserFailure=null,noBrowserApis=false,importData={'sq-coins':'100'},importFailure=null,holderReply=false,cloudData={'sq-coins':'100'},pullData={'sq-coins':'700'},failMap=false}={}){
+async function setup(t,{pause='login',established=false,holdStart=true,failStart=false,browserFailure=null,noBrowserApis=false,importData={'sq-coins':'100'},importFailure=null,holderReply=false,cloudData={'sq-coins':'100'},pullData={'sq-coins':'700'},failMap=false,putResponses=[]}={}){
   const previous=globalThis.localStorage,previousWindow=globalThis.window,store=new Map(established?[['sq-coins','500'],['sq-cloud',JSON.stringify({a:A,key:'fixture-key',rev:1})],['sq-cloud-base',JSON.stringify({'sq-coins':'500'})]]:[]);
   const writes=[];let writesBlocked=false,importFailed=false,holderActive=false,traceConnect=false;
   globalThis.localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>{if(importFailure==='reserve'&&k==='sq-import-backup-v1')throw Error('fixture quota');if(writesBlocked)throw Error('fixture storage blocked');if(importFailure&&k==='sq-name'&&v==='\"Imported\"'&&!importFailed){importFailed=true;writesBlocked=importFailure==='persistent';throw Error('fixture import write failure');}writes.push(k);store.set(k,String(v));},removeItem:k=>{if(writesBlocked)throw Error('fixture storage blocked');store.delete(k);}};globalThis.window={};
   t.mock.timers.enable({apis:['setTimeout']});
-  const gates=Object.fromEntries(['nonce','signature','login','pull','push','map','gear','choice','registrations','worker-update','cache-keys','cache-delete','version','import-lock','holder-connect','holder-account','holder-signature','holder-response'].map(k=>[k,{hit:deferred(),gate:deferred()}])),calls=[],pending=[];
+  const gates=Object.fromEntries(['nonce','signature','login','pull','push','map','gear','choice','registrations','worker-update','cache-keys','cache-delete','version','import-lock','holder-connect','holder-account','holder-signature','holder-response','resume'].map(k=>[k,{hit:deferred(),gate:deferred()}])),calls=[],pending=[];
   let reloads=0;
   const stage=async name=>{gates[name].hit.resolve();if(pause===name||holdStart&&['map','gear'].includes(name))await gates[name].gate.promise;};
   const w={p:{on(){},request:async({method})=>{if(method==='personal_sign'){await stage(holderActive?'holder-signature':'signature');return'fixture-signature';}if(method==='eth_requestAccounts'&&traceConnect)await stage(holderActive?'holder-account':'holder-connect');if(method==='wallet_revokePermissions')return null;return[A];}}};
@@ -47,7 +47,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     if(route==='save-nonce'){await stage('nonce');return reply({nonce:'fixture-nonce',message:'fixture sign-in'});}
     if(route==='save-login'){await stage('login');return reply({address:A,key:'login-fixture-key',rev:1,data:cloudData});}
     if(route==='save-get'){await stage('pull');return reply({rev:2,data:pullData});}
-    if(route==='save-put'){await stage('push');const body=JSON.parse(options.body);return reply({ok:true,rev:body.rev+1});}
+    if(route==='save-put'){await stage('push');const body=JSON.parse(options.body);if(putResponses.length){const next=putResponses.shift();return reply(next.body,next.status);}return reply({ok:true,rev:body.rev+1});}
     if(route==='version.json'){await stage('version');return reply({build:'fixture-new'});}
     if(route==='run')return reply({ticket:'fixture-ticket'});
     throw Error('unexpected fixture route '+route);
@@ -56,8 +56,8 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
   const nodes=new Map(),$=id=>{
     if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{value:id==='rankedadv'?'adventurer':id==='rankedname'?'Fixture':'',textContent:'',disabled:false,dataset:{},focus(){if(id==='cloudusewal')gates.choice.hit.resolve();},children:[],querySelectorAll:()=>[],replaceChildren(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);
   };
-  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap',`
-    let buyBusy=null,walletConnecting=null,walletUi=false,walletBal=null;const walletModalOpen=()=>walletUi;
+  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage',`
+    let buyBusy=null,walletConnecting=null,walletUi=false,walletBal=null,recoveryCanRestart=null;const walletModalOpen=()=>walletUi;
     let mode='title',sim=null,rankedRun=null,rankedRec=null,rankedBusy=false,storedLive=null,runTicket=null,mapLoading=false,loadedMapId='greentown',selMap='greentown',selAdv='adventurer',acc=0,selCard=0,shownPending=false,waitingForMove=false,rewardWasShown=false,pendingUse=null,slowmo=0,runBest=null,passedBest=false,chase=null;
     const walletHandoff=null;const BASE='./',PLAYER='p',SIM_ID='fixture-sim',params=new URLSearchParams(),keys=new Set(),slotCache={},WEAPONS={},PASSIVES={};
     const map={id:'greentown',name:'Greentown',length:900,finalBoss:'dragon',music:'fixture'},tutorial={...map,id:'tutorial',name:'Tutorial Island',special:true,forceAdv:'alex'},MAPS=[map,tutorial],MAP_BY_ID={greentown:map,tutorial};
@@ -69,7 +69,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     const audio={init:async()=>{},music(){}};
     const getCoins=()=>Number(JSON.parse(localStorage.getItem('sq-coins')||'0')),xferRead=code=>code==='fixture-code'?{data:importData}:{error:'fixture invalid code'};
     const getGear=()=>({}),getGearLv=()=>({}),getSkills=()=>({}),getBests=()=>({}),runGround=()=>null,runAdv=()=>ADVENTURER_BY_ID[MAP_BY_ID[selMap].forceAdv||selAdv],bestKey=()=>'';
-    const makeSim=()=>({map,players:[{}],pending:{},over:null,t:0}),createSim=options=>({...makeSim(),map:options.map,players:[{adv:options.players[0].adv}]}),resumeRankedAsync=async()=>({sim:makeSim(),rec:{log:()=>({runs:[]})}});
+    const makeSim=()=>({map,players:[{}],pending:{},over:null,t:0}),createSim=options=>({...makeSim(),map:options.map,players:[{adv:options.players[0].adv}]}),resumeRankedAsync=async(log,options,progress)=>{await resumeStage();progress?.(1,1);return{sim:makeSim(),rec:{log:()=>({runs:[]})}};};
     const banner=()=>{},preloadIcons=()=>{},weaponItem=()=>'',passiveItem=()=>'',clearTouch=()=>{},showLevelUp=()=>{},persistRanked=()=>{},fmtT=s=>String(s),slayName=()=> 'Dragon',kpmWeek=()=>false,liveRace=live=>live;
     const renderWallet=()=>{},renderDmt=()=>{},refreshBalances=()=>{},wallets=()=>[],short=a=>a,renderRanked=()=>{},rankedMessage=()=>{},openRanked=()=>{},why=e=>e.message,plain=s=>Error(s),applyDmt=()=>{},buildAdventurers=()=>{},showBest=()=>{},submitRanked=async()=>{};
     const readRanked=(key,fallback=null)=>key==='sq-ranked-live'?storedLive:fallback,writeRanked=(key,value)=>{if(key==='sq-ranked-live')storedLive=value;};
@@ -83,7 +83,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     const cloudFor=c=>{const s=cloud.state();return s&&c&&s.a.toLowerCase()===c.address.toLowerCase()?s:null;};
     ${bind}
     ${lock}
-    function showProgressRecovery(){mode='recovery';}
+    function showProgressRecovery(canRestart=()=>true){mode='recovery';recoveryCanRestart=canRestart;}
     const stopWallet=${observer}
     ${updater}
     ${importer}
@@ -94,10 +94,10 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     ${menu}
     const pickAssetHost=async()=>{},createRenderer=async()=>renderer,requestAnimationFrame=()=>{},loop=()=>{};
     ${bootSource}
-    return{cloud,pickMap,boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
+    return{cloud,pickMap,canRestartRecovery:()=>recoveryCanRestart?.(),boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
   `)(createCloud,W.current,W.walletRevision,W.onWallet,$,{reload(){reloads++;}},()=>stage('gear'),()=>stage('map'),failStart,
     noBrowserApis?{}:{locks:{request:async(name,fn)=>{calls.push('import-lock');await stage('import-lock');return fn();}},serviceWorker:{getRegistrations:async()=>{await browserStage('registrations');return[{update:async()=>browserStage('worker-update')}];}}},
-    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap);
+    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'));
   const track=p=>{pending.push(p);p.catch(()=>{});return p;};
   t.after(async()=>{for(const x of Object.values(gates))x.gate.resolve();t.mock.timers.tick(1000);await Promise.allSettled(pending);app.dispose();writesBlocked=false;W.disconnect();globalThis.localStorage=previous;globalThis.window=previousWindow;});
   return{app,store,writes,gates,calls,$,allowWrites:()=>writesBlocked=false,reloads:()=>reloads,sign:()=>track(app.cloud.signIn(W.current())),pull:()=>track(app.pull()),update:()=>track(app.update()),check:()=>track(app.check()),
@@ -310,4 +310,53 @@ test('confirmed import waits for title-screen boot readiness',async t=>{
 test('startup pull waits for a saved nondefault map after both early pull opportunities',async t=>{
  const f=await setup(t,{pause:'map',holdStart:false,established:true});f.app.select('tutorial','wizard');f.$('start').disabled=true;const booting=f.track(f.app.boot());await f.gates.map.hit.promise;await f.pull();await f.flush();
  assert.equal(f.calls.includes('save-get'),false);f.finish();await booting;await f.flush();assert.equal(f.calls.filter(c=>c==='save-get').length,1);assert.equal(f.store.get('sq-coins'),'700');assert.equal(f.app.state().loadedMapId,'tutorial');
+});
+
+async function mergedTitle(t,{map='greentown',...options}={}){
+ const f=await setup(t,{pause:null,holdStart:false,established:true,...options,putResponses:[{status:409,body:{conflict:true,rev:2,data:{'sq-coins':'200','sq-map':JSON.stringify(map),'sq-adv':'"wizard"','sq-name':'"Merged"','sq-cleared':'["greentown"]'}}}]});
+ const before={'sq-coins':'100','sq-map':'"greentown"','sq-adv':'"adventurer"','sq-name':'"Before"'};f.store.set('sq-cloud-base',JSON.stringify(before));for(const key of ['sq-map','sq-adv','sq-name'])f.store.set(key,before[key]);f.$('rankedname').value=f.$('lbname').value='Before';return f;
+}
+test('a committed upload conflict refreshes the title choices used by the next run',async t=>{
+ const f=await mergedTitle(t);await f.app.cloud.push(true);assert.equal(f.store.get('sq-adv'),'"wizard"');assert.equal(f.app.state().selAdv,'wizard');assert.deepEqual([f.$('rankedname').value,f.$('lbname').value],['Merged','Merged']);await f.start();assert.equal(f.app.state().sim.players[0].adv,'wizard');t.mock.timers.tick(1000);assert.equal(f.reloads(),0);
+});
+test('a merge during play preserves the current actor and refreshes choices on return to title',async t=>{
+ const f=await mergedTitle(t);await f.start();const playing=f.app.state().sim;await f.app.cloud.push(true);assert.equal(f.app.state().sim,playing);assert.equal(f.app.state().mode,'play');assert.equal(f.app.state().sim.players[0].adv,'adventurer');assert.equal(f.app.state().selAdv,'adventurer');assert.deepEqual([f.$('rankedname').value,f.$('lbname').value],['Merged','Merged']);f.app.toMenu();await f.flush();assert.equal(f.app.state().selAdv,'wizard');assert.equal(f.reloads(),0);
+});
+test('an end-screen name edit survives a background conflict merge',async t=>{
+ const f=await mergedTitle(t);f.app.mode('end');f.$('lbname').value='MyEdit';await f.app.cloud.push(true);assert.equal(f.$('lbname').value,'MyEdit');assert.equal(f.$('rankedname').value,'Merged');assert.equal(f.app.state().selAdv,'adventurer');assert.equal(f.reloads(),0);
+});
+test('Run again uses a deferred merged map and its forced character',async t=>{
+ const f=await mergedTitle(t,{map:'tutorial'});await f.start();await f.app.cloud.push(true);f.app.mode('end');await f.start();assert.equal(f.app.state().sim.map.id,'tutorial');assert.equal(f.app.state().sim.players[0].adv,'alex');assert.equal(f.app.state().selAdv,'wizard');assert.equal(f.reloads(),0);
+});
+test('map-loader completion reconciles a merge that arrived while title assets loaded',async t=>{
+ const f=await mergedTitle(t,{pause:'map'}),picking=f.track(f.app.pickMap('tutorial'));await f.gates.map.hit.promise;await f.app.cloud.push(true);assert.equal(f.$('start').disabled,true);f.finish();await picking;await f.flush();assert.equal(f.app.state().selAdv,'wizard');assert.equal(f.app.state().loadedMapId,'tutorial');assert.equal(f.$('start').disabled,false);assert.equal(f.reloads(),0);
+});
+test('boot completion awaits deferred merged map choices before its next cloud pull',async t=>{
+ const f=await mergedTitle(t,{map:'tutorial',pause:'gear'});f.$('start').disabled=true;const booting=f.track(f.app.boot());await f.gates.gear.hit.promise;await f.app.cloud.push(true);f.finish();await booting;await f.flush();assert.equal(f.app.state().selMap,'tutorial');assert.equal(f.app.state().loadedMapId,'tutorial');assert.equal(f.app.state().selAdv,'wizard');assert.equal(f.$('lbname').value,'Merged');
+});
+test('a merged local commit still refreshes title choices if session activation fails',async t=>{
+ const f=await mergedTitle(t),set=globalThis.localStorage.setItem;globalThis.localStorage.setItem=(key,value)=>{if(key==='sq-cloud'&&JSON.parse(value).rev===2)throw Error('fixture activation denied');return set(key,value);};await f.app.cloud.push(true);assert.equal(f.app.cloud.state(),null);assert.equal(f.store.get('sq-adv'),'"wizard"');assert.equal(f.app.state().selAdv,'wizard');assert.equal(f.$('lbname').value,'Merged');
+});
+for(const source of ['sign-in','pull'])test(`native lock completion cannot expose old title choices before ${source} returns`,async t=>{
+ const f=await setup(t,{pause:null,holdStart:false,established:source==='pull',cloudData:{'sq-coins':'100','sq-adv':'"wizard"'},pullData:{'sq-coins':'700','sq-adv':'"wizard"'}}),descriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator');
+ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{locks:{request:async(name,fn)=>{const result=fn();await f.start();return result;}}}});t.after(()=>{if(descriptor)Object.defineProperty(globalThis,'navigator',descriptor);else delete globalThis.navigator;});
+ if(source==='sign-in')await f.sign();else await f.pull();assert.equal(f.app.state().mode,'play');assert.equal(f.app.state().sim.players[0].adv,'wizard');assert.equal(f.reloads(),0);
+});
+
+for(const boundary of ['gear','map','resume'])test(`persistent cloud recovery cannot be escaped by pending ${boundary} setup`,async t=>{
+ const f=await setup(t,{pause:boundary,holdStart:false,established:true,importFailure:'persistent',putResponses:[{status:409,body:{conflict:true,rev:2,data:{'sq-coins':'700','sq-name':'"Imported"'}}}]});
+ f.store.set('sq-name','"Before"');f.store.set('sq-cloud-base',JSON.stringify({'sq-coins':'500','sq-name':'"Before"'}));
+ if(boundary==='map')f.app.select('tutorial','adventurer');if(boundary==='resume')f.app.setLive({run:'fixture-saved',sim:'fixture-sim',map:'greentown',adv:'adventurer',log:{runs:[]}});
+ const starting=f.start(boundary==='resume'?'ranked resume':undefined);await f.gates[boundary].hit.promise;f.store.set('sq-coins','550');await f.app.cloud.push(true);assert.equal(f.app.state().mode,'recovery');f.finish();f.gates.resume.gate.resolve();await starting;
+ assert.equal(f.app.state().mode,'recovery');assert.equal(f.app.state().sim,null);assert.ok(f.store.has('sq-import-backup-v1'));
+});
+test('recovery waits for the actual cloud signature after logical cancellation',async t=>{
+ const f=await setup(t,{pause:null,holdStart:false,established:true,importFailure:'persistent',putResponses:[{status:409,body:{conflict:true,rev:2,data:{'sq-coins':'700','sq-name':'"Imported"'}}}]}),B='0x'+'2'.repeat(40);
+ f.store.set('sq-name','"Before"');f.store.set('sq-cloud-base',JSON.stringify({'sq-coins':'500','sq-name':'"Before"'}));
+ await W.connect({p:{on(){},request:async({method})=>{if(method==='personal_sign'){f.gates.signature.hit.resolve();await f.gates.signature.gate.promise;return'fixture-signature';}return[B];}}});
+ const signing=f.track(f.app.cloudUI());await f.flush();assert.ok(f.calls.includes('save-nonce'),JSON.stringify(f.calls));await f.gates.signature.hit.promise;f.store.set('sq-coins','550');await f.app.cloud.push(true);const waiting=f.app.canRestartRecovery();f.gates.signature.gate.resolve();await signing;
+ assert.equal(waiting,false);assert.equal(f.app.canRestartRecovery(),true);assert.equal(f.calls.filter(c=>c==='save-login').length,0);
+});
+test('Update waits for a cancelled injected cloud signature to settle after return to title',async t=>{
+ const f=await setup(t,{pause:'signature',holdStart:false}),signing=f.track(f.app.cloudUI());await f.gates.signature.hit.promise;await f.start();f.app.toMenu();await f.update();const waiting=f.reloads();f.gates.signature.gate.resolve();await signing;await f.update();assert.equal(waiting,0);assert.equal(f.reloads(),1);
 });
