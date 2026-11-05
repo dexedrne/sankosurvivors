@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.10', date: '4 Nov 2026', title: 'Cloud saves follow your choice',
+    items: ['Cloud sign-in stops when your wallet choice changes. Your existing save stays in place until you choose which progress to keep.'],
+  },
+  {
     version: '0.44.9', date: '4 Nov 2026', title: 'Keep the quoted minimum',
     items: ['DMT buys refuse a swap that allows less than the minimum shown in your quote.'],
   },

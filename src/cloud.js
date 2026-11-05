@@ -6,6 +6,7 @@
 // merged against the last save both had seen (`base`): coins and run counters add up what each device earned or spent,
 // cleared maps, finished quests and found gear are joined, skill ranks keep the higher, the best run keeps the better;
 // for anything else this device wins. Nothing one device earned is lost.
+import { current, walletRevision } from './wallet.js';
 
 export const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
 const ST = 'sq-cloud', BASE_KEY = 'sq-cloud-base', UPLOAD_KEY = 'sq-cloud-upload';
@@ -84,9 +85,14 @@ export function createCloud(baseUrl, ui) {
 
   // sign in with a connected wallet ({ w: { p }, address }): the first save, or the choice between two
   async function signIn(conn, step = () => {}) {
-    const generation = ++signInGeneration;
-    let sessionKey = cloudState()?.key;
-    const checkCurrent = () => { if (generation !== signInGeneration || cloudState()?.key !== sessionKey) throw new Error('Cloud sign-in cancelled: the save session changed.'); };
+    const generation = ++signInGeneration, revision = walletRevision();
+    const sessionKey = cloudState()?.key;
+    const checkCurrent = () => {
+      const c = current();
+      if (generation !== signInGeneration || cloudState()?.key !== sessionKey || walletRevision() !== revision
+        || !c || c.w.p !== conn.w.p || c.address.toLowerCase() !== conn.address.toLowerCase()) throw new Error('Cloud sign-in cancelled: the wallet or save session changed.');
+    };
+    checkCurrent();
     const n = await api(baseUrl, 'save-nonce'); if (!n.d.message) throw new Error('the game server is not answering');
     checkCurrent();
     step('Sign the message in your wallet (free, no transaction)…');
@@ -97,22 +103,30 @@ export function createCloud(baseUrl, ui) {
     checkCurrent();
     if (r.status !== 200) throw new Error(r.d.error || 'the cloud save did not open');
     const mine = snapshot();
+    const hasSave = r.d.rev && r.d.data, identical = hasSave && same(mine, r.d.data);
+    const pick = !hasSave || identical ? 'device' : isFresh(mine) ? 'cloud' : await ui.choose(summary(r.d.data), summary(mine));
+    checkCurrent();
+    if (pick !== 'cloud' && pick !== 'device') throw new Error('Cloud sign-in cancelled: no progress was selected.');
+    if (!same(snapshot(), mine)) throw new Error('Your progress changed. Open cloud save again to choose.');
+    // A pending choice must not replace the prior session or let autosave select a wallet for the player.
     set(UPLOAD_KEY, null);
     setState({ a: r.d.address, key: r.d.key, rev: r.d.rev || 0 });
-    sessionKey = r.d.key;
-    if (!r.d.rev || !r.d.data) { set(BASE_KEY, null); return await push(true) ? 'saved' : 'pending'; } // nothing there yet: this device's progress goes up
-    if (same(mine, r.d.data)) { setState({ a: r.d.address, key: r.d.key, rev: r.d.rev }); set(BASE_KEY, JSON.stringify(r.d.data)); return 'same'; }
-    const pick = isFresh(mine) ? 'cloud' : await ui.choose(summary(r.d.data), summary(mine));
-    checkCurrent();
-    if (pick === 'cloud') { applySnapshot(r.d.data); ui.reload(); return 'loaded'; }
-    set(BASE_KEY, JSON.stringify(r.d.data)); // keep this device's: it replaces the cloud one
-    return await push(true, r.d.data) ? 'saved' : 'pending';
+    if (!hasSave) set(BASE_KEY, null); // nothing there yet: this device's progress goes up
+    else if (identical) { set(BASE_KEY, JSON.stringify(r.d.data)); return 'same'; }
+    else if (pick === 'cloud') { applySnapshot(r.d.data); ui.reload(); return 'loaded'; }
+    else set(BASE_KEY, JSON.stringify(r.d.data)); // keep this device's: it replaces the cloud one
+    const saved = await push(true, hasSave ? r.d.data : null);
+    if (cloudState()?.key !== r.d.key) throw new Error(cloudState() ? 'Cloud sign-in cancelled: the wallet or save session changed.' : 'Cloud save is signed out. Sign in again to upload your progress.');
+    return saved ? 'saved' : 'pending';
   }
   // save this device's progress (soon after a change; at once with now)
   function changed() { if (!cloudState()) return; clearTimeout(timer); timer = setTimeout(() => push(), 4000); }
   async function push(now = false, overwrite = null) {
     const s = cloudState(); if (!s) return false;
-    if (busy) { again = true; return false; }
+    if (busy) {
+      if (overwrite) set(UPLOAD_KEY, JSON.stringify({ a: s.a, rev: s.rev, data: snapshot(), overwrite: true, uncertain: false }));
+      again = true; return false;
+    }
     busy = true;
     let upload;
     try {
@@ -141,6 +155,7 @@ export function createCloud(baseUrl, ui) {
         }
         const merged = upload.overwrite ? snapshot() : mergeSaves(upload.uncertain ? mine : b, snapshot(), theirs);
         set(UPLOAD_KEY, null);
+        if (upload.overwrite) set(UPLOAD_KEY, JSON.stringify({ ...upload, rev: r.d.rev || 0, data: merged, uncertain: false }));
         for (const k of SAVE_KEYS) set(k, typeof merged[k] === 'string' ? merged[k] : null);
         setState({ ...s, rev: r.d.rev || 0 }); set(BASE_KEY, JSON.stringify(theirs));
         if (!upload.overwrite && !upload.uncertain) ui.note('Progress from your other device was added.');

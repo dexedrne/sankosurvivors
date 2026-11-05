@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createCloud } from '../src/cloud.js';
+import { connect, current, disconnect, walletRevision } from '../src/wallet.js';
+const A='0x'+'1'.repeat(40);
 
 function setup(t, responses) {
   t.mock.timers.enable({ apis: ['setTimeout'] });
@@ -14,7 +16,7 @@ function setup(t, responses) {
   });
   const old = globalThis.localStorage;
   globalThis.localStorage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: k => store.delete(k) };
-  t.after(() => { globalThis.localStorage = old; });
+  t.after(() => { disconnect(); globalThis.localStorage = old; });
   const calls = [], notes = [], cloud = createCloud('./', { note: n => notes.push(n) });
   return { cloud, store, calls, notes, retry: async () => { t.mock.timers.tick(4000); for (let i = 0; i < 20; i++) await Promise.resolve(); } };
 }
@@ -144,26 +146,28 @@ test('turning off cloud save cancels retries and cannot be undone by an in-fligh
 
 test('initial wallet setup reports a pending upload, then retries it', async t => {
   const d = setup(t, []);
+  await connect({p:{request:async({method})=>method==='personal_sign'?'signature':[A]}});
   let uploads = 0;
   globalThis.fetch = async url => {
     const body = url.endsWith('save-nonce') ? { message: 'fixture message', nonce: 'nonce' }
-      : url.endsWith('save-login') ? { address: 'wallet', key: 'fixture', rev: 0 }
+      : url.endsWith('save-login') ? { address: A, key: 'fixture', rev: 0 }
       : ++uploads === 1 ? {} : { ok: true, rev: 1 };
     return new Response(JSON.stringify(body), { status: uploads === 1 && url.endsWith('save-put') ? 500 : 200 });
   };
-  assert.equal(await d.cloud.signIn({ address: 'wallet', w: { p: { request: async () => 'signature' } } }), 'pending');
+  assert.equal(await d.cloud.signIn(current()), 'pending');
   await d.retry();
   assert.equal(uploads, 2);
   assert.equal(JSON.parse(d.store.get('sq-cloud-base'))['sq-coins'], '500');
 });
 
-test('Save now shows success only after an acknowledged upload', async () => {
+test('Save now shows success only after an acknowledged upload', async t => {
+  setup(t, []); await connect({p:{request:async()=>[A]}});
   const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
   const bind = source.slice(source.indexOf('function bindCloud('), source.indexOf('// open the game or come back'));
   for (const saved of [false, true]) {
     const button = {}, messages = [];
-    const run = Function('$', 'cloud', 'renderWallet', 'record', `${bind}; bindCloud({}, record);`);
-    run(id => id === 'wlcloudnow' ? button : null, { push: async () => saved, state: () => ({}) }, () => {}, m => messages.push(m));
+    const run = Function('$', 'cloud', 'renderWallet', 'record', 'walletNow', 'walletRevision', 'cloudFor', `let cloudConnecting=null; ${bind}; bindCloud(walletNow(), record);`);
+    run(id => id === 'wlcloudnow' ? button : null, { push: async () => saved, state: () => ({key:'fixture'}) }, () => {}, m => messages.push(m), current, walletRevision, () => ({key:'fixture'}));
     await button.onclick();
     assert.equal(messages.at(-1) === 'Saved to your wallet.', saved);
     if (!saved) assert.match(messages.at(-1), /device|upload/i);

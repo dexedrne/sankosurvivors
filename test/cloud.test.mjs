@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { Readable } from 'node:stream';
 import { randomBytes, createHmac } from 'node:crypto';
 import { mergeSaves, summary, isFresh, createCloud, SAVE_KEYS } from '../src/cloud.js';
+import { connect, disconnect } from '../src/wallet.js';
 
 // the API against a fake Supabase that keeps saves like tools/supabase/update4.sql does
 Object.assign(process.env, { SUPABASE_URL: 'https://db.test', SUPABASE_KEY: 'k', SQS_TICKET_SECRET: 'ticket-secret', SQS_SERVER_KEY: 'server-key' });
@@ -48,7 +49,7 @@ function wallet() {
     return '0x' + Buffer.concat([sig.subarray(1), Buffer.from([sig[0] + 27])]).toString('hex');
   };
   // an EIP-1193 wallet that signs personal_sign messages (sent as hex)
-  const p = { request: async ({ method, params }) => { assert.equal(method, 'personal_sign'); return sign(Buffer.from(params[0].slice(2), 'hex').toString()); } };
+  const p = { request: async ({ method, params }) => { if (method === 'eth_requestAccounts' || method === 'eth_accounts') return [address]; if (method === 'wallet_revokePermissions') return null; assert.equal(method, 'personal_sign'); return sign(Buffer.from(params[0].slice(2), 'hex').toString()); } };
   return { address, sign, conn: { w: { p }, address } };
 }
 async function login(w) {
@@ -123,8 +124,9 @@ function device() {
   const run = async (f) => { use(); return f(c); };
   return { store, notes, reloads, run, set: (k, v) => { use(); store.setItem(k, v); }, get: (k) => store.getItem(k), choose: (v) => { pick = v; } };
 }
-test('two devices: the first save goes up, a fresh device loads it, saves made at the same time are joined', async () => {
+test('two devices: the first save goes up, a fresh device loads it, saves made at the same time are joined', async t => {
   const w = wallet(), A = device(), B = device();
+  await connect(w.conn.w); t.after(disconnect);
   A.set('sq-coins', '500'); A.set('sq-cleared', J(['greentown'])); A.set('sq-settings', J({ ao: false }));
   assert.equal(await A.run((c) => c.signIn(w.conn)), 'saved');
   assert.equal(saves.get(w.address).data['sq-coins'], '500'); assert.equal(saves.get(w.address).data['sq-settings'], undefined);

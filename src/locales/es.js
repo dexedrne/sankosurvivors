@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Cloud saves follow your choice": "Tú eliges el progreso en la nube",
+  "Cloud sign-in stops when your wallet choice changes. Your existing save stays in place until you choose which progress to keep.": "El inicio de sesión en la nube se detiene si cambias de billetera. Tu partida actual se conserva hasta que elijas qué progreso mantener.",
+  "Cloud sign-in cancelled: the wallet or save session changed.": "Inicio de sesión en la nube cancelado: cambió la billetera o la sesión de guardado.",
+  "Cloud sign-in cancelled: no progress was selected.": "Inicio de sesión en la nube cancelado: no se seleccionó ningún progreso.",
+  "Your progress changed. Open cloud save again to choose.": "Tu progreso ha cambiado. Abre de nuevo el guardado en la nube para elegir.",
   "Keep the quoted minimum": "Se respeta el mínimo de la cotización",
   "DMT buys refuse a swap that allows less than the minimum shown in your quote.": "Las compras de DMT rechazan los intercambios que permiten recibir menos del mínimo indicado en la cotización.",
   "Safer DMT buying": "Compra de DMT más segura",

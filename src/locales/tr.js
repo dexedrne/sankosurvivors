@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Cloud saves follow your choice": "Bulut kaydında seçim sende",
+  "Cloud sign-in stops when your wallet choice changes. Your existing save stays in place until you choose which progress to keep.": "Cüzdan seçimin değişirse bulut kaydına giriş durur. Hangi ilerlemeyi tutacağını seçene kadar mevcut kaydın korunur.",
+  "Cloud sign-in cancelled: the wallet or save session changed.": "Bulut kaydına giriş iptal edildi: cüzdan veya kayıt oturumu değişti.",
+  "Cloud sign-in cancelled: no progress was selected.": "Bulut kaydına giriş iptal edildi: hiçbir ilerleme seçilmedi.",
+  "Your progress changed. Open cloud save again to choose.": "İlerlemen değişti. Seçim yapmak için bulut kaydını yeniden aç.",
   "Keep the quoted minimum": "Teklifteki asgari tutar korunsun",
   "DMT buys refuse a swap that allows less than the minimum shown in your quote.": "DMT alımlarında, fiyat teklifinde gösterilen asgari tutardan daha azına izin veren takaslar reddedilir.",
   "Safer DMT buying": "Daha güvenli DMT alımı",

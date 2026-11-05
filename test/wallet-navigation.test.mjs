@@ -45,7 +45,7 @@ function menu(mode = 'title') {
   for (const id of ['walletchip', 'cloudwal', 'clouddev']) element(id);
   const $ = id => { assert.ok(elements.has(id), `unknown DOM id ${id}`); return elements.get(id); };
   $(mode).classList.remove('hidden');
-  const app = Function('$', 'addEventListener', 'document', 'initialMode', `
+  const app = Function('$', 'addEventListener', 'document', 'initialMode', 'onWallet', 'walletRevision', `
     let mode=initialMode, started=0, connected=0;
     const keys=new Set(), startRun=()=>{started++;}, pause=on=>{mode=on?'pause':'play';};
     $('start').onclick=startRun; $('again').onclick=startRun;
@@ -61,7 +61,7 @@ function menu(mode = 'title') {
       frame(edges){${pad}},
       choose:cloud.choose, focus(id){navFocus($(id));},
       state:()=>({started,connected,mode})};
-  `)($, (event, fn, capture = false) => listeners.push({ event, fn, capture }), { get activeElement() { return active; } }, mode);
+  `)($, (event, fn, capture = false) => listeners.push({ event, fn, capture }), { get activeElement() { return active; } }, mode, () => () => {}, () => 0);
   return {
     app, $, get active() { return active?.id; },
     open(id) { $(id).classList.remove('hidden'); },

@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Cloud saves follow your choice": "Ikaw ang pumipili ng cloud save",
+  "Cloud sign-in stops when your wallet choice changes. Your existing save stays in place until you choose which progress to keep.": "Hihinto ang cloud sign-in kapag nagbago ang pinili mong wallet. Mananatili ang kasalukuyan mong save hanggang piliin mo kung aling progreso ang itatago.",
+  "Cloud sign-in cancelled: the wallet or save session changed.": "Nakansela ang cloud sign-in: nagbago ang wallet o save session.",
+  "Cloud sign-in cancelled: no progress was selected.": "Nakansela ang cloud sign-in: walang napiling progreso.",
+  "Your progress changed. Open cloud save again to choose.": "Nagbago ang progreso mo. Buksan muli ang cloud save para pumili.",
   "Keep the quoted minimum": "Panatilihin ang minimum sa quote",
   "DMT buys refuse a swap that allows less than the minimum shown in your quote.": "Tinatanggihan ang pagbili ng DMT kung pinapayagan ng swap ang mas mababa sa minimum na ipinakita sa quote mo.",
   "Safer DMT buying": "Mas ligtas na pagbili ng DMT",

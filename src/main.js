@@ -842,11 +842,15 @@ function renderWallet() {
   $('wldisc').onclick = () => { walletDisconnect(); msg('Disconnected.'); };
 }
 // ---- cloud save on the wallet (src/cloud.js): the same progress on every device ---------------------------------------
+let cloudConnecting = null;
 const cloud = createCloud(BASE, {
   choose: (wal, dev) => new Promise((done) => {
+    const revision = walletRevision();
+    let settled = false;
     const line = (s) => `${s.coins.toLocaleString()} coins · ${s.maps} map${s.maps === 1 ? '' : 's'} cleared · ${s.ranks} skill rank${s.ranks === 1 ? '' : 's'} · ${s.gear} gear`;
     $('cloudwal').textContent = line(wal); $('clouddev').textContent = line(dev); $('cloudpick').classList.remove('hidden');
-    const pick = (v) => { $('cloudpick').classList.add('hidden'); done(v); };
+    const pick = (v) => { if (settled) return; settled = true; stop(); $('cloudpick').classList.add('hidden'); done(v); };
+    const stop = onWallet(() => { if (walletRevision() !== revision) pick(null); });
     $('cloudusewal').onclick = () => pick('cloud'); $('cloudusedev').onclick = () => pick('device');
     $('cloudusewal').focus();
   }),
@@ -861,13 +865,26 @@ function cloudHTML(c) {
   return `<div class="wlcloud"><p>${s ? `This device saves to ${esc(short(s.a))}. ` : ''}Keep your progress on this wallet and play the same save on your laptop, desktop and phone.</p><button id="wlcloud">Turn on cloud save (free signature)</button></div>`;
 }
 function bindCloud(c, msg) {
-  if ($('wlcloud')) $('wlcloud').onclick = async () => {
-    $('wlcloud').disabled = true;
-    try { const r = await cloud.signIn(c, msg); msg(r === 'loaded' ? 'Loading the progress saved on this wallet…' : r === 'pending' ? 'Progress is saved on this device. Upload is not confirmed yet; temporary failures retry automatically.' : 'Cloud save is on.'); renderWallet(); }
-    catch (e) { msg(why(e)); $('wlcloud').disabled = false; }
-  };
-  if ($('wlcloudnow')) $('wlcloudnow').onclick = async () => { msg('Saving…'); const saved = await cloud.push(true); msg(saved ? 'Saved to your wallet.' : cloud.state() ? 'Progress is saved on this device. Upload is not confirmed yet; temporary failures retry automatically.' : 'Cloud save is signed out. Sign in again to upload your progress.'); };
-  if ($('wlcloudoff')) $('wlcloudoff').onclick = () => { cloud.signOut(); msg('Cloud save is off on this device. Your saved progress stays on the wallet.'); renderWallet(); };
+  const revision = walletRevision(), sessionKey = cloudFor(c)?.key;
+  const live = () => { const now = walletNow(); return walletRevision() === revision && now && now.w.p === c.w.p && now.address.toLowerCase() === c.address.toLowerCase(); };
+  const signing = () => cloudConnecting && cloudConnecting.revision === revision && cloudConnecting.p === c.w.p && cloudConnecting.address === c.address.toLowerCase();
+  const button = $('wlcloud');
+  if (button) {
+    button.disabled = !!signing();
+    button.onclick = async () => {
+      if ($('wlcloud') !== button || !live() || signing()) return;
+      const attempt = cloudConnecting = { p: c.w.p, address: c.address.toLowerCase(), revision };
+      button.disabled = true;
+      const note = text => { if (cloudConnecting === attempt && live()) msg(text); };
+      try { const r = await cloud.signIn(c, note); if (cloudConnecting === attempt && live()) { note(r === 'loaded' ? 'Loading the progress saved on this wallet…' : r === 'pending' ? 'Progress is saved on this device. Upload is not confirmed yet; temporary failures retry automatically.' : 'Cloud save is on.'); renderWallet(); } }
+      catch (e) { note(why(e)); if (cloudConnecting === attempt && live() && !cloud.state() && $('wlcloudnow')) renderWallet(); }
+      finally { if (cloudConnecting === attempt) { cloudConnecting = null; if ($('wlcloud')) $('wlcloud').disabled = false; } }
+    };
+  }
+  const save = $('wlcloudnow'), off = $('wlcloudoff');
+  const sameSession = () => live() && sessionKey && cloud.state()?.key === sessionKey;
+  if (save) save.onclick = async () => { if ($('wlcloudnow') !== save || !sameSession()) return; msg('Saving…'); const saved = await cloud.push(true); if (live() && (cloud.state()?.key === sessionKey || !cloud.state() && $('wlcloudnow') === save)) msg(saved ? 'Saved to your wallet.' : cloud.state() ? 'Progress is saved on this device. Upload is not confirmed yet; temporary failures retry automatically.' : 'Cloud save is signed out. Sign in again to upload your progress.'); };
+  if (off) off.onclick = () => { if ($('wlcloudoff') !== off || !sameSession()) return; cloudConnecting = null; cloud.signOut(); msg('Cloud save is off on this device. Your saved progress stays on the wallet.'); renderWallet(); };
 }
 // open the game or come back to it: a newer save from another device loads (only between runs)
 const cloudPull = async () => { if (!cloud.state() || mode !== 'title' || rankedPlaying()) return; if (await cloud.pull()) { banner('Loading your progress from your other device…', 3000); setTimeout(() => location.reload(), 600); } else cloud.changed(); };
