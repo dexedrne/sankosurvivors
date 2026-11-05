@@ -1,5 +1,16 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Restore progress before playing": "Ibalik ang progreso bago maglaro",
+  "An import could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.": "Hindi natapos ang pag-import. Naka-back up sa device na ito ang dati mong progreso. Ibalik ito bago maglaro o mag-save sa wallet mo.",
+  "Restore previous progress": "Ibalik ang dating progreso",
+  "This browser still cannot restore progress. Free some storage and try again. Keep this app installed.": "Hindi pa rin maibalik ng browser na ito ang progreso. Magbakante ng storage at subukan ulit. Huwag i-uninstall ang app na ito.",
+  "Progress imports keep a recovery backup until every change has saved.": "May backup para sa pagbawi ang pag-import ng progreso hanggang ma-save ang lahat ng pagbabago.",
+
+  "Update without interrupting a run": "Mag-update nang hindi naaabala ang laro",
+  "Starting a run cancels pending page updates and progress-import reloads. Finish wallet actions before using Update.": "Kinakansela ng pagsisimula ng laro ang mga nakabinbing update at reload mula sa pag-import ng progreso. Tapusin muna ang mga aksyon sa wallet bago gamitin ang Update.",
+  "Finish your run or wallet action before updating.": "Tapusin muna ang laro o aksyon sa wallet bago mag-update.",
+  "Finish your run or wallet action before loading progress.": "Tapusin muna ang laro o aksyon sa wallet bago i-load ang progreso.",
+
   "Room for menu labels": "Mas maluwag na mga label sa menu",
   "Mobile menu buttons have more room for Leaderboard and translated labels.": "Mas maluwag ang mga button ng mobile menu para sa talaan ng ranggo at mga isinaling label.",
 

@@ -14,6 +14,7 @@ const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
 const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
 import { wallets, watchWallets, takeWalletHandoff, savedPass, forget, prove, short, walletAppLinks, isPhone, walletModalOpen, walletConnectState, watchWalletConnect, cancelWalletConnect, dismissWalletConnect, why, DMT_COIN_BONUS } from './dmt.js';
 import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
+import { TRANSFER_KEYS as XFER_KEYS, IMPORT_BACKUP_KEY, importProgress, recoverProgressImport } from './progress-import.js';
 import { quoteDmt, buyDmt } from './swap.js';
 import { walletConnectLinks } from './wallet-connect.js';
 import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
@@ -48,6 +49,11 @@ const BOSS_TITLES = { '*': { ogre: 'Fudna the Hoard Keeper', sankson: 'Survival 
 const titled = (map, type) => BOSS_TITLES[map && map.id]?.[type] || BOSS_TITLES['*'][type];
 const bossName = (map, type) => titled(map, type) || ENEMIES[type].name;
 const slayName = (map, type) => titled(map, type) || `the ${ENEMIES[type].name}`;
+
+// A previous import must be restored before any startup code can change or upload progress.
+let pendingImport = false;
+try { pendingImport = localStorage.getItem(IMPORT_BACKUP_KEY) !== null; } catch { /* storage blocked */ }
+if (pendingImport) { showProgressRecovery(); throw Error('Progress recovery is required before playing.'); }
 
 // ---- saved progress ------------------------------------------------------------------------------
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
@@ -282,8 +288,8 @@ for (const id of ['ranked', 'wallet', 'cloudpick', 'walletlink']) $(id).addEvent
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 });
 async function rankedAction(fn) {
-  if (rankedBusy) return;
-  cancelCloudLoads();
+  if (rankedBusy || mode === 'recovery') return;
+  cancelPendingLoads();
   rankedBusy = true; renderRanked();
   for (const b of $('rankedwallets').querySelectorAll('button')) b.disabled = true;
   try { await fn(); }
@@ -589,7 +595,6 @@ $('moreclose').onclick = () => $('more').classList.add('hidden');
 $('more').addEventListener('click', (e) => { if (e.target.id === 'more') $('more').classList.add('hidden'); });
 // ---- move progress to another device: a code with the save (progress and settings only, never ranked tickets, a DMT
 // pass or a wallet), checked key by key on the way in like the old-address hand-off in index.html
-const XFER_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch', 'sq-roofs', 'sq-muted', 'sq-vol', 'sq-seen'];
 const b64 = (s) => btoa(unescape(encodeURIComponent(s))), unb64 = (s) => decodeURIComponent(escape(atob(s)));
 const xferSum = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return h.toString(36); };
 function xferCode() {
@@ -622,14 +627,45 @@ $('xfercopy').onclick = async () => {
   catch { $('xferin').value = code; $('xferin').select(); $('xfermsg').textContent = 'Copy the code from the box above.'; }
 };
 $('xferin').oninput = () => {
+  if (importAttempt) cancelPendingLoads();
+  $('xferload').dataset.sure = ''; $('xferload').textContent = 'Load this progress';
   const r = xferRead($('xferin').value); $('xferload').disabled = !!r.error;
   $('xferpeek').textContent = r.error || `${r.coins.toLocaleString()} coins · ${r.maps} map${r.maps === 1 ? '' : 's'} cleared · ${r.ranks} skill rank${r.ranks === 1 ? '' : 's'} · ${r.gear} gear found`;
 };
-$('xferload').onclick = () => {
+function withImportLock(fn) {
+  return navigator.locks?.request ? navigator.locks.request('sqs-progress-import', fn) : fn();
+}
+function showProgressRecovery() {
+  mode = 'recovery';
+  const screen = $('progressrecovery'), retry = $('progressretry');
+  screen.classList.remove('hidden'); retry.focus();
+  screen.onkeydown = e => { if (e.key === 'Tab' || e.key === 'Escape') { e.preventDefault(); retry.focus(); } e.stopPropagation(); };
+  retry.onclick = async () => {
+    if (retry.disabled) return;
+    retry.disabled = true; $('progressrecoverystatus').textContent = '';
+    try { await withImportLock(() => recoverProgressImport(localStorage)); location.reload(); }
+    catch { $('progressrecoverystatus').textContent = 'This browser still cannot restore progress. Free some storage and try again. Keep this app installed.'; retry.disabled = false; retry.focus(); }
+  };
+}
+$('xferload').onclick = async () => {
+  if (importAttempt) return;
+  if (!canManuallyReload()) { $('xfermsg').textContent = 'Finish your run or wallet action before loading progress.'; return; }
   const r = xferRead($('xferin').value); if (r.error) { $('xfermsg').textContent = r.error; return; }
   if ($('xferload').dataset.sure !== '1') { $('xferload').dataset.sure = '1'; $('xferload').textContent = 'Replace this device\'s progress?'; $('xfermsg').textContent = `This device has ${getCoins().toLocaleString()} coins now. Click again to load the code.`; return; }
-  try { for (const [k, v] of Object.entries(r.data)) localStorage.setItem(k, v); } catch { $('xfermsg').textContent = 'This browser will not save (private mode?).'; return; }
-  $('xfermsg').textContent = 'Loaded. Restarting…'; setTimeout(() => location.reload(), 600);
+  cancelPendingLoads();
+  const attempt = importAttempt = {}; $('xferload').disabled = true;
+  try {
+    await withImportLock(() => {
+      if (importAttempt !== attempt || !canManuallyReload()) return;
+      importProgress(localStorage, r.data);
+      $('xfermsg').textContent = 'Loaded. Restarting…'; queuePageReload('Loaded. Restarting…', 600);
+    });
+  } catch (e) {
+    if (e.recovery) { cancelPendingLoads(); showProgressRecovery(); }
+    else $('xfermsg').textContent = 'This browser will not save (private mode?).';
+  } finally {
+    if (importAttempt === attempt) { importAttempt = null; $('xferload').disabled = false; }
+  }
 };
 for (const b of document.querySelectorAll('#more .morelist button')) b.addEventListener('click', () => $('more').classList.add('hidden'), true);
 $('updbtn').onclick = () => {
@@ -757,7 +793,7 @@ function renderDmt() {
   const pass = savedPass(), body = $('dmtbody');
   if (pass) {
     body.innerHTML = `<p class="dmtok">Verified holder: ${esc(pass.balance)} DMT in ${esc(short(pass.address))}</p>${DMT_PERKS}<p class="dim">Perks are on until ${new Date(pass.exp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. Check again any time.</p><div class="lurow"><button id="dmtagain">Check again</button><button id="dmtforget" class="ghost">Forget this wallet</button></div>`;
-    $('dmtagain').onclick = () => connectDmt(); $('dmtforget').onclick = () => { forget(); applyDmt(); $('dmtmsg').textContent = 'Forgotten. Perks are off.'; renderDmt(); };
+    $('dmtagain').onclick = () => connectDmt(); $('dmtforget').onclick = () => { holderChecking = null; forget(); applyDmt(); $('dmtmsg').textContent = 'Forgotten. Perks are off.'; renderDmt(); };
     return;
   }
   const c = walletNow(), ws = c ? [{ ...c.w, name: `${c.w.name} (${short(c.address)})` }] : wallets();
@@ -771,8 +807,7 @@ async function connectDmt(w) {
   w = w || (walletNow() && walletNow().w) || wallets()[0]; if (!w) { $('dmtmsg').textContent = 'No wallet found in this browser.'; return; }
   for (const b of $('dmtbody').querySelectorAll('button')) b.disabled = true;
   try {
-    if (!walletNow() || walletNow().w.p !== w.p) await walletConnect(w); // the site remembers the wallet you checked with
-    const r = await prove(w, BASE, (t) => { $('dmtmsg').textContent = t; });
+    const r = await checkDmt(w, (t) => { $('dmtmsg').textContent = t; });
     $('dmtmsg').textContent = r.pass ? 'You hold DMT. Your perks are on!' : `${short(r.address)} holds no DMT on Arbitrum.`;
   } catch (e) { $('dmtmsg').textContent = why(e); }
   applyDmt(); renderDmt();
@@ -784,6 +819,7 @@ $('dmt').addEventListener('click', (e) => { if (e.target.id === 'dmt') $('dmt').
 const walletIcon = (w) => (w && w.icon ? `<img src="${esc(w.icon)}" alt="">` : '');
 let walletConnecting = null;
 async function walletConnect(w, owner = null) {
+  cancelPendingLoads(); holderChecking = null;
   if (walletConnecting !== owner) { walletConnecting = owner; $('walletmsg').textContent = ''; }
   return requestWallet(w);
 }
@@ -838,25 +874,48 @@ function renderWallet() {
     + `<div class="lurow">${rankedWeek && rankedWeek.open ? '<button id="wlranked">Ranked runs</button>' : ''}<button id="wlswitch" class="ghost">Switch wallet</button><button id="wldisc" class="ghost">Disconnect</button></div>`;
   bindCloud(c, msg); bindBuy(c, b, msg);
   $('wlcopy').onclick = async () => { try { await navigator.clipboard.writeText(c.address); msg('Address copied.'); } catch { msg(c.address); } };
-  if ($('wlperks')) $('wlperks').onclick = async () => { $('wlperks').disabled = true; try { const r = await prove(c.w, BASE, msg); msg(r.pass ? 'You hold DMT. Your perks are on!' : `${short(r.address)} holds no DMT on Arbitrum.`); } catch (e) { msg(why(e)); } applyDmt(); renderWallet(); };
+  if ($('wlperks')) $('wlperks').onclick = async () => { $('wlperks').disabled = true; try { const r = await checkDmt(c.w, msg); msg(r.pass ? 'You hold DMT. Your perks are on!' : `${short(r.address)} holds no DMT on Arbitrum.`); } catch (e) { msg(why(e)); } applyDmt(); renderWallet(); };
   if ($('wlranked')) $('wlranked').onclick = () => { $('wallet').classList.add('hidden'); openRanked(); };
   $('wlswitch').onclick = () => { const ch = walletChoices((w) => pickWallet(w, msg)); body.innerHTML = `<p>Pick a wallet. For another account in the same wallet, switch accounts inside the wallet.</p>${ch.html}`; ch.bind(body); };
   $('wldisc').onclick = () => { walletDisconnect(); msg('Disconnected.'); };
 }
 // ---- cloud save on the wallet (src/cloud.js): the same progress on every device ---------------------------------------
-let cloudConnecting = null, cloudChoice = null, cloudReload = 0, runStarting = false;
+let cloudConnecting = null, cloudChoice = null, reloadTimer = 0, runStarting = false, updateAttempt = null, importAttempt = null, holderChecking = null;
 const cloudCanLoad = () => mode === 'title' && !runStarting && !rankedBusy && !rankedLive();
-function cancelCloudLoads() {
+const canReloadGame = () => cloudCanLoad() && !buyBusy && !walletConnecting && !holderChecking && !walletModalOpen();
+const canManuallyReload = () => canReloadGame() && !cloudConnecting;
+function cancelPendingLoads() {
   cloud.cancelPending(); cloudConnecting = null; cloudChoice?.();
-  clearTimeout(cloudReload); cloudReload = 0;
+  clearTimeout(reloadTimer); reloadTimer = 0;
+  if (updateAttempt) { updateAttempt = null; $('updatebtn').textContent = 'Update'; $('updatebtn').disabled = false; }
+  if (importAttempt) { importAttempt = null; $('xferload').disabled = false; }
 }
-function queueCloudReload(text, delay) {
-  if (!cloudCanLoad()) return;
-  clearTimeout(cloudReload); banner(text, 3000);
-  cloudReload = setTimeout(() => { cloudReload = 0; if (cloudCanLoad()) location.reload(); }, delay);
+async function checkDmt(w, onStep) {
+  cancelPendingLoads();
+  const attempt = { w, revision: walletRevision(), connecting: false };
+  try {
+    if (!walletNow() || walletNow().w.p !== w.p) {
+      const connecting = walletConnect(w);
+      attempt.connecting = true; holderChecking = attempt;
+      await connecting;
+      if (holderChecking !== attempt) throw Error('Wallet check cancelled.');
+    } else holderChecking = attempt;
+    attempt.connecting = false; attempt.revision = walletRevision();
+    const current = () => {
+      if (holderChecking !== attempt || walletNow()?.w.p !== w.p || walletRevision() !== attempt.revision) throw Error('Wallet check cancelled.');
+    };
+    const result = await prove(w, BASE, text => { current(); onStep(text); }, current);
+    current(); return result;
+  } finally { if (holderChecking === attempt) holderChecking = null; }
+}
+function queuePageReload(text, delay) {
+  if (!canReloadGame()) return;
+  clearTimeout(reloadTimer); banner(text, 3000);
+  reloadTimer = setTimeout(() => { reloadTimer = 0; if (canReloadGame()) location.reload(); }, delay);
 }
 const cloud = createCloud(BASE, {
   canLoad: cloudCanLoad,
+  canSave: () => mode !== 'recovery',
   choose: (wal, dev) => new Promise((done) => {
     const revision = walletRevision();
     let settled = false;
@@ -869,7 +928,7 @@ const cloud = createCloud(BASE, {
     $('cloudusewal').focus();
   }),
   note: (t) => banner(t, 4000),
-  reload: () => queueCloudReload('Loading your progress from your wallet…', 500),
+  reload: () => queuePageReload('Loading your progress from your wallet…', 500),
 });
 onSaved = (k) => { if (CLOUD_KEYS.includes(k)) cloud.changed(); };
 const cloudFor = (c) => { const s = cloud.state(); return s && c && s.a.toLowerCase() === c.address.toLowerCase() ? s : null; };
@@ -887,6 +946,7 @@ function bindCloud(c, msg) {
     button.disabled = !!signing();
     button.onclick = async () => {
       if ($('wlcloud') !== button || !live() || signing()) return;
+      cancelPendingLoads();
       const attempt = cloudConnecting = { p: c.w.p, address: c.address.toLowerCase(), revision };
       button.disabled = true;
       const note = text => { if (cloudConnecting === attempt && live()) msg(text); };
@@ -901,7 +961,7 @@ function bindCloud(c, msg) {
   if (off) off.onclick = () => { if ($('wlcloudoff') !== off || !sameSession()) return; cloudConnecting = null; cloud.signOut(); msg('Cloud save is off on this device. Your saved progress stays on the wallet.'); renderWallet(); };
 }
 // open the game or come back to it: a newer save from another device loads (only between runs)
-const cloudPull = async () => { if (!cloud.state() || !cloudCanLoad()) return; if (await cloud.pull()) queueCloudReload('Loading your progress from your other device…', 600); else cloud.changed(); };
+const cloudPull = async () => { if (!cloud.state() || !cloudCanLoad()) return; if (await cloud.pull()) queuePageReload('Loading your progress from your other device…', 600); else cloud.changed(); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); else if (cloud.state()) cloud.push(true); });
 setTimeout(cloudPull, 1500);
 // ---- buy DMT with ETH without leaving the game (src/swap.js: KyberSwap, checked before the wallet sees it) -------------
@@ -932,7 +992,7 @@ function bindBuy(c, b, msg) {
       if (buyBusy) return;
       if ($('wlbuygo') !== go || buyQuote?.q !== q || buyQuote.request !== buyPriceRequest) return;
       if (!live(revision)) { msg('Wallet changed. Get a new quote before buying.'); return; }
-      buyBusy = c;
+      cancelPendingLoads(); buyBusy = c;
       go.disabled = true;
       let submitted = false;
       try {
@@ -980,6 +1040,7 @@ $('walletchip').onclick = openWallet;
 $('walletclose').onclick = () => { $('wallet').classList.add('hidden'); (!$('ranked').classList.contains('hidden') ? $('rankedclose') : $('walletchip')).focus(); };
 $('wallet').addEventListener('click', (e) => { if (e.target.id === 'wallet') $('walletclose').click(); });
 onWallet((c) => {
+  if (holderChecking && (!c || c.w.p !== holderChecking.w.p || !holderChecking.connecting && walletRevision() !== holderChecking.revision)) holderChecking = null;
   if (walletConnecting && (!c || c.w.p !== walletConnecting.w.p)) { walletConnecting = null; $('walletmsg').textContent = ''; }
   walletBal = null; applyDmt();
   if (!$('wallet').classList.contains('hidden')) renderWallet();
@@ -1057,11 +1118,11 @@ function runGround() {
   return T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null, fences: T.fences || null } : null;
 }
 async function startRun(live = null) {
-  if (runStarting) return;
+  if (runStarting || mode === 'recovery') return;
   if (!live?.run && (rankedLive() || rankedPlaying())) { openRanked(); return; }
   const isRanked = !!live?.run;
   if (isRanked && live.sim !== SIM_ID) return;
-  cancelCloudLoads(); runStarting = true;
+  cancelPendingLoads(); runStarting = true;
   try {
     if (isRanked && loadedMapId !== live.map) await pickMap(live.map);
     rankedRun = isRanked ? live : null; rankedRec = null;
@@ -1193,7 +1254,7 @@ function toMenu() {
 // ---- input ------------------------------------------------------------------------------------------------------------------
 const MENU_SCREENS = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests'];
 addEventListener('keydown', (e) => {
-  if (walletModalOpen()) return;
+  if (mode === 'recovery' || walletModalOpen()) return;
   if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
   if (e.repeat) return;
   const k = e.key.toLowerCase();
@@ -1250,18 +1311,34 @@ $('installbtn').onclick = async () => {
 // installed app can sit on an old build for hours)
 const BUILD = import.meta.env.VITE_BUILD || 'dev';
 async function checkForUpdate() {
-  if (BUILD === 'dev' || rankedLive()) return;
+  if (BUILD === 'dev' || !canManuallyReload()) return;
   try {
     const r = await fetch('/version.json', { cache: 'no-store' }); if (!r.ok) return;
-    const d = await r.json(); if (!rankedLive() && d && d.build && d.build !== BUILD) $('updatebtn').classList.remove('hidden');
+    const d = await r.json(); if (canManuallyReload() && d && d.build && d.build !== BUILD) $('updatebtn').classList.remove('hidden');
   } catch { /* offline */ }
 }
 $('updatebtn').onclick = async () => {
-  if (rankedLive()) return;
+  if (updateAttempt) return;
+  if (!canManuallyReload()) { banner('Finish your run or wallet action before updating.', 3000); return; }
+  cancelPendingLoads();
+  const attempt = updateAttempt = {}, current = () => updateAttempt === attempt && canManuallyReload();
   $('updatebtn').textContent = 'Updating…'; $('updatebtn').disabled = true;
-  try { const regs = await navigator.serviceWorker?.getRegistrations?.() || []; await Promise.all(regs.map((g) => g.update().catch(() => {}))); } catch { /* no service worker */ }
-  try { const keys = await caches.keys(); await Promise.all(keys.map((k) => caches.delete(k))); } catch { /* no cache storage */ }
-  location.reload();
+  try {
+    try {
+      const regs = await navigator.serviceWorker?.getRegistrations?.() || [];
+      if (!current()) return;
+      await Promise.all(regs.map((g) => g.update().catch(() => {})));
+    } catch { /* no service worker */ }
+    if (!current()) return;
+    try {
+      const keys = await caches.keys();
+      if (!current()) return;
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    } catch { /* no cache storage */ }
+    if (current()) location.reload();
+  } finally {
+    if (updateAttempt === attempt) { updateAttempt = null; $('updatebtn').textContent = 'Update'; $('updatebtn').disabled = false; }
+  }
 };
 checkForUpdate(); setInterval(() => { if (mode === 'title') checkForUpdate(); }, 10 * 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && mode === 'title') checkForUpdate(); });
@@ -1477,7 +1554,7 @@ function updateHud(view) {
 const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
 const NAV_ITEMS = 'summary, .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
-function navScreen() { if (walletModalOpen()) return null; return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
+function navScreen() { if (mode === 'recovery') return $('progressrecovery'); if (walletModalOpen()) return null; return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden')); }
 function navFocus(el) { if (navEl) navEl.classList.remove('navfocus'); navEl = el; if (el) { el.classList.add('navfocus'); if (el.tabIndex < 0) el.tabIndex = -1; el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
 function navMove(dir) {
@@ -1504,6 +1581,7 @@ function navPress() {
   navEl.click(); return true;
 }
 function navBack() {
+  if (mode === 'recovery') return true;
   if (walletModalOpen()) return true;
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
@@ -1514,7 +1592,7 @@ function navBack() {
   return false;
 }
 addEventListener('keydown', (e) => {
-  if (walletModalOpen()) return;
+  if (mode === 'recovery' || walletModalOpen()) return;
   const k = e.key, dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
   if (k === 'Tab' && navEl) navFocus(null);
   const spatialControl = e.target === navEl && e.target?.matches?.('summary, input[data-vol]');

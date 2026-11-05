@@ -20,7 +20,7 @@ async function setup(t,{signedIn=false}={}){
   nodes.set('walletmsg',{textContent:''});nodes.set('wallet',{classList:{contains:()=>false}});
   const cloud={state:()=>state,signIn:async(c,step)=>{const d=deferred();calls.push({kind:'signin',c,step,...d});return d.promise;},push:async()=>{const d=deferred();calls.push({kind:'push',...d});return d.promise;},signOut:()=>{offs++;state=null;}};
   function panel(){for(const k of ['wlcloud','wlcloudnow','wlcloudoff'])nodes.delete(k);for(const id of state?.a===W.current()?.address?['wlcloudnow','wlcloudoff']:['wlcloud'])nodes.set(id,{disabled:false});app?.bind(W.current(),msg);}
-  app=Function('$','cloud','walletNow','walletRevision','renderWallet','why',`${globals}\nconst cloudFor=c=>{const s=cloud.state();return s&&c&&s.a.toLowerCase()===c.address.toLowerCase()?s:null;};${bind};return{bind:bindCloud};`)($,cloud,W.current,W.walletRevision,panel,why);
+  app=Function('$','cloud','walletNow','walletRevision','renderWallet','why',`${globals}\nconst cancelPendingLoads=()=>{};const cloudFor=c=>{const s=cloud.state();return s&&c&&s.a.toLowerCase()===c.address.toLowerCase()?s:null;};${bind};return{bind:bindCloud};`)($,cloud,W.current,W.walletRevision,panel,why);
   panel();return{$,cloud,calls,msg,message:()=>$('walletmsg').textContent,rerender:panel,offs:()=>offs,
     async switchWallet(){await W.connect(provider(B));panel();},setSession:s=>state=s};
 }

@@ -1,5 +1,16 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Restore progress before playing": "Oynamadan önce ilerlemeyi geri yükle",
+  "An import could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.": "İçe aktarma tamamlanamadı. Önceki ilerlemen bu cihazda yedeklendi. Oynamadan veya cüzdanına kaydetmeden önce geri yükle.",
+  "Restore previous progress": "Önceki ilerlemeyi geri yükle",
+  "This browser still cannot restore progress. Free some storage and try again. Keep this app installed.": "Bu tarayıcı ilerlemeyi hâlâ geri yükleyemiyor. Biraz depolama alanı açıp tekrar dene. Uygulamayı kaldırma.",
+  "Progress imports keep a recovery backup until every change has saved.": "İlerleme içe aktarılırken tüm değişiklikler kaydedilene kadar kurtarma yedeği tutulur.",
+
+  "Update without interrupting a run": "Oyunu kesmeden güncelle",
+  "Starting a run cancels pending page updates and progress-import reloads. Finish wallet actions before using Update.": "Oyun başlayınca bekleyen sayfa güncellemeleri ve ilerleme aktarımı sonrası yenilemeler iptal edilir. Güncellemeden önce cüzdan işlemlerini bitir.",
+  "Finish your run or wallet action before updating.": "Güncellemeden önce oyununu veya cüzdan işlemini bitir.",
+  "Finish your run or wallet action before loading progress.": "İlerlemeyi yüklemeden önce oyununu veya cüzdan işlemini bitir.",
+
   "Room for menu labels": "Menü yazıları için daha fazla yer",
   "Mobile menu buttons have more room for Leaderboard and translated labels.": "Mobil menü düğmelerinde Sıralama ve çevrilmiş yazılar için daha fazla yer var.",
 

@@ -1,5 +1,16 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Restore progress before playing": "Restaura el progreso antes de jugar",
+  "An import could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.": "No se pudo completar la importación. Tu progreso anterior está respaldado en este dispositivo. Restáuralo antes de jugar o guardar en tu cartera.",
+  "Restore previous progress": "Restaurar el progreso anterior",
+  "This browser still cannot restore progress. Free some storage and try again. Keep this app installed.": "Este navegador aún no puede restaurar el progreso. Libera algo de espacio e inténtalo de nuevo. Mantén instalada esta aplicación.",
+  "Progress imports keep a recovery backup until every change has saved.": "Las importaciones de progreso conservan una copia de recuperación hasta que se hayan guardado todos los cambios.",
+
+  "Update without interrupting a run": "Actualiza sin interrumpir una partida",
+  "Starting a run cancels pending page updates and progress-import reloads. Finish wallet actions before using Update.": "Al empezar una partida se cancelan las actualizaciones de página y recargas por importación pendientes. Termina las acciones de la cartera antes de usar Actualizar.",
+  "Finish your run or wallet action before updating.": "Termina tu partida o la acción de la cartera antes de actualizar.",
+  "Finish your run or wallet action before loading progress.": "Termina tu partida o la acción de la cartera antes de cargar el progreso.",
+
   "Room for menu labels": "Espacio para los textos del menú",
   "Mobile menu buttons have more room for Leaderboard and translated labels.": "Los botones del menú móvil tienen más espacio para Clasificación y los textos traducidos.",
 

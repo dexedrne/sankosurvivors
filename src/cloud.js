@@ -79,7 +79,7 @@ async function api(baseUrl, route, body) {
 }
 const hex = (s) => '0x' + [...new TextEncoder().encode(s)].map((b) => b.toString(16).padStart(2, '0')).join('');
 
-/** A cloud save on one device. ui: { choose(cloud, local), note(text), reload(), canLoad?() } */
+/** A cloud save on one device. ui: { choose(cloud, local), note(text), reload(), canLoad?(), canSave?() } */
 export function createCloud(baseUrl, ui) {
   let timer = 0, busy = false, again = false, signInGeneration = 0;
 
@@ -124,7 +124,7 @@ export function createCloud(baseUrl, ui) {
   // save this device's progress (soon after a change; at once with now)
   function changed() { if (!cloudState()) return; clearTimeout(timer); timer = setTimeout(() => push(), 4000); }
   async function push(now = false, overwrite = null) {
-    const s = cloudState(); if (!s) return false;
+    const s = cloudState(); if (!s || ui.canSave && !ui.canSave()) return false;
     if (busy) {
       if (overwrite) set(UPLOAD_KEY, JSON.stringify({ a: s.a, rev: s.rev, data: snapshot(), overwrite: true, uncertain: false }));
       again = true; return false;
@@ -140,7 +140,7 @@ export function createCloud(baseUrl, ui) {
       set(UPLOAD_KEY, JSON.stringify({ ...upload, uncertain: true })); // a reload can lose the response even after the server saved
       const mine = upload.data;
       const r = await api(baseUrl, 'save-put', { key: s.key, rev: s.rev, data: mine });
-      if (cloudState()?.key !== s.key) return false; // signing out or switching wallets wins over an old response
+      if (cloudState()?.key !== s.key || ui.canSave && !ui.canSave()) return false; // signing out or switching wallets wins over an old response
       if (r.status === 200 && r.d.ok === true && Number.isSafeInteger(r.d.rev) && r.d.rev > s.rev) {
         set(UPLOAD_KEY, null);
         setState({ ...s, rev: r.d.rev }); set(BASE_KEY, JSON.stringify(mine));
@@ -170,11 +170,11 @@ export function createCloud(baseUrl, ui) {
       } else { set(UPLOAD_KEY, null); ui.note('Progress is saved on this device but was not uploaded. Try Save now again; if it keeps failing, report it.'); }
       return false;
     } catch {
-      if (upload && cloudState()?.key === s.key) { upload.uncertain = true; set(UPLOAD_KEY, JSON.stringify(upload)); }
+      if (upload && cloudState()?.key === s.key && (!ui.canSave || ui.canSave())) { upload.uncertain = true; set(UPLOAD_KEY, JSON.stringify(upload)); }
       again = true; return false;
     } finally {
       busy = false;
-      if (again && cloudState()) { again = false; clearTimeout(timer); timer = setTimeout(() => push(), now ? 1500 : 3000); }
+      if (again && cloudState() && (!ui.canSave || ui.canSave())) { again = false; clearTimeout(timer); timer = setTimeout(() => push(), now ? 1500 : 3000); }
       else again = false;
     }
   }

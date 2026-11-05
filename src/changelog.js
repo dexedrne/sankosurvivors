@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.14', date: '5 Nov 2026', title: 'Update without interrupting a run',
+    items: ['Starting a run cancels pending page updates and progress-import reloads. Finish wallet actions before using Update.', 'Progress imports keep a recovery backup until every change has saved.'],
+  },
+  {
     version: '0.44.13', date: '4 Nov 2026', title: 'Room for menu labels',
     items: ['Mobile menu buttons have more room for Leaderboard and translated labels.'],
   },

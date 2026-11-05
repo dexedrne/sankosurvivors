@@ -32,7 +32,7 @@ async function fixture() {
     ${initial}
     ${connectWrapper}
     let walletBal=null;
-    const applyDmt=()=>{},renderWallet=()=>{},renderRanked=()=>{},refreshBalances=()=>{};
+    let holderChecking=null;const walletRevision=()=>0;const cancelPendingLoads=()=>{},applyDmt=()=>{},renderWallet=()=>{},renderRanked=()=>{},refreshBalances=()=>{};
     ${picker}
     ${observer}
     ${disconnect}

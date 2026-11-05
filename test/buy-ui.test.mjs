@@ -30,7 +30,7 @@ async function fixture(onBuy=async()=>({tx:TX})){
     app?.bind(W.current(),{eth:1},msg);return box;
   }
   app=Function('$','document','walletNow','walletRevision','quoteDmt','buyDmt','why','arbiscanTx','esc','short','renderWallet',`
-    const ETH_FOR_GAS=0.000005,BRIDGE='fixture',refreshBalances=()=>{},walletChoices=()=>({html:'Connect fixture',bind(){}});
+    const cancelPendingLoads=()=>{},ETH_FOR_GAS=0.000005,BRIDGE='fixture',refreshBalances=()=>{},walletChoices=()=>({html:'Connect fixture',bind(){}});
     ${globals}
     ${bind}
     const view=(${walletView});
