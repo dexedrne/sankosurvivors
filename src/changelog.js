@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.20', date: '5 Nov 2026', title: 'Safer progress codes',
+    items: ['Invalid progress codes are refused before replacing your save. Damaged saved fields no longer stop the game loading.'],
+  },
+  {
     version: '0.44.19', date: '5 Nov 2026', title: 'Safe graphics settings',
     items: ['Fixed a loading failure caused by malformed saved graphics settings. Valid display options and saved progress are preserved.'],
   },

@@ -7,13 +7,14 @@
 // cleared maps, finished quests and found gear are joined, skill ranks keep the higher, the best run keeps the better;
 // for anything else this device wins. Nothing one device earned is lost.
 import { current, walletRevision } from './wallet.js';
+import { numberValue, finiteNumber } from './progress-values.js';
 import { importProgress, IMPORT_BACKUP_KEY } from './progress-import.js';
 
 export const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
 const ST = 'sq-cloud', BASE_KEY = 'sq-cloud-base', UPLOAD_KEY = 'sq-cloud-upload';
 
 const parse = (v, d) => { try { const x = JSON.parse(v); return x ?? d; } catch { return d; } };
-const num = (v) => { const n = Number(parse(v, 0)); return Number.isFinite(n) ? n : 0; };
+const num = (v) => finiteNumber(parse(v, 0));
 const obj = (v) => { const o = parse(v, {}); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; };
 const arr = (v) => { const a = parse(v, []); return Array.isArray(a) ? a : []; };
 // Same personal-record order as casual boards: victory, whole seconds, then kills. Keep the old record on a full tie.
@@ -42,10 +43,10 @@ function mergeKey(k, base, mine, theirs) {
     case 'sq-coins': return JSON.stringify(Math.max(0, Math.round(num(theirs) + num(mine) - num(base))));
     case 'sq-stats': { // run counters: each device's own additions
       const b = obj(base), m = obj(mine), t = obj(theirs), out = { ...t };
-      for (const [s, v] of Object.entries(m)) if (Number.isFinite(Number(v))) out[s] = (Number(t[s]) || 0) + Number(v) - (Number(b[s]) || 0); else out[s] = v;
+      for (const [s, v] of Object.entries(m)) if (Number.isFinite(numberValue(v))) out[s] = finiteNumber(t[s]) + numberValue(v) - finiteNumber(b[s]); else out[s] = v;
       return JSON.stringify(out);
     }
-    case 'sq-skills': case 'sq-gearlv': { const m = obj(mine), t = obj(theirs), out = { ...t }; for (const [s, v] of Object.entries(m)) out[s] = Math.max(Number(v) || 0, Number(t[s]) || 0); return JSON.stringify(out); }
+    case 'sq-skills': case 'sq-gearlv': { const m = obj(mine), t = obj(theirs), out = { ...t }; for (const [s, v] of Object.entries(m)) out[s] = Math.max(finiteNumber(v), finiteNumber(t[s])); return JSON.stringify(out); }
     case 'sq-cleared': case 'sq-quests': case 'sq-bank': return JSON.stringify([...new Set([...arr(theirs), ...arr(mine)])]);
     default: return mine;
   }
@@ -58,7 +59,7 @@ export function mergeSaves(base, mine, theirs) {
 // what a save holds, for the "which progress do you want" choice
 export function summary(d) {
   const skills = obj(d['sq-skills']);
-  return { coins: num(d['sq-coins']), maps: arr(d['sq-cleared']).length, ranks: Object.values(skills).reduce((a, b) => a + (Number(b) || 0), 0), gear: arr(d['sq-bank']).length };
+  return { coins: num(d['sq-coins']), maps: arr(d['sq-cleared']).length, ranks: Object.values(skills).reduce((a, b) => a + finiteNumber(b), 0), gear: arr(d['sq-bank']).length };
 }
 // a device that has not really played yet (its progress can be replaced without asking)
 export const isFresh = (d) => { const s = summary(d); return !s.coins && !s.maps && !s.ranks && !s.gear; };

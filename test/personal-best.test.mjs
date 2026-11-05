@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as cloud from '../src/cloud.js';
+import { profileBest } from '../src/progress-values.js';
 const J=JSON.stringify;
 const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const globalRecord=source.slice(source.indexOf("  const prev = load('sq-best'"),source.indexOf("  let unlockNote = ''"));
@@ -9,9 +10,9 @@ const perMap=source.slice(source.indexOf('  let bestNote ='),source.indexOf("  $
 const fmtT=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 function finish(prev,candidate){
   const data={'sq-best':prev,'sq-bests':{'greentown:n:r':prev}};
-  const note=Function('sim','won','load','save','getBests','bestKey','fmtT','betterRun',`
+  const note=Function('sim','won','load','save','getBests','bestKey','fmtT','betterRun','profileBest',`
     const wasRanked=false; ${globalRecord} ${perMap} return bestNote;
-  `)(candidate,candidate.won,(k,d)=>data[k]??d,(k,v)=>{data[k]=v;},()=>data['sq-bests'],()=> 'greentown:n:r',fmtT,cloud.betterRun);
+  `)(candidate,candidate.won,(k,d)=>data[k]??d,(k,v)=>{data[k]=v;},()=>data['sq-bests'],()=> 'greentown:n:r',fmtT,cloud.betterRun,profileBest);
   return {...data,note};
 }
 test('local and per-map best retain a victory over a longer failed run',()=>{
@@ -61,7 +62,7 @@ test('HUD does not announce a new best for a loss after a shorter victory',()=>{
   const code=source.slice(start,end);
   const shown=[];
   const runBest={t:600,kills:300,won:true},view={kills:600};
-  Function('runBest','view','sim','banner','audio','betterRun',`let passedBest=false;const t=900;${code}`)(runBest,view,{map:{name:'Greentown'},over:null},message=>shown.push(message),{play(){}},cloud.betterRun);
+  Function('runBest','view','sim','banner','audio','betterRun','profileBest',`let passedBest=false;const t=900;${code}`)(runBest,view,{map:{name:'Greentown'},over:null},message=>shown.push(message),{play(){}},cloud.betterRun);
   assert.deepEqual(shown,[]);
 });
 test('routine cloud pull preserves stronger records even without unsaved local changes',async t=>{

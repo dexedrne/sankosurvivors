@@ -1,5 +1,12 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Safer progress codes": "Mas ligtas na mga progress code",
+  "Invalid progress codes are refused before replacing your save. Damaged saved fields no longer stop the game loading.": "Tinatanggihan ang mga di-wastong progress code bago palitan ang iyong save. Hindi na hinaharangan ng sirang naka-save na data ang pag-load ng laro.",
+  "Progress code contains invalid save data. Your current progress has not changed.": "May di-wastong save data ang progress code. Hindi nabago ang kasalukuyan mong progreso.",
+  "This progress code is too large to load.": "Masyadong malaki ang progress code na ito para i-load.",
+  "This save is too large for a progress code. Keep this device’s save.": "Masyadong malaki ang save na ito para sa progress code. Panatilihin ang save sa device na ito.",
+  "Could not read saved progress. Keep this app installed.": "Hindi mabasa ang naka-save na progreso. Panatilihing naka-install ang app na ito.",
+
   "Safe graphics settings": "Ligtas na graphics settings",
   "Fixed a loading failure caused by malformed saved graphics settings. Valid display options and saved progress are preserved.": "Naayos ang hindi pag-load dahil sa maling naka-save na graphics settings. Nananatili ang mga wastong display option at naka-save na progreso.",
   "Hear the action again": "Marinig muli ang aksyon",

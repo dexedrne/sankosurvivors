@@ -3,6 +3,7 @@ import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
 import { cleanSettings } from './settings.js';
+import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
@@ -57,7 +58,7 @@ try { pendingImport = localStorage.getItem(IMPORT_BACKUP_KEY) !== null; } catch 
 if (pendingImport) { showProgressRecovery(); throw Error('Progress recovery is required before playing.'); }
 
 // ---- saved progress ------------------------------------------------------------------------------
-const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch { return d; } };
+const load = (k, d) => { try { return profileValue(k, JSON.parse(localStorage.getItem(k) || 'null') ?? d, d); } catch { return d; } };
 // one time: clear the worn loadout that casket gear used to carry over by itself (the collection and levels are kept)
 try { if (!localStorage.getItem('sq-gear-reset1')) { localStorage.setItem('sq-gear', '{}'); localStorage.setItem('sq-gear-reset1', '1'); } } catch { /* storage blocked */ }
 let onSaved = null; // the cloud save hears about every progress change (set up with the wallet below)
@@ -79,7 +80,7 @@ const getGear = () => { const raw = load('sq-gear', {}), g = raw && typeof raw =
 const getStats = () => load('sq-stats', {});
 const getGearLv = () => clampLv(load('sq-gearlv', {}), GEAR_MAX_LV);
 const questsDone = () => new Set(load('sq-quests', []));
-const statVal = (st, key) => st[key] || 0;
+const statVal = (st, key) => finiteNumber(st[key]);
 // a new item goes to the bank; a duplicate is sold for coins (unless it was already high alched in the run: sell = false)
 function bankItem(name, sell = true) { if (!Object.hasOwn(GEAR, name)) return false; const raw = load('sq-bank', []), b = Array.isArray(raw) ? raw : []; if (b.includes(name)) { if (sell) save('sq-coins', getCoins() + 25); return false; } b.push(name); save('sq-bank', b); return true; }
 const autoAlchOn = () => load('sq-autoalch', true) !== false; // Settings: auto high alch caskets that are not better (on by default: duplicates kept popping a card)
@@ -110,7 +111,7 @@ function iconHTML(kind, id, level, evo, step = null) {
 const bestKey = (s) => `${s.map.id}:${s.hard ? 'h' : 'n'}:${s.endless ? 'e' : 'r'}`;
 const getBests = () => { const b = load('sq-bests', {}); return b && typeof b === 'object' && !Array.isArray(b) ? b : {}; };
 function showBest() {
-  const map = MAP_BY_ID[selMap], mb = map && getBests()[bestKey({ map, hard: hardOn, endless: endlessOn })], b = mb || load('sq-best', null);
+  const map = MAP_BY_ID[selMap], mb = map && profileBest(getBests()[bestKey({ map, hard: hardOn, endless: endlessOn })]), b = mb || load('sq-best', null);
   const what = mb ? `Best on ${map.name}${hardOn ? ' (hard)' : ''}${endlessOn ? ' (endless)' : ''}` : 'Best run';
   $('best').textContent = b ? `${what}: ${fmtT(b.t)} · level ${b.level} · ${b.kills} slain${b.won ? ' · victory' : ''}` : '';
   $('coins').textContent = getCoins(); $('coins2').textContent = getCoins();
@@ -606,31 +607,49 @@ $('more').addEventListener('click', (e) => { if (e.target.id === 'more') $('more
 const b64 = (s) => btoa(unescape(encodeURIComponent(s))), unb64 = (s) => decodeURIComponent(escape(atob(s)));
 const xferSum = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0; return h.toString(36); };
 function xferCode() {
-  const d = {}; for (const k of XFER_KEYS) { try { const v = localStorage.getItem(k); if (v !== null) d[k] = v; } catch { /* storage blocked */ } }
+  const d = {};
+  for (const k of XFER_KEYS) {
+    let raw; try { raw = localStorage.getItem(k); } catch { throw Error('Could not read saved progress. Keep this app installed.'); }
+    if (raw === null) continue;
+    if (raw.length > 20000) throw Error('This save is too large for a progress code. Keep this device’s save.');
+    if (k === 'sq-roofs') { if (['off', 'on', 'auto'].includes(raw)) d[k] = raw; continue; }
+    let value; try { value = JSON.parse(raw); } catch { value = undefined; }
+    if (value !== undefined && validProfileValue(k, value)) d[k] = raw;
+    else {
+      const safe = profileValue(k, value);
+      if (safe !== undefined) d[k] = JSON.stringify(safe);
+    }
+    if (d[k]?.length > 20000) throw Error('This save is too large for a progress code. Keep this device’s save.');
+  }
   const body = b64(JSON.stringify(d)); return `SQS1.${body}.${xferSum(body)}`;
 }
 function xferRead(code) {
+  // 19 values of 20k UTF16 units can expand through JSON escaping and base64 to over 3MB.
+  if (String(code).length > 4000000) return { error: 'This progress code is too large to load.' };
   const m = /^SQS1\.([A-Za-z0-9+/=]+)\.([a-z0-9]+)$/.exec(String(code).replace(/\s+/g, ''));
   if (!m) return { error: 'That is not a progress code. It starts with SQS1.' };
   if (xferSum(m[1]) !== m[2]) return { error: 'The code is cut short or changed. Copy it again.' };
   let d; try { d = JSON.parse(unb64(m[1])); } catch { return { error: 'The code could not be read. Copy it again.' }; }
+  const invalid = { error: 'Progress code contains invalid save data. Your current progress has not changed.' };
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return invalid;
   const out = {};
   for (const k of XFER_KEYS) {
-    const v = d[k]; if (typeof v !== 'string' || v.length > 20000) continue;
-    if (k === 'sq-roofs') { if (v === 'off' || v === 'on' || v === 'auto') out[k] = v; continue; }
-    try { JSON.parse(v); out[k] = v; } catch { /* not a value the game saves */ }
+    if (!Object.hasOwn(d, k)) continue;
+    const v = d[k]; if (typeof v !== 'string' || v.length > 20000) return invalid;
+    if (k === 'sq-roofs') { if (!['off', 'on', 'auto'].includes(v)) return invalid; out[k] = v; continue; }
+    try { if (!validProfileValue(k, JSON.parse(v))) return invalid; out[k] = v; } catch { return invalid; }
   }
   if (!Object.keys(out).length) return { error: 'The code has no progress in it.' };
-  const j = (k, f) => { try { return out[k] ? JSON.parse(out[k]) : f; } catch { return f; } };
-  const skills = j('sq-skills', {}), ranks = Object.values(skills).reduce((a, b) => a + (Number(b) || 0), 0);
-  return { data: out, coins: Number(j('sq-coins', 0)) || 0, maps: (j('sq-cleared', []) || []).length, ranks, gear: (j('sq-bank', []) || []).length };
+  const j = (k, f) => profileValue(k, Object.hasOwn(out, k) ? JSON.parse(out[k]) : f, f);
+  const skills = j('sq-skills', {}), ranks = Object.values(skills).reduce((a, b) => a + finiteNumber(b), 0);
+  return { data: out, coins: j('sq-coins', 0), maps: j('sq-cleared', []).length, ranks, gear: j('sq-bank', []).length };
 }
 $('xferbtn').onclick = () => { $('more').classList.add('hidden'); $('xfermsg').textContent = ''; $('xferpeek').textContent = ''; $('xferin').value = ''; $('xferload').disabled = true; $('xfer').classList.remove('hidden'); };
 $('xferclose').onclick = () => $('xfer').classList.add('hidden');
 $('xfer').addEventListener('click', (e) => { if (e.target.id === 'xfer') $('xfer').classList.add('hidden'); });
 $('xferin').addEventListener('keydown', (e) => e.stopPropagation());
 $('xfercopy').onclick = async () => {
-  const code = xferCode();
+  let code; try { code = xferCode(); } catch (error) { $('xfermsg').textContent = error.message; return; }
   try { await navigator.clipboard.writeText(code); $('xfermsg').textContent = 'Copied. Paste it in the game on your other device (More, Move progress).'; }
   catch { $('xferin').value = code; $('xferin').select(); $('xfermsg').textContent = 'Copy the code from the box above.'; }
 };
@@ -1198,7 +1217,7 @@ async function startRun(live = null) {
     waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
     $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
     if (isRanked && sim.pending[PLAYER]) showLevelUp();
-    runBest = isRanked ? null : (getBests()[bestKey(sim)] || null); passedBest = false; chase = null;
+    runBest = isRanked ? null : profileBest(getBests()[bestKey(sim)]); passedBest = false; chase = null;
     if (isRanked && rankedWeek) { // the board as it stood when you entered, without your own wallet's run
       const race = raceOf(rankedWeek, liveRace(live).mode), me = (walletNow() && walletNow().address || '').toLowerCase();
       chase = { rows: ((race && race.rows) || []).filter((r) => String(r.wallet || '').toLowerCase() !== me).map((r) => ({ t: Number(r.t) || 0, kills: Number(r.kills) || 0 })), kp: kpmWeek(liveRace(live).week) };
@@ -1256,12 +1275,12 @@ function endRun() {
   // casket gear stays in your collection (the Gear panel) but is not worn next run: every run starts with only what you
   // chose in the Gear panel (owner 3 Nov: "my casket gear from the last run is still on my character should be reset every run")
   // lifetime stats, then quests
-  const st = getStats(), add = (k, v) => { st[k] = (st[k] || 0) + v; };
+  const st = getStats(), add = (k, v) => { st[k] = finiteNumber(st[k]) + v; };
   add('kills', sim.kills); add('bosses', sim.bossKills); add('evolves', sim.evolves); add('caskets', sim.loot.length);
   for (const [ty, n] of Object.entries(sim.killsByType)) add('kills.' + ty, n);
   add('kills.spiders', (sim.killsByType.spider || 0) + (sim.killsByType.jspider || 0) + (sim.killsByType.pspider || 0));
   add('dragons', sim.killsByType.dragon || 0);
-  st.bestTime = Math.max(st.bestTime || 0, Math.floor(sim.t)); st.cleared = clearedMaps().size;
+  st.bestTime = Math.max(finiteNumber(st.bestTime), Math.floor(sim.t)); st.cleared = clearedMaps().size;
   save('sq-stats', st);
   const done = questsDone(), questNotes = [];
   for (const q of QUESTS) {
@@ -1282,7 +1301,7 @@ function endRun() {
   const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
   let bestNote = '';
   if (!wasRanked) {
-    const all = getBests(), k = bestKey(sim), b = all[k];
+    const all = getBests(), k = bestKey(sim), b = profileBest(all[k]);
     if (betterRun(b, runRecord) === runRecord) { all[k] = runRecord; save('sq-bests', all); bestNote = b ? ` · new best (was ${fmtT(b.t)})!` : ''; }
     else bestNote = sim.t < b.t ? ` · ${fmtT(b.t - sim.t)} short of your best (${fmtT(b.t)})` : ` · best ${fmtT(b.t)}`;
   }

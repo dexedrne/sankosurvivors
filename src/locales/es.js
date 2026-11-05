@@ -1,5 +1,12 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Safer progress codes": "Códigos de progreso más seguros",
+  "Invalid progress codes are refused before replacing your save. Damaged saved fields no longer stop the game loading.": "Los códigos de progreso no válidos se rechazan antes de reemplazar tu partida. Los datos guardados dañados ya no impiden que el juego cargue.",
+  "Progress code contains invalid save data. Your current progress has not changed.": "El código de progreso contiene datos no válidos. Tu progreso actual no ha cambiado.",
+  "This progress code is too large to load.": "Este código de progreso es demasiado grande para cargarlo.",
+  "This save is too large for a progress code. Keep this device’s save.": "Esta partida es demasiado grande para un código de progreso. Conserva la partida de este dispositivo.",
+  "Could not read saved progress. Keep this app installed.": "No se pudo leer el progreso guardado. Mantén esta aplicación instalada.",
+
   "Safe graphics settings": "Ajustes gráficos seguros",
   "Fixed a loading failure caused by malformed saved graphics settings. Valid display options and saved progress are preserved.": "Se corrigió un fallo de carga causado por ajustes gráficos guardados incorrectos. Se conservan las opciones de imagen válidas y el progreso guardado.",
   "Hear the action again": "Vuelve a escuchar la acción",

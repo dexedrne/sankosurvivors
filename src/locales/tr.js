@@ -1,5 +1,12 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Safer progress codes": "Daha güvenli ilerleme kodları",
+  "Invalid progress codes are refused before replacing your save. Damaged saved fields no longer stop the game loading.": "Geçersiz ilerleme kodları kaydınız değiştirilmeden reddedilir. Bozuk kayıt alanları artık oyunun yüklenmesini engellemez.",
+  "Progress code contains invalid save data. Your current progress has not changed.": "İlerleme kodu geçersiz kayıt verisi içeriyor. Mevcut ilerlemeniz değişmedi.",
+  "This progress code is too large to load.": "Bu ilerleme kodu yüklenemeyecek kadar büyük.",
+  "This save is too large for a progress code. Keep this device’s save.": "Bu kayıt ilerleme koduna sığmayacak kadar büyük. Bu cihazdaki kaydı koruyun.",
+  "Could not read saved progress. Keep this app installed.": "Kayıtlı ilerleme okunamadı. Bu uygulamayı yüklü tutun.",
+
   "Safe graphics settings": "Güvenli grafik ayarları",
   "Fixed a loading failure caused by malformed saved graphics settings. Valid display options and saved progress are preserved.": "Bozuk kayıtlı grafik ayarlarının neden olduğu yükleme hatası düzeltildi. Geçerli görüntü seçenekleri ve kayıtlı ilerleme korunur.",
   "Hear the action again": "Aksiyonun sesleri geri döndü",
