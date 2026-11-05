@@ -16,7 +16,7 @@ const fakeKyber = (outPerEthWei) => async (url) => {
 test('buy DMT: a quote for the amount asked, with the slippage floor and the loss shown', async () => {
   const q = await quoteDmt(2.5, fakeKyber(1800n)); // 1 ETH buys 1800 DMT
   assert.ok(q.dmtOut >= 2.5 && q.dmtOut < 2.6, String(q.dmtOut)); // asks 2% over, so the pool moving still leaves enough
-  assert.equal(q.minOut, 2.295);
+  assert.equal(q.minOut, '2.295');
   assert.ok(q.minOut < q.dmtOut && q.minOut > q.dmtOut * 0.89); // 10% slippage (owner 3 Nov: the DMT pool is thin)
   assert.ok(Math.abs(q.loss - 0.01) < 1e-9);
   await assert.rejects(quoteDmt(0, fakeKyber(1n)), /Pick an amount/);
@@ -26,6 +26,57 @@ test('buy DMT: a quote for the amount asked, with the slippage floor and the los
 const real = JSON.parse(readFileSync(new URL('./fixtures/kyber-build.json', import.meta.url), 'utf8'));
 const W = (hex, at) => hex.slice(at, at + 64), put = (hex, at, w) => hex.slice(0, at) + w + hex.slice(at + 64);
 const descAt = (hex) => { const p = 8 + Number(BigInt('0x' + W(hex, 8))) * 2; return p + Number(BigInt('0x' + W(hex, p + 3 * 64))) * 2; };
+const captured10 = JSON.parse(readFileSync(new URL('./fixtures/kyber-build-10pct.json', import.meta.url), 'utf8'));
+for (const [amountOut, shown, minimum] of [
+  ['3838778045902773153', 3.4549, 3454900000000000000n],
+  ['1000000000000000000', 0.9, 900000000000000000n],
+  ['1000001111111111111', 0.9, 900000000000000000n],
+  ['1000001111111111112', 0.900001, 900001000000000000n],
+  ['1111111111112', 0.000001, 1000000000000n],
+]) test(`buy DMT enforces the shown ${shown} minimum for output ${amountOut}`, async () => {
+  const summary = { ...real.summary, amountOut };
+  const q = await quoteDmt(1, async () => new Response(JSON.stringify({ code: 0, data: { routeSummary: summary } })));
+  assert.equal(q.minOut, String(shown));
+  const h = real.build.data.slice(2), at = descAt(h) + 8 * 64;
+  const built = (n) => ({ ...real.build, data: '0x' + put(h, at, n.toString(16).padStart(64, '0')) });
+  assert.equal(checkBuilt(built(minimum), q, me), BigInt(q.amountIn), 'accept the exact displayed minimum');
+  assert.throws(() => checkBuilt(built(minimum - 1n), q, me), /did not pay your own wallet/, 'refuse even one base unit below the displayed promise');
+});
+test('buy DMT accepts a captured 10% build with a one-unit quote/build difference', async () => {
+  const q = await quoteDmt(1, async () => new Response(JSON.stringify({ code: 0, data: { routeSummary: captured10.summary } })));
+  assert.equal(q.minOut, '4.051369');
+  assert.equal(checkBuilt(captured10.build, q, me), 2000000000000000n);
+});
+test('buy DMT formats the minimum exactly even when an API output exceeds number precision', async () => {
+  for (const [amountOut, minimum] of [
+    ['10007999171934443333333333334', '9007199254.740999'],
+    ['1000000000000000000000', '900'],
+    ['10000000000000000000', '9'],
+    ['1111111111112', '0.000001'],
+  ]) {
+    const summary = { ...real.summary, amountOut };
+    const q = await quoteDmt(1, async () => new Response(JSON.stringify({ code: 0, data: { routeSummary: summary } })));
+    assert.equal(String(q.minOut), minimum);
+  }
+});
+test('buy DMT never asks the wallet to send a build below the displayed minimum', async () => {
+  const q = await quoteDmt(2.5, fakeKyber(1800n));
+  const h = real.build.data.slice(2), at = descAt(h) + 8 * 64;
+  const build = { ...real.build, transactionValue: q.amountIn, data: '0x' + put(put(h, at - 64, BigInt(q.amountIn).toString(16).padStart(64, '0')), at, (2295000000000000000n - 1n).toString(16).padStart(64, '0')) };
+  let sends = 0;
+  const wallet = { p: { request: async ({ method }) => {
+    if (method === 'eth_requestAccounts' || method === 'eth_accounts') return [me];
+    if (method === 'eth_chainId') return '0xa4b1';
+    if (method === 'eth_sendTransaction') { sends++; return '0x' + 'ab'.repeat(32); }
+    if (method === 'eth_getTransactionReceipt') return swapReceipt();
+  } } };
+  await connect(wallet);
+  await assert.rejects(buyDmt(wallet, me, q, () => {}, async (_url, options) => {
+    assert.equal(JSON.parse(options.body).slippageTolerance, 1000, 'keep the owner-selected API tolerance');
+    return new Response(JSON.stringify({ code: 0, data: build }));
+  }), /did not pay your own wallet/);
+  assert.equal(sends, 0);
+});
 test('buy DMT: the game decodes the swap and refuses one that pays anyone else, gives less, or is not KyberSwap', () => {
   const q = { amountIn: real.summary.amountIn, summary: real.summary }, b = real.build, h = b.data.slice(2), d = descAt(h);
   assert.equal(checkBuilt(b, q, me), BigInt(q.amountIn));
@@ -67,6 +118,7 @@ test('buy DMT refuses a chain switch while its build is pending', async () => {
 
 test('buy DMT binds the wallet transaction to Arbitrum', async () => {
   let sent;
+  const steps = [];
   const wallet = { p: { request: async ({ method, params }) => {
     if (method === 'eth_requestAccounts' || method === 'eth_accounts') return [me];
     if (method === 'eth_chainId') return '0xa4b1';
@@ -74,9 +126,10 @@ test('buy DMT binds the wallet transaction to Arbitrum', async () => {
     if (method === 'eth_getTransactionReceipt') return swapReceipt();
   } } };
   await connect(wallet);
-  const q = { amountIn: real.summary.amountIn, summary: real.summary, ethIn: Number(real.summary.amountIn) / 1e18, minOut: 1 };
-  await buyDmt(wallet, me, q, () => {}, async () => new Response(JSON.stringify({ code: 0, data: real.build })));
+  const q = await quoteDmt(1, async () => new Response(JSON.stringify({ code: 0, data: { routeSummary: captured10.summary } })));
+  await buyDmt(wallet, me, q, (step) => steps.push(step), async () => new Response(JSON.stringify({ code: 0, data: captured10.build })));
   assert.equal(sent.chainId, '0xa4b1');
+  assert.ok(steps.some((step) => step.includes('at least 4.051369 DMT')), 'the exact quote minimum reaches wallet confirmation');
 });
 test('the crowd: casual runs on the denser pace; ranked week 0 keeps the pace it started on, week 1 the new one', () => {
   assert.equal(createSim({ seed: 1, map: MAP_BY_ID.greentown }).pace, 2);

@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Keep the quoted minimum": "Panatilihin ang minimum sa quote",
+  "DMT buys refuse a swap that allows less than the minimum shown in your quote.": "Tinatanggihan ang pagbili ng DMT kung pinapayagan ng swap ang mas mababa sa minimum na ipinakita sa quote mo.",
   "Safer DMT buying": "Mas ligtas na pagbili ng DMT",
   "Buys stop before sending when your wallet choice changes. Old quotes cannot use another wallet’s Buy button.": "Hihinto ang pagbili bago ipadala kapag nagbago ang pinili mong wallet. Hindi magagamit ng lumang quote ang Buy button ng ibang wallet.",
   "Known transaction links stay visible when receipt checks fail. Unconfirmed sends ask you to check wallet activity before buying again.": "Nananatiling nakikita ang link ng kilalang transaksyon kahit pumalya ang pagsuri sa resibo. Kapag hindi kumpirmado ang pagpapadala, hihilinging tingnan ang aktibidad ng wallet bago bumili muli.",

@@ -9,7 +9,7 @@ const globals=main.slice(main.indexOf('let buyWant ='),main.indexOf('const BUY_A
 const bind=main.slice(main.indexOf('function bindBuy('),main.indexOf('function openWallet()'));
 const walletView=main.slice(main.indexOf('function renderWallet()'),main.indexOf('// ---- cloud save on the wallet'));
 const A='0x'+'1'.repeat(40),B='0x'+'2'.repeat(40),TX='0x'+'ab'.repeat(32);
-const q1={dmtOut:0.5,minOut:0.45,ethIn:0.001,usdIn:0,loss:null},q2={dmtOut:2.5,minOut:2.25,ethIn:0.005,usdIn:0,loss:null};
+const q1={dmtOut:0.5,minOut:'0.45',ethIn:0.001,usdIn:0,loss:null},q2={dmtOut:2.5,minOut:'2.25',ethIn:0.005,usdIn:0,loss:null};
 function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};}
 async function fixture(onBuy=async()=>({tx:TX})){
   const store=new Map(),nodes=new Map(),quotes=[],buys=[];

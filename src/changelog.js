@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.9', date: '4 Nov 2026', title: 'Keep the quoted minimum',
+    items: ['DMT buys refuse a swap that allows less than the minimum shown in your quote.'],
+  },
+  {
     version: '0.44.8', date: '4 Nov 2026', title: 'Safer DMT buying',
     items: ['Buys stop before sending when your wallet choice changes. Old quotes cannot use another wallet’s Buy button.', 'Known transaction links stay visible when receipt checks fail. Unconfirmed sends ask you to check wallet activity before buying again.'],
   },

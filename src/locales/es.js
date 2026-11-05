@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep the quoted minimum": "Se respeta el mínimo de la cotización",
+  "DMT buys refuse a swap that allows less than the minimum shown in your quote.": "Las compras de DMT rechazan los intercambios que permiten recibir menos del mínimo indicado en la cotización.",
   "Safer DMT buying": "Compra de DMT más segura",
   "Buys stop before sending when your wallet choice changes. Old quotes cannot use another wallet’s Buy button.": "Las compras se detienen antes del envío si cambias de billetera. Las cotizaciones antiguas no pueden usar el botón Comprar de otra billetera.",
   "Known transaction links stay visible when receipt checks fail. Unconfirmed sends ask you to check wallet activity before buying again.": "Los enlaces de transacciones conocidas siguen visibles si falla la consulta del recibo. Si el envío no está confirmado, se te pide revisar la actividad de la billetera antes de comprar otra vez.",

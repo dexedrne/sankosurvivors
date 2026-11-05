@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep the quoted minimum": "Teklifteki asgari tutar korunsun",
+  "DMT buys refuse a swap that allows less than the minimum shown in your quote.": "DMT alımlarında, fiyat teklifinde gösterilen asgari tutardan daha azına izin veren takaslar reddedilir.",
   "Safer DMT buying": "Daha güvenli DMT alımı",
   "Buys stop before sending when your wallet choice changes. Old quotes cannot use another wallet’s Buy button.": "Cüzdan seçimin değişirse alım, işlem gönderilmeden durdurulur. Eski fiyat teklifleri başka bir cüzdanın Satın al düğmesini kullanamaz.",
   "Known transaction links stay visible when receipt checks fail. Unconfirmed sends ask you to check wallet activity before buying again.": "İşlem makbuzu kontrolü başarısız olsa da bilinen işlem bağlantıları görünür kalır. Gönderim doğrulanamazsa yeniden alım yapmadan önce cüzdan hareketlerini kontrol etmen istenir.",

@@ -6,10 +6,12 @@ import { DMT_TOKEN, current, walletRevision } from './wallet.js';
 
 export const KYBER = 'https://aggregator-api.kyberswap.com/arbitrum/api/v1';
 export const KYBER_ROUTER = '0x6131b5fae19ea4f9d964eac0408e4408b66337b5'; // MetaAggregationRouterV2, the same on every chain
-export const SLIPPAGE_BPS = 1000; // 10% (owner 3 Nov: the DMT pool is thin): the swap fails rather than give less than 90% of the quote
+export const SLIPPAGE_BPS = 1000; // 10% (owner 3 Nov: the DMT pool is thin), with the minimum rounded down to six decimals
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', HEAD = { 'x-client-id': 'sankosurvivors' };
 const ARB = { chainId: '0xa4b1' };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// Enforce the same downward-rounded six-decimal minimum that the player sees.
+const minimumMicros = (s) => (BigInt(s.amountOut) * BigInt(10000 - SLIPPAGE_BPS)) / 10000n / 10n ** 12n;
 
 async function route(amountInWei, f = fetch) {
   let d = {}, ok = false;
@@ -28,9 +30,10 @@ export async function quoteDmt(dmt, f = fetch) {
   const amountIn = (want * probe * 102n) / (BigInt(s0.amountOut) * 100n) + 1n;
   const s = await route(amountIn.toString(), f);
   const usdIn = Number(s.amountInUsd) || 0, usdOut = Number(s.amountOutUsd) || 0;
+  const minimum = minimumMicros(s);
   return {
     amountIn: String(s.amountIn), ethIn: Number(s.amountIn) / 1e18, dmtOut: Number(BigInt(s.amountOut) / 10n ** 12n) / 1e6,
-    minOut: Number((BigInt(s.amountOut) * BigInt(10000 - SLIPPAGE_BPS)) / 10000n / 10n ** 12n) / 1e6,
+    minOut: `${minimum / 1000000n}.${(minimum % 1000000n).toString().padStart(6, '0')}`.replace(/\.?0+$/, ''),
     usdIn, usdOut, loss: usdIn > 0 && usdOut > 0 ? Math.max(0, 1 - usdOut / usdIn) : null, summary: s,
   };
 }
@@ -57,7 +60,7 @@ export function checkBuilt(b, q, address) {
   const p = off(8, 0), d = off(p, 3), len = (i) => num(off(d, i)); // desc: src, dst, srcReceivers, srcAmounts, feeReceivers, feeAmounts, dstReceiver, amount, minReturn, flags, permit
   // Partial fills enforce a proportional price, not the absolute DMT minimum shown to the player.
   if (num(d + 9 * 64) & 1n) throw new Error('That swap allowed a partial fill: stopped for your safety.');
-  const minOut = (BigInt(q.summary.amountOut) * BigInt(10000 - SLIPPAGE_BPS - 1)) / 10000n; // KyberSwap rounds its floor down: 0.01% of give
+  const minOut = minimumMicros(q.summary) * 10n ** 12n;
   if (addr(d) !== ETH.toLowerCase() || addr(d + 64) !== DMT_TOKEN.toLowerCase() || addr(d + 6 * 64) !== address.toLowerCase()
     || num(d + 7 * 64) !== value || num(d + 8 * 64) < minOut || len(4) !== 0n || len(5) !== 0n || len(10) !== 0n)
     throw new Error('That swap did not pay your own wallet: stopped for your safety.');
