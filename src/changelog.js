@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.21', date: '5 Nov 2026', title: 'Reliable sound controls',
+    items: ['Fixed a loading failure when sound settings could not be read. Mute and unmute now work even when preferences cannot be saved.'],
+  },
+  {
     version: '0.44.20', date: '5 Nov 2026', title: 'Safer progress codes',
     items: ['Invalid progress codes are refused before replacing your save. Damaged saved fields no longer stop the game loading.'],
   },

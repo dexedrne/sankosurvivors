@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Reliable sound controls": "Maaasahang mga kontrol sa tunog",
+  "Fixed a loading failure when sound settings could not be read. Mute and unmute now work even when preferences cannot be saved.": "Naayos ang hindi pag-load kapag hindi mabasa ang sound settings. Gumagana na ang mute at unmute kahit hindi mai-save ang mga preference.",
+
   "Safer progress codes": "Mas ligtas na mga progress code",
   "Invalid progress codes are refused before replacing your save. Damaged saved fields no longer stop the game loading.": "Tinatanggihan ang mga di-wastong progress code bago palitan ang iyong save. Hindi na hinaharangan ng sirang naka-save na data ang pag-load ng laro.",
   "Progress code contains invalid save data. Your current progress has not changed.": "May di-wastong save data ang progress code. Hindi nabago ang kasalukuyan mong progreso.",

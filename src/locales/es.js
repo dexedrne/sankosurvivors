@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Reliable sound controls": "Controles de sonido fiables",
+  "Fixed a loading failure when sound settings could not be read. Mute and unmute now work even when preferences cannot be saved.": "Se corrigió un fallo de carga cuando no se podían leer los ajustes de sonido. Ahora puedes silenciar y activar el sonido aunque no se puedan guardar las preferencias.",
+
   "Safer progress codes": "Códigos de progreso más seguros",
   "Invalid progress codes are refused before replacing your save. Damaged saved fields no longer stop the game loading.": "Los códigos de progreso no válidos se rechazan antes de reemplazar tu partida. Los datos guardados dañados ya no impiden que el juego cargue.",
   "Progress code contains invalid save data. Your current progress has not changed.": "El código de progreso contiene datos no válidos. Tu progreso actual no ha cambiado.",

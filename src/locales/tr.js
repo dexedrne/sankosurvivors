@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Reliable sound controls": "Güvenilir ses kontrolleri",
+  "Fixed a loading failure when sound settings could not be read. Mute and unmute now work even when preferences cannot be saved.": "Ses ayarları okunamadığında oluşan yükleme hatası düzeltildi. Tercihler kaydedilemese bile sesi kapatma ve açma artık çalışır.",
+
   "Safer progress codes": "Daha güvenli ilerleme kodları",
   "Invalid progress codes are refused before replacing your save. Damaged saved fields no longer stop the game loading.": "Geçersiz ilerleme kodları kaydınız değiştirilmeden reddedilir. Bozuk kayıt alanları artık oyunun yüklenmesini engellemez.",
   "Progress code contains invalid save data. Your current progress has not changed.": "İlerleme kodu geçersiz kayıt verisi içeriyor. Mevcut ilerlemeniz değişmedi.",
