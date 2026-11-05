@@ -1,5 +1,11 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Screen layout": "Ekran düzeni",
+  "Standard": "Standart",
+  "DS": "DS",
+  "Drag here to move": "Hareket etmek için buradan sürükle",
+  "Half-fold DS layout": "Yarı katlı DS düzeni",
+  "Choose Auto, Standard or DS in Settings. DS puts the game above the fold, with movement, the minimap and upgrade choices below.": "Ayarlardan Otomatik, Standart veya DS seç. DS düzeninde oyun katlama çizgisinin üstünde; hareket kontrolleri, mini harita ve geliştirme seçenekleri altında yer alır.",
   "Upload completed runs sooner": "Biten oyunları daha erken yükle",
   "With cloud save on, finishing a run now requests an upload immediately instead of waiting for the normal save timer.": "Bulut kaydı açıkken, oyun bittiğinde normal kayıt zamanlayıcısını beklemek yerine hemen yükleme isteği gönderilir.",
   "The game is not ready to load progress yet.": "Oyun henüz ilerlemeyi yüklemeye hazır değil.",

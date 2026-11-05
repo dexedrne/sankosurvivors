@@ -54,7 +54,7 @@ test('invalid later partial updates retain earlier valid device preferences',()=
 });
 test('every existing graphics control option stays accepted by the shared boundary',()=>{
  assert.equal(typeof cleanSettings,'function');const expression=main.slice(main.indexOf('const SETTINGS = ')+17,main.indexOf(';function buildSettings()'));const controls=Function('return ('+expression+');')();
- for(const item of controls)if(item.id&&!['sound','autoalch'].includes(item.id))for(const [value]of item.opts)assert.deepEqual(cleanSettings({[item.id]:value}),{[item.id]:value},item.id+' '+value);
+ for(const item of controls)if(item.id&&!['sound','autoalch','layout'].includes(item.id))for(const [value]of item.opts)assert.deepEqual(cleanSettings({[item.id]:value}),{[item.id]:value},item.id+' '+value);
 });
 test('settings boundary rejects primitive, array, coercible and prototype/meta values without mutation',()=>{
  assert.equal(typeof cleanSettings,'function');for(const input of [null,false,42,'broken',[],['low']])assert.deepEqual(cleanSettings(input),{});

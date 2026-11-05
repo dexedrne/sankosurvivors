@@ -3,6 +3,7 @@ import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
 import { cleanSettings } from './settings.js';
+import { createScreenLayout } from './screen-layout.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
@@ -557,6 +558,7 @@ $('gearclose').onclick = () => $('gear').classList.add('hidden');
 // ---- settings ---------------------------------------------------------------------------------------------------------
 const SETTINGS = [
   { head: 'Display' },
+  { id: 'layout', name: 'Screen layout', opts: [['auto', 'Auto'], ['standard', 'Standard'], ['ds', 'DS']] },
   { id: 'quality', name: 'Quality', opts: [['auto', 'Auto'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']] },
   { id: 'res', name: 'Resolution', opts: [['auto', 'Auto'], ['0.5', '50%'], ['0.75', '75%'], ['1', '100%'], ['2', 'Sharp']] },
   { id: 'fps', name: 'Frame rate cap', opts: [['30', '30'], ['60', '60'], ['max', 'Max']] },
@@ -585,7 +587,7 @@ const SETTINGS = [
   { id: 'shake', name: 'Screen shake', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'autoalch', name: 'Auto high alch caskets that are not better', opts: [[true, 'On'], [false, 'Off']] },
 ];function buildSettings() {
-  const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn() };
+  const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn(), layout: screenLayout.mode };
   $('setlist').innerHTML = SETTINGS.map((o) => o.head ? `<h3 class="sethead">${o.head}</h3>` : o.vol ? `<div class="setrow"><span>${o.name}</span><div class="volrow"><input type="range" min="0" max="100" step="5" value="${audio.volume(o.vol)}" data-vol="${o.vol}" aria-label="${o.name} volume"><b>${audio.volume(o.vol)}%</b></div></div>` : `<div class="setrow"><span>${o.name}</span><div class="seg">${o.opts.map(([v, label]) => `<button class="${cur[o.id] === v ? 'on' : 'ghost'}" data-id="${o.id}" data-v='${JSON.stringify(v)}'>${label}</button>`).join('')}</div></div>`).join('');
   let blip = 0;
   for (const r of $('setlist').querySelectorAll('input[data-vol]')) {
@@ -597,6 +599,7 @@ const SETTINGS = [
   }
   for (const b of $('setlist').querySelectorAll('button')) b.onclick = () => {
     const id = b.dataset.id, v = JSON.parse(b.dataset.v);
+    if (id === 'layout') { screenLayout.setMode(v); buildSettings(); return; }
     if (id === 'sound') audio.setMuted(!v); else if (id === 'autoalch') save('sq-autoalch', v === true); else renderer.applySettings({ [id]: v });
     const keep = { ...renderer.getSettings(), v: 2 }; save('sq-settings', keep); buildSettings();
   };
@@ -1438,9 +1441,11 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && mo
 // folding or rotating the phone: keep the run going, just re-fit the view
 addEventListener('orientationchange', () => setTimeout(() => dispatchEvent(new Event('resize')), 250));
 const stickEl = $('stick'), knob = stickEl.firstElementChild, STICK_R = 56;
+const screenLayout = createScreenLayout(() => { clearTouch(); if (mode === 'play') pause(true); renderer?.resize(); });
 function clearTouch() { touch.id = null; touch.x = touch.y = 0; stickEl.classList.add('hidden'); }
 addEventListener('pointerdown', (e) => {
   if (e.pointerType !== 'touch' || mode !== 'play' || touch.id !== null) return;
+  if (screenLayout.active && e.clientY < $('dscontrols').getBoundingClientRect().top) return;
   if (e.target.closest('button, .panel, #menu, #belt')) return;
   touch.id = e.pointerId; touch.ox = e.clientX; touch.oy = e.clientY; touch.x = 0; touch.y = 0;
   stickEl.style.left = e.clientX + 'px'; stickEl.style.top = e.clientY + 'px'; knob.style.transform = 'translate(-50%,-50%)'; stickEl.classList.remove('hidden');

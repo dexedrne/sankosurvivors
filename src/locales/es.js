@@ -1,5 +1,11 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Screen layout": "Distribución de pantalla",
+  "Standard": "Estándar",
+  "DS": "DS",
+  "Drag here to move": "Arrastra aquí para moverte",
+  "Half-fold DS layout": "Diseño DS con la pantalla plegada a la mitad",
+  "Choose Auto, Standard or DS in Settings. DS puts the game above the fold, with movement, the minimap and upgrade choices below.": "Elige Auto, Estándar o DS en Ajustes. DS coloca el juego encima del pliegue, con el movimiento, el minimapa y las mejoras debajo.",
   "Upload completed runs sooner": "Sube antes las partidas terminadas",
   "With cloud save on, finishing a run now requests an upload immediately instead of waiting for the normal save timer.": "Con el guardado en la nube activado, al terminar una partida se solicita la subida de inmediato, sin esperar al temporizador habitual.",
   "The game is not ready to load progress yet.": "El juego aún no está listo para cargar el progreso.",

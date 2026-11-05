@@ -694,3 +694,36 @@ html:not([lang="en"]) .panel h2 { overflow-wrap:anywhere; }
 #walletlink { z-index: 202; }
 
 #walletlinkcanvas { width: min(256px, 65vw); height: auto; background: #fff; }
+
+/* DS: one game view above the fold, the existing controls and choices below it. */
+#dscontrols { display:none; }
+body.ds-layout { --ds-play-height:50dvh; --ds-control-top:50dvh; }
+@media (vertical-viewport-segments:2) {
+  body.ds-layout { --ds-play-height:env(viewport-segment-height 0 0,50dvh); --ds-control-top:env(viewport-segment-top 0 1,50dvh); }
+}
+body.ds-layout #c, body.ds-layout #fx, body.ds-layout #hurt { top:0; bottom:auto; height:var(--ds-play-height); }
+body.ds-layout #dscontrols { display:block; position:fixed; top:var(--ds-control-top); bottom:0; left:0; right:0; border-top:4px solid var(--line); background:linear-gradient(#2f251b,#1e1710); pointer-events:none; }
+body.ds-layout #dscontrols > span { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:var(--cream); opacity:.6; font:18px RSPlain,sans-serif; text-shadow:var(--sh); text-align:center; }
+body.ds-layout #loadout { position:fixed; top:calc(var(--ds-control-top) + 14px); left:max(12px,env(safe-area-inset-left,0px)); max-width:calc(100% - 148px); }
+body.ds-layout #wrow, body.ds-layout #prow { flex-wrap:wrap; }
+body.ds-layout #loadout .slot { width:32px; height:32px; }
+body.ds-layout #loadout .slot img { width:26px; height:26px; }
+body.ds-layout #mmwrap { position:fixed; top:calc(var(--ds-control-top) + 14px); right:max(12px,env(safe-area-inset-right,0px)); width:116px; height:116px; }
+body.ds-layout #minimap { width:108px; height:108px; }
+body.ds-layout #pausebtn { display:block; position:fixed; top:auto; bottom:calc(8px + env(safe-area-inset-bottom,0px)); right:max(12px,env(safe-area-inset-right,0px)); min-height:44px; }
+body.ds-layout #hp { position:fixed; left:max(12px,env(safe-area-inset-left,0px)); bottom:calc(8px + env(safe-area-inset-bottom,0px)); }
+body.ds-layout #belt { position:fixed; left:max(12px,env(safe-area-inset-left,0px)); bottom:calc(54px + env(safe-area-inset-bottom,0px)); }
+body.ds-layout #movehint { position:fixed; top:calc((var(--ds-control-top) + 100dvh) / 2); bottom:auto; transform:translate(-50%,-50%); }
+body.ds-layout #levelup, body.ds-layout #casket, body.ds-layout #pause, body.ds-layout #end { top:var(--ds-control-top); bottom:auto; height:calc(100dvh - var(--ds-control-top)); padding:8px max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px)); }
+body.ds-layout #levelup .panel, body.ds-layout #casket .panel, body.ds-layout #pause .panel, body.ds-layout #end .panel { max-height:calc(100dvh - var(--ds-control-top) - 16px - env(safe-area-inset-bottom,0px)); }
+
+@media (max-height:480px) {
+  /* Compact panes keep full-size touch targets; the noninteractive loadout stays out of their way. */
+  body.ds-layout #loadout, body.ds-layout #dscontrols > span { display:none; }
+  body.ds-layout #hp { top:calc(var(--ds-play-height) - 40px); bottom:auto; }
+  body.ds-layout #pausebtn { top:calc(var(--ds-control-top) + 4px); bottom:auto; left:max(12px,env(safe-area-inset-left,0px)); right:auto; }
+  body.ds-layout #belt { top:calc(var(--ds-control-top) + 4px); bottom:auto; left:calc(max(12px,env(safe-area-inset-left,0px)) + 68px); width:92px; flex-wrap:wrap; gap:4px; }
+  body.ds-layout .bslot { width:44px; height:44px; }
+  body.ds-layout #mmwrap { top:calc(var(--ds-control-top) + 4px); width:min(108px,calc(100dvh - var(--ds-control-top) - env(safe-area-inset-bottom,0px) - 8px)); height:min(108px,calc(100dvh - var(--ds-control-top) - env(safe-area-inset-bottom,0px) - 8px)); }
+  body.ds-layout #minimap { width:100%; height:100%; }
+}

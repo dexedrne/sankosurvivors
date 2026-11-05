@@ -1,5 +1,11 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Screen layout": "Ayos ng screen",
+  "Standard": "Karaniwan",
+  "DS": "DS",
+  "Drag here to move": "I-drag dito para gumalaw",
+  "Half-fold DS layout": "DS layout kapag kalahating nakatiklop",
+  "Choose Auto, Standard or DS in Settings. DS puts the game above the fold, with movement, the minimap and upgrade choices below.": "Piliin ang Auto, Karaniwan o DS sa Settings. Sa DS, nasa itaas ng tupi ang laro, at nasa ibaba ang paggalaw, minimap at mga pagpipiliang upgrade.",
   "Upload completed runs sooner": "Mas maagang i-upload ang mga natapos na laro",
   "With cloud save on, finishing a run now requests an upload immediately instead of waiting for the normal save timer.": "Kapag naka-on ang cloud save, humihiling na agad ng upload pagkatapos ng laro sa halip na hintayin ang karaniwang save timer.",
   "The game is not ready to load progress yet.": "Hindi pa handang mag-load ng progreso ang laro.",

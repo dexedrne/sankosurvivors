@@ -22,7 +22,7 @@ function fixture(data,{allowed=true,failKey=null,settingsOpen=false,denyAfterCom
   const load=(k,d)=>{try{return profileValue(k,JSON.parse(localStorage.getItem(k)||'null')??d,d);}catch{return d;}},save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
   const audio={muted:false,volume:()=>60,applyPreferences:d=>audioCalls.push(d)},createRenderer=async()=>rendererApi,pickAssetHost=async()=>{},getGear=()=>({}),buildAdventurers=()=>{},buildMaps=()=>{},showBest=()=>{},requestAnimationFrame=()=>{},loop=()=>{};
   const canManuallyReload=()=>allowed,progressCanLoad=()=>allowed,xferRead=()=>({data}),getCoins=()=>Number(load('sq-coins',0)),cancelPendingLoads=()=>{},withImportLock=fn=>fn(),showProgressRecovery=()=>{mode='recovery';};
-  const autoAlchOn=()=>load('sq-autoalch',true)!==false;
+  const autoAlchOn=()=>load('sq-autoalch',true)!==false,screenLayout={mode:'auto'};
   ${settingsUI.replace('function buildSettings() {','function buildSettings() { recordSettingsBuild();')}
   ${helpers}
   ${boot}
