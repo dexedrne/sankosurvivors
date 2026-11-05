@@ -2,6 +2,7 @@ import { RunRecorder, RANKED, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces,
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
+import { cleanSettings } from './settings.js';
 import { asset, pickAssetHost } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
@@ -457,7 +458,9 @@ async function boot() {
     renderer = await createRenderer($('c'), (stage, v) => { $('loadfill').style.width = Math.round(v * 100) + '%'; $('loadtext').textContent = labels[stage] || ''; });
     $('loadtext').textContent = ''; $('loadbar').classList.add('hidden');
     await renderer.preloadGear(Object.values(getGear()));
-    { const st = load('sq-settings', {}); if ((st.v || 1) < 2) { st.roofs = 'off'; st.quality = 'auto'; st.v = 2; save('sq-settings', st); } renderer.applySettings(st); }
+    const rawSettings = load('sq-settings', {}), st = cleanSettings(rawSettings);
+    if (!Number.isFinite(rawSettings?.v) || rawSettings.v < 2) { st.roofs = 'off'; st.quality = 'auto'; st.v = 2; save('sq-settings', st); }
+    renderer.applySettings(st);
     $('start').disabled = false; buildAdventurers(); buildMaps(); showBest(); renderer.setZoom(0.45); renderer.setShift(2.4);
     if (selMap !== 'greentown') await pickMap(selMap);
     if (params.has('clean')) $('title').classList.add('hidden');

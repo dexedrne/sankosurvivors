@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.19', date: '5 Nov 2026', title: 'Safe graphics settings',
+    items: ['Fixed a loading failure caused by malformed saved graphics settings. Valid display options and saved progress are preserved.'],
+  },
+  {
     version: '0.44.18', date: '5 Nov 2026', title: 'Hear the action again',
     items: ['Fixed missing hit, pickup and reward sounds. Your sound and music volume settings still work separately.'],
   },

@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Safe graphics settings": "Ajustes gráficos seguros",
+  "Fixed a loading failure caused by malformed saved graphics settings. Valid display options and saved progress are preserved.": "Se corrigió un fallo de carga causado por ajustes gráficos guardados incorrectos. Se conservan las opciones de imagen válidas y el progreso guardado.",
   "Hear the action again": "Vuelve a escuchar la acción",
   "Fixed missing hit, pickup and reward sounds. Your sound and music volume settings still work separately.": "Se corrigieron los sonidos que faltaban al golpear, recoger objetos y recibir recompensas. Los ajustes de volumen de efectos y música siguen funcionando por separado.",
   "Finish wallet prompts safely": "Completa las solicitudes de tu billetera con seguridad",

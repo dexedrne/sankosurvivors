@@ -1,3 +1,4 @@
+import { cleanSettings } from './settings.js';
 // Three.js renderer. Reads snapshots from sim.js, owns every GPU object.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -1570,7 +1571,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     if (Math.abs(next - autoPR) > 0.01) { autoPR = next; renderer.setPixelRatio(autoPR); resize(); }
   }
   function applySettings(next = {}) {
-    Object.assign(settings, next); settingsReady = true;
+    Object.assign(settings, cleanSettings(next)); settingsReady = true;
     renderer.setPixelRatio(settings.res !== 'auto' ? Math.min(window.devicePixelRatio || 1, 2) * Number(settings.res) : settings.quality === 'auto' ? autoPR : PR[settings.quality] || 1);
     sun.castShadow = !!settings.shadows && renderer.shadowMap.enabled !== false;
     if (settings.shadows && !renderer.shadowMap.enabled) { renderer.shadowMap.enabled = true; scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.needsUpdate = true; }); }); }

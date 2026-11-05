@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Safe graphics settings": "Ligtas na graphics settings",
+  "Fixed a loading failure caused by malformed saved graphics settings. Valid display options and saved progress are preserved.": "Naayos ang hindi pag-load dahil sa maling naka-save na graphics settings. Nananatili ang mga wastong display option at naka-save na progreso.",
   "Hear the action again": "Marinig muli ang aksyon",
   "Fixed missing hit, pickup and reward sounds. Your sound and music volume settings still work separately.": "Naayos ang nawawalang tunog ng pagtama, pagkuha ng item at mga reward. Magkahiwalay pa rin ang volume ng sound effects at musika.",
   "Finish wallet prompts safely": "Ligtas na tapusin ang mga wallet prompt",
