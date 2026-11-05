@@ -57,7 +57,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{value:id==='rankedadv'?'adventurer':id==='rankedname'?'Fixture':'',textContent:'',disabled:false,dataset:{},focus(){if(id==='cloudusewal')gates.choice.hit.resolve();},children:[],querySelectorAll:()=>[],replaceChildren(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);
   };
   const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage',`
-    let buyBusy=null,walletConnecting=null,walletUi=false,walletBal=null,recoveryCanRestart=null;const walletModalOpen=()=>walletUi;
+    let buyBusy=null,walletConnecting=null,walletRequests=0,walletUi=false,walletBal=null,recoveryCanRestart=null;const walletModalOpen=()=>walletUi;
     let mode='title',sim=null,rankedRun=null,rankedRec=null,rankedBusy=false,storedLive=null,runTicket=null,mapLoading=false,loadedMapId='greentown',selMap='greentown',selAdv='adventurer',acc=0,selCard=0,shownPending=false,waitingForMove=false,rewardWasShown=false,pendingUse=null,slowmo=0,runBest=null,passedBest=false,chase=null;
     const walletHandoff=null;const BASE='./',PLAYER='p',SIM_ID='fixture-sim',params=new URLSearchParams(),keys=new Set(),slotCache={},WEAPONS={},PASSIVES={};
     const map={id:'greentown',name:'Greentown',length:900,finalBoss:'dragon',music:'fixture'},tutorial={...map,id:'tutorial',name:'Tutorial Island',special:true,forceAdv:'alex'},MAPS=[map,tutorial],MAP_BY_ID={greentown:map,tutorial};
@@ -94,7 +94,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     ${menu}
     const pickAssetHost=async()=>{},createRenderer=async()=>renderer,requestAnimationFrame=()=>{},loop=()=>{};
     ${bootSource}
-    return{cloud,pickMap,canRestartRecovery:()=>recoveryCanRestart?.(),boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
+    return{cloud,pickMap,connect:walletConnect,canRestartRecovery:()=>recoveryCanRestart?.(),boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
   `)(createCloud,W.current,W.walletRevision,W.onWallet,$,{reload(){reloads++;}},()=>stage('gear'),()=>stage('map'),failStart,
     noBrowserApis?{}:{locks:{request:async(name,fn)=>{calls.push('import-lock');await stage('import-lock');return fn();}},serviceWorker:{getRegistrations:async()=>{await browserStage('registrations');return[{update:async()=>browserStage('worker-update')}];}}},
     noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'));
@@ -359,4 +359,45 @@ test('recovery waits for the actual cloud signature after logical cancellation',
 });
 test('Update waits for a cancelled injected cloud signature to settle after return to title',async t=>{
  const f=await setup(t,{pause:'signature',holdStart:false}),signing=f.track(f.app.cloudUI());await f.gates.signature.hit.promise;await f.start();f.app.toMenu();await f.update();const waiting=f.reloads();f.gates.signature.gate.resolve();await signing;await f.update();assert.equal(waiting,0);assert.equal(f.reloads(),1);
+});
+
+for(const boundary of ['holder-connect','holder-account','holder-signature'])test(`switched-away ${boundary} keeps Update and import blocked until the provider settles`,async t=>{
+ const f=await setup(t,{pause:boundary,holdStart:false});f.store.set('sq-coins','500');
+ const checking=f.track(f.app.holder(boundary==='holder-connect'?'new':'same'));await f.gates[boundary].hit.promise;
+ await W.connect({p:{on(){},request:async()=>['0x'+'2'.repeat(40)]}});await f.update();await f.app.load();t.mock.timers.tick(1000);
+ const before={coins:f.store.get('sq-coins'),reloads:f.reloads()};f.gates[boundary].gate.resolve();await checking;
+ assert.deepEqual(before,{coins:'500',reloads:0});assert.equal(f.calls.filter(c=>c==='holder').length,0);assert.equal(f.store.has('sq-dmt'),false);
+ await f.update();assert.equal(f.reloads(),1);await f.app.load();t.mock.timers.tick(1000);assert.equal(f.store.get('sq-coins'),'100');assert.equal(f.reloads(),2);
+});
+for(const boundary of ['holder-connect','holder-account','holder-signature'])test(`cloud recovery cannot restart over a switched-away ${boundary}`,async t=>{
+ const f=await setup(t,{pause:boundary,holdStart:false,established:true,importFailure:'persistent',putResponses:[{status:409,body:{conflict:true,rev:2,data:{'sq-coins':'700','sq-name':'"Imported"'}}}]});
+ f.store.set('sq-name','"Before"');f.store.set('sq-cloud-base',JSON.stringify({'sq-coins':'500','sq-name':'"Before"'}));
+ const checking=f.track(f.app.holder(boundary==='holder-connect'?'new':'same'));await f.gates[boundary].hit.promise;await W.connect({p:{on(){},request:async()=>['0x'+'2'.repeat(40)]}});
+ f.store.set('sq-coins','550');await f.app.cloud.push(true);const allowed=f.app.canRestartRecovery();f.gates[boundary].gate.resolve();await checking;
+ assert.equal(f.app.state().mode,'recovery');assert.equal(allowed,false);assert.equal(f.app.canRestartRecovery(),true);assert.equal(f.calls.filter(c=>c==='holder').length,0);
+});
+test('switched-away ordinary connection keeps the reload guard until its provider settles',async t=>{
+ const f=await setup(t,{pause:null,holdStart:false});let release,hit;const entered=new Promise(r=>hit=r),gate=new Promise(r=>release=r);
+ const connecting=f.track(f.app.connect({p:{on(){},request:async()=>{hit();await gate;return['0x'+'3'.repeat(40)];}}})).catch(e=>e);await entered;
+ await W.connect({p:{on(){},request:async()=>['0x'+'2'.repeat(40)]}});await f.update();const before=f.reloads();release();await connecting;
+ assert.equal(before,0);assert.equal(W.current().address,'0x'+'2'.repeat(40));await f.update();assert.equal(f.reloads(),1);
+});
+test('a cancelled holder HTTP response alone does not keep the wallet prompt guard',async t=>{
+ const f=await setup(t,{pause:'holder-response',holdStart:false,holderReply:true}),checking=f.track(f.app.holder('same'));await f.gates['holder-response'].hit.promise;
+ await W.connect({p:{on(){},request:async()=>['0x'+'2'.repeat(40)]}});await f.update();const before=f.reloads();f.gates['holder-response'].gate.resolve();await checking;
+ assert.equal(before,1);assert.equal(f.store.has('sq-dmt'),false);assert.equal(W.current().address,'0x'+'2'.repeat(40));
+});
+for(const outcome of ['resolve','reject'])test(`a newer completed holder check cannot clear an older ${outcome} prompt`,async t=>{
+ const f=await setup(t,{pause:null,holdStart:false}),provider=W.current().w.p,request=provider.request,releases=[];
+ provider.request=async args=>args.method==='personal_sign'?await new Promise((resolve,reject)=>releases.push({resolve,reject})):request(args);
+ const old=f.track(f.app.holder('same'));await f.flush();assert.equal(releases.length,1);const next=f.track(f.app.holder('perks'));await f.flush();assert.equal(releases.length,2);
+ releases[1].resolve('fixture-signature');await next;await f.update();const before=f.reloads();releases[0][outcome](outcome==='reject'?Error('fixture rejection'):'fixture-signature');await old;
+ assert.equal(before,0);assert.equal(f.calls.filter(c=>c==='holder').length,1);await f.update();assert.equal(f.reloads(),1);
+});
+test('completed holder proof leaves the older cancelled cloud signature guarded',async t=>{
+ const f=await setup(t,{pause:null,holdStart:false}),provider=W.current().w.p,request=provider.request,releases=[];
+ provider.request=async args=>args.method==='personal_sign'?await new Promise(resolve=>releases.push(resolve)):request(args);
+ const cloud=f.track(f.app.cloudUI());await f.flush();assert.equal(releases.length,1);const holder=f.track(f.app.holder('same'));await f.flush();assert.equal(releases.length,2);
+ releases[1]('fixture-signature');await holder;await f.update();const before=f.reloads();releases[0]('fixture-signature');await cloud;
+ assert.equal(before,0);assert.equal(f.calls.filter(c=>c==='save-login').length,0);await f.update();assert.equal(f.reloads(),1);
 });

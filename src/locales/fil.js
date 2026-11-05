@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Finish wallet prompts safely": "Ligtas na tapusin ang mga wallet prompt",
+  "Updates, progress imports and save recovery wait for open wallet prompts, even after switching wallets.": "Maghihintay ang mga update, pag-import ng progreso at pagbawi ng save na matapos ang mga bukas na wallet prompt, kahit lumipat ka ng wallet.",
+
   "Cloud saves recover cleanly": "Ligtas na pagbawi ng cloud save",
   "Cloud saves now stop when browser storage cannot save safely, and keep a recovery backup before merging progress.": "Humihinto na ang cloud save kapag hindi ligtas na makapag-save ang browser storage, at may backup bago pagsamahin ang progreso.",
   "Progress merged from another device updates your menu without changing a run already in progress.": "Ina-update ng progresong pinagsama mula sa ibang device ang menu mo nang hindi binabago ang kasalukuyang laro.",

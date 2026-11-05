@@ -56,18 +56,22 @@ export function forget() { try { localStorage.removeItem(KEY); } catch { /* stor
 export const hex = (s) => '0x' + Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, '0')).join('');
 
 // connect + sign + check; onStep reports progress in words
-export async function prove(wallet, base, onStep, check = () => {}) {
+export async function prove(wallet, base, onStep, check = () => {}, onRequest = () => {}) {
   check();
   const p = wallet.p;
+  const request = async args => {
+    onRequest(true);
+    try { return await p.request(args); } finally { onRequest(false); }
+  };
   onStep('Approve the connection in your wallet…');
-  const [address] = await p.request({ method: 'eth_requestAccounts' });
+  const [address] = await request({ method: 'eth_requestAccounts' });
   check();
   if (!address) throw new Error('no account was shared');
   const n = await (await fetch(`${base}api/nonce`)).json();
   check();
   if (!n || !n.message) throw new Error('the game server is not answering');
   onStep('Sign the message in your wallet (free, no transaction)…');
-  const signature = await p.request({ method: 'personal_sign', params: [hex(n.message), address] });
+  const signature = await request({ method: 'personal_sign', params: [hex(n.message), address] });
   check();
   onStep('Checking your DMT on Arbitrum…');
   const r = await fetch(`${base}api/holder`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address, signature, nonce: n.nonce }) });

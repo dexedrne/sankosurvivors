@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Finish wallet prompts safely": "Cüzdan isteklerini güvenle tamamla",
+  "Updates, progress imports and save recovery wait for open wallet prompts, even after switching wallets.": "Cüzdan değiştirsen bile güncellemeler, ilerleme içe aktarma ve kayıt kurtarma açık cüzdan isteklerinin tamamlanmasını bekler.",
+
   "Cloud saves recover cleanly": "Bulut kayıtları güvenle kurtarılır",
   "Cloud saves now stop when browser storage cannot save safely, and keep a recovery backup before merging progress.": "Tarayıcı depolaması güvenle kaydedemediğinde bulut kaydı artık durur; ilerleme birleştirilmeden önce kurtarma yedeği tutulur.",
   "Progress merged from another device updates your menu without changing a run already in progress.": "Başka bir cihazdan birleştirilen ilerleme, devam eden oyunu değiştirmeden menünü günceller.",

@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Finish wallet prompts safely": "Completa las solicitudes de tu billetera con seguridad",
+  "Updates, progress imports and save recovery wait for open wallet prompts, even after switching wallets.": "Las actualizaciones, la importación de progreso y la recuperación esperan a que termines las solicitudes abiertas de la billetera, incluso si cambias de billetera.",
+
   "Cloud saves recover cleanly": "Recuperación segura de guardados en la nube",
   "Cloud saves now stop when browser storage cannot save safely, and keep a recovery backup before merging progress.": "Los guardados en la nube ahora se detienen si el navegador no puede guardar de forma segura y conservan una copia de recuperación antes de combinar el progreso.",
   "Progress merged from another device updates your menu without changing a run already in progress.": "El progreso combinado desde otro dispositivo actualiza tu menú sin cambiar una partida en curso.",

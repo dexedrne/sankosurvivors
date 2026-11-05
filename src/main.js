@@ -829,11 +829,12 @@ $('dmtclose').onclick = () => $('dmt').classList.add('hidden');
 $('dmt').addEventListener('click', (e) => { if (e.target.id === 'dmt') $('dmt').classList.add('hidden'); });
 // ---- the wallet: one button in the corner (Rabby, MetaMask…), used by DMT perks and ranked ----
 const walletIcon = (w) => (w && w.icon ? `<img src="${esc(w.icon)}" alt="">` : '');
-let walletConnecting = null;
+let walletConnecting = null, walletRequests = 0;
 async function walletConnect(w, owner = null) {
   cancelPendingLoads(); holderChecking = null;
   if (walletConnecting !== owner) { walletConnecting = owner; $('walletmsg').textContent = ''; }
-  return requestWallet(w);
+  walletRequests++;
+  try { return await requestWallet(w); } finally { walletRequests--; }
 }
 // a button for each wallet in this browser, or how to get one
 function walletChoices(onPick, intent = 'connect') {
@@ -892,10 +893,10 @@ function renderWallet() {
   $('wldisc').onclick = () => { walletDisconnect(); msg('Disconnected.'); };
 }
 // ---- cloud save on the wallet (src/cloud.js): the same progress on every device ---------------------------------------
-let cloudConnecting = null, cloudChoice = null, reloadTimer = 0, runStarting = false, updateAttempt = null, importAttempt = null, holderChecking = null, titleProgressPending = false, cloudSignatures = 0;
+let cloudConnecting = null, cloudChoice = null, reloadTimer = 0, runStarting = false, updateAttempt = null, importAttempt = null, holderChecking = null, titleProgressPending = false;
 const cloudCanLoad = () => mode === 'title' && !runStarting && !rankedBusy && !rankedLive();
 const progressCanLoad = () => cloudCanLoad() && !!renderer && !mapLoading && !$('start').disabled;
-const canReloadGame = () => cloudCanLoad() && !buyBusy && !walletConnecting && !holderChecking && !cloudSignatures && !walletModalOpen();
+const canReloadGame = () => cloudCanLoad() && !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen();
 const canManuallyReload = () => canReloadGame() && !cloudConnecting;
 function cancelPendingLoads() {
   cloud.cancelPending(); cloudConnecting = null; cloudChoice?.();
@@ -917,7 +918,7 @@ async function checkDmt(w, onStep) {
     const current = () => {
       if (holderChecking !== attempt || walletNow()?.w.p !== w.p || walletRevision() !== attempt.revision) throw Error('Wallet check cancelled.');
     };
-    const result = await prove(w, BASE, text => { current(); onStep(text); }, current);
+    const result = await prove(w, BASE, text => { current(); onStep(text); }, current, active => { walletRequests += active ? 1 : -1; });
     current(); return result;
   } finally { if (holderChecking === attempt) holderChecking = null; }
 }
@@ -944,7 +945,7 @@ function queuePageReload(text, delay) {
   reloadTimer = setTimeout(() => { reloadTimer = 0; if (canReloadGame()) location.reload(); }, delay);
 }
 const cloud = createCloud(BASE, {
-  signing: active => { cloudSignatures += active ? 1 : -1; },
+  signing: active => { walletRequests += active ? 1 : -1; },
   canLoad: progressCanLoad,
   canSave: () => mode !== 'recovery',
   merged: (before) => {
@@ -955,7 +956,7 @@ const cloud = createCloud(BASE, {
     titleProgressPending = true;
     refreshPendingTitleProgress();
   },
-  recover: () => { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !cloudSignatures && !walletModalOpen() && !rankedBusy); },
+  recover: () => { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen() && !rankedBusy); },
   choose: (wal, dev) => new Promise((done) => {
     const revision = walletRevision();
     let settled = false;
