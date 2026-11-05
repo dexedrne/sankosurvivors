@@ -462,7 +462,7 @@ function applyImportedPreferences(data) {
   const sound = Object.hasOwn(data, 'sq-muted') || Object.hasOwn(data, 'sq-vol');
   if (sound) audio.applyPreferences(data);
   if (graphics) applySavedGraphics(Object.hasOwn(data, 'sq-settings') ? JSON.parse(data['sq-settings']) : undefined);
-  if ((graphics || sound) && !$('settings').classList.contains('hidden')) buildSettings();
+  if ((graphics || sound || Object.hasOwn(data, 'sq-autoalch')) && !$('settings').classList.contains('hidden')) buildSettings();
 }
 async function boot() {
   if (params.has('qa')) document.body.classList.add('qa');

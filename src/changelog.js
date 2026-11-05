@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.25', date: '5 Nov 2026', title: 'Imported casket choice, shown correctly',
+    items: ['Imports that only change auto-alch now refresh an open Settings panel to show the chosen On or Off option.'],
+  },
+  {
     version: '0.44.24', date: '5 Nov 2026', title: 'Keep the name you are typing',
     items: ['Background cloud merges now preserve edited leaderboard names when the main menu refreshes.'],
   },

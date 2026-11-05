@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Imported casket choice, shown correctly": "Tamang pagpapakita ng na-import na casket choice",
+  "Imports that only change auto-alch now refresh an open Settings panel to show the chosen On or Off option.": "Nire-refresh na ng mga import na auto-alch lang ang binabago ang bukas na Settings panel para ipakita ang napiling On o Off.",
+
   "Keep the name you are typing": "Panatilihin ang pangalang tina-type mo",
   "Background cloud merges now preserve edited leaderboard names when the main menu refreshes.": "Pinapanatili na ng background cloud merge ang mga na-edit na pangalan sa leaderboard kapag nag-refresh ang main menu.",
 

@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Imported casket choice, shown correctly": "La opción de cofre importada se muestra correctamente",
+  "Imports that only change auto-alch now refresh an open Settings panel to show the chosen On or Off option.": "Las importaciones que solo cambian la alquimia automática ahora actualizan el panel de Ajustes abierto para mostrar la opción Activado o Desactivado elegida.",
+
   "Keep the name you are typing": "Conserva el nombre que escribes",
   "Background cloud merges now preserve edited leaderboard names when the main menu refreshes.": "Las fusiones en segundo plano con la nube ahora conservan los nombres editados de la clasificación al actualizar el menú principal.",
 

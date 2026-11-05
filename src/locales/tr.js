@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Imported casket choice, shown correctly": "İçe aktarılan sandık tercihi doğru gösterilir",
+  "Imports that only change auto-alch now refresh an open Settings panel to show the chosen On or Off option.": "Yalnızca otomatik yüksek simya seçeneğini değiştiren içe aktarmalar artık açık Ayarlar panelini yenileyerek seçilen Açık veya Kapalı seçeneğini gösterir.",
+
   "Keep the name you are typing": "Yazdığın adı koru",
   "Background cloud merges now preserve edited leaderboard names when the main menu refreshes.": "Ana menü yenilendiğinde arka plandaki bulut birleştirmeleri artık düzenlediğin skor tablosu adlarını korur.",
 
