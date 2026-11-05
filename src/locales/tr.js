@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep runs uninterrupted": "Oyun kesintiye uğramasın",
+  "Cloud progress only loads between runs. Starting a run stops delayed cloud loads and reloads while earned progress keeps saving.": "Buluttaki ilerleme yalnızca oyunlar arasında yüklenir. Oyun başlayınca gecikmiş bulut yüklemeleri ve sayfa yenilemeleri durur; kazanılan ilerleme kaydedilmeye devam eder.",
+  "Cloud sign-in cancelled: another action started.": "Bulut kaydına giriş iptal edildi: başka bir işlem başladı.",
+  "Cloud loading is paused while a run is starting or in progress.": "Oyun başlarken veya devam ederken buluttan yükleme duraklatılır.",
+
   "Scan with any WalletConnect wallet": "Herhangi bir WalletConnect cüzdanıyla tara",
   "WalletConnect pairing QR code": "WalletConnect bağlantı QR kodu",
   "QR code unavailable. Use a wallet button above.": "QR kodu kullanılamıyor. Yukarıdaki cüzdan düğmelerinden birini kullan.",

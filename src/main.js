@@ -283,6 +283,7 @@ for (const id of ['ranked', 'wallet', 'cloudpick', 'walletlink']) $(id).addEvent
 });
 async function rankedAction(fn) {
   if (rankedBusy) return;
+  cancelCloudLoads();
   rankedBusy = true; renderRanked();
   for (const b of $('rankedwallets').querySelectorAll('button')) b.disabled = true;
   try { await fn(); }
@@ -843,20 +844,32 @@ function renderWallet() {
   $('wldisc').onclick = () => { walletDisconnect(); msg('Disconnected.'); };
 }
 // ---- cloud save on the wallet (src/cloud.js): the same progress on every device ---------------------------------------
-let cloudConnecting = null;
+let cloudConnecting = null, cloudChoice = null, cloudReload = 0, runStarting = false;
+const cloudCanLoad = () => mode === 'title' && !runStarting && !rankedBusy && !rankedLive();
+function cancelCloudLoads() {
+  cloud.cancelPending(); cloudConnecting = null; cloudChoice?.();
+  clearTimeout(cloudReload); cloudReload = 0;
+}
+function queueCloudReload(text, delay) {
+  if (!cloudCanLoad()) return;
+  clearTimeout(cloudReload); banner(text, 3000);
+  cloudReload = setTimeout(() => { cloudReload = 0; if (cloudCanLoad()) location.reload(); }, delay);
+}
 const cloud = createCloud(BASE, {
+  canLoad: cloudCanLoad,
   choose: (wal, dev) => new Promise((done) => {
     const revision = walletRevision();
     let settled = false;
     const line = (s) => `${s.coins.toLocaleString()} coins · ${s.maps} map${s.maps === 1 ? '' : 's'} cleared · ${s.ranks} skill rank${s.ranks === 1 ? '' : 's'} · ${s.gear} gear`;
     $('cloudwal').textContent = line(wal); $('clouddev').textContent = line(dev); $('cloudpick').classList.remove('hidden');
-    const pick = (v) => { if (settled) return; settled = true; stop(); $('cloudpick').classList.add('hidden'); done(v); };
+    const pick = (v) => { if (settled) return; settled = true; cloudChoice = null; stop(); $('cloudpick').classList.add('hidden'); done(v); };
+    cloudChoice = () => pick(null);
     const stop = onWallet(() => { if (walletRevision() !== revision) pick(null); });
     $('cloudusewal').onclick = () => pick('cloud'); $('cloudusedev').onclick = () => pick('device');
     $('cloudusewal').focus();
   }),
   note: (t) => banner(t, 4000),
-  reload: () => { banner('Loading your progress from your wallet…', 3000); setTimeout(() => location.reload(), 500); },
+  reload: () => queueCloudReload('Loading your progress from your wallet…', 500),
 });
 onSaved = (k) => { if (CLOUD_KEYS.includes(k)) cloud.changed(); };
 const cloudFor = (c) => { const s = cloud.state(); return s && c && s.a.toLowerCase() === c.address.toLowerCase() ? s : null; };
@@ -888,7 +901,7 @@ function bindCloud(c, msg) {
   if (off) off.onclick = () => { if ($('wlcloudoff') !== off || !sameSession()) return; cloudConnecting = null; cloud.signOut(); msg('Cloud save is off on this device. Your saved progress stays on the wallet.'); renderWallet(); };
 }
 // open the game or come back to it: a newer save from another device loads (only between runs)
-const cloudPull = async () => { if (!cloud.state() || mode !== 'title' || rankedPlaying()) return; if (await cloud.pull()) { banner('Loading your progress from your other device…', 3000); setTimeout(() => location.reload(), 600); } else cloud.changed(); };
+const cloudPull = async () => { if (!cloud.state() || !cloudCanLoad()) return; if (await cloud.pull()) queueCloudReload('Loading your progress from your other device…', 600); else cloud.changed(); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); else if (cloud.state()) cloud.push(true); });
 setTimeout(cloudPull, 1500);
 // ---- buy DMT with ETH without leaving the game (src/swap.js: KyberSwap, checked before the wallet sees it) -------------
@@ -1044,40 +1057,44 @@ function runGround() {
   return T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null, fences: T.fences || null } : null;
 }
 async function startRun(live = null) {
+  if (runStarting) return;
   if (!live?.run && (rankedLive() || rankedPlaying())) { openRanked(); return; }
   const isRanked = !!live?.run;
   if (isRanked && live.sim !== SIM_ID) return;
-  if (isRanked && loadedMapId !== live.map) await pickMap(live.map);
-  rankedRun = isRanked ? live : null; rankedRec = null;
-  runTicket = null; if (!isRanked) fetch(`${BASE}api/run`).then((r) => (r.ok ? r.json() : null)).then((d) => { runTicket = d && d.ticket; }).catch(() => {});
-  preloadIcons([...Object.keys(WEAPONS).map((w) => weaponItem(w, 1)), ...Object.keys(PASSIVES).map((k) => passiveItem(k, 1))]);
-  if (mapLoading) return;
-  const map = MAP_BY_ID[isRanked ? live.map : selMap];
-  if (loadedMapId !== map.id) await pickMap(map.id);
-  audio.init().then(() => audio.music(map.music)).catch(() => {});
-  const seed = Number(params.get('seed')) || (Math.random() * 1e9) | 0;
-  const adv = runAdv(), forced = adv.id !== selAdv;
-  const gear = isRanked || forced ? {} : getGear();
-  await renderer.preloadGear(Object.values(gear));
-  if (isRanked) {
-    const restored = await resumeRankedAsync(live.log, { seed: live.seed, mapId: live.map, adv: live.adv, ground: runGround(), ...liveRace(live) },
-      (done, all) => rankedMessage(`Restoring your ranked run: ${fmtT(done / 30)} of ${fmtT(all / 30)}…`));
-    sim = restored.sim; rankedRec = restored.rec; persistRanked();
-    $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
-  } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
-  renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
-  for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden');
-  $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
-  waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
-  $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
-  if (isRanked && sim.pending[PLAYER]) showLevelUp();
-  runBest = isRanked ? null : (getBests()[bestKey(sim)] || null); passedBest = false; chase = null;
-  if (isRanked && rankedWeek) { // the board as it stood when you entered, without your own wallet's run
-    const race = raceOf(rankedWeek, liveRace(live).mode), me = (walletNow() && walletNow().address || '').toLowerCase();
-    chase = { rows: ((race && race.rows) || []).filter((r) => String(r.wallet || '').toLowerCase() !== me).map((r) => ({ t: Number(r.t) || 0, kills: Number(r.kills) || 0 })), kp: kpmWeek(liveRace(live).week) };
-  }
-  const goalText = isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills per minute' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
-  banner(`${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'} ${map.name}${!isRanked && hardOn ? ' (hard)' : ''}${goalText}`, 4500);
+  cancelCloudLoads(); runStarting = true;
+  try {
+    if (isRanked && loadedMapId !== live.map) await pickMap(live.map);
+    rankedRun = isRanked ? live : null; rankedRec = null;
+    runTicket = null; if (!isRanked) fetch(`${BASE}api/run`).then((r) => (r.ok ? r.json() : null)).then((d) => { runTicket = d && d.ticket; }).catch(() => {});
+    preloadIcons([...Object.keys(WEAPONS).map((w) => weaponItem(w, 1)), ...Object.keys(PASSIVES).map((k) => passiveItem(k, 1))]);
+    if (mapLoading) return;
+    const map = MAP_BY_ID[isRanked ? live.map : selMap];
+    if (loadedMapId !== map.id) await pickMap(map.id);
+    audio.init().then(() => audio.music(map.music)).catch(() => {});
+    const seed = Number(params.get('seed')) || (Math.random() * 1e9) | 0;
+    const adv = runAdv(), forced = adv.id !== selAdv;
+    const gear = isRanked || forced ? {} : getGear();
+    await renderer.preloadGear(Object.values(gear));
+    if (isRanked) {
+      const restored = await resumeRankedAsync(live.log, { seed: live.seed, mapId: live.map, adv: live.adv, ground: runGround(), ...liveRace(live) },
+        (done, all) => rankedMessage(`Restoring your ranked run: ${fmtT(done / 30)} of ${fmtT(all / 30)}…`));
+      sim = restored.sim; rankedRec = restored.rec; persistRanked();
+      $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
+    } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
+    renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
+    for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden');
+    $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
+    waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
+    $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
+    if (isRanked && sim.pending[PLAYER]) showLevelUp();
+    runBest = isRanked ? null : (getBests()[bestKey(sim)] || null); passedBest = false; chase = null;
+    if (isRanked && rankedWeek) { // the board as it stood when you entered, without your own wallet's run
+      const race = raceOf(rankedWeek, liveRace(live).mode), me = (walletNow() && walletNow().address || '').toLowerCase();
+      chase = { rows: ((race && race.rows) || []).filter((r) => String(r.wallet || '').toLowerCase() !== me).map((r) => ({ t: Number(r.t) || 0, kills: Number(r.kills) || 0 })), kp: kpmWeek(liveRace(live).week) };
+    }
+    const goalText = isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills per minute' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
+    banner(`${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'} ${map.name}${!isRanked && hardOn ? ' (hard)' : ''}${goalText}`, 4500);
+  } finally { runStarting = false; }
 }
 let bannerT = 0;
 function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; b.classList.add('on'); clearTimeout(bannerT); bannerT = setTimeout(() => b.classList.remove('on'), ms); }

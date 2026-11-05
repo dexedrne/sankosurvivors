@@ -57,6 +57,7 @@ function menu(mode = 'title') {
     }
     ${input}
     ${navigation}
+    let cloudChoice=null;
     const cloud={${choose}};
     return {back:navBack, move:navMove, screen:()=>navScreen()?.id,
       frame(edges){${pad}},

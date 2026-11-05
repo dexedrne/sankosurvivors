@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.12', date: '4 Nov 2026', title: 'Keep runs uninterrupted',
+    items: ['Cloud progress only loads between runs. Starting a run stops delayed cloud loads and reloads while earned progress keeps saving.'],
+  },
+  {
     version: '0.44.11', date: '4 Nov 2026', title: 'Connect from this game',
     items: ['WalletConnect keeps your connection in this game while you approve in your wallet app. Return here after approving.'],
   },

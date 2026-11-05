@@ -17,6 +17,7 @@ function harness(reply, { failWrite = false, saved = live } = {}) {
   const api = async (base, route, body) => { calls.push({ route, body }); if (reply instanceof Error) throw reply; return reply; };
   const recover = Function('readRanked', 'writeRanked', 'rankedApi', 'messages', 'submissions', 'resumed', 'localStorage', `
     let rankedBusy = false;
+    const cancelCloudLoads = () => {};
     const BASE = '/', SIM_ID = 'current-sim', rankedLive = () => readRanked('sq-ranked-live');
     const rankedMessage = message => messages.push(message), renderRanked = () => {};
     const $ = () => ({ querySelectorAll: () => [], replaceChildren() {}, classList: { remove() {} } });

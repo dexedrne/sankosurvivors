@@ -79,7 +79,7 @@ async function api(baseUrl, route, body) {
 }
 const hex = (s) => '0x' + [...new TextEncoder().encode(s)].map((b) => b.toString(16).padStart(2, '0')).join('');
 
-/** A cloud save on one device. ui: { choose(cloud, local) -> Promise<'cloud'|'device'>, note(text), reload() } */
+/** A cloud save on one device. ui: { choose(cloud, local), note(text), reload(), canLoad?() } */
 export function createCloud(baseUrl, ui) {
   let timer = 0, busy = false, again = false, signInGeneration = 0;
 
@@ -89,7 +89,9 @@ export function createCloud(baseUrl, ui) {
     const sessionKey = cloudState()?.key;
     const checkCurrent = () => {
       const c = current();
-      if (generation !== signInGeneration || cloudState()?.key !== sessionKey || walletRevision() !== revision
+      if (generation !== signInGeneration) throw new Error('Cloud sign-in cancelled: another action started.');
+      if (ui.canLoad && !ui.canLoad()) throw new Error('Cloud loading is paused while a run is starting or in progress.');
+      if (cloudState()?.key !== sessionKey || walletRevision() !== revision
         || !c || c.w.p !== conn.w.p || c.address.toLowerCase() !== conn.address.toLowerCase()) throw new Error('Cloud sign-in cancelled: the wallet or save session changed.');
     };
     checkCurrent();
@@ -178,10 +180,11 @@ export function createCloud(baseUrl, ui) {
   }
   // a newer save from another device: load it (returns true when this device's progress changed)
   async function pull() {
-    const s = cloudState(); if (!s || busy || get(UPLOAD_KEY)) return false; // resolve an interrupted upload before merging a newer save
+    const s = cloudState(), generation = signInGeneration;
+    if (!s || busy || get(UPLOAD_KEY) || ui.canLoad && !ui.canLoad()) return false; // resolve an interrupted upload before merging a newer save
     try {
       const r = await api(baseUrl, 'save-get', { key: s.key });
-      if (busy || get(UPLOAD_KEY) || cloudState()?.key !== s.key || cloudState()?.rev !== s.rev) return false;
+      if (generation !== signInGeneration || ui.canLoad && !ui.canLoad() || busy || get(UPLOAD_KEY) || cloudState()?.key !== s.key || cloudState()?.rev !== s.rev) return false;
       if (r.status === 401) { setState(null); return false; }
       if (r.status !== 200 || !r.d.rev || r.d.rev <= s.rev || !r.d.data) return false;
       const mine = snapshot(), b = base(), merged = mergeSaves(b || mine, mine, r.d.data);
@@ -191,6 +194,7 @@ export function createCloud(baseUrl, ui) {
       return true;
     } catch { return false; }
   }
-  function signOut() { signInGeneration++; clearTimeout(timer); again = false; setState(null); set(BASE_KEY, null); set(UPLOAD_KEY, null); }
-  return { signIn, changed, push, pull, signOut, state: cloudState };
+  function cancelPending() { signInGeneration++; }
+  function signOut() { cancelPending(); clearTimeout(timer); again = false; setState(null); set(BASE_KEY, null); set(UPLOAD_KEY, null); }
+  return { signIn, changed, push, pull, signOut, cancelPending, state: cloudState };
 }

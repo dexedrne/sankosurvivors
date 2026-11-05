@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep runs uninterrupted": "Partidas sin interrupciones",
+  "Cloud progress only loads between runs. Starting a run stops delayed cloud loads and reloads while earned progress keeps saving.": "El progreso de la nube solo se carga entre partidas. Al empezar una partida se detienen las cargas y recargas pendientes, mientras el progreso ganado sigue guardándose.",
+  "Cloud sign-in cancelled: another action started.": "Inicio de sesión en la nube cancelado: se inició otra acción.",
+  "Cloud loading is paused while a run is starting or in progress.": "La carga desde la nube se pausa mientras se inicia o juega una partida.",
+
   "Scan with any WalletConnect wallet": "Escanea con cualquier cartera WalletConnect",
   "WalletConnect pairing QR code": "Código QR de conexión WalletConnect",
   "QR code unavailable. Use a wallet button above.": "Código QR no disponible. Usa un botón de cartera de arriba.",

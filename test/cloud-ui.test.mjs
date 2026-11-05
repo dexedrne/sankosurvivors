@@ -62,7 +62,7 @@ test('a queued old Turn off callback cannot sign out a replacement session',asyn
 test('a cloud choice closes without choosing progress when the wallet changes',async t=>{
   const f=await setup(t),els=new Map();
   for(const id of ['cloudwal','clouddev','cloudusewal','cloudusedev','cloudpick']){const classes=new Set(['hidden']);els.set(id,{textContent:'',focus(){},classList:{add:c=>classes.add(c),remove:c=>classes.delete(c),contains:c=>classes.has(c)}});}
-  const ui=Function('$','onWallet','walletRevision',`return{${choose}};`)(id=>els.get(id),W.onWallet,W.walletRevision);
+  const ui=Function('$','onWallet','walletRevision',`let cloudChoice=null;return{${choose}};`)(id=>els.get(id),W.onWallet,W.walletRevision);
   const selection=ui.choose({coins:100,maps:0,ranks:0,gear:0},{coins:500,maps:0,ranks:0,gear:0});
   await f.switchWallet();const closed=els.get('cloudpick').classList.contains('hidden');
   if(!closed)els.get('cloudusewal').onclick();
@@ -71,7 +71,7 @@ test('a cloud choice closes without choosing progress when the wallet changes',a
 test('a settled old choice cannot hide a newer wallet choice',async t=>{
   const f=await setup(t),els=new Map();
   for(const id of ['cloudwal','clouddev','cloudusewal','cloudusedev','cloudpick']){const classes=new Set(['hidden']);els.set(id,{textContent:'',focus(){},classList:{add:c=>classes.add(c),remove:c=>classes.delete(c),contains:c=>classes.has(c)}});}
-  const ui=Function('$','onWallet','walletRevision',`return{${choose}};`)(id=>els.get(id),W.onWallet,W.walletRevision);
+  const ui=Function('$','onWallet','walletRevision',`let cloudChoice=null;return{${choose}};`)(id=>els.get(id),W.onWallet,W.walletRevision);
   const summary={coins:100,maps:0,ranks:0,gear:0},first=ui.choose(summary,summary),old=els.get('cloudusewal').onclick;
   await f.switchWallet();await first;
   const second=ui.choose(summary,summary);old();const hidden=els.get('cloudpick').classList.contains('hidden');els.get('cloudusedev').onclick();await second;

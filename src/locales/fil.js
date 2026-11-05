@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Keep runs uninterrupted": "Tuloy-tuloy na paglalaro",
+  "Cloud progress only loads between runs. Starting a run stops delayed cloud loads and reloads while earned progress keeps saving.": "Sa pagitan lang ng mga laro nilo-load ang progreso mula sa cloud. Kapag nagsimula ang laro, hihinto ang mga naantalang cloud load at reload habang patuloy na sine-save ang nakuhang progreso.",
+  "Cloud sign-in cancelled: another action started.": "Kinansela ang pag-sign in sa cloud: may ibang aksyong nagsimula.",
+  "Cloud loading is paused while a run is starting or in progress.": "Naka-pause ang pag-load mula sa cloud habang nagsisimula o nagpapatuloy ang laro.",
+
   "Scan with any WalletConnect wallet": "I-scan gamit ang anumang WalletConnect wallet",
   "WalletConnect pairing QR code": "QR code para sa koneksyon ng WalletConnect",
   "QR code unavailable. Use a wallet button above.": "Hindi magamit ang QR code. Gamitin ang isang wallet button sa itaas.",
