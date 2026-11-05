@@ -24,12 +24,12 @@ export function createAudio() {
       try { const r = await fetch(asset(`sound/soundEffects/${n}.${EXT[n] || 'mp3'}`)); buffers.set(n, await ctx.decodeAudioData(await r.arrayBuffer())); } catch { /* optional */ }
     }));
   }
-  function play(kind, { minGap = 0.05, vol = 1, rate = 1 } = {}) {
+  function play(kind, { minGap = 0.05, vol: gain = 1, rate = 1 } = {}) {
     if (!ctx || muted || !vol.s) return;
     const now = ctx.currentTime; if (now - (last[kind] || 0) < minGap) return; last[kind] = now;
     const list = SFX[kind]; const name = list[Math.floor(Math.random() * list.length)]; const buf = buffers.get(name); if (!buf) return;
     const src = ctx.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate * (0.92 + Math.random() * 0.16);
-    const g = ctx.createGain(); g.gain.value = vol; src.connect(g); g.connect(sfxGain); src.start();
+    const g = ctx.createGain(); g.gain.value = gain; src.connect(g); g.connect(sfxGain); src.start();
   }
   function music(key) {
     const file = TRACKS[key]; if (!file || file === musicName) return;

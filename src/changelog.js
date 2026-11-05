@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.18', date: '5 Nov 2026', title: 'Hear the action again',
+    items: ['Fixed missing hit, pickup and reward sounds. Your sound and music volume settings still work separately.'],
+  },
+  {
     version: '0.44.17', date: '5 Nov 2026', title: 'Finish wallet prompts safely',
     items: ['Updates, progress imports and save recovery wait for open wallet prompts, even after switching wallets.'],
   },

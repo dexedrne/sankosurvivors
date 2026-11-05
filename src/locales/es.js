@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Hear the action again": "Vuelve a escuchar la acción",
+  "Fixed missing hit, pickup and reward sounds. Your sound and music volume settings still work separately.": "Se corrigieron los sonidos que faltaban al golpear, recoger objetos y recibir recompensas. Los ajustes de volumen de efectos y música siguen funcionando por separado.",
   "Finish wallet prompts safely": "Completa las solicitudes de tu billetera con seguridad",
   "Updates, progress imports and save recovery wait for open wallet prompts, even after switching wallets.": "Las actualizaciones, la importación de progreso y la recuperación esperan a que termines las solicitudes abiertas de la billetera, incluso si cambias de billetera.",
 

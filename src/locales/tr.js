@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Hear the action again": "Aksiyonun sesleri geri döndü",
+  "Fixed missing hit, pickup and reward sounds. Your sound and music volume settings still work separately.": "Eksik vuruş, toplama ve ödül sesleri düzeltildi. Ses efekti ve müzik ses düzeyi ayarların ayrı ayrı çalışmaya devam eder.",
   "Finish wallet prompts safely": "Cüzdan isteklerini güvenle tamamla",
   "Updates, progress imports and save recovery wait for open wallet prompts, even after switching wallets.": "Cüzdan değiştirsen bile güncellemeler, ilerleme içe aktarma ve kayıt kurtarma açık cüzdan isteklerinin tamamlanmasını bekler.",
 

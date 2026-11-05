@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Hear the action again": "Marinig muli ang aksyon",
+  "Fixed missing hit, pickup and reward sounds. Your sound and music volume settings still work separately.": "Naayos ang nawawalang tunog ng pagtama, pagkuha ng item at mga reward. Magkahiwalay pa rin ang volume ng sound effects at musika.",
   "Finish wallet prompts safely": "Ligtas na tapusin ang mga wallet prompt",
   "Updates, progress imports and save recovery wait for open wallet prompts, even after switching wallets.": "Maghihintay ang mga update, pag-import ng progreso at pagbawi ng save na matapos ang mga bukas na wallet prompt, kahit lumipat ka ng wallet.",
 
