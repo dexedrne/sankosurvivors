@@ -13,8 +13,8 @@ function fixture(values={},fail={}){
  }
  class Audio{constructor(url){this.url=url;this.volume=0;tracks.push(this);}async play(){}pause(){this.paused=true;}}
  const storage={getItem:k=>{if(fail.read==='all'||fail.read===k)throw Error('fixture read denied');return store.get(k)??null;},setItem:(k,v)=>{if(fail.write)throw Error('fixture quota');store.set(k,String(v));}};
- const audio=Function('asset','window','Audio',fail.lookup?'unusedStorage':'localStorage','fetch','setInterval','clearInterval',source+';return createAudio();')(p=>p,{AudioContext},Audio,storage,async url=>({arrayBuffer:async()=>url}),fn=>{fades.push(fn);return fades.length;},()=>{});
- return{audio,store,sources,gains,tracks,tick:()=>{time+=1;},fade:()=>fades.forEach(fn=>fn())};
+ const audio=Function('asset','window','Audio',fail.lookup?'unusedStorage':'localStorage','fetch','setInterval','clearInterval',source+';return createAudio();')(p=>p,{AudioContext},Audio,storage,async url=>({arrayBuffer:async()=>url}),fn=>{fades.push(fn);return fades.length;},id=>{fades[id-1]=null;});
+ return{audio,store,sources,gains,tracks,tick:()=>{time+=1;},fade:()=>fades.forEach(fn=>fn?.()),activeFades:()=>fades.filter(Boolean).length};
 }
 test('default native sound effects schedule a decoded source through the saved master volume',async()=>{
  const f=fixture({'sq-vol':'{"s":30,"m":80}'});await f.audio.init();f.audio.play('pickup');assert.equal(f.sources.length,1);assert.equal(f.gains[0].gain.value,0.25);assert.equal(f.gains[1].gain.value,1);assert.equal(f.sources[0].buffer.fixture,'sound/soundEffects/PickUp_item.mp3');
@@ -77,4 +77,35 @@ for(const raw of ['null','"broken"','{"s":{"valueOf":0,"toString":0},"m":1e400}'
 });
 test('an import without audio keys preserves live audio before context init',async()=>{
  const f=fixture({'sq-muted':'1','sq-vol':'{"s":30,"m":80}'});f.audio.applyPreferences({'sq-coins':'650'});assert.equal(f.audio.muted,true);assert.equal(f.audio.volume('s'),30);await f.audio.init();assert.equal(f.gains[0].gain.value,0);
+});
+
+function overlap(f){f.audio.music('early');for(let i=0;i<20;i++)f.fade();f.audio.music('mid');f.fade();assert.ok(f.tracks[0].volume>0);assert.ok(f.tracks[1].volume>0);}
+test('normal music crossfade keeps its existing steps and retires only the outgoing track',()=>{
+ const f=fixture();overlap(f);assert.ok(Math.abs(f.tracks[0].volume-.27)<1e-12);assert.equal(f.tracks[1].volume,.02);for(let i=0;i<30;i++)f.fade();assert.equal(f.tracks[0].volume,0);assert.equal(f.tracks[0].paused,true);assert.equal(f.tracks[1].volume,.3);assert.notEqual(f.tracks[1].paused,true);assert.equal(f.activeFades(),0);
+});
+for(const [name,control]of [['mute',f=>f.audio.setMuted(true)],['zero music',f=>f.audio.setVolume('m',0)],['imported mute',f=>f.audio.applyPreferences({'sq-muted':'1'})],['imported zero music',f=>f.audio.applyPreferences({'sq-vol':'{"s":60,"m":0}'})]])test('every playing music element obeys '+name+' immediately during a crossfade',()=>{
+ const f=fixture();overlap(f);control(f);assert.deepEqual(f.tracks.map(el=>el.volume),[0,0]);f.fade();assert.deepEqual(f.tracks.map(el=>el.volume),[0,0]);
+});
+test('lower music volume and ducking cap outgoing tracks without changing effects volume',async()=>{
+ const f=fixture();await f.audio.init();overlap(f);f.audio.setVolume('m',20);assert.ok(f.tracks.every(el=>el.volume<=.1+1e-12));assert.equal(f.gains[0].gain.value,.5);f.audio.duck(true);assert.ok(f.tracks.every(el=>el.volume<=.1/3+1e-12));assert.equal(f.gains[0].gain.value,.5);f.audio.setVolume('s',0);assert.equal(f.gains[0].gain.value,0);assert.ok(f.tracks[1].volume>0);
+});
+test('failed mute persistence silences overlapping music and unmute restores only the current target',()=>{
+ const fail={},f=fixture({'sq-muted':'0'},fail);overlap(f);fail.write=true;assert.doesNotThrow(()=>f.audio.setMuted(true));assert.deepEqual(f.tracks.map(el=>el.volume),[0,0]);assert.equal(f.store.get('sq-muted'),'0');f.audio.setMuted(false);assert.equal(f.tracks[0].volume,0);assert.equal(f.tracks[1].volume,.3);for(let i=0;i<30;i++)f.fade();assert.equal(f.tracks[0].paused,true);assert.notEqual(f.tracks[1].paused,true);assert.equal(f.activeFades(),0);
+});
+test('rapid music transitions remain bounded and never revive retired tracks',()=>{
+ const f=fixture(),keys=['early','mid','late','boss','final'];for(let i=0;i<20;i++){f.audio.music(keys[i%keys.length]);f.fade();}assert.equal(f.tracks.length,20);f.audio.setMuted(true);assert.ok(f.tracks.every(el=>el.volume===0));for(let i=0;i<60;i++)f.fade();assert.ok(f.tracks.slice(0,-1).every(el=>el.paused===true));assert.notEqual(f.tracks.at(-1).paused,true);assert.equal(f.activeFades(),0);f.audio.setMuted(false);assert.equal(f.tracks.at(-1).volume,.3);assert.ok(f.tracks.slice(0,-1).every(el=>el.volume===0));
+});
+
+for(const language of ['tr','es','fil'])test(language+': music transition update translates',()=>{for(const message of ["Mute every music track", "Mute, music volume and pause now apply to outgoing music as well as the current song."])assert.notEqual(translateText(message,language),message);});
+
+for(const[name,silence,restore]of [
+ ['mute',f=>f.audio.setMuted(true),f=>f.audio.setMuted(false)],
+ ['zero volume',f=>f.audio.setVolume('m',0),f=>f.audio.setVolume('m',60)],
+ ['imported mute',f=>f.audio.applyPreferences({'sq-muted':'1'}),f=>f.audio.setMuted(false)],
+ ['imported zero volume',f=>f.audio.applyPreferences({'sq-vol':'{"s":60,"m":0}'}),f=>f.audio.setVolume('m',60)]
+])test('restoration cannot revive an interrupted outgoing fade-in: '+name,()=>{
+ const f=fixture();f.audio.music('early');for(let i=0;i<5;i++)f.fade();f.audio.music('mid');f.fade();assert.equal(f.activeFades(),2);silence(f);restore(f);assert.equal(f.tracks[0].volume,0);assert.equal(f.tracks[1].volume,.3);for(let i=0;i<5;i++){f.fade();assert.equal(f.tracks[0].volume,0);assert.ok(f.tracks[1].volume>0&&f.tracks[1].volume<=.3);}
+});
+test('raising music volume never raises an outgoing element with an active earlier fade-in',()=>{
+ const f=fixture();f.audio.music('early');for(let i=0;i<5;i++)f.fade();f.audio.music('mid');f.fade();const before=f.tracks[0].volume;f.audio.setVolume('m',100);f.fade();assert.ok(f.tracks[0].volume<=before);
 });

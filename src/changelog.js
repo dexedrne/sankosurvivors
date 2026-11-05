@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.23', date: '5 Nov 2026', title: 'Mute every music track',
+    items: ['Mute, music volume and pause now apply to outgoing music as well as the current song.'],
+  },
+  {
     version: '0.44.22', date: '5 Nov 2026', title: 'Imported settings, ready to play',
     items: ['Imported display and sound settings now apply before your next run, even when starting cancels the planned reload.'],
   },

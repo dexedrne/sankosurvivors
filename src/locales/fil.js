@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Mute every music track": "I-mute ang lahat ng music track",
+  "Mute, music volume and pause now apply to outgoing music as well as the current song.": "Nalalapat na ang mute, music volume at pause sa papahinang music track pati sa kasalukuyang kanta.",
+
   "Finish applying settings": "Tapusin ang paglalapat ng settings",
   "Your imported progress is saved. Reload the game to finish applying display and sound settings before playing.": "Naka-save ang na-import mong progreso. I-reload ang laro para matapos ilapat ang display at sound settings bago maglaro.",
   "Reload game": "I-reload ang laro",

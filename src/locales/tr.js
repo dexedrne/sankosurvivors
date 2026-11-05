@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Mute every music track": "Tüm müzik parçalarını sustur",
+  "Mute, music volume and pause now apply to outgoing music as well as the current song.": "Sessize alma, müzik sesi ve duraklatma artık çalan şarkının yanı sıra kapanan müzik parçalarına da uygulanır.",
+
   "Finish applying settings": "Ayarları uygulamayı tamamla",
   "Your imported progress is saved. Reload the game to finish applying display and sound settings before playing.": "İçe aktarılan ilerlemen kaydedildi. Oynamadan önce görüntü ve ses ayarlarını uygulamayı tamamlamak için oyunu yeniden yükle.",
   "Reload game": "Oyunu yeniden yükle",

@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Mute every music track": "Silencia todas las pistas de música",
+  "Mute, music volume and pause now apply to outgoing music as well as the current song.": "Silenciar, ajustar el volumen de música y pausar ahora también afecta a las pistas que se desvanecen, además de la canción actual.",
+
   "Finish applying settings": "Termina de aplicar los ajustes",
   "Your imported progress is saved. Reload the game to finish applying display and sound settings before playing.": "Tu progreso importado está guardado. Recarga el juego para terminar de aplicar los ajustes de imagen y sonido antes de jugar.",
   "Reload game": "Recargar juego",

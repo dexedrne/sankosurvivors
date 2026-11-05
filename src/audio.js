@@ -25,7 +25,7 @@ export function createAudio() {
   }
   readPreferences();
   const sfxLevel = () => (muted ? 0 : 0.5 * vol.s / 60), musicLevel = () => (muted ? 0 : Math.min(1, 0.3 * vol.m / 60) * (ducked ? 1 / 3 : 1));
-  const buffers = new Map(); const last = {};
+  const buffers = new Map(), musicTracks = new Set(); const last = {};
   async function init() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -45,11 +45,15 @@ export function createAudio() {
     const file = TRACKS[key]; if (!file || file === musicName) return;
     musicName = file;
     const old = musicEl; const el = new Audio(asset(`music/${file}.mp3`)); el.loop = true; el.volume = 0; el.preload = 'auto';
-    musicEl = el; el.play().catch(() => {});
+    musicEl = el; musicTracks.add(el); el.play().catch(() => {});
     let v = 0;
-    const fade = setInterval(() => { const target = musicLevel(); v = Math.min(target, v + 0.02); el.volume = v; if (old) old.volume = Math.max(0, old.volume - 0.03); if (v >= target && (!old || old.volume <= 0)) { clearInterval(fade); old && old.pause(); } }, 100);
+    const fade = setInterval(() => { const target = musicLevel(); v = Math.min(target, v + 0.02); el.volume = el === musicEl ? v : Math.min(el.volume, v); if (old) old.volume = Math.max(0, old.volume - 0.03); if (v >= target && (!old || old.volume <= 0)) { clearInterval(fade); if (old) { old.pause(); musicTracks.delete(old); } } }, 100);
   }
-  const apply = () => { if (sfxGain) sfxGain.gain.value = sfxLevel(); if (musicEl) musicEl.volume = musicLevel(); };
+  const apply = () => {
+    if (sfxGain) sfxGain.gain.value = sfxLevel();
+    const level = musicLevel();
+    for (const el of musicTracks) el.volume = el === musicEl ? level : Math.min(el.volume, level);
+  };
   function applyPreferences(data) { readPreferences(data); apply(); }
   function setMuted(m) { muted = m; try { localStorage.setItem('sq-muted', m ? '1' : '0'); } catch { /* this visit only */ } apply(); }
   function duck(on) { ducked = !!on; apply(); }
