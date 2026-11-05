@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Keep coinless run history": "Panatilihin ang kasaysayan ng larong walang coins",
+  "Cloud sign-in now asks before replacing run history, personal records, quests or gear upgrades, even when this device has no coins.": "Nagtatanong na ang cloud sign-in bago palitan ang kasaysayan ng laro, mga personal record, quest o gear upgrade, kahit walang coins ang device na ito.",
   "Finish interrupted run saves": "Tapusin ang naantalang pag-save ng laro",
   "Completed-run rewards now save together. If browser storage interrupts the save, retry before playing or uploading progress.": "Sabay-sabay nang sine-save ang mga gantimpala ng natapos na laro. Kung maantala ang pag-save dahil sa browser storage, subukan muli bago maglaro o mag-upload ng progreso.",
   "Save your finished run": "I-save ang natapos mong laro",

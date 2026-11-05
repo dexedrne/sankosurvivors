@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep coinless run history": "Altınsız oyun geçmişini koru",
+  "Cloud sign-in now asks before replacing run history, personal records, quests or gear upgrades, even when this device has no coins.": "Bu cihazda hiç altın olmasa bile, bulut kaydına giriş artık oyun geçmişini, kişisel rekorları, görevleri veya ekipman geliştirmelerini değiştirmeden önce sorar.",
   "Finish interrupted run saves": "Kesilen oyun kayıtlarını tamamla",
   "Completed-run rewards now save together. If browser storage interrupts the save, retry before playing or uploading progress.": "Biten oyunun ödülleri artık birlikte kaydedilir. Tarayıcı depolaması kaydı keserse oynamadan veya ilerlemeyi yüklemeden önce yeniden dene.",
   "Save your finished run": "Biten oyununu kaydet",

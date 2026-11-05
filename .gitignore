@@ -1,6 +1,8 @@
 .vercel
 node_modules
 dist
+dist-wavedash
+wavedash-build.json
 reference/ws-capture
 tools/supabase/functions.sql
 tools/supabase/update2.sql
@@ -12,3 +14,4 @@ tools/supabase/update2.sql
 
 # agent worktrees
 .claude/
+.test-results/

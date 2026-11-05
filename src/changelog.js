@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.31', date: '5 Nov 2026', title: 'Keep coinless run history',
+    items: ['Cloud sign-in now asks before replacing run history, personal records, quests or gear upgrades, even when this device has no coins.'],
+  },
+  {
     version: '0.44.30', date: '5 Nov 2026', title: 'Finish interrupted run saves',
     items: ['Completed-run rewards now save together. If browser storage interrupts the save, retry before playing or uploading progress.'],
   },

@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep coinless run history": "Conserva el historial de partidas sin monedas",
+  "Cloud sign-in now asks before replacing run history, personal records, quests or gear upgrades, even when this device has no coins.": "Al iniciar sesión en la nube, ahora se pregunta antes de reemplazar el historial de partidas, los récords personales, las misiones o las mejoras de equipo, aunque este dispositivo no tenga monedas.",
   "Finish interrupted run saves": "Completa guardados de partidas interrumpidos",
   "Completed-run rewards now save together. If browser storage interrupts the save, retry before playing or uploading progress.": "Las recompensas de cada partida se guardan juntas. Si el almacenamiento del navegador interrumpe el guardado, reinténtalo antes de jugar o subir el progreso.",
   "Save your finished run": "Guarda tu partida terminada",

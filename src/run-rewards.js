@@ -1,7 +1,7 @@
 // Completed-run profile changes only. Ranked scores and wallet credentials stay with their existing owners.
 import { GEAR, QUESTS, isWeaponItem } from './content.js';
 import { profileValue, profileBest, finiteNumber } from './progress-values.js';
-import { betterRun } from './cloud.js';
+import { betterRun } from './personal-record.js';
 import { RUN_REWARD_KEYS } from './progress-import.js';
 
 export function prepareRunRewards(storage, sim, { earned, ranked = false }) {

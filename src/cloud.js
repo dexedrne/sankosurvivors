@@ -17,16 +17,8 @@ const parse = (v, d) => { try { const x = JSON.parse(v); return x ?? d; } catch 
 const num = (v) => finiteNumber(parse(v, 0));
 const obj = (v) => { const o = parse(v, {}); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; };
 const arr = (v) => { const a = parse(v, []); return Array.isArray(a) ? a : []; };
-// Same personal-record order as casual boards: victory, whole seconds, then kills. Keep the old record on a full tie.
-export function betterRun(a, b) {
-  const valid = r => r && typeof r === 'object' && !Array.isArray(r) && typeof r.t === 'number' && Number.isFinite(r.t) && r.t >= 0;
-  if (!valid(a)) return valid(b) ? b : null;
-  if (!valid(b)) return a;
-  const key = r => [r.won === true ? 1 : 0, Math.floor(r.t), Number.isFinite(r.kills) ? Math.min(999999, Math.max(0, Math.floor(r.kills))) : 0];
-  const x = key(a), y = key(b);
-  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return y[i] > x[i] ? b : a;
-  return a;
-}
+import { betterRun } from './personal-record.js';
+export { betterRun } from './personal-record.js';
 
 // the merge of one key: base is what both devices last agreed on (undefined: never synced)
 function mergeKey(k, base, mine, theirs) {
@@ -62,7 +54,11 @@ export function summary(d) {
   return { coins: num(d['sq-coins']), maps: arr(d['sq-cleared']).length, ranks: Object.values(skills).reduce((a, b) => a + finiteNumber(b), 0), gear: arr(d['sq-bank']).length };
 }
 // a device that has not really played yet (its progress can be replaced without asking)
-export const isFresh = (d) => { const s = summary(d); return !s.coins && !s.maps && !s.ranks && !s.gear; };
+export const isFresh = (d) => {
+  const s = summary(d);
+  const history = ['sq-stats', 'sq-gearlv', 'sq-best', 'sq-bests'].some(k => Object.keys(obj(d[k])).length);
+  return !s.coins && !s.maps && !s.ranks && !s.gear && !history && !arr(d['sq-quests']).length;
+};
 
 // ---- this device's storage --------------------------------------------------------------------------------------------
 const get = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
