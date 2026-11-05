@@ -62,3 +62,19 @@ test('failed preference writes before AudioContext init remain session controls'
 });
 
 for(const language of ['tr','es','fil'])test(language+': audio storage update translates',()=>{for(const message of ["Reliable sound controls", "Fixed a loading failure when sound settings could not be read. Mute and unmute now work even when preferences cannot be saved."])assert.notEqual(translateText(message,language),message);});
+
+test('imported sound preferences update the live graph/media without rewriting raw data',async()=>{
+ const f=fixture({'sq-muted':'1','sq-vol':'{"s":30,"m":80}'});await f.audio.init();f.audio.music('early');f.audio.duck(true);const before=[...f.store],data=Object.freeze({'sq-muted':'0','sq-vol':'{"s":60.5,"m":40}'});f.audio.applyPreferences(data);assert.equal(f.audio.muted,false);assert.equal(f.audio.volume('s'),60.5);assert.equal(f.audio.volume('m'),40);assert.ok(Math.abs(f.gains[0].gain.value-.5*60.5/60)<1e-12);assert.ok(Math.abs(f.tracks[0].volume-.2/3)<1e-12);assert.deepEqual([...f.store],before);
+});
+test('partial mute import preserves an unsaved live volume without reading storage',async()=>{
+ const fail={},f=fixture({'sq-muted':'1','sq-vol':'{"s":30,"m":80}'},fail);fail.write=true;f.audio.setVolume('s',75);f.audio.setVolume('m',35);fail.read='all';f.audio.applyPreferences({'sq-muted':'0'});assert.equal(f.audio.muted,false);assert.equal(f.audio.volume('s'),75);assert.equal(f.audio.volume('m'),35);assert.equal(f.store.get('sq-muted'),'1');
+});
+test('partial volume import preserves mute and resets missing volume members like startup',()=>{
+ const f=fixture({'sq-muted':'1','sq-vol':'{"s":30,"m":80}'});f.audio.applyPreferences({'sq-vol':'{"s":15}'});assert.equal(f.audio.muted,true);assert.equal(f.audio.volume('s'),15);assert.equal(f.audio.volume('m'),60);
+});
+for(const raw of ['null','"broken"','{"s":{"valueOf":0,"toString":0},"m":1e400}','{"s":999,"m":-4}'])test('imported audio blob follows existing startup validation: '+raw,()=>{
+ const f=fixture({'sq-muted':'1'}),expected=fixture({'sq-vol':raw});f.audio.applyPreferences({'sq-muted':'0','sq-vol':raw});assert.equal(f.audio.muted,expected.audio.muted);assert.equal(f.audio.volume('s'),expected.audio.volume('s'));assert.equal(f.audio.volume('m'),expected.audio.volume('m'));
+});
+test('an import without audio keys preserves live audio before context init',async()=>{
+ const f=fixture({'sq-muted':'1','sq-vol':'{"s":30,"m":80}'});f.audio.applyPreferences({'sq-coins':'650'});assert.equal(f.audio.muted,true);assert.equal(f.audio.volume('s'),30);await f.audio.init();assert.equal(f.gains[0].gain.value,0);
+});

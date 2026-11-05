@@ -2,21 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),render=readFileSync(new URL('../src/render.js',import.meta.url),'utf8');
+const helpers=main.slice(main.indexOf('function applySavedGraphics('),main.indexOf('async function boot()'));
 const boot=main.slice(main.indexOf('async function boot()'),main.indexOf('// ---- gear'));
 const apply=render.slice(render.indexOf('  function applySettings('),render.indexOf('  // rain: streaks',render.indexOf('  function applySettings(')));
 const defaults=render.slice(render.indexOf('  const settings = {'),render.indexOf('  // time of day:',render.indexOf('  const settings = {')));
 let cleanSettings=null;
 try{({cleanSettings}=await import('../src/settings.js'));}catch(e){if(e.code!=='ERR_MODULE_NOT_FOUND')throw e;}
 async function start(raw){
- return Function('raw','cleanSettings',`'use strict';
+ return Function('raw','cleanSettings','factoryDefaults',`'use strict';
   const store=new Map([['sq-settings',JSON.stringify(raw)],['sq-coins','850']]),nodes=new Map();
   const $=id=>{if(!nodes.has(id))nodes.set(id,{disabled:true,textContent:'',style:{},classList:{add(){}}});return nodes.get(id);};
   const load=(key,fallback)=>JSON.parse(store.get(key)||'null')??fallback,save=(key,v)=>store.set(key,JSON.stringify(v)),params=new URLSearchParams();
-  let applied=null,caught=null,renderer=null;const console={error:e=>caught=e},getGear=()=>({}),labels={},selMap='greentown';
-  const createRenderer=async()=>({preloadGear:async()=>{},applySettings:v=>applied=v,setZoom(){},setShift(){}}),pickAssetHost=async()=>{},buildAdventurers=()=>{},buildMaps=()=>{},showBest=()=>{},requestAnimationFrame=()=>{},loop=()=>{};
+  let applied=null,caught=null,renderer=null,rendererDefaults=null;const console={error:e=>caught=e},getGear=()=>({}),labels={},selMap='greentown';
+  const createRenderer=async()=>({preloadGear:async()=>{},getSettings:()=>({...factoryDefaults}),applySettings:v=>applied=v,setZoom(){},setShift(){}}),pickAssetHost=async()=>{},buildAdventurers=()=>{},buildMaps=()=>{},showBest=()=>{},requestAnimationFrame=()=>{},loop=()=>{};
+  ${helpers}
   ${boot}
   return (async()=>{await boot();return{disabled:$('start').disabled,applied,error:caught?.message||null,coins:store.get('sq-coins'),saved:JSON.parse(store.get('sq-settings'))};})();
- `)(raw,cleanSettings);
+ `)(raw,cleanSettings,Function('low',defaults+';return {...settings};')(true));
 }
 function change(next,then){
  return Function('next','then','cleanSettings',`'use strict';

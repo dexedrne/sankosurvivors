@@ -1,5 +1,13 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Finish applying settings": "Termina de aplicar los ajustes",
+  "Your imported progress is saved. Reload the game to finish applying display and sound settings before playing.": "Tu progreso importado está guardado. Recarga el juego para terminar de aplicar los ajustes de imagen y sonido antes de jugar.",
+  "Reload game": "Recargar juego",
+  "The game could not restart. Try again.": "No se pudo reiniciar el juego. Inténtalo de nuevo.",
+
+  "Imported settings, ready to play": "Ajustes importados, listos para jugar",
+  "Imported display and sound settings now apply before your next run, even when starting cancels the planned reload.": "Los ajustes de imagen y sonido importados se aplican antes de tu próxima partida, aunque al iniciarla se cancele la recarga prevista.",
+
   "Reliable sound controls": "Controles de sonido fiables",
   "Fixed a loading failure when sound settings could not be read. Mute and unmute now work even when preferences cannot be saved.": "Se corrigió un fallo de carga cuando no se podían leer los ajustes de sonido. Ahora puedes silenciar y activar el sonido aunque no se puedan guardar las preferencias.",
 

@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.22', date: '5 Nov 2026', title: 'Imported settings, ready to play',
+    items: ['Imported display and sound settings now apply before your next run, even when starting cancels the planned reload.'],
+  },
+  {
     version: '0.44.21', date: '5 Nov 2026', title: 'Reliable sound controls',
     items: ['Fixed a loading failure when sound settings could not be read. Mute and unmute now work even when preferences cannot be saved.'],
   },

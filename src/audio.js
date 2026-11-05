@@ -11,10 +11,19 @@ const TRACKS = { early: 'Fresh_Beginnings', mid: 'Adobe_Fantasy', late: 'snowdri
 
 export function createAudio() {
   let ctx = null, sfxGain = null, musicEl = null, musicName = '', muted = false, ducked = false;
-  try { muted = localStorage.getItem('sq-muted') === '1'; } catch { /* defaults */ }
   // volume sliders, 0-100 each (Settings, Sound): 60 is the old fixed loudness, so there is room both ways
   const vol = { s: 60, m: 60 };
-  try { const v = JSON.parse(localStorage.getItem('sq-vol') || 'null'); for (const k of ['s', 'm']) if (Number.isFinite(v?.[k])) vol[k] = Math.max(0, Math.min(100, v[k])); } catch { /* defaults */ }
+  function readPreferences(data) {
+    if (!data || Object.hasOwn(data, 'sq-muted')) {
+      muted = false;
+      try { muted = (data ? data['sq-muted'] : localStorage.getItem('sq-muted')) === '1'; } catch { /* defaults */ }
+    }
+    if (!data || Object.hasOwn(data, 'sq-vol')) {
+      vol.s = vol.m = 60;
+      try { const v = JSON.parse((data ? data['sq-vol'] : localStorage.getItem('sq-vol')) || 'null'); for (const k of ['s', 'm']) if (Number.isFinite(v?.[k])) vol[k] = Math.max(0, Math.min(100, v[k])); } catch { /* defaults */ }
+    }
+  }
+  readPreferences();
   const sfxLevel = () => (muted ? 0 : 0.5 * vol.s / 60), musicLevel = () => (muted ? 0 : Math.min(1, 0.3 * vol.m / 60) * (ducked ? 1 / 3 : 1));
   const buffers = new Map(); const last = {};
   async function init() {
@@ -41,6 +50,7 @@ export function createAudio() {
     const fade = setInterval(() => { const target = musicLevel(); v = Math.min(target, v + 0.02); el.volume = v; if (old) old.volume = Math.max(0, old.volume - 0.03); if (v >= target && (!old || old.volume <= 0)) { clearInterval(fade); old && old.pause(); } }, 100);
   }
   const apply = () => { if (sfxGain) sfxGain.gain.value = sfxLevel(); if (musicEl) musicEl.volume = musicLevel(); };
+  function applyPreferences(data) { readPreferences(data); apply(); }
   function setMuted(m) { muted = m; try { localStorage.setItem('sq-muted', m ? '1' : '0'); } catch { /* this visit only */ } apply(); }
   function duck(on) { ducked = !!on; apply(); }
   // kind: 's' sound effects or 'm' music; pct 0-100
@@ -73,5 +83,5 @@ export function createAudio() {
     }
     if (view) { const t = view.t; music(t >= 720 ? 'final' : t >= 540 ? 'boss' : t >= 330 ? 'late' : t >= 150 ? 'mid' : base); }
   }
-  return { init, play, music, onFx, setMuted, duck, setVolume, volume: (k) => vol[k], get muted() { return muted; } };
+  return { init, play, music, onFx, applyPreferences, setMuted, duck, setVolume, volume: (k) => vol[k], get muted() { return muted; } };
 }

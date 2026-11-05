@@ -1,5 +1,13 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Finish applying settings": "Tapusin ang paglalapat ng settings",
+  "Your imported progress is saved. Reload the game to finish applying display and sound settings before playing.": "Naka-save ang na-import mong progreso. I-reload ang laro para matapos ilapat ang display at sound settings bago maglaro.",
+  "Reload game": "I-reload ang laro",
+  "The game could not restart. Try again.": "Hindi ma-restart ang laro. Subukan muli.",
+
+  "Imported settings, ready to play": "Handa nang maglaro gamit ang na-import na settings",
+  "Imported display and sound settings now apply before your next run, even when starting cancels the planned reload.": "Nalalapat na ang na-import na display at sound settings bago ang susunod mong run, kahit makansela ang nakaplanong reload kapag nagsimula ka.",
+
   "Reliable sound controls": "Maaasahang mga kontrol sa tunog",
   "Fixed a loading failure when sound settings could not be read. Mute and unmute now work even when preferences cannot be saved.": "Naayos ang hindi pag-load kapag hindi mabasa ang sound settings. Gumagana na ang mute at unmute kahit hindi mai-save ang mga preference.",
 

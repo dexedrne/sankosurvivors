@@ -1,5 +1,13 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Finish applying settings": "Ayarları uygulamayı tamamla",
+  "Your imported progress is saved. Reload the game to finish applying display and sound settings before playing.": "İçe aktarılan ilerlemen kaydedildi. Oynamadan önce görüntü ve ses ayarlarını uygulamayı tamamlamak için oyunu yeniden yükle.",
+  "Reload game": "Oyunu yeniden yükle",
+  "The game could not restart. Try again.": "Oyun yeniden başlatılamadı. Tekrar dene.",
+
+  "Imported settings, ready to play": "İçe aktarılan ayarlar oynamaya hazır",
+  "Imported display and sound settings now apply before your next run, even when starting cancels the planned reload.": "İçe aktarılan görüntü ve ses ayarları artık bir sonraki turdan önce uygulanır; tura başlamak planlanan yeniden yüklemeyi iptal etse bile.",
+
   "Reliable sound controls": "Güvenilir ses kontrolleri",
   "Fixed a loading failure when sound settings could not be read. Mute and unmute now work even when preferences cannot be saved.": "Ses ayarları okunamadığında oluşan yükleme hatası düzeltildi. Tercihler kaydedilemese bile sesi kapatma ve açma artık çalışır.",
 

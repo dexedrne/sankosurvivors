@@ -18,3 +18,7 @@ test('duplicate recovery taps keep one restoration and reload',async()=>{const f
 test('failed recovery remains retryable without reloading',async()=>{const f=setup({fail:true});f.show(f.allowed);await f.$('progressretry').onclick();assert.equal(f.reloads(),0);assert.equal(f.$('progressretry').disabled,false);assert.ok(f.$('progressrecoverystatus').textContent);});
 
 test('recovery keeps WalletConnect completion controls focused and its own screen inert',()=>{const f=setup({modal:true});f.show(f.allowed);assert.equal(f.$('progressretry').focusCount,0);assert.equal(f.$('progressrecovery').inert,true);});
+
+test('committed settings recovery reloads safely without restoring an already committed save',async()=>{
+ const f=setup();f.show(f.allowed,true);assert.equal(f.$('progressrecoverytitle').textContent,'Finish applying settings');assert.match(f.$('progressrecoverytext').textContent,/imported progress is saved/);assert.equal(f.$('progressretry').textContent,'Reload game');f.busy();await f.$('progressretry').onclick();assert.equal(f.reloads(),0);assert.equal(f.recovered(),0);f.ready();await f.$('progressretry').onclick();assert.equal(f.reloads(),1);assert.equal(f.recovered(),0);
+});

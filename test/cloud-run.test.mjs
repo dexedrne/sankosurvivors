@@ -10,6 +10,7 @@ import { importProgress as importProgressImpl, recoverProgressImport as recoverP
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const cloudBlock=main.slice(main.indexOf('let cloudConnecting ='),main.indexOf('onSaved = (k)'));
 const pull=main.slice(main.indexOf('const cloudPull ='),main.indexOf("document.addEventListener('visibilitychange'",main.indexOf('const cloudPull =')));
+const preferenceHelpers=main.slice(main.indexOf('function applySavedGraphics('),main.indexOf('async function boot()'));
 const bootSource=main.slice(main.indexOf('async function boot('),main.indexOf('// ---- gear ---'));
 const afterBoot=main.slice(main.indexOf('boot().then('),main.indexOf('// QA hooks'));
 const choices=main.slice(main.indexOf('function savedChoice('),main.indexOf('let selMap ='));
@@ -31,7 +32,7 @@ const lockStart=main.indexOf('function withImportLock(');
 const lock=lockStart<0?'':main.slice(lockStart,main.indexOf('function showProgressRecovery(',lockStart));
 const A='0x'+'1'.repeat(40),deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve};};
 const reply=(value,status=200)=>new Response(JSON.stringify(value),{status});
-async function setup(t,{pause='login',established=false,holdStart=true,failStart=false,browserFailure=null,noBrowserApis=false,importData={'sq-coins':'100'},importFailure=null,holderReply=false,cloudData={'sq-coins':'100'},pullData={'sq-coins':'700'},failMap=false,putResponses=[]}={}){
+async function setup(t,{pause='login',established=false,holdStart=true,failStart=false,browserFailure=null,noBrowserApis=false,importData={'sq-coins':'100'},importFailure=null,holderReply=false,cloudData={'sq-coins':'100'},pullData={'sq-coins':'700'},failMap=false,putResponses=[],failSettings=false}={}){
   const previous=globalThis.localStorage,previousWindow=globalThis.window,store=new Map(established?[['sq-coins','500'],['sq-cloud',JSON.stringify({a:A,key:'fixture-key',rev:1})],['sq-cloud-base',JSON.stringify({'sq-coins':'500'})]]:[]);
   const writes=[];let writesBlocked=false,importFailed=false,holderActive=false,traceConnect=false;
   globalThis.localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>{if(importFailure==='reserve'&&k==='sq-import-backup-v1')throw Error('fixture quota');if(writesBlocked)throw Error('fixture storage blocked');if(importFailure&&k==='sq-name'&&v==='\"Imported\"'&&!importFailed){importFailed=true;writesBlocked=importFailure==='persistent';throw Error('fixture import write failure');}writes.push(k);store.set(k,String(v));},removeItem:k=>{if(writesBlocked)throw Error('fixture storage blocked');store.delete(k);}};globalThis.window={};
@@ -58,22 +59,22 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
   const nodes=new Map(),$=id=>{
     if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{value:id==='rankedadv'?'adventurer':id==='rankedname'?'Fixture':'',textContent:'',disabled:false,dataset:{},focus(){if(id==='cloudusewal')gates.choice.hit.resolve();},children:[],querySelectorAll:()=>[],replaceChildren(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);
   };
-  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest',`
+  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings',`
     let buyBusy=null,walletConnecting=null,walletRequests=0,walletUi=false,walletBal=null,recoveryCanRestart=null;const walletModalOpen=()=>walletUi;
     let mode='title',sim=null,rankedRun=null,rankedRec=null,rankedBusy=false,storedLive=null,runTicket=null,mapLoading=false,loadedMapId='greentown',selMap='greentown',selAdv='adventurer',acc=0,selCard=0,shownPending=false,waitingForMove=false,rewardWasShown=false,pendingUse=null,slowmo=0,runBest=null,passedBest=false,chase=null;
-    const walletHandoff=null;const BASE='./',PLAYER='p',SIM_ID='fixture-sim',params=new URLSearchParams(),keys=new Set(),slotCache={},WEAPONS={},PASSIVES={};
+    const audioApplied=[];const walletHandoff=null;const BASE='./',PLAYER='p',SIM_ID='fixture-sim',params=new URLSearchParams(),keys=new Set(),slotCache={},WEAPONS={},PASSIVES={};
     const map={id:'greentown',name:'Greentown',length:900,finalBoss:'dragon',music:'fixture'},tutorial={...map,id:'tutorial',name:'Tutorial Island',special:true,forceAdv:'alex'},MAPS=[map,tutorial],MAP_BY_ID={greentown:map,tutorial};
     const ADVENTURER_BY_ID={adventurer:{id:'adventurer',weapon:'Sword'},wizard:{id:'wizard',weapon:'Staff'},alex:{id:'alex',weapon:'Sword'}},mapRequests=[];
     const load=(key,fallback)=>{try{return profileValue(key,JSON.parse(localStorage.getItem(key)||'null')??fallback,fallback);}catch{return fallback;}},save=(key,value)=>localStorage.setItem(key,JSON.stringify(value)),clearedMaps=()=>new Set(load('sq-cleared',[])),unlockedMap=()=>true,asset=()=>'',bossName=()=> 'Dragon',weaponTitle=()=> 'Sword';
     let hardOn=false,endlessOn=false;const rankedWeek={map:'greentown'},rankedLive=()=>storedLive,rankedPlaying=()=>!!rankedRun&&!!sim&&!sim.over;
-    let renderer={applySettings(){},async loadMap(map){mapRequests.push(map.id);await mapStage();if(failMap)throw Error('fixture map failure');},async preloadGear(){await gearStage();if(failStart)throw Error('fixture gear failure');},reset(){},setZoom(){},setShift(){},setYaw(){},setAura(){}};
+    let rendererDefaults=null;let renderer={getSettings:()=>({}),applySettings(next){if(failSettings&&Object.hasOwn(next,'res'))throw Error('fixture display failure');},async loadMap(map){mapRequests.push(map.id);await mapStage();if(failMap)throw Error('fixture map failure');},async preloadGear(){await gearStage();if(failStart)throw Error('fixture gear failure');},reset(){},setZoom(){},setShift(){},setYaw(){},setAura(){}};
     ${mapPicker}
-    const audio={init:async()=>{},music(){}};
+    const audio={init:async()=>{},music(){},applyPreferences:data=>audioApplied.push(data)};
     const getCoins=()=>Number(JSON.parse(localStorage.getItem('sq-coins')||'0')),xferRead=code=>code==='fixture-code'?{data:importData}:{error:'fixture invalid code'};
     const getGear=()=>({}),getGearLv=()=>({}),getSkills=()=>({}),getBests=()=>({}),runGround=()=>null,runAdv=()=>ADVENTURER_BY_ID[MAP_BY_ID[selMap].forceAdv||selAdv],bestKey=()=>'';
     const makeSim=()=>({map,players:[{}],pending:{},over:null,t:0}),createSim=options=>({...makeSim(),map:options.map,players:[{adv:options.players[0].adv}]}),resumeRankedAsync=async(log,options,progress)=>{await resumeStage();progress?.(1,1);return{sim:makeSim(),rec:{log:()=>({runs:[]})}};};
     const banner=()=>{},preloadIcons=()=>{},weaponItem=()=>'',passiveItem=()=>'',clearTouch=()=>{},showLevelUp=()=>{},persistRanked=()=>{},fmtT=s=>String(s),slayName=()=> 'Dragon',kpmWeek=()=>false,liveRace=live=>live;
-    const renderWallet=()=>{},renderDmt=()=>{},refreshBalances=()=>{},wallets=()=>[],short=a=>a,renderRanked=()=>{},rankedMessage=()=>{},openRanked=()=>{},why=e=>e.message,plain=s=>Error(s),applyDmt=()=>{},buildAdventurers=()=>{},showBest=()=>{},submitRanked=async()=>{};
+    const renderWallet=()=>{},renderDmt=()=>{},refreshBalances=()=>{},wallets=()=>[],short=a=>a,renderRanked=()=>{},rankedMessage=()=>{},openRanked=()=>{},why=e=>e.message,plain=s=>Error(s),applyDmt=()=>{},buildAdventurers=()=>{},showBest=()=>{},buildSettings=()=>{},submitRanked=async()=>{};
     const readRanked=(key,fallback=null)=>key==='sq-ranked-live'?storedLive:fallback,writeRanked=(key,value)=>{if(key==='sq-ranked-live')storedLive=value;};
     const rankedApi=async()=>({run:'fixture-run',seed:1,map:'greentown',week:0,mode:'normal'}),RunRecorder=class{log(){return{runs:[]};}};
     ${choices}
@@ -95,11 +96,12 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     ${start}
     ${menu}
     const pickAssetHost=async()=>{},createRenderer=async()=>renderer,requestAnimationFrame=()=>{},loop=()=>{};
+    ${preferenceHelpers}
     ${bootSource}
-    return{cloud,pickMap,connect:walletConnect,canRestartRecovery:()=>recoveryCanRestart?.(),boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
+    return{cloud,pickMap,audioApplied:()=>audioApplied,connect:walletConnect,canRestartRecovery:()=>recoveryCanRestart?.(),boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
   `)(createCloud,W.current,W.walletRevision,W.onWallet,$,{reload(){reloads++;}},()=>stage('gear'),()=>stage('map'),failStart,
     noBrowserApis?{}:{locks:{request:async(name,fn)=>{calls.push('import-lock');await stage('import-lock');return fn();}},serviceWorker:{getRegistrations:async()=>{await browserStage('registrations');return[{update:async()=>browserStage('worker-update')}];}}},
-    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'),cleanSettings,profileValue,profileBest);
+    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'),cleanSettings,profileValue,profileBest,failSettings);
   const track=p=>{pending.push(p);p.catch(()=>{});return p;};
   t.after(async()=>{for(const x of Object.values(gates))x.gate.resolve();t.mock.timers.tick(1000);await Promise.allSettled(pending);app.dispose();writesBlocked=false;W.disconnect();globalThis.localStorage=previous;globalThis.window=previousWindow;});
   return{app,store,writes,gates,calls,$,allowWrites:()=>writesBlocked=false,reloads:()=>reloads,sign:()=>track(app.cloud.signIn(W.current())),pull:()=>track(app.pull()),update:()=>track(app.update()),check:()=>track(app.check()),
@@ -402,4 +404,8 @@ test('completed holder proof leaves the older cancelled cloud signature guarded'
  const cloud=f.track(f.app.cloudUI());await f.flush();assert.equal(releases.length,1);const holder=f.track(f.app.holder('same'));await f.flush();assert.equal(releases.length,2);
  releases[1]('fixture-signature');await holder;await f.update();const before=f.reloads();releases[0]('fixture-signature');await cloud;
  assert.equal(before,0);assert.equal(f.calls.filter(c=>c==='save-login').length,0);await f.update();assert.equal(f.reloads(),1);
+});
+
+test('failed committed display application requires recovery before fast Start or ranked actions',async t=>{
+ const data={'sq-coins':'650','sq-settings':'{"v":2,"res":"0.5"}','sq-muted':'1','sq-vol':'{"s":20,"m":70}'},f=await setup(t,{pause:null,holdStart:false,importData:data,failSettings:true});await f.app.load();assert.equal(f.store.get('sq-coins'),'650');assert.equal(f.store.has('sq-import-backup-v1'),false);await f.app.startRun();assert.equal(f.app.state().mode,'recovery');assert.deepEqual(f.app.audioApplied(),[data]);await f.app.rankedAction('start');t.mock.timers.tick(1000);assert.equal(f.reloads(),0);assert.equal(f.calls.includes('run'),false);assert.equal(f.store.get('sq-muted'),'1');
 });

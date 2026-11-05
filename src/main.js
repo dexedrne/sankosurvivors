@@ -41,7 +41,7 @@ const compactMenu = matchMedia('(max-width:760px), (max-width:1180px) and (max-h
 for (const id of ['adventurerpick', 'mappick']) $(id).open = !compactMenu.matches;
 const PLAYER = 'p1';
 
-let sim = null, renderer = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0;
+let sim = null, renderer = null, rendererDefaults = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0;
 const keys = new Set();
 const audio = createAudio();
 const p2 = (n) => String(Math.floor(n)).padStart(2, '0');
@@ -452,16 +452,27 @@ $('skillsclose').onclick = () => $('skills').classList.add('hidden');
 
 // ---- loading ------------------------------------------------------------------------------------------------------------
 const labels = { map: 'Drawing the map…', props: 'Raising Greentown…', monsters: 'Waking the monsters…', ready: 'Ready' };
+function applySavedGraphics(rawSettings = load('sq-settings', {})) {
+  const st = cleanSettings(rawSettings);
+  if (!Number.isFinite(rawSettings?.v) || rawSettings.v < 2) { st.roofs = 'off'; st.quality = 'auto'; st.v = 2; save('sq-settings', st); }
+  renderer.applySettings({ ...rendererDefaults, ...st });
+}
+function applyImportedPreferences(data) {
+  const graphics = Object.hasOwn(data, 'sq-settings') || Object.hasOwn(data, 'sq-roofs');
+  const sound = Object.hasOwn(data, 'sq-muted') || Object.hasOwn(data, 'sq-vol');
+  if (sound) audio.applyPreferences(data);
+  if (graphics) applySavedGraphics(Object.hasOwn(data, 'sq-settings') ? JSON.parse(data['sq-settings']) : undefined);
+  if ((graphics || sound) && !$('settings').classList.contains('hidden')) buildSettings();
+}
 async function boot() {
   if (params.has('qa')) document.body.classList.add('qa');
   try {
     await pickAssetHost(); // jsDelivr, or the game's own host if it does not answer
     renderer = await createRenderer($('c'), (stage, v) => { $('loadfill').style.width = Math.round(v * 100) + '%'; $('loadtext').textContent = labels[stage] || ''; });
+    rendererDefaults = renderer.getSettings();
     $('loadtext').textContent = ''; $('loadbar').classList.add('hidden');
     await renderer.preloadGear(Object.values(getGear()));
-    const rawSettings = load('sq-settings', {}), st = cleanSettings(rawSettings);
-    if (!Number.isFinite(rawSettings?.v) || rawSettings.v < 2) { st.roofs = 'off'; st.quality = 'auto'; st.v = 2; save('sq-settings', st); }
-    renderer.applySettings(st);
+    applySavedGraphics();
     $('start').disabled = false; buildAdventurers(); buildMaps(); showBest(); renderer.setZoom(0.45); renderer.setShift(2.4);
     if (selMap !== 'greentown') await pickMap(selMap);
     if (params.has('clean')) $('title').classList.add('hidden');
@@ -662,9 +673,12 @@ $('xferin').oninput = () => {
 function withImportLock(fn) {
   return navigator.locks?.request ? navigator.locks.request('sqs-progress-import', fn) : fn();
 }
-function showProgressRecovery(canRestart = () => true) {
+function showProgressRecovery(canRestart = () => true, settingsOnly = false) {
   mode = 'recovery';
   const screen = $('progressrecovery'), retry = $('progressretry');
+  $('progressrecoverytitle').textContent = settingsOnly ? 'Finish applying settings' : 'Restore progress before playing';
+  $('progressrecoverytext').textContent = settingsOnly ? 'Your imported progress is saved. Reload the game to finish applying display and sound settings before playing.' : 'A progress save could not finish. Your previous progress is backed up on this device. Restore it before playing or saving to your wallet.';
+  retry.textContent = settingsOnly ? 'Reload game' : 'Restore previous progress';
   screen.classList.remove('hidden'); screen.inert = walletModalOpen();
   if (!screen.inert) retry.focus();
   screen.onkeydown = e => { if (e.key === 'Tab' || e.key === 'Escape') { e.preventDefault(); retry.focus(); } e.stopPropagation(); };
@@ -674,11 +688,11 @@ function showProgressRecovery(canRestart = () => true) {
     if (!canRestart()) { waiting(); return; }
     retry.disabled = true; $('progressrecoverystatus').textContent = '';
     try {
-      await withImportLock(() => { if (canRestart()) recoverProgressImport(localStorage); });
+      await withImportLock(() => { if (canRestart() && !settingsOnly) recoverProgressImport(localStorage); });
       if (!canRestart()) { waiting(); return; }
       location.reload();
     }
-    catch { $('progressrecoverystatus').textContent = 'This browser still cannot restore progress. Free some storage and try again. Keep this app installed.'; retry.disabled = false; if (!walletModalOpen()) retry.focus(); }
+    catch { $('progressrecoverystatus').textContent = settingsOnly ? 'The game could not restart. Try again.' : 'This browser still cannot restore progress. Free some storage and try again. Keep this app installed.'; retry.disabled = false; if (!walletModalOpen()) retry.focus(); }
   };
 }
 $('xferload').onclick = async () => {
@@ -692,6 +706,8 @@ $('xferload').onclick = async () => {
     await withImportLock(() => {
       if (importAttempt !== attempt || !canManuallyReload() || !progressCanLoad()) return;
       importProgress(localStorage, r.data);
+      try { applyImportedPreferences(r.data); }
+      catch { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen() && !rankedBusy, true); return; }
       $('xfermsg').textContent = 'Loaded. Restarting…'; queuePageReload('Loaded. Restarting…', 600);
     });
   } catch (e) {
