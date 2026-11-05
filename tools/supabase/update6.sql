@@ -8,8 +8,9 @@
 
 -- 1 ------------------------------------------------------------------------------------------------------------------
 create or replace function public.sqs_key_ok(p_name text, p_key text)
-returns boolean language sql stable security definer set search_path = public as $$
-  select coalesce(p_key is not null and encode(sha256(convert_to(p_key, 'UTF8')), 'hex') = (select a.v from sqs_admin a where a.k = p_name), false)
+returns boolean language sql stable security definer set search_path = pg_catalog, public, pg_temp as $$
+  select coalesce(p_key is not null and encode(sha256(convert_to(p_key, 'UTF8')), 'hex') in
+    (select a.v from public.sqs_admin a where a.k = p_name or a.k = p_name || ':next'), false)
 $$;
 revoke all on function public.sqs_key_ok(text, text) from public, anon, authenticated;
 

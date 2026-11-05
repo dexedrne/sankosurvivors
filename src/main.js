@@ -697,7 +697,8 @@ function showProgressRecovery(canRestart = () => true, settingsOnly = false) {
 }
 $('xferload').onclick = async () => {
   if (importAttempt) return;
-  if (!canManuallyReload() || !progressCanLoad()) { $('xfermsg').textContent = 'Finish your run or wallet action before loading progress.'; return; }
+  if (!canManuallyReload()) { $('xfermsg').textContent = 'Finish your run or wallet action before loading progress.'; return; }
+  if (!progressCanLoad()) { $('xfermsg').textContent = 'The game is not ready to load progress yet.'; return; }
   const r = xferRead($('xferin').value); if (r.error) { $('xfermsg').textContent = r.error; return; }
   if ($('xferload').dataset.sure !== '1') { $('xferload').dataset.sure = '1'; $('xferload').textContent = 'Replace this device\'s progress?'; $('xfermsg').textContent = `This device has ${getCoins().toLocaleString()} coins now. Click again to load the code.`; return; }
   cancelPendingLoads();

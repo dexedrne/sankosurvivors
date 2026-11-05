@@ -314,6 +314,22 @@ test('confirmed import waits for title-screen boot readiness',async t=>{
  const f=await setup(t,{pause:null,holdStart:false});f.$('start').disabled=true;await f.app.load();assert.equal(f.store.has('sq-coins'),false);assert.equal(f.reloads(),0);
 });
 
+// Wrong blocker selection must never reach confirmation or alter the local save.
+for(const phase of ['boot','map'])for(const confirmed of [false,true])test(`${phase} loading explains import readiness before ${confirmed?'commit':'confirmation'}`,async t=>{
+ const f=await setup(t,{pause:phase==='map'?'map':null,holdStart:false});f.store.set('sq-coins','900');const before=new Map(f.store),beforeWrites=f.writes.length;let picking;
+ if(phase==='boot')f.$('start').disabled=true;else{picking=f.track(f.app.pickMap('tutorial',false));await f.gates.map.hit.promise;}
+ await f.app.load(confirmed);assert.match(f.$('xfermsg').textContent,/not ready/i);assert.doesNotMatch(f.$('xfermsg').textContent,/run|wallet/i);assert.deepEqual(f.store,before);assert.equal(f.writes.length,beforeWrites);assert.equal(f.calls.includes('import-lock'),false);assert.equal(f.reloads(),0);
+ if(picking){f.finish();await picking;}else f.$('start').disabled=false;
+ await f.app.load();t.mock.timers.tick(600);assert.equal(f.store.get('sq-coins'),'100');assert.equal(f.reloads(),1);
+});
+for(const blocker of ['run','wallet'])test(`a ${blocker} blocker takes priority over import readiness`,async t=>{
+ const f=await setup(t,{pause:null,holdStart:false});f.$('start').disabled=true;if(blocker==='run')f.app.mode('play');else f.app.walletBusy('connect',true);
+ await f.app.load();assert.match(f.$('xfermsg').textContent,/run or wallet/i);assert.equal(f.store.has('sq-coins'),false);assert.equal(f.calls.includes('import-lock'),false);assert.equal(f.reloads(),0);
+});
+test('Update remains usable while a title map is loading',async t=>{
+ const f=await setup(t,{pause:'map',holdStart:false}),picking=f.track(f.app.pickMap('tutorial',false));await f.gates.map.hit.promise;await f.update();assert.equal(f.reloads(),1);f.finish();await picking;
+});
+
 test('startup pull waits for a saved nondefault map after both early pull opportunities',async t=>{
  const f=await setup(t,{pause:'map',holdStart:false,established:true});f.app.select('tutorial','wizard');f.$('start').disabled=true;const booting=f.track(f.app.boot());await f.gates.map.hit.promise;await f.pull();await f.flush();
  assert.equal(f.calls.includes('save-get'),false);f.finish();await booting;await f.flush();assert.equal(f.calls.filter(c=>c==='save-get').length,1);assert.equal(f.store.get('sq-coins'),'700');assert.equal(f.app.state().loadedMapId,'tutorial');

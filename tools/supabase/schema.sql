@@ -45,11 +45,12 @@ create table if not exists public.sqs_admin (k text primary key, v text not null
 alter table public.sqs_admin enable row level security;
 revoke all on public.sqs_admin from anon, authenticated;
 insert into public.sqs_admin (k, v) values ('server_key_sha256', '<sha256 of SQS_SERVER_KEY>'), ('reports_key_sha256', '<sha256 of the Radbro reports key>')
-  on conflict (k) do update set v = excluded.v;
+  on conflict (k) do nothing;
 
 create or replace function public.sqs_key_ok(p_name text, p_key text)
-returns boolean language sql stable security definer set search_path = public as $$
-  select p_key is not null and encode(sha256(convert_to(p_key, 'UTF8')), 'hex') = (select a.v from sqs_admin a where a.k = p_name)
+returns boolean language sql stable security definer set search_path = pg_catalog, public, pg_temp as $$
+  select coalesce(p_key is not null and encode(sha256(convert_to(p_key, 'UTF8')), 'hex') in
+    (select a.v from public.sqs_admin a where a.k = p_name or a.k = p_name || ':next'), false)
 $$;
 
 -- one action per kind per ip per window; returns false when too soon

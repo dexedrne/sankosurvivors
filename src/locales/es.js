@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "The game is not ready to load progress yet.": "El juego aún no está listo para cargar el progreso.",
+  "Clearer progress-loading messages": "Mensajes de carga de progreso más claros",
+  "Progress imports now distinguish a game that is not ready from an unfinished run or wallet action.": "Al importar progreso, ahora se distingue entre un juego que aún no está listo y una partida o acción de cartera sin terminar.",
   "Imported casket choice, shown correctly": "La opción de cofre importada se muestra correctamente",
   "Imports that only change auto-alch now refresh an open Settings panel to show the chosen On or Off option.": "Las importaciones que solo cambian la alquimia automática ahora actualizan el panel de Ajustes abierto para mostrar la opción Activado o Desactivado elegida.",
 

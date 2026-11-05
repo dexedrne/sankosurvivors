@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "The game is not ready to load progress yet.": "Oyun henüz ilerlemeyi yüklemeye hazır değil.",
+  "Clearer progress-loading messages": "İlerleme yükleme mesajları daha anlaşılır",
+  "Progress imports now distinguish a game that is not ready from an unfinished run or wallet action.": "İlerleme içe aktarılırken artık oyunun henüz hazır olmaması ile bitmemiş bir oyun veya cüzdan işlemi ayrı mesajlarla belirtilir.",
   "Imported casket choice, shown correctly": "İçe aktarılan sandık tercihi doğru gösterilir",
   "Imports that only change auto-alch now refresh an open Settings panel to show the chosen On or Off option.": "Yalnızca otomatik yüksek simya seçeneğini değiştiren içe aktarmalar artık açık Ayarlar panelini yenileyerek seçilen Açık veya Kapalı seçeneğini gösterir.",
 

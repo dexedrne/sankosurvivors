@@ -86,16 +86,20 @@ In Supabase's SQL editor, paste in this order, each file whole:
 
 3. Then `update4.sql` through `update10.sql`, in order: cloud saves, boards,
    fail-closed guards, bound restarts, payout caps, permissions and recoverable submissions.
-4. Apply `update11.sql` for incoming-pool metadata and `update12.sql` for atomic
-   rate admission. Update12 is independent of update11. The owner pastes all SQL;
-   the presence of a migration file does not mean it has been applied.
+4. Apply `update13.sql` once after update10. It bundles incoming-pool metadata
+   (update11), atomic rate admission (update12), and the key-helper path/rotation
+   hardening. The owner pastes all SQL; a prepared file is not proof it is live.
+   The helper preserves the existing current and `:next` rotation slots. The
+   current schema preserves already configured key hashes when pasted again;
+   intentional key rotation must use the explicit owner configuration procedure.
 
 **Re-pasting:** each file is safe to paste again, but an older file brings back older functions. After any re-paste of
 `ranked.sql`, `payouts.sql` or `update6.sql`, paste `update7.sql` through `update10.sql` again,
-plus update11 once installed. Otherwise old permissions/restart/refund functions can return
+plus update13 once installed. Otherwise old permissions/restart/refund functions can return
 and the recovery APIs can be missing. Reapply update9 after update5 as well.
-Reapply update12 after restoring an older schema.sql; other numbered updates do not replace its helper. Paste required repairs
+Reapply update13 after restoring older schema/security/board files so the current guard, rate admission and pool metadata stay installed. Paste required repairs
 **before deploying** the new game build: the new API calls the new signatures.
+Do not re-paste the base schema to install update13; use the one update13 file. After a necessary full-schema re-paste, restore updates4 through10 in order, then13, so older overloads and grants are repaired too.
 Do not reapply the older `schema.sql` placeholders. A fresh install pastes
 `schema.sql`, `ranked.sql`, `payouts.sql`, then the updates in order.
 
