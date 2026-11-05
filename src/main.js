@@ -1332,6 +1332,7 @@ function endRun() {
   $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
   $('end').classList.remove('hidden');
   if (wasRanked) { rankedRun.ended = true; persistRanked(); submitRanked(); }
+  cloud.push(true);
 }
 function toMenu() {
   if (rankedPlaying()) return;

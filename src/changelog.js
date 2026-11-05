@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.27', date: '5 Nov 2026', title: 'Upload completed runs sooner',
+    items: ['With cloud save on, finishing a run now requests an upload immediately instead of waiting for the normal save timer.'],
+  },
+  {
     version: '0.44.26', date: '5 Nov 2026', title: 'Clearer progress-loading messages',
     items: ['Progress imports now distinguish a game that is not ready from an unfinished run or wallet action.'],
   },

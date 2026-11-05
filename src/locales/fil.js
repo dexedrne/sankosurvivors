@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Upload completed runs sooner": "Mas maagang i-upload ang mga natapos na laro",
+  "With cloud save on, finishing a run now requests an upload immediately instead of waiting for the normal save timer.": "Kapag naka-on ang cloud save, humihiling na agad ng upload pagkatapos ng laro sa halip na hintayin ang karaniwang save timer.",
   "The game is not ready to load progress yet.": "Hindi pa handang mag-load ng progreso ang laro.",
   "Clearer progress-loading messages": "Mas malinaw na mensahe sa pag-load ng progreso",
   "Progress imports now distinguish a game that is not ready from an unfinished run or wallet action.": "Magkaiba na ang mensahe kapag hindi pa handa ang laro at kapag may hindi pa tapos na laro o aksyon sa wallet habang nag-i-import ng progreso.",

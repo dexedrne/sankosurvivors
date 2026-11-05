@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Upload completed runs sooner": "Sube antes las partidas terminadas",
+  "With cloud save on, finishing a run now requests an upload immediately instead of waiting for the normal save timer.": "Con el guardado en la nube activado, al terminar una partida se solicita la subida de inmediato, sin esperar al temporizador habitual.",
   "The game is not ready to load progress yet.": "El juego aún no está listo para cargar el progreso.",
   "Clearer progress-loading messages": "Mensajes de carga de progreso más claros",
   "Progress imports now distinguish a game that is not ready from an unfinished run or wallet action.": "Al importar progreso, ahora se distingue entre un juego que aún no está listo y una partida o acción de cartera sin terminar.",

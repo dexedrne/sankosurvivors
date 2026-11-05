@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Upload completed runs sooner": "Biten oyunları daha erken yükle",
+  "With cloud save on, finishing a run now requests an upload immediately instead of waiting for the normal save timer.": "Bulut kaydı açıkken, oyun bittiğinde normal kayıt zamanlayıcısını beklemek yerine hemen yükleme isteği gönderilir.",
   "The game is not ready to load progress yet.": "Oyun henüz ilerlemeyi yüklemeye hazır değil.",
   "Clearer progress-loading messages": "İlerleme yükleme mesajları daha anlaşılır",
   "Progress imports now distinguish a game that is not ready from an unfinished run or wallet action.": "İlerleme içe aktarılırken artık oyunun henüz hazır olmaması ile bitmemiş bir oyun veya cüzdan işlemi ayrı mesajlarla belirtilir.",
