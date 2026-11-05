@@ -1,5 +1,13 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Safer DMT buying": "Mas ligtas na pagbili ng DMT",
+  "Buys stop before sending when your wallet choice changes. Old quotes cannot use another wallet’s Buy button.": "Hihinto ang pagbili bago ipadala kapag nagbago ang pinili mong wallet. Hindi magagamit ng lumang quote ang Buy button ng ibang wallet.",
+  "Known transaction links stay visible when receipt checks fail. Unconfirmed sends ask you to check wallet activity before buying again.": "Nananatiling nakikita ang link ng kilalang transaksyon kahit pumalya ang pagsuri sa resibo. Kapag hindi kumpirmado ang pagpapadala, hihilinging tingnan ang aktibidad ng wallet bago bumili muli.",
+  "Wallet changed. Get a new quote before buying.": "Nagbago ang wallet. Kumuha ng bagong quote bago bumili.",
+  "A swap is already pending. Check your wallet activity.": "May nakabinbing swap na. Tingnan ang aktibidad ng wallet mo.",
+  "Confirmed. Check that wallet.": "Kumpirmado. Tingnan ang wallet na iyon.",
+  "Swap outcome is not confirmed. Check your wallet activity before buying again.": "Hindi pa kumpirmado ang resulta ng swap. Tingnan ang aktibidad ng wallet bago bumili muli.",
+  "The swap did not go through. Your ETH was not spent, only a little gas.": "Hindi natuloy ang swap. Hindi nagastos ang halaga ng ETH mo, kaunting gas lang.",
   "Reconnect without waiting": "Kumonekta muli nang hindi naghihintay",
   "Disconnect frees the game's wallet picker while an older reply is pending. Old replies cannot overwrite status or unlock a newer request.": "Magagamit muli ang pagpili ng wallet sa laro kapag nag-disconnect ka kahit may hinihintay pang lumang tugon. Hindi mababago ng lumang tugon ang status o maaalis ang lock ng mas bagong request.",
   "Keep your wallet choice": "Panatilihin ang piniling wallet",
@@ -916,6 +924,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Swap for {1}: {2}", "Swap para sa {1}: {2}"],
   ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Casual scaling: HP/pinsala sa pagdikit ng kalaban +{1}%; batayang pagdami ng kalaban +{2}%."],
   ["{1} entries · {2} DMT from entries.", "{1} lahok · {2} DMT mula sa mga lahok."],
   ["Includes {1} DMT rollover.", "Kasama ang {1} DMT na natitirang pondo."],

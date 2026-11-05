@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import { quoteDmt, checkBuilt, buyDmt, KYBER_ROUTER, SLIPPAGE_BPS } from '../src/swap.js';
 import { rankedSim } from '../src/ranked.js';
 import { createSim } from '../src/sim.js';
+import { connect } from '../src/wallet.js';
+import { swapReceipt } from './fixtures/swap-receipt.mjs';
 import { MAP_BY_ID } from '../src/content.js';
 
 const me = '0x1111111111111111111111111111111111111111';
@@ -14,7 +16,7 @@ const fakeKyber = (outPerEthWei) => async (url) => {
 test('buy DMT: a quote for the amount asked, with the slippage floor and the loss shown', async () => {
   const q = await quoteDmt(2.5, fakeKyber(1800n)); // 1 ETH buys 1800 DMT
   assert.ok(q.dmtOut >= 2.5 && q.dmtOut < 2.6, String(q.dmtOut)); // asks 2% over, so the pool moving still leaves enough
-  assert.equal(q.minOut, Math.floor(q.dmtOut * (10000 - SLIPPAGE_BPS) / 100) / 100 >= 0 ? q.minOut : 0);
+  assert.equal(q.minOut, 2.295);
   assert.ok(q.minOut < q.dmtOut && q.minOut > q.dmtOut * 0.89); // 10% slippage (owner 3 Nov: the DMT pool is thin)
   assert.ok(Math.abs(q.loss - 0.01) < 1e-9);
   await assert.rejects(quoteDmt(0, fakeKyber(1n)), /Pick an amount/);
@@ -49,10 +51,12 @@ const SWAP = 'e21fd0e9';
 test('buy DMT refuses a chain switch while its build is pending', async () => {
   let chain = '0xa4b1', sends = 0;
   const wallet = { p: { request: async ({ method }) => {
+    if (method === 'eth_requestAccounts' || method === 'eth_accounts') return [me];
     if (method === 'eth_chainId') return chain;
     if (method === 'eth_sendTransaction') { sends++; return 'fixture-tx'; }
     if (method === 'eth_getTransactionReceipt') return { status: '0x1' };
   } } };
+  await connect(wallet);
   const q = { amountIn: real.summary.amountIn, summary: real.summary, ethIn: Number(real.summary.amountIn) / 1e18, minOut: 1 };
   await assert.rejects(buyDmt(wallet, me, q, () => {}, async () => {
     chain = '0x1';
@@ -64,10 +68,12 @@ test('buy DMT refuses a chain switch while its build is pending', async () => {
 test('buy DMT binds the wallet transaction to Arbitrum', async () => {
   let sent;
   const wallet = { p: { request: async ({ method, params }) => {
+    if (method === 'eth_requestAccounts' || method === 'eth_accounts') return [me];
     if (method === 'eth_chainId') return '0xa4b1';
-    if (method === 'eth_sendTransaction') { sent = params[0]; return 'fixture-tx'; }
-    if (method === 'eth_getTransactionReceipt') return { status: '0x1' };
+    if (method === 'eth_sendTransaction') { sent = params[0]; return '0x' + 'ab'.repeat(32); }
+    if (method === 'eth_getTransactionReceipt') return swapReceipt();
   } } };
+  await connect(wallet);
   const q = { amountIn: real.summary.amountIn, summary: real.summary, ethIn: Number(real.summary.amountIn) / 1e18, minOut: 1 };
   await buyDmt(wallet, me, q, () => {}, async () => new Response(JSON.stringify({ code: 0, data: real.build })));
   assert.equal(sent.chainId, '0xa4b1');

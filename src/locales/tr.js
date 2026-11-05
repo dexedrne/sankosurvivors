@@ -1,5 +1,13 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Safer DMT buying": "Daha güvenli DMT alımı",
+  "Buys stop before sending when your wallet choice changes. Old quotes cannot use another wallet’s Buy button.": "Cüzdan seçimin değişirse alım, işlem gönderilmeden durdurulur. Eski fiyat teklifleri başka bir cüzdanın Satın al düğmesini kullanamaz.",
+  "Known transaction links stay visible when receipt checks fail. Unconfirmed sends ask you to check wallet activity before buying again.": "İşlem makbuzu kontrolü başarısız olsa da bilinen işlem bağlantıları görünür kalır. Gönderim doğrulanamazsa yeniden alım yapmadan önce cüzdan hareketlerini kontrol etmen istenir.",
+  "Wallet changed. Get a new quote before buying.": "Cüzdan değişti. Satın almadan önce yeni bir fiyat teklifi al.",
+  "A swap is already pending. Check your wallet activity.": "Bir takas zaten beklemede. Cüzdan hareketlerini kontrol et.",
+  "Confirmed. Check that wallet.": "Doğrulandı. O cüzdanı kontrol et.",
+  "Swap outcome is not confirmed. Check your wallet activity before buying again.": "Takasın sonucu doğrulanmadı. Yeniden alım yapmadan önce cüzdan hareketlerini kontrol et.",
+  "The swap did not go through. Your ETH was not spent, only a little gas.": "Takas gerçekleşmedi. ETH tutarın harcanmadı; yalnızca küçük bir gas ücreti ödendi.",
   "Reconnect without waiting": "Beklemeden yeniden bağlan",
   "Disconnect frees the game's wallet picker while an older reply is pending. Old replies cannot overwrite status or unlock a newer request.": "Eski bir yanıt beklenirken bağlantıyı kesmek, oyunun cüzdan seçicisini yeniden kullanılabilir hale getirir. Eski yanıtlar durum mesajını değiştiremez veya daha yeni bir isteğin kilidini kaldıramaz.",
   "Keep your wallet choice": "Cüzdan seçimin korunsun",
@@ -916,6 +924,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Swap for {1}: {2}", "{1} için takas: {2}"],
   ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Serbest mod ölçeklemesi: düşman HP/temas hasarı +{1}%; temel doğma baskısı +{2}%."],
   ["{1} entries · {2} DMT from entries.", "{1} katılım · katılımlardan {2} DMT."],
   ["Includes {1} DMT rollover.", "Devreden {1} DMT dahildir."],

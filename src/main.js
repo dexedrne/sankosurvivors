@@ -15,7 +15,7 @@ const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
 import { wallets, watchWallets, takeWalletHandoff, savedPass, forget, prove, short, walletAppLinks, why, DMT_COIN_BONUS } from './dmt.js';
 import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
 import { quoteDmt, buyDmt } from './swap.js';
-import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
+import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
@@ -821,7 +821,7 @@ function renderWallet() {
   const c = walletNow(), body = $('walletbody'), msg = (t) => { $('walletmsg').textContent = t; };
   if (!c) {
     const ch = walletChoices((w) => pickWallet(w, msg));
-    body.innerHTML = `<p>Connect once and the game remembers it. Connecting only shares your address: nothing is signed or sent.</p>${ch.html}`;
+    body.innerHTML = buyNoticeHTML() + `<p>Connect once and the game remembers it. Connecting only shares your address: nothing is signed or sent.</p>${ch.html}`;
     ch.bind(body); return;
   }
   const pass = savedPass(), mine = pass && pass.address.toLowerCase() === c.address.toLowerCase();
@@ -874,30 +874,63 @@ const cloudPull = async () => { if (!cloud.state() || mode !== 'title' || ranked
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); else if (cloud.state()) cloud.push(true); });
 setTimeout(cloudPull, 1500);
 // ---- buy DMT with ETH without leaving the game (src/swap.js: KyberSwap, checked before the wallet sees it) -------------
-let buyWant = 0, buyQuote = null; // DMT asked for from the Ranked panel; the quote on show
+let buyWant = 0, buyQuote = null, buyBusy = null, buyPriceRequest = 0, buyNotice = null; // requested DMT, visible quote and this page's swap state
 const BUY_AMOUNTS = [[0.5, '1 entry'], [2.5, '5 entries'], [5, '10 entries'], [1.5, '1 Hard entry']];
 function buyHTML(b) {
   const amts = buyWant && !BUY_AMOUNTS.some(([d]) => d === buyWant) ? [[buyWant, 'what you need'], ...BUY_AMOUNTS] : BUY_AMOUNTS;
-  return `<div class="wlbuy"><p><b>Buy DMT</b> <span class="dim">with ETH on Arbitrum, in one step</span></p><div class="lurow">${amts.map(([d, l]) => `<button class="ghost wlbuyamt${d === buyWant ? ' on' : ''}" data-dmt="${d}">${d} DMT <small>${l}</small></button>`).join('')}</div><div id="wlbuyq" class="dim">${b && b.eth < ETH_FOR_GAS ? `You need ETH on Arbitrum to buy with. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a>` : 'Swaps through KyberSwap at the best DMT price. The game takes no fee.'}</div></div>`;
+  return `<div class="wlbuy"><p><b>Buy DMT</b> <span class="dim">with ETH on Arbitrum, in one step</span></p><div class="lurow">${amts.map(([d, l]) => `<button class="ghost wlbuyamt${d === buyWant ? ' on' : ''}" data-dmt="${d}">${d} DMT <small>${l}</small></button>`).join('')}</div><div id="wlbuyq" class="dim">${buyNoticeHTML() || (b && b.eth < ETH_FOR_GAS ? `You need ETH on Arbitrum to buy with. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a>` : 'Swaps through KyberSwap at the best DMT price. The game takes no fee.')}</div></div>`;
 }
 function bindBuy(c, b, msg) {
   const box = $('wlbuyq'); if (!box) return;
-  const show = (q) => {
+  if (buyQuote && (buyQuote.p !== c.w.p || buyQuote.address !== c.address.toLowerCase() || buyQuote.revision !== walletRevision() || buyQuote.request !== buyPriceRequest)) buyQuote = null;
+  const live = (revision) => $('wlbuyq') === box && walletNow() === c && walletRevision() === revision;
+  const report = (text, tx) => {
+    const hash = typeof tx === 'string' && /^0x[\da-f]{64}$/i.test(tx) ? tx : null;
+    buyNotice = { address: c.address, text, tx: hash };
+    msg(`Swap for ${short(c.address)}: ${text}${hash ? ' · ' + arbiscanTx(hash) : ''}`);
+    const target = $('wlbuyq'); if (target) target.innerHTML = buyNoticeHTML();
+  };
+  const show = (q, revision = walletRevision()) => {
+    if (!live(revision)) return;
+    if (buyBusy) { box.textContent = `Swap for ${short(buyBusy.address)}: A swap is already pending. Check your wallet activity.`; return; }
     const short2 = b && b.eth < q.ethIn + ETH_FOR_GAS;
-    box.className = ''; box.innerHTML = `<p>About <b>${q.dmtOut} DMT</b> for ${q.ethIn.toFixed(5)} ETH${q.usdIn ? ` (about $${q.usdIn.toFixed(2)})` : ''}${q.loss != null ? ` · ${(q.loss * 100).toFixed(1)}% to the pool and fees` : ''}. You get at least ${q.minOut} DMT, or the swap does not happen.</p>`
+    box.className = ''; box.innerHTML = buyNoticeHTML() + `<p>About <b>${q.dmtOut} DMT</b> for ${q.ethIn.toFixed(5)} ETH${q.usdIn ? ` (about $${q.usdIn.toFixed(2)})` : ''}${q.loss != null ? ` · ${(q.loss * 100).toFixed(1)}% to the pool and fees` : ''}. You get at least ${q.minOut} DMT, or the swap does not happen.</p>`
       + (short2 ? `<p class="rkwarn">Not enough ETH on Arbitrum for that. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a></p>` : `<button id="wlbuygo">Buy ${q.dmtOut} DMT</button>`);
-    if ($('wlbuygo')) $('wlbuygo').onclick = async () => {
-      $('wlbuygo').disabled = true;
-      try { const r = await buyDmt(c.w, c.address, q, msg); buyQuote = null; buyWant = 0; msg('Bought. Your DMT is in your wallet.'); box.innerHTML = `<p class="dmtok">Done: <a href="${arbiscanTx(r.tx)}" target="_blank" rel="noopener">see the swap on Arbiscan</a></p>`; refreshBalances(true); }
-      catch (e) { msg(why(e)); if (e.tx) box.innerHTML = `<p><a href="${arbiscanTx(e.tx)}" target="_blank" rel="noopener">See it on Arbiscan</a></p>`; else $('wlbuygo').disabled = false; }
+    const go = $('wlbuygo');
+    if (go) go.onclick = async () => {
+      if (buyBusy) return;
+      if ($('wlbuygo') !== go || buyQuote?.q !== q || buyQuote.request !== buyPriceRequest) return;
+      if (!live(revision)) { msg('Wallet changed. Get a new quote before buying.'); return; }
+      buyBusy = c;
+      go.disabled = true;
+      let submitted = false;
+      try {
+        const r = await buyDmt(c.w, c.address, q, (text) => { if (live(revision)) msg(text); });
+        submitted = true; buyQuote = null; buyWant = 0;
+        report('Confirmed. Check that wallet.', r.tx); refreshBalances(true);
+      } catch (e) {
+        const tx = typeof e.tx === 'string' && /^0x[\da-f]{64}$/i.test(e.tx) ? e.tx : null;
+        submitted = !!tx || e.uncertain === true;
+        if (submitted) { buyQuote = null; buyWant = 0; report(e.message, tx); }
+        else if (live(revision)) { msg(why(e)); if ($('wlbuygo') === go) go.disabled = false; }
+      } finally { buyBusy = null; if (!live(revision) && !submitted) renderWallet(); }
     };
   };
   for (const btn of document.querySelectorAll('.wlbuyamt')) btn.onclick = async () => {
+    if (buyBusy) { msg(`Swap for ${short(buyBusy.address)}: A swap is already pending. Check your wallet activity.`); return; }
+    if (walletNow() !== c || $('wlbuyq') !== box) return;
+    const request = ++buyPriceRequest, revision = walletRevision();
+    buyQuote = null; buyWant = Number(btn.dataset.dmt);
     for (const o of document.querySelectorAll('.wlbuyamt')) o.classList.toggle('on', o === btn);
     box.className = 'dim'; box.textContent = 'Getting a price…';
-    try { buyQuote = await quoteDmt(Number(btn.dataset.dmt)); show(buyQuote); } catch (e) { box.textContent = e.message; }
+    try { const quote = await quoteDmt(Number(btn.dataset.dmt)); if (request === buyPriceRequest && live(revision)) { buyQuote = { q: quote, p: c.w.p, address: c.address.toLowerCase(), revision, request }; show(quote, revision); } }
+    catch (e) { if (request === buyPriceRequest && live(revision)) box.textContent = e.message; }
   };
-  if (buyWant) { const pre = document.querySelector(`.wlbuyamt[data-dmt="${buyWant}"]`); if (pre && !buyQuote) pre.click(); else if (buyQuote) show(buyQuote); }
+  if (buyWant) { const pre = document.querySelector(`.wlbuyamt[data-dmt="${buyWant}"]`); if (pre && !buyQuote) pre.click(); else if (buyQuote) show(buyQuote.q, buyQuote.revision); }
+}
+function buyNoticeHTML() {
+  if (!buyNotice) return '';
+  return `<p>Swap for ${esc(short(buyNotice.address))}: ${esc(buyNotice.text)}${buyNotice.tx ? ` <a href="${arbiscanTx(buyNotice.tx)}" target="_blank" rel="noopener">See it on Arbiscan</a>` : ''}</p>`;
 }
 function openWallet() { $('walletmsg').textContent = ''; renderWallet(); $('wallet').classList.remove('hidden'); $('walletclose').focus(); refreshBalances(true); }
 function refreshWalletChoices() {

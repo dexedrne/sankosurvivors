@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.8', date: '4 Nov 2026', title: 'Safer DMT buying',
+    items: ['Buys stop before sending when your wallet choice changes. Old quotes cannot use another wallet’s Buy button.', 'Known transaction links stay visible when receipt checks fail. Unconfirmed sends ask you to check wallet activity before buying again.'],
+  },
+  {
     version: '0.44.7', date: '4 Nov 2026', title: 'Reconnect without waiting',
     items: ["Disconnect frees the game's wallet picker while an older reply is pending. Old replies cannot overwrite status or unlock a newer request."],
   },

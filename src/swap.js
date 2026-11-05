@@ -2,7 +2,7 @@
 // Quotes and the swap transaction come from KyberSwap's public aggregator API, which finds the best DMT pool. For safety
 // the game itself checks what it is about to send: only to KyberSwap's router, only the quoted ETH, and the DMT must go
 // to the player's own address. Nothing passes through us and there is no fee.
-import { DMT_TOKEN } from './wallet.js';
+import { DMT_TOKEN, current, walletRevision } from './wallet.js';
 
 export const KYBER = 'https://aggregator-api.kyberswap.com/arbitrum/api/v1';
 export const KYBER_ROUTER = '0x6131b5fae19ea4f9d964eac0408e4408b66337b5'; // MetaAggregationRouterV2, the same on every chain
@@ -65,15 +65,28 @@ export function checkBuilt(b, q, address) {
 }
 /** Swap: switch to Arbitrum, build, check, send, wait for it. wallet: { p } (an EIP-1193 provider). */
 export async function buyDmt(wallet, address, q, onStep = () => {}, f = fetch) {
-  const p = wallet.p;
+  const p = wallet.p, revision = walletRevision();
+  const checkWallet = () => {
+    const c = current();
+    if (walletRevision() !== revision || !c || c.w.p !== p || c.address.toLowerCase() !== address.toLowerCase()) throw new Error('Wallet changed. Get a new quote before buying.');
+  };
+  const request = async (args) => {
+    try { return await p.request(args); }
+    catch (e) { const error = new Error(typeof e?.message === 'string' ? e.message : 'The wallet request failed.'); if (typeof e?.code === 'number') error.code = e.code; throw error; }
+  };
+  checkWallet();
   onStep('Switch to Arbitrum One in your wallet…');
-  try { await p.request({ method: 'wallet_switchEthereumChain', params: [ARB] }); }
+  try { await request({ method: 'wallet_switchEthereumChain', params: [ARB] }); }
   catch (e) {
+    checkWallet();
     if (Number(e.code) !== 4902) throw e;
-    await p.request({ method: 'wallet_addEthereumChain', params: [{ ...ARB, chainName: 'Arbitrum One', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: ['https://arb1.arbitrum.io/rpc'], blockExplorerUrls: ['https://arbiscan.io'] }] });
-    await p.request({ method: 'wallet_switchEthereumChain', params: [ARB] });
+    await request({ method: 'wallet_addEthereumChain', params: [{ ...ARB, chainName: 'Arbitrum One', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: ['https://arb1.arbitrum.io/rpc'], blockExplorerUrls: ['https://arbiscan.io'] }] });
+    checkWallet();
+    await request({ method: 'wallet_switchEthereumChain', params: [ARB] });
   }
-  if (String(await p.request({ method: 'eth_chainId' })).toLowerCase() !== ARB.chainId) throw new Error('Switch to Arbitrum One first.');
+  checkWallet();
+  if (String(await request({ method: 'eth_chainId' })).toLowerCase() !== ARB.chainId) throw new Error('Switch to Arbitrum One first.');
+  checkWallet();
   onStep('Preparing the swap…');
   let d = {}, ok = false;
   try {
@@ -81,17 +94,42 @@ export async function buyDmt(wallet, address, q, onStep = () => {}, f = fetch) {
       body: JSON.stringify({ routeSummary: q.summary, sender: address, recipient: address, slippageTolerance: SLIPPAGE_BPS, deadline: Math.floor(Date.now() / 1000) + 1200, source: 'sankosurvivors' }) });
     ok = r.ok; d = await r.json();
   } catch { /* below */ }
+  checkWallet();
   if (!ok || d.code !== 0) throw new Error('The swap could not be prepared. Get a new quote.');
   const value = checkBuilt(d.data, q, address);
   onStep(`Confirm the swap in your wallet: ${q.ethIn.toFixed(5)} ETH for at least ${q.minOut} DMT…`);
-  if (String(await p.request({ method: 'eth_chainId' })).toLowerCase() !== ARB.chainId) throw new Error('Switch to Arbitrum One first.');
-  const tx = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: KYBER_ROUTER, chainId: ARB.chainId, data: d.data.data, value: '0x' + value.toString(16) }] });
-  onStep('Swap sent. Waiting for Arbitrum…');
-  const until = Date.now() + 120000;
-  while (Date.now() < until) {
-    const receipt = await p.request({ method: 'eth_getTransactionReceipt', params: [tx] });
-    if (receipt) { if (receipt.status !== '0x1') throw Object.assign(new Error('The swap did not go through (the price moved past 10%). Your ETH was not spent, only a little gas.'), { tx }); return { tx }; }
-    await wait(2000);
+  const accounts = await request({ method: 'eth_accounts' });
+  checkWallet();
+  if (!Array.isArray(accounts) || typeof accounts[0] !== 'string' || accounts[0].toLowerCase() !== address.toLowerCase()) throw new Error('Wallet changed. Get a new quote before buying.');
+  if (String(await request({ method: 'eth_chainId' })).toLowerCase() !== ARB.chainId) throw new Error('Switch to Arbitrum One first.');
+  checkWallet();
+  let tx, reverted = false;
+  try {
+    const result = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: KYBER_ROUTER, chainId: ARB.chainId, data: d.data.data, value: '0x' + value.toString(16) }] });
+    if (typeof result !== 'string' || !/^0x[\da-f]{64}$/i.test(result)) throw new Error('The wallet did not return a usable transaction hash.');
+    tx = result;
+    onStep('Swap sent. Waiting for Arbitrum…');
+    const until = Date.now() + 120000;
+    while (Date.now() < until) {
+      const receipt = await p.request({ method: 'eth_getTransactionReceipt', params: [tx] });
+      if (receipt) {
+        const quantity = (v) => typeof v === 'string' && /^0x(?:0|[1-9a-f][\da-f]*)$/i.test(v);
+        if (typeof receipt.transactionHash !== 'string' || receipt.transactionHash.toLowerCase() !== tx.toLowerCase()
+          || typeof receipt.from !== 'string' || receipt.from.toLowerCase() !== address.toLowerCase()
+          || typeof receipt.to !== 'string' || receipt.to.toLowerCase() !== KYBER_ROUTER
+          || typeof receipt.blockHash !== 'string' || !/^0x[\da-f]{64}$/i.test(receipt.blockHash)
+          || !quantity(receipt.blockNumber) || !quantity(receipt.transactionIndex) || !['0x0', '0x1'].includes(receipt.status)) throw new Error('The swap receipt could not be confirmed.');
+        if (receipt.status === '0x0') { reverted = true; throw new Error('The swap did not go through. Your ETH was not spent, only a little gas.'); }
+        return { tx };
+      }
+      await wait(2000);
+    }
+    throw new Error('Still waiting for Arbitrum.');
+  } catch (e) {
+    if (!tx && Number(e?.code) === 4001) throw Object.assign(new Error('Cancelled in your wallet.'), { code: 4001 });
+    const error = new Error(reverted ? 'The swap did not go through. Your ETH was not spent, only a little gas.' : 'Swap outcome is not confirmed. Check your wallet activity before buying again.');
+    if (tx) error.tx = tx;
+    error.uncertain = !reverted;
+    throw error;
   }
-  throw Object.assign(new Error('Still waiting for Arbitrum. Your DMT will show up when it lands.'), { tx });
 }

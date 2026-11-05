@@ -1,5 +1,13 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Safer DMT buying": "Compra de DMT más segura",
+  "Buys stop before sending when your wallet choice changes. Old quotes cannot use another wallet’s Buy button.": "Las compras se detienen antes del envío si cambias de billetera. Las cotizaciones antiguas no pueden usar el botón Comprar de otra billetera.",
+  "Known transaction links stay visible when receipt checks fail. Unconfirmed sends ask you to check wallet activity before buying again.": "Los enlaces de transacciones conocidas siguen visibles si falla la consulta del recibo. Si el envío no está confirmado, se te pide revisar la actividad de la billetera antes de comprar otra vez.",
+  "Wallet changed. Get a new quote before buying.": "La billetera ha cambiado. Obtén una nueva cotización antes de comprar.",
+  "A swap is already pending. Check your wallet activity.": "Ya hay un intercambio pendiente. Revisa la actividad de tu billetera.",
+  "Confirmed. Check that wallet.": "Confirmado. Revisa esa billetera.",
+  "Swap outcome is not confirmed. Check your wallet activity before buying again.": "El resultado del intercambio no está confirmado. Revisa la actividad de tu billetera antes de comprar otra vez.",
+  "The swap did not go through. Your ETH was not spent, only a little gas.": "El intercambio no se completó. No se gastó el importe de ETH, solo una pequeña comisión de gas.",
   "Reconnect without waiting": "Vuelve a conectarte sin esperar",
   "Disconnect frees the game's wallet picker while an older reply is pending. Old replies cannot overwrite status or unlock a newer request.": "Desconectarte libera el selector de billetera del juego mientras una respuesta anterior sigue pendiente. Las respuestas antiguas no pueden sobrescribir el estado ni desbloquear una solicitud más reciente.",
   "Keep your wallet choice": "Se conserva tu elección de billetera",
@@ -916,6 +924,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Swap for {1}: {2}", "Intercambio para {1}: {2}"],
   ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Escalado casual: vida/daño de contacto enemigos +{1}%; presión de aparición base +{2}%."],
   ["{1} entries · {2} DMT from entries.", "{1} participaciones · {2} DMT de las participaciones."],
   ["Includes {1} DMT rollover.", "Incluye {1} DMT de remanente."],

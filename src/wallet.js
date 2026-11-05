@@ -15,6 +15,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 let cur = null; // { w: { name, icon, rdns, p }, address }
 let bal = null; // { address, dmt, eth, at }
 let generation = 0, connecting = 0;
+let revision = 0;
+export const walletRevision = () => revision;
 const firstAccount = (a) => Array.isArray(a) && typeof a[0] === 'string' && /^0x[\da-f]{40}$/i.test(a[0]) ? a[0] : null;
 const subs = new Set();
 const emit = () => { for (const f of subs) { try { f(cur); } catch (e) { console.warn(e); } } };
@@ -25,6 +27,7 @@ const saved = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null
 const listening = new WeakSet();
 
 function attach(w, address) {
+  if (!cur || cur.w.p !== w.p || cur.address.toLowerCase() !== address.toLowerCase()) revision++;
   cur = { w, address };
   if (bal && bal.address.toLowerCase() !== address.toLowerCase()) bal = null;
   remember({ rdns: w.rdns || '', name: w.name, address });
@@ -34,7 +37,7 @@ function attach(w, address) {
     w.p.on('accountsChanged', (a) => {
       if (!cur || cur.w.p !== w.p) return;
       const address = firstAccount(a);
-      if (address) attach(w, address); else { cur = null; bal = null; remember(null); emit(); }
+      if (address) attach(w, address); else { revision++; cur = null; bal = null; remember(null); emit(); }
     });
   }
   emit();
@@ -42,6 +45,7 @@ function attach(w, address) {
 
 /** Ask the wallet to connect (its own prompt), and remember it for next time. */
 export async function connect(w) {
+  revision++;
   const attempt = ++generation, before = cur; connecting = attempt;
   try {
     const a = firstAccount(await w.p.request({ method: 'eth_requestAccounts' }));
@@ -55,6 +59,7 @@ export async function connect(w) {
 
 /** Forget the wallet here (and ask it to drop this site's permission, where it supports that). */
 export function disconnect() {
+  revision++;
   generation++; connecting = 0;
   const w = cur && cur.w; cur = null; bal = null; remember(null); emit();
   try { if (w) w.p.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] }).catch(() => {}); } catch { /* not supported */ }
