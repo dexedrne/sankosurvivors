@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep clear of wall edges": "Duvar kenarlarında daha düzgün hareket",
+  "Turning out of doorways now keeps adventurers and enemies clear of wall edges. Open doors and reachable low-fence tumbles still work.": "Kapılardan dönerek geçerken maceracılar ve düşmanlar artık duvar kenarlarına girmez. Açık kapılar ve erişilebilir alçak çitlerden takla atma çalışmaya devam eder.",
   "Next week's hunt": "Gelecek haftanın avı",
   "Faster starts, solid walls": "Daha hızlı başlangıçlar, sağlam duvarlar",
   "Next week's ranked map is Tutorial Island. From week 1, entry is 1 DMT for Normal and 2 DMT for Hard. Ranked keeps equal starts and endless kills-per-minute scoring.": "Gelecek haftanın dereceli haritası Tutorial Island. 1. haftadan itibaren giriş Normal için 1 DMT, Hard için 2 DMT. Derecelide eşit başlangıçlar ve sonsuz dakikada öldürme puanı korunur.",

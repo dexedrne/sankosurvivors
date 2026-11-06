@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep clear of wall edges": "Movimiento junto a las paredes",
+  "Turning out of doorways now keeps adventurers and enemies clear of wall edges. Open doors and reachable low-fence tumbles still work.": "Al girar después de pasar por una puerta, los aventureros y enemigos ya no se meten en los bordes de las paredes. Las puertas abiertas y las volteretas sobre vallas bajas accesibles siguen funcionando.",
   "Next week's hunt": "La cacería de la próxima semana",
   "Faster starts, solid walls": "Inicios más rápidos, paredes sólidas",
   "Next week's ranked map is Tutorial Island. From week 1, entry is 1 DMT for Normal and 2 DMT for Hard. Ranked keeps equal starts and endless kills-per-minute scoring.": "El mapa de clasificatorias de la próxima semana es Tutorial Island. Desde la semana 1, la entrada cuesta 1 DMT en Normal y 2 DMT en Hard. Se mantienen los inicios iguales y la puntuación sin fin por bajas por minuto.",

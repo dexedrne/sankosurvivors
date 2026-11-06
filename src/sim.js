@@ -130,6 +130,12 @@ function wallsOf(sim) {
   }
   return sim._W;
 }
+function marginClear(sim, W, x, z, ox, oz) {
+  const nx = x + ox, nz = z + oz, n = sim.ground.n;
+  // A footprint needs both axis routes clear at a corner, not an L-shaped detour.
+  return walkable(sim, nx, nz) && crossOK(W, n, x, z, nx, z) && crossOK(W, n, x, z, x, nz)
+    && crossOK(W, n, nx, z, nx, nz) && crossOK(W, n, x, nz, nx, nz);
+}
 function noWall(sim, x0, z0, x1, z1, tumble = false) {
   const g = sim.ground, W = tumble ? g?.walls : wallsOf(sim); if (!g || !W || !g.cell) return true;
   const n = g.n;
@@ -140,6 +146,12 @@ function noWall(sim, x0, z0, x1, z1, tumble = false) {
   const sx = Math.sign(x1 - x0), sz = Math.sign(z1 - z0);
   if (sx && !crossOK(W, n, x1, z1, x1 + sx * WALL_GAP, z1)) return false;
   if (sz && !crossOK(W, n, x1, z1, x1, z1 + sz * WALL_GAP)) return false;
+  // Turning beside a wall must keep body clearance; an existing overlap can still escape.
+  if (sim.pace >= 2) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+    if (!(dx || dz)) continue;
+    const ox = dx * WALL_GAP, oz = dz * WALL_GAP;
+    if (!marginClear(sim, W, x1, z1, ox, oz) && marginClear(sim, W, x0, z0, ox, oz)) return false;
+  }
   return true;
 }
 function walkableStep(sim, x, z, nx, nz) {
@@ -149,14 +161,14 @@ function walkableStep(sim, x, z, nx, nz) {
   // An open diagonal destination must not shortcut the solid cells on either side.
   return walkable(sim, nx, z) && walkable(sim, x, nz);
 }
-function clearPath(sim, x, z, nx, nz) {
+function clearPath(sim, x, z, nx, nz, body = false) {
   const g = sim.ground; if (!g) return true;
   const W = wallsOf(sim), parts = Math.max(1, Math.ceil(Math.max(Math.abs(nx - x), Math.abs(nz - z)) / 0.5));
   const dx = (nx - x) / parts, dz = (nz - z) / parts;
   for (let i = 0; i < parts; i++) {
     const tx = x + dx, tz = z + dz;
     // Contact checks stop at the target, without the body's look-ahead beyond it.
-    if (!walkableStep(sim, x, z, tx, tz) || (W && g.cell && !crossOK(W, g.n, x, z, tx, tz))) return false;
+    if (!walkableStep(sim, x, z, tx, tz) || (body ? !noWall(sim, x, z, tx, tz) : W && g.cell && !crossOK(W, g.n, x, z, tx, tz))) return false;
     x = tx; z = tz;
   }
   return true;
@@ -216,9 +228,16 @@ function flowDir(sim, x, z) {
   let best = f.dist[j * FLOW_W + i], bx = 0, bz = 0;
   for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) {
     if (!a && !b) continue;
-    if (sim.pace >= 2 && !clearPath(sim, x, z, x + a, z + b)) continue;
+    const nx = sim.pace >= 2 ? i + a + f.x0 + (sim.ground.cell ? 0.5 : 0) : x + a;
+    const nz = sim.pace >= 2 ? j + b + f.z0 + (sim.ground.cell ? 0.5 : 0) : z + b;
+    if (sim.pace >= 2 && !clearPath(sim, x, z, nx, nz, true)) continue;
     const d = f.dist[(j + b) * FLOW_W + i + a] + (a && b ? 0.4 : 0);
-    if (d < best) { best = d; bx = a; bz = b; }
+    if (d < best) { best = d; bx = sim.pace >= 2 ? nx - x : a; bz = sim.pace >= 2 ? nz - z : b; }
+  }
+  if (!bx && !bz && sim.pace >= 2 && best > 0 && best < FLOW_NONE) {
+    // Align inside the current cell before taking a turn that needs body clearance.
+    const nx = i + f.x0 + (sim.ground.cell ? 0.5 : 0), nz = j + f.z0 + (sim.ground.cell ? 0.5 : 0);
+    if (dhypot(nx - x, nz - z) > 0.05 && clearPath(sim, x, z, nx, nz, true)) { bx = nx - x; bz = nz - z; }
   }
   if (!bx && !bz) return null;
   const l = dhypot(bx, bz); return [bx / l, bz / l];
@@ -1092,8 +1111,9 @@ export function step(sim, inputs = {}, dt = TICK) {
     if (tp) {
       const dx = tp.x - e.x, dz = tp.z - e.z, d = hyp(dx, dz) || 1;
       const blockedApproach = sim.pace >= 2 && d <= Math.max(2.5, def.r + PLAYER_BASE.radius) && !clearPath(sim, e.x, e.z, tp.x, tp.z);
+      const blockedSteering = blockedApproach || (sim.pace >= 2 && d <= 2.5 && !clearPath(sim, e.x, e.z, tp.x, tp.z, true));
       let mx = (dx / d) * e.speed, mz = (dz / d) * e.speed;
-      if (d > 2.5 || blockedApproach) { const fd = flowDir(sim, e.x, e.z); if (fd) { mx = fd[0] * e.speed; mz = fd[1] * e.speed; } }
+      if (d > 2.5 || blockedSteering) { const fd = flowDir(sim, e.x, e.z); if (fd) { mx = fd[0] * e.speed; mz = fd[1] * e.speed; } }
       if (def.boss) { const m = bossAct(sim, e, def, tp, d, dx, dz, dt); if (m) { mx = m[0]; mz = m[1]; } }
       if (e.treasure) { mx = -(dx / d) * e.speed; mz = -(dz / d) * e.speed; } // it runs from you
       if (sim.pace >= 2 && sim.tick <= 7200) { mx *= 1.05; mz *= 1.05; } // first four minutes at 30 Hz; no permanent spawn-speed change

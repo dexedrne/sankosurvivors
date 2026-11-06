@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Keep clear of wall edges": "Mas maayos na galaw sa tabi ng pader",
+  "Turning out of doorways now keeps adventurers and enemies clear of wall edges. Open doors and reachable low-fence tumbles still work.": "Kapag lumiliko mula sa pintuan, hindi na pumapasok sa gilid ng pader ang mga adventurer at kalaban. Gumagana pa rin ang mga bukas na pintuan at pagulong sa mga maaabot na mababang bakod.",
   "Next week's hunt": "Ang susunod na hamon",
   "Faster starts, solid walls": "Mas mabilis na simula, solid na pader",
   "Next week's ranked map is Tutorial Island. From week 1, entry is 1 DMT for Normal and 2 DMT for Hard. Ranked keeps equal starts and endless kills-per-minute scoring.": "Tutorial Island ang mapa ng ranked sa susunod na linggo. Mula week 1, ang entry ay 1 DMT sa Normal at 2 DMT sa Hard. Pantay pa rin ang simula at walang katapusan ang pagkuha ng puntos sa kills per minute.",
