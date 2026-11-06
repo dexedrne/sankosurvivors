@@ -102,15 +102,15 @@ function payingWallet(requests) {
   } } };
 }
 
-test('each race pays exactly its own price: 0.5 DMT Normal, 1.5 DMT Hard; any other amount is refused before paying', async (t) => {
-  for (const [mode, wei, other] of [['normal', '500000000000000000', '1500000000000000000'], ['hard', '1500000000000000000', '500000000000000000']]) {
-    for (const [amountWei, nonceMode, ok] of [[wei, mode, true], [other, mode, false], ['499999999999999999', mode, false], ['1000000000000000000', mode, false], [wei, mode === 'hard' ? 'normal' : 'hard', false]]) {
+test('each race pays its week price: legacy0.5 Normal, week1 Normal1/Hard2; any other amount is refused before paying', async (t) => {
+  for (const [week, mode, wei, other] of [[0, 'normal', '500000000000000000', '1500000000000000000'], [1, 'normal', '1000000000000000000', '500000000000000000'], [1, 'hard', '2000000000000000000', '1500000000000000000']]) {
+    for (const [amountWei, nonceMode, ok] of [[wei, mode, true], [other, mode, false], ['499999999999999999', mode, false], ['3000000000000000000', mode, false], [wei, mode === 'hard' ? 'normal' : 'hard', false]]) {
       Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage() });
       const requests = [], urls = [];
       t.mock.method(globalThis, 'fetch', async (url) => {
         urls.push(url);
-        if (url.includes('nonce')) return response({ ...nonce, amountWei, ...(nonceMode === 'normal' ? {} : { mode: nonceMode }) });
-        return response({ entry: 'ticket', id: 7, week: 1, mode });
+        if (url.includes('nonce')) return response({ ...nonce, week, amountWei, ...(nonceMode === 'normal' ? {} : { mode: nonceMode }) });
+        return response({ entry: 'ticket', id: 7, week, mode });
       });
       const run = client.payEntry(payingWallet(requests), '/', () => {}, () => {}, mode);
       if (!ok) {
@@ -122,8 +122,14 @@ test('each race pays exactly its own price: 0.5 DMT Normal, 1.5 DMT Hard; any ot
       assert.equal(urls[0].includes('&mode=hard'), mode === 'hard');
       const sent = requests.find((r) => r.method === 'eth_sendTransaction').params[0];
       assert.equal(BigInt('0x' + sent.data.slice(-64)).toString(), wei);
-      assert.deepEqual(JSON.parse(localStorage.getItem('sq-ranked-entries')), [{ entry: 'ticket', id: 7, week: 1, mode }]);
+      assert.deepEqual(JSON.parse(localStorage.getItem('sq-ranked-entries')), [{ entry: 'ticket', id: 7, week, mode }]);
     }
   }
   await assert.rejects(client.payEntry(payingWallet([]), '/', () => {}, () => {}, 'nightmare'), /Pick a ranked race/);
+});
+
+test('displayed week1 refuses a stale week0 nonce before signing or paying',async t=>{
+ const requests=[];t.mock.method(globalThis,'fetch',async()=>response(nonce));
+ await assert.rejects(client.payEntry(payingWallet(requests),'/',()=>{},()=>{},'normal',1),/Invalid entry details/);
+ assert.ok(!requests.some(r=>['personal_sign','eth_sendTransaction','wallet_switchEthereumChain'].includes(r.method)));
 });

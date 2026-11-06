@@ -70,7 +70,7 @@ test('pace1 has no quality state and keeps one-level ordinary stats',()=>{
 });
 
 test('genuine quality, reroll, skip and mid-tumble prefixes restore exact player state',()=>{
- const params={seed:711,week:1,mapId:'greentown',adv:'adventurer',ground:null},sim=rankedSim(params),rec=new RunRecorder();let rerolled=false,skipped=false,found=false;
+ const params={seed:710,week:1,mapId:'greentown',adv:'adventurer',ground:null},sim=rankedSim(params),rec=new RunRecorder();let rerolled=false,skipped=false,found=false;
  const choose=(s,r)=>{const c=s.pending.p1.choices;const index=c.reduce((best,card,i)=>C.CARD_RARITIES.indexOf(card.rarity)>C.CARD_RARITIES.indexOf(c[best].rarity)?i:best,0);assert.equal(rankedChoice(s,r,index),true);};
  while(!sim.over&&sim.tick<6000){
   if(sim.pending.p1){

@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.36', date: '6 Nov 2026', title: "Next week's hunt",
+    items: ["Next week's ranked map is Tutorial Island. From week 1, entry is 1 DMT for Normal and 2 DMT for Hard. Ranked keeps equal starts and endless kills-per-minute scoring.", "Enemies move 5% faster during the first four minutes in casual and ranked from week 1.", "Movement now respects blocked house corners. Enemies take open routes instead of slipping through walls. Fast knockback cannot skip solid ground.", "Walls now block enemy contact damage. Nearby enemies find open doors.", "Buy DMT now offers 1, 2, 5 and 10 DMT targets. Quotes show the approximate output and guaranteed minimum.", "Ranked week 0 keeps its original rules."],
+  },
+  {
     version: '0.44.35', date: '6 Nov 2026', title: 'Quality in every upgrade',
     items: ['Every upgrade gives one level. Common, Uncommon, Rare and Epic rolls retain different stat gains for this run. Maxed items cannot roll again. Cards show the resulting stats.', 'Ranked week 0 keeps its original rules.'],
   },

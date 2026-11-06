@@ -2,13 +2,14 @@
 // conformance runner executes the same lifecycle against real PostgreSQL.
 // Its ranking is src/ranked.js compareRuns (the game's own rule); test/ranked-sql.test.mjs checks SQL agrees.
 import { compareRuns } from '../../src/ranked.js';
-const MODES = ['normal', 'hard'], FEE = { normal: '0.5', hard: '1.5' };
+import { dmtText } from '../../src/prize-display.js';
+const MODES = ['normal', 'hard'];
 export class RankedDB {
   constructor() { this.rows = []; this.next = 1; this.finishError = null; }
   async rpc(fn, p) {
     const error = (error) => ({ error });
     const mode = p.p_mode ?? 'normal';
-    const refund = (why, m = mode) => ({ error: why + `. Your ${FEE[m]} DMT will be sent back.`, refund: true });
+    const refund = (why, paid = p.p_paid) => ({ error: why + `. Your ${dmtText(String(paid))} DMT will be sent back.`, refund: true });
     const wallet = p.p_wallet?.toLowerCase(), tx = p.p_tx?.toLowerCase(), week = p.p_week;
     const active = (w = week, m = null) => this.rows.filter(e => e.week === w && e.refund_reason == null && (m == null || e.mode === m));
     const used = (w = week, m = mode) => active(w, m).filter(e => e.wallet === wallet).length;
@@ -34,7 +35,7 @@ export class RankedDB {
         const prev = this.rows.find(e => e.tx === tx);
         if (prev) {
           if (prev.wallet !== wallet) return error('that payment was already used for an entry');
-          if (prev.refund_reason != null) return refund(prev.refund_reason, prev.mode);
+          if (prev.refund_reason != null) return refund(prev.refund_reason, prev.paid);
           return { ok: true, id: prev.id, week: prev.week, mode: prev.mode, again: true, left: p.p_max - used(prev.week, prev.mode) };
         }
         const why = sameIP() ? 'one wallet per player each week' : used() >= p.p_max ? `all ${p.p_max} ${hard(mode)}entries used this week` : null;

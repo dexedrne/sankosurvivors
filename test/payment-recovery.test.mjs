@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as client from '../src/ranked-client.js';
 import {paymentBrowser,storage} from './helpers/payment-browser.mjs';
 const address='0x'+'12'.repeat(20),tx='0x'+'ab'.repeat(32),otherTx='0x'+'cd'.repeat(32);
-const nonce={nonce:'fixture-nonce',message:'fixture',chainId:42161,dmt:'0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8',collect:'0xa1e6e6ee71300c238935b7d59c8983b06e991be0',amountWei:'500000000000000000'};
+const nonce={week:0,nonce:'fixture-nonce',message:'fixture',chainId:42161,dmt:'0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8',collect:'0xa1e6e6ee71300c238935b7d59c8983b06e991be0',amountWei:'500000000000000000'};
 const response=d=>new Response(JSON.stringify(d));
 beforeEach(()=>{paymentBrowser();Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage()});});
 function wallet(sent,extra={}) {return {p:{request:async({method,params})=>{
@@ -17,9 +17,10 @@ function backend(t,registered=[]){t.mock.method(globalThis,'fetch',async(url,opt
  registered.push(JSON.parse(options.body));return response({id:7,entry:'fixture-entry',week:0});
 });return registered;}
 test('overlapping payment requests send only once and recover the operation that paid',async t=>{
- const registered=backend(t),sent=[];let release;
- const first=client.payEntry(wallet(sent,{eth_sendTransaction:async(params)=>{sent.push(params[0]);return new Promise(r=>{release=r;});}}),'/',()=>{});
- while(!release)await new Promise(r=>setTimeout(r,1));
+ const registered=backend(t),sent=[];let release,started;
+ const start=new Promise(resolve=>{started=resolve;});
+ const first=client.payEntry(wallet(sent,{eth_sendTransaction:async(params)=>{sent.push(params[0]);started();return new Promise(r=>{release=r;});}}),'/',()=>{});
+ await Promise.race([start,first.then(()=>assert.fail('payment never reached the wallet request'))]);
  await assert.rejects(client.payEntry(wallet(sent),'/',()=>{}),/another tab|in progress|Check your saved payment/);
  release(tx);await first;
  assert.equal(sent.length,1);assert.deepEqual(registered.map(x=>x.tx),[tx]);

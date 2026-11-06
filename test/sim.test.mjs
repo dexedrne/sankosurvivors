@@ -557,9 +557,13 @@ test('building walls stop you (and monsters go round them, through the door)', a
   assert.ok(p.x > 10.5, 'the door is open');
   // a monster on the far side of the wall walks round through the door to reach you
   p.x = 5.5; p.z = 5.5; sim.enemies.length = 0;
-  spawnEnemy(sim, 'chicken', 14.5, 5.5); const e = sim.enemies[0]; let crossedAtDoor = true;
-  for (let i = 0; i < 900 && e.hp > 0 && e.x > 9.5; i++) { const was = e.x; step(sim, { p1: { mx: 0, mz: 0 } }, TICK); if (was >= 10 && e.x < 10 && e.z < 16) crossedAtDoor = false; }
+  spawnEnemy(sim, 'chicken', 14.5, 5.5); const e = sim.enemies[0]; let crossedAtDoor = true, crossed = false;
+  for (let i = 0; i < 900 && e.hp > 0 && e.x > 9.5; i++) {
+    const x = e.x, z = e.z; step(sim, { p1: { mx: 0, mz: 0 } }, TICK);
+    if (x >= 10 && e.x < 10) { crossed = true; if (z + (e.z - z) * (10 - x) / (e.x - x) < 16) crossedAtDoor = false; }
+  }
   assert.ok(crossedAtDoor, 'it never passed through the wall');
+  assert.ok(crossed, 'it actually reached the door');
 });
 
 test('a monster left far behind comes back in near you instead of holding a place all run', async () => {

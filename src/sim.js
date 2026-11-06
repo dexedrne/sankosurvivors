@@ -142,11 +142,40 @@ function noWall(sim, x0, z0, x1, z1, tumble = false) {
   if (sz && !crossOK(W, n, x1, z1, x1, z1 + sz * WALL_GAP)) return false;
   return true;
 }
+function walkableStep(sim, x, z, nx, nz) {
+  if (!walkable(sim, nx, nz)) return false;
+  const g = sim.ground;
+  if (!(sim.pace >= 2) || !g || gIdx(g, x) === gIdx(g, nx) || gIdx(g, z) === gIdx(g, nz)) return true;
+  // An open diagonal destination must not shortcut the solid cells on either side.
+  return walkable(sim, nx, z) && walkable(sim, x, nz);
+}
+function clearPath(sim, x, z, nx, nz) {
+  const g = sim.ground; if (!g) return true;
+  const W = wallsOf(sim), parts = Math.max(1, Math.ceil(Math.max(Math.abs(nx - x), Math.abs(nz - z)) / 0.5));
+  const dx = (nx - x) / parts, dz = (nz - z) / parts;
+  for (let i = 0; i < parts; i++) {
+    const tx = x + dx, tz = z + dz;
+    // Contact checks stop at the target, without the body's look-ahead beyond it.
+    if (!walkableStep(sim, x, z, tx, tz) || (W && g.cell && !crossOK(W, g.n, x, z, tx, tz))) return false;
+    x = tx; z = tz;
+  }
+  return true;
+}
 // move, sliding along cliffs, shores and walls instead of stopping dead
+function moveStep(sim, o, nx, nz, tumble) {
+  if (walkableStep(sim, o.x, o.z, nx, nz) && (!tumble || !sim.ground || flowAt(sim, nx, nz) >= 0) && noWall(sim, o.x, o.z, nx, nz, tumble)) { o.x = nx; o.z = nz; return; }
+  if (walkableStep(sim, o.x, o.z, nx, o.z) && (!tumble || !sim.ground || flowAt(sim, nx, o.z) >= 0) && noWall(sim, o.x, o.z, nx, o.z, tumble)) { o.x = nx; return; }
+  if (walkableStep(sim, o.x, o.z, o.x, nz) && (!tumble || !sim.ground || flowAt(sim, o.x, nz) >= 0) && noWall(sim, o.x, o.z, o.x, nz, tumble)) o.z = nz;
+}
 function moveTo(sim, o, nx, nz, tumble = false) {
-  if (walkable(sim, nx, nz) && (!tumble || !sim.ground || flowAt(sim, nx, nz) >= 0) && noWall(sim, o.x, o.z, nx, nz, tumble)) { o.x = nx; o.z = nz; return; }
-  if (walkable(sim, nx, o.z) && (!tumble || !sim.ground || flowAt(sim, nx, o.z) >= 0) && noWall(sim, o.x, o.z, nx, o.z, tumble)) { o.x = nx; return; }
-  if (walkable(sim, o.x, nz) && (!tumble || !sim.ground || flowAt(sim, o.x, nz) >= 0) && noWall(sim, o.x, o.z, o.x, nz, tumble)) o.z = nz;
+  if (!(sim.pace >= 2) || !sim.ground) return moveStep(sim, o, nx, nz, tumble);
+  const parts = Math.max(1, Math.ceil(Math.max(Math.abs(nx - o.x), Math.abs(nz - o.z)) / 0.5));
+  const dx = (nx - o.x) / parts, dz = (nz - o.z) / parts;
+  for (let i = 0; i < parts; i++) {
+    const x = o.x, z = o.z;
+    moveStep(sim, o, x + dx, z + dz, tumble);
+    if (o.x === x && o.z === z) break;
+  }
 }
 const FLOW_R = 60, FLOW_W = FLOW_R * 2 + 1, FLOW_NONE = 65535;
 function updateFlow(sim, anchor = null) {
@@ -187,6 +216,7 @@ function flowDir(sim, x, z) {
   let best = f.dist[j * FLOW_W + i], bx = 0, bz = 0;
   for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) {
     if (!a && !b) continue;
+    if (sim.pace >= 2 && !clearPath(sim, x, z, x + a, z + b)) continue;
     const d = f.dist[(j + b) * FLOW_W + i + a] + (a && b ? 0.4 : 0);
     if (d < best) { best = d; bx = a; bz = b; }
   }
@@ -1061,10 +1091,12 @@ export function step(sim, inputs = {}, dt = TICK) {
     if (e.rise > 0) { e.rise -= dt; if (tp) e.face = datan2(tp.x - e.x, tp.z - e.z); continue; } // still climbing out of the ground
     if (tp) {
       const dx = tp.x - e.x, dz = tp.z - e.z, d = hyp(dx, dz) || 1;
+      const blockedApproach = sim.pace >= 2 && d <= Math.max(2.5, def.r + PLAYER_BASE.radius) && !clearPath(sim, e.x, e.z, tp.x, tp.z);
       let mx = (dx / d) * e.speed, mz = (dz / d) * e.speed;
-      if (d > 2.5) { const fd = flowDir(sim, e.x, e.z); if (fd) { mx = fd[0] * e.speed; mz = fd[1] * e.speed; } }
+      if (d > 2.5 || blockedApproach) { const fd = flowDir(sim, e.x, e.z); if (fd) { mx = fd[0] * e.speed; mz = fd[1] * e.speed; } }
       if (def.boss) { const m = bossAct(sim, e, def, tp, d, dx, dz, dt); if (m) { mx = m[0]; mz = m[1]; } }
       if (e.treasure) { mx = -(dx / d) * e.speed; mz = -(dz / d) * e.speed; } // it runs from you
+      if (sim.pace >= 2 && sim.tick <= 7200) { mx *= 1.05; mz *= 1.05; } // first four minutes at 30 Hz; no permanent spawn-speed change
       // soft separation
       const cx = Math.floor(e.x / cell), cz = Math.floor(e.z / cell);
       for (let ix = -1; ix <= 1; ix++) for (let iz = -1; iz <= 1; iz++) {
@@ -1080,7 +1112,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       moveTo(sim, e, e.x + (mx + e.kx) * dt, e.z + (mz + e.kz) * dt);
       e.kx *= 0.86; e.kz *= 0.86;
       e.face = datan2(dx, dz);
-      if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure) {
+      if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure && !blockedApproach) {
         const st = playerStats(tp);
         const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? (sim.pace >= 2 ? 0.8 : 0.7) : 1) * (1 + sim.t / (sim.pace >= 2 ? 750 : 1200)) * (sim.pace >= 2 ? sim.vet * (1 + CURSE.dmg * (sim.curse || 0)) : 1) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
         hurtPlayer(sim, tp, dmg, def.boss ? 'boss-contact' : 'contact');

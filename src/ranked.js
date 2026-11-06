@@ -5,7 +5,7 @@ import { createSim, step, choose, reroll, skipLevel, autoChoice, TICK } from './
 import { MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID } from './content.js';
 
 export const RANKED = {
-  entryDmt: '0.5',               // DMT per Normal ranked run (kept for older readers; see races)
+  entryDmt: '0.5',               // legacy defaults; current prices use raceForWeek(week, mode)
   // two races each week from week 1: their own entry price, pot and board; the same map, split, house fee and rules
   races: {
     normal: { name: 'Normal', entryDmt: '0.5', entryWei: '500000000000000000', hard: false },
@@ -26,7 +26,12 @@ export const RANKED = {
 };
 export const weekOf = (ms = Date.now()) => Math.floor((ms - RANKED.weekEpoch) / (7 * 24 * 3600 * 1000));
 export const weekStart = (w) => RANKED.weekEpoch + w * 7 * 24 * 3600 * 1000;
-export const weekMap = (w) => RANKED.maps[((w % RANKED.maps.length) + RANKED.maps.length) % RANKED.maps.length];
+export const weekMap = (w) => w === 1 ? 'tutorial' : RANKED.maps[((w % RANKED.maps.length) + RANKED.maps.length) % RANKED.maps.length];
+export function raceForWeek(week, mode = 'normal') {
+  if (!Object.hasOwn(RANKED.races, mode)) return null;
+  const race = RANKED.races[mode];
+  return week >= 1 ? { ...race, entryDmt: mode === 'hard' ? '2' : '1', entryWei: mode === 'hard' ? '2000000000000000000' : '1000000000000000000' } : race;
+}
 
 // ---- the week's rules: one switch, used by the game, the server, the boards and the payout bot ----
 export const kpmWeek = (w) => Number.isInteger(w) && w >= RANKED.kpmWeek;

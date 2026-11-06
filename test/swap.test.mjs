@@ -78,7 +78,7 @@ test('buy DMT never asks the wallet to send a build below the displayed minimum'
   assert.equal(sends, 0);
 });
 test('buy DMT: the game decodes the swap and refuses one that pays anyone else, gives less, or is not KyberSwap', () => {
-  const q = { amountIn: real.summary.amountIn, summary: real.summary }, b = real.build, h = b.data.slice(2), d = descAt(h);
+  const q = { requestedDmt: 1, amountIn: real.summary.amountIn, summary: real.summary }, b = real.build, h = b.data.slice(2), d = descAt(h);
   assert.equal(checkBuilt(b, q, me), BigInt(q.amountIn));
   const partial = { ...b, data: '0x' + put(h, d + 9 * 64, (BigInt('0x' + W(h, d + 9 * 64)) | 1n).toString(16).padStart(64, '0')) };
   assert.throws(() => checkBuilt(partial, q, me), /partial fill/i, 'a partial fill does not enforce the displayed absolute DMT minimum');
@@ -108,7 +108,7 @@ test('buy DMT refuses a chain switch while its build is pending', async () => {
     if (method === 'eth_getTransactionReceipt') return { status: '0x1' };
   } } };
   await connect(wallet);
-  const q = { amountIn: real.summary.amountIn, summary: real.summary, ethIn: Number(real.summary.amountIn) / 1e18, minOut: 1 };
+  const q = { requestedDmt: 1, amountIn: real.summary.amountIn, summary: real.summary, ethIn: Number(real.summary.amountIn) / 1e18, minOut: 1 };
   await assert.rejects(buyDmt(wallet, me, q, () => {}, async () => {
     chain = '0x1';
     return new Response(JSON.stringify({ code: 0, data: real.build }));

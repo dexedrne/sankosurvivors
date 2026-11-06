@@ -7,6 +7,8 @@ import { DMT_TOKEN, current, walletRevision } from './wallet.js';
 export const KYBER = 'https://aggregator-api.kyberswap.com/arbitrum/api/v1';
 export const KYBER_ROUTER = '0x6131b5fae19ea4f9d964eac0408e4408b66337b5'; // MetaAggregationRouterV2, the same on every chain
 export const SLIPPAGE_BPS = 1000; // 10% (owner 3 Nov: the DMT pool is thin), with the minimum rounded down to six decimals
+export const MIN_BUY_DMT = 1, MAX_BUY_DMT = 10;
+const validAmount = n => typeof n === 'number' && Number.isFinite(n) && n >= MIN_BUY_DMT && n <= MAX_BUY_DMT;
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', HEAD = { 'x-client-id': 'sankosurvivors' };
 const ARB = { chainId: '0xa4b1' };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -22,7 +24,7 @@ async function route(amountInWei, f = fetch) {
 }
 /** A quote for about `dmt` DMT: what it costs in ETH, what you get, and how much is lost to the pool's price and fees. */
 export async function quoteDmt(dmt, f = fetch) {
-  if (!(dmt > 0 && dmt <= 1000)) throw new Error('Pick an amount of DMT.');
+  if (!validAmount(dmt)) throw new Error('Pick an amount from 1 to 10 DMT.');
   const probe = 2000000000000000n; // 0.002 ETH, to read the price first
   const s0 = await route(probe.toString(), f);
   const want = BigInt(Math.round(dmt * 1e6)) * 10n ** 12n; // DMT in wei (18 decimals)
@@ -32,6 +34,7 @@ export async function quoteDmt(dmt, f = fetch) {
   const usdIn = Number(s.amountInUsd) || 0, usdOut = Number(s.amountOutUsd) || 0;
   const minimum = minimumMicros(s);
   return {
+    requestedDmt: dmt,
     amountIn: String(s.amountIn), ethIn: Number(s.amountIn) / 1e18, dmtOut: Number(BigInt(s.amountOut) / 10n ** 12n) / 1e6,
     minOut: `${minimum / 1000000n}.${(minimum % 1000000n).toString().padStart(6, '0')}`.replace(/\.?0+$/, ''),
     usdIn, usdOut, loss: usdIn > 0 && usdOut > 0 ? Math.max(0, 1 - usdOut / usdIn) : null, summary: s,
@@ -45,6 +48,7 @@ export async function quoteDmt(dmt, f = fetch) {
 const SWAP_SELECTOR = 'e21fd0e9'; // MetaAggregationRouterV2.swap((address,address,bytes,(address,address,address[],uint256[],address[],uint256[],address,uint256,uint256,uint256,bytes),bytes))
 export const MAX_BUY_WEI = 100000000000000000n; // 0.1 ETH a buy: plenty for entries, and caps what a lying price can cost
 export function checkBuilt(b, q, address) {
+  if (!validAmount(q?.requestedDmt)) throw new Error('Pick an amount from 1 to 10 DMT.');
   const bad = () => new Error('The swap could not be prepared. Try again.');
   if (!b || typeof b.data !== 'string' || !/^0x(?:[0-9a-f]{2})+$/i.test(b.data)) throw bad();
   if (String(b.routerAddress || '').toLowerCase() !== KYBER_ROUTER) throw new Error('That swap was not going to KyberSwap: stopped for your safety.');
@@ -68,6 +72,7 @@ export function checkBuilt(b, q, address) {
 }
 /** Swap: switch to Arbitrum, build, check, send, wait for it. wallet: { p } (an EIP-1193 provider). */
 export async function buyDmt(wallet, address, q, onStep = () => {}, f = fetch) {
+  if (!validAmount(q?.requestedDmt)) throw new Error('Pick an amount from 1 to 10 DMT.');
   const p = wallet.p, revision = walletRevision();
   const checkWallet = () => {
     const c = current();

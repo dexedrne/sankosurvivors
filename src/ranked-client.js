@@ -1,7 +1,7 @@
 import { hex } from './dmt.js';
 // where entry fees go, fixed here so a tampered server answer can never redirect a payment (security pass, 3 Nov)
 const ENTRY_WALLET = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', DMT_CONTRACT = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8';
-import { RANKED } from './ranked.js';
+import { RANKED, raceForWeek } from './ranked.js';
 const PAYMENT = 'sq-ranked-payment', ENTRIES = 'sq-ranked-entries';
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const pendingMemory = new WeakMap();
@@ -98,10 +98,9 @@ export async function clearUnsentPayment() {
 }
 
 // onTx(hash) hears about the payment as soon as the wallet sends it (for an Arbiscan link while it confirms).
-// mode: the race, 'normal' (0.5 DMT) or 'hard' (1.5 DMT). The wallet is only ever asked for that race's exact price.
-export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'normal') {
-  const race = Object.hasOwn(RANKED.races, mode) ? RANKED.races[mode] : null;
-  if (!race) throw new Error('Pick a ranked race first.');
+// The wallet is only ever asked for the selected week's exact race price.
+export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'normal', expectedWeek) {
+  if (!Object.hasOwn(RANKED.races, mode)) throw new Error('Pick a ranked race first.');
   return paymentLock(async () => {
     if (readRanked(PAYMENT)) throw plain('Check your saved payment before entering again.');
     writeRanked(ENTRIES, readRanked(ENTRIES, []));
@@ -111,7 +110,8 @@ export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'no
     if (!/^0x[\da-f]{40}$/i.test(address || '')) throw new Error('No account was shared.');
     onStep('Checking your entries for this week…');
     const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}`);
-    if (!n.message || !n.nonce || n.chainId !== 42161 || String(n.dmt).toLowerCase() !== DMT_CONTRACT || String(n.collect).toLowerCase() !== ENTRY_WALLET || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
+    const race = raceForWeek(n.week, mode);
+    if (!Number.isSafeInteger(n.week) || n.week < 0 || (expectedWeek !== undefined && n.week !== expectedWeek) || !n.message || !n.nonce || n.chainId !== 42161 || String(n.dmt).toLowerCase() !== DMT_CONTRACT || String(n.collect).toLowerCase() !== ENTRY_WALLET || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
     onStep('Switch to Arbitrum One in your wallet…');
     const chain = { chainId:'0xa4b1' };
     try { await p.request({ method:'wallet_switchEthereumChain', params:[chain] }); }

@@ -22,7 +22,7 @@ create table if not exists public.sqs_ranked_entries (
   log_sha text,
   log text                          -- gzip+base64 of the input log (kept for the week's top runs, for review)
 );
--- the race an entry is in: 'normal' (0.5 DMT) or 'hard' (1.5 DMT, from week 1). Older rows are all Normal.
+-- the race an entry is in: 'normal' (0.5 DMT week0, then1 DMT) or 'hard' (2 DMT from week1). Older rows are all Normal.
 alter table public.sqs_ranked_entries add column if not exists mode text not null default 'normal' check (mode in ('normal', 'hard'));
 create index if not exists sqs_ranked_week on public.sqs_ranked_entries (week, wallet);
 create index if not exists sqs_ranked_ip on public.sqs_ranked_entries (week, ip_hash);
@@ -53,9 +53,10 @@ create or replace function public.sqs_ranked_placeable(p_week int, p_t int)
 returns boolean language sql immutable set search_path = pg_catalog as $$
   select p_week < 1 or coalesce(p_t, 0) >= 180
 $$;
-create or replace function public.sqs_ranked_fee(p_mode text)
+create or replace function public.sqs_ranked_fee(p_paid numeric)
 returns text language sql immutable set search_path = pg_catalog as $$
-  select case when p_mode = 'hard' then '1.5' else '0.5' end
+  select div(p_paid, 1000000000000000000)::text || case when mod(p_paid, 1000000000000000000) = 0 then ''
+    else '.' || rtrim(lpad(mod(p_paid, 1000000000000000000)::text, 18, '0'), '0') end
 $$;
 
 -- can this wallet (from this connection) still enter this week? Checked before the player pays.
@@ -74,7 +75,7 @@ begin
 end $$;
 
 create or replace function public.sqs_ranked_enter(p_server_key text, p_tx text, p_wallet text, p_week int, p_ip_hash text, p_paid numeric, p_seed bigint, p_max int, p_mode text default 'normal')
-returns json language plpgsql security definer set search_path = public as $$
+returns json language plpgsql security definer set search_path = pg_catalog, public, pg_temp as $$
 declare used int; why text; new_id bigint; prev record;
 begin
   if sqs_key_ok('server_key_sha256', p_server_key) is not true then return json_build_object('error', 'forbidden'); end if;
@@ -88,7 +89,7 @@ begin
   select * into prev from sqs_ranked_entries where tx = p_tx;
   if found then
     if prev.wallet <> p_wallet then return json_build_object('error', 'that payment was already used for an entry'); end if;
-    if prev.refund_reason is not null then return json_build_object('error', prev.refund_reason || '. Your ' || sqs_ranked_fee(prev.mode) || ' DMT will be sent back.', 'refund', true); end if;
+    if prev.refund_reason is not null then return json_build_object('error', prev.refund_reason || '. Your ' || sqs_ranked_fee(prev.paid) || ' DMT will be sent back.', 'refund', true); end if;
     return json_build_object('ok', true, 'id', prev.id, 'week', prev.week, 'mode', prev.mode, 'again', true,
       'left', p_max - (select count(*) from sqs_ranked_entries where week = prev.week and mode = prev.mode and wallet = p_wallet and refund_reason is null));
   end if;
@@ -98,7 +99,7 @@ begin
   if why is null and used >= p_max then why := format('all %s %sentries used this week', p_max, case when p_mode = 'hard' then 'Hard ' else '' end); end if;
   insert into sqs_ranked_entries (week, wallet, tx, paid, ip_hash, seed, refund_reason, mode)
     values (p_week, p_wallet, p_tx, p_paid, p_ip_hash, p_seed, why, p_mode) returning id into new_id;
-  if why is not null then return json_build_object('error', why || '. Your ' || sqs_ranked_fee(p_mode) || ' DMT will be sent back.', 'refund', true); end if;
+  if why is not null then return json_build_object('error', why || '. Your ' || sqs_ranked_fee(p_paid) || ' DMT will be sent back.', 'refund', true); end if;
   return json_build_object('ok', true, 'id', new_id, 'mode', p_mode, 'left', p_max - used - 1);
 end $$;
 
@@ -246,7 +247,8 @@ end $$;
 
 revoke all on function public.sqs_ranked_score(int, boolean, int, int) from public, anon, authenticated;
 revoke all on function public.sqs_ranked_placeable(int, int) from public, anon, authenticated;
-revoke all on function public.sqs_ranked_fee(text) from public, anon, authenticated;
+drop function if exists public.sqs_ranked_fee(text);
+revoke all on function public.sqs_ranked_fee(numeric) from public, anon, authenticated;
 revoke all on function public.sqs_ranked_can_enter(text, text, int, text, int, text) from public;
 revoke all on function public.sqs_ranked_enter(text, text, text, int, text, numeric, bigint, int, text) from public;
 revoke all on function public.sqs_ranked_owe(text, text, text, int, numeric, text, text) from public;

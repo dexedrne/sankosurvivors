@@ -1,5 +1,5 @@
 // Ranked weekly DMT runs, server side. Off until SQS_RANKED=on. From week 1 there are two races each week, each with its
-// own entry price, pot and board: Normal (0.5 DMT) and Hard (1.5 DMT, the same map on hard rules).
+// own entry price, pot and board. Week0 Normal is 0.5 DMT; from week1 Normal is 1 and Hard is 2 DMT.
 //   GET  /api/ranked-week                       this week's map, both races' pools and standings (public)
 //   GET  /api/ranked-nonce?wallet=&mode=        a message for the wallet to sign before it pays (mode: normal | hard)
 //   POST /api/ranked-enter {tx, signature, nonce}  checks the race's payment on Arbitrum, returns an entry ticket
@@ -21,7 +21,7 @@ const DMT = '0x8B0E6f19Ee57089F7649A455D89D7bC6314D04e8'.toLowerCase();
 const TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const ARB_RPCS = ['https://arb1.arbitrum.io/rpc', 'https://arbitrum-one-rpc.publicnode.com'];
 const ENTRY_WEI = 500000000000000000n; // 0.5 DMT (18 decimals): the Normal race
-// what each race's entry costs (18 decimals); the game checks the same amounts (src/ranked.js RANKED.races)
+// Legacy prices for old bundles; current prices come from the shared game's raceForWeek.
 const RACES = { normal: { wei: ENTRY_WEI, dmt: '0.5', name: 'Normal' }, hard: { wei: 1500000000000000000n, dmt: '1.5', name: 'Hard' } };
 const LEGACY_RUN_SECONDS = 960;        // week 0: 15-minute runs plus a little slack for the end screen
 const LATE_SECONDS = 40 * 60;          // a run must be sent within its longest length + 40 minutes of its start (pauses, reloads)
@@ -48,10 +48,18 @@ function load(id = currentSim()) {
   return loaded.get(id);
 }
 
-// The Normal text is unchanged from before the Hard race, so payments signed then still check out on retry.
-const enterMessage = (nonce, week, mode = 'normal') => mode === 'hard'
-  ? `SankoQuest Survivors ranked\n\nSign to enter this week's Hard ranked race (week ${week}). Signing is free. Your wallet asks separately before sending the 1.5 DMT entry.\n\nNonce: ${nonce}`
-  : `SankoQuest Survivors ranked\n\nSign to enter this week's ranked runs (week ${week}). Signing is free. Your wallet asks separately before sending the 0.5 DMT entry.\n\nNonce: ${nonce}`;
+function raceIn(g, week, mode) {
+  const race = g?.raceForWeek?.(week, mode);
+  return race ? { ...race, wei: BigInt(race.entryWei), dmt: race.entryDmt } : RACES[mode];
+}
+const dmtAmount = wei => load().game.dmtText(String(wei));
+// Week0 text stays byte-identical so saved signatures keep checking out.
+const enterMessage = (nonce, week, mode = 'normal') => {
+  const price = raceIn(load()?.game, week, mode).dmt;
+  return mode === 'hard'
+    ? `SankoQuest Survivors ranked\n\nSign to enter this week's Hard ranked race (week ${week}). Signing is free. Your wallet asks separately before sending the ${price} DMT entry.\n\nNonce: ${nonce}`
+    : `SankoQuest Survivors ranked\n\nSign to enter this week's ranked runs (week ${week}). Signing is free. Your wallet asks separately before sending the ${price} DMT entry.\n\nNonce: ${nonce}`;
+};
 const modeOf = (x) => (x && x.m === 'hard' ? 'hard' : 'normal'); // tickets from before the Hard race are Normal
 // the game version's rules for a week (older versions: one 15-minute Normal race)
 const racesIn = (g, w) => (typeof g.racesOf === 'function' ? g.racesOf(w) : ['normal']);
@@ -70,8 +78,7 @@ async function arb(method, params) {
 // The entry payment: a successful DMT Transfer from the player to the entry wallet, at least the race's price (the
 // caller then needs exactly the price; more is owed back). Returns
 // when it was mined; payments older than last week's start are not entries (or refunds) at all.
-async function checkPayment(tx, from, sinceMs, mode = 'normal') {
-  const race = RACES[mode];
+async function checkPayment(tx, from, sinceMs, mode = 'normal', race = RACES[mode]) {
   const r = await arb('eth_getTransactionReceipt', [tx]);
   if (!r) return { error: 'that payment is not on Arbitrum yet. Wait a few seconds and try again', retry: true };
   const pending = { error: 'could not verify that payment on Arbitrum yet. Wait a few seconds and try again', retry: true };
@@ -141,6 +148,7 @@ async function handle(route, req, res, ctx) {
     const races = {};
     try {
       await Promise.all(racesIn(g, week).map(async (mode) => {
+        const price = raceIn(g, week, mode);
         const board = await rpc('sqs_ranked_board', { p_week: week, p_mode: mode });
         const units = value => typeof value === 'string' && /^(0|[1-9]\d{0,77})$/.test(value) && BigInt(value) < 1n << 256n;
         if (!board || board.error || !units(board.paid) || !Number.isSafeInteger(board.entries) || board.entries < 0 || !Array.isArray(board.rows)) throw Error('pool unavailable');
@@ -151,7 +159,7 @@ async function handle(route, req, res, ctx) {
         const incoming = first ? 0n : rolloverReady ? BigInt(board.incoming) : null;
         const pool = incoming === null ? null : entryPool + incoming;
         if (pool !== null && pool >= 1n << 256n) throw Error('pool overflow');
-        races[mode] = { mode, name: RACES[mode].name, entryDmt: RACES[mode].dmt, entries: board.entries, rows: board.rows,
+        races[mode] = { mode, name: price.name, entryDmt: price.dmt, entries: board.entries, rows: board.rows,
           paidWei: String(paid), houseWei: String(house), entryPoolWei: String(entryPool), incomingWei: incoming === null ? null : String(incoming), poolWei: pool === null ? null : String(pool), rolloverReady,
           // Compatibility estimate for older pages; new displays use the exact base-unit fields above.
           poolDmt: Number(pool ?? entryPool) / 1e18 };
@@ -172,11 +180,12 @@ async function handle(route, req, res, ctx) {
     const wallet = String(q.get('wallet') || '').toLowerCase(), mode = String(q.get('mode') || 'normal');
     if (!ADDR.test(wallet)) return send(res, 400, { error: 'connect a wallet first' });
     if (!racesIn(g, week).includes(mode)) return send(res, 400, { error: 'that race is not open this week' });
+    const price = raceIn(g, week, mode);
     const can = await rpc('sqs_ranked_can_enter', { p_server_key: SERVER_KEY, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
     if (!can || can.error) return send(res, 400, can || { error: 'could not check your entries' });
     // the race is part of the signed nonce: the payment is checked against that race's price and enters that race
     const nonce = signed({ k: 'rnonce', w: week, s: Date.now(), n: crypto.randomBytes(9).toString('base64url'), ...(mode === 'normal' ? {} : { m: mode }) });
-    return send(res, 200, { nonce, message: enterMessage(nonce, week, mode), week, mode, left: can.left, collect: COLLECT, dmt: DMT, amountWei: RACES[mode].wei.toString(), chainId: 42161 });
+    return send(res, 200, { nonce, message: enterMessage(nonce, week, mode), week, mode, left: can.left, collect: COLLECT, dmt: DMT, amountWei: price.wei.toString(), chainId: 42161 });
   }
 
   if (route === 'ranked-enter' && req.method === 'POST') {
@@ -187,37 +196,40 @@ async function handle(route, req, res, ctx) {
     const n = unsign(b.nonce);
     if (!n || n.k !== 'rnonce' || (n.w !== week && n.w !== week - 1) || Date.now() - n.s > 8 * 24 * 3600 * 1000) return send(res, 400, { error: 'that sign-in expired, start again' });
     const mode = modeOf(n);
+    const price = raceIn(g, week, mode), signedPrice = raceIn(g, n.w, mode);
     const wallet = typeof b.signature === 'string' ? recoverSigner(enterMessage(b.nonce, n.w, mode), b.signature) : null;
     if (!wallet) return send(res, 400, { error: 'the signature did not check out' });
     const tx = typeof b.tx === 'string' ? b.tx.toLowerCase() : ''; if (!TXH.test(tx)) return send(res, 400, { error: 'bad transaction id' });
     const gate = await rpc('sqs_ranked_receipt_gate', { p_server_key: SERVER_KEY, p_ip_hash: ipHash(ip, week, TICKET_KEY) });
     if (!gate?.ok) return send(res, gate?.error === 'slow down' ? 429 : 503, { error: gate?.error || 'could not check payment yet', retry: true });
-    const pay = await checkPayment(tx, wallet, g.weekStart(week - 1), mode);
+    const pay = await checkPayment(tx, wallet, g.weekStart(week - 1), mode, signedPrice);
     if (pay.error) return send(res, pay.retry ? 503 : 400, pay);
-    if (pay.at < g.weekStart(week)) {
-      const owe = await rpc('sqs_ranked_owe', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: week - 1, p_paid: pay.paid.toString(), p_reason: 'paid just before the weekly reset', p_mode: mode });
+    if (pay.at < g.weekStart(week) || (week >= 1 && n.w !== week)) {
+      const beforeReset = pay.at < g.weekStart(week);
+      const owe = await rpc('sqs_ranked_owe', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: beforeReset ? week - 1 : week, p_paid: pay.paid.toString(), p_reason: beforeReset ? 'paid just before the weekly reset' : 'signed for the previous week', p_mode: mode });
       if (!owe || owe.error) return send(res, 400, owe || { error: 'could not record that' });
-      return send(res, 400, { error: `Your payment landed just before the weekly reset, so it could not count. Your ${RACES[mode].dmt} DMT will be sent back.`, refund: true });
+      return send(res, 400, { error: `${beforeReset ? 'Your payment landed just before the weekly reset' : 'Your sign-in was for the previous week'}, so it could not count. Your ${dmtAmount(pay.paid)} DMT will be sent back.`, refund: true });
     }
     // an entry costs exactly its race's price: more than that is not an entry, and the whole payment is owed back. (A
     // payment that already became an entry before this rule, answered 'already used', goes on to return that entry.)
-    const over = pay.paid !== RACES[mode].wei
-      ? await rpc('sqs_ranked_owe', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: week, p_paid: pay.paid.toString(), p_reason: `sent more than the ${RACES[mode].dmt} DMT entry`, p_mode: mode })
+    const over = pay.paid !== price.wei
+      ? await rpc('sqs_ranked_owe', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: week, p_paid: pay.paid.toString(), p_reason: `sent more than the ${price.dmt} DMT entry`, p_mode: mode })
       : null;
     if (over && !(over.error === 'that payment was already used for an entry')) {
       if (over.error) return send(res, 400, over);
       // update8.sql: a payment over 100 DMT is recorded too, and its refund waits for the dev (held in the payout ledger)
-      if (over.review) return send(res, 400, { error: `That payment sent more than the ${RACES[mode].dmt} DMT ${RACES[mode].name} entry, so it could not count. It will be sent back after the dev checks it.`, refund: true });
-      return send(res, 400, { error: `That payment sent more than the ${RACES[mode].dmt} DMT ${RACES[mode].name} entry, so it could not count. All of it will be sent back.`, refund: true });
+      if (over.review) return send(res, 400, { error: `That payment sent more than the ${price.dmt} DMT ${price.name} entry, so it could not count. It will be sent back after the dev checks it.`, refund: true });
+      return send(res, 400, { error: `That payment sent more than the ${price.dmt} DMT ${price.name} entry, so it could not count. All of it will be sent back.`, refund: true });
     }
     if (!racesIn(g, week).includes(mode)) {
       // a valid payment for a race that is not running (cannot happen with nonces from the game): owed back, never lost
       const owe = await rpc('sqs_ranked_owe', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: week, p_paid: pay.paid.toString(), p_reason: 'that race is not open this week', p_mode: mode });
       if (!owe || owe.error) return send(res, 400, owe || { error: 'could not record that' });
-      return send(res, 400, { error: `That race is not open this week. Your ${RACES[mode].dmt} DMT will be sent back.`, refund: true });
+      return send(res, 400, { error: `That race is not open this week. Your ${price.dmt} DMT will be sent back.`, refund: true });
     }
     const seed = crypto.randomInt(1, 2 ** 31 - 1);
     const out = await rpc('sqs_ranked_enter', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_paid: pay.paid.toString(), p_seed: seed, p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
+    if (out?.refund && typeof out.error === 'string') out.error = out.error.replace(/Your [0-9]+(?:\.[0-9]+)? DMT will be sent back\.$/, `Your ${dmtAmount(pay.paid)} DMT will be sent back.`);
     if (!out || out.error) return send(res, 400, out || { error: 'could not save the entry' });
     // a retried payment answers with the race it was first entered in
     const entryMode = out.mode === 'hard' ? 'hard' : out.mode === 'normal' ? 'normal' : mode;

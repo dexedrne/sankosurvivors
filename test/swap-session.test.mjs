@@ -28,7 +28,7 @@ async function fixture() {
     }
   } };
   await W.connect(wallet); calls.length=0;
-  const q={amountIn:captured.summary.amountIn,summary:captured.summary,ethIn:Number(captured.summary.amountIn)/1e18,minOut:1};
+  const q={requestedDmt:1,amountIn:captured.summary.amountIn,summary:captured.summary,ethIn:Number(captured.summary.amountIn)/1e18,minOut:1};
   const build=async()=>new Response(JSON.stringify({code:0,data:captured.build}));
   return {wallet,state,calls,q,build,accounts(a){state.accounts=a;handlers.get('accountsChanged')(a);},sends:()=>calls.filter(c=>c.method==='eth_sendTransaction').length,
     buy:(f=build,step=()=>{})=>buyDmt(wallet,A,q,step,f)};

@@ -9,7 +9,7 @@ const globals=main.slice(main.indexOf('let buyWant ='),main.indexOf('const BUY_A
 const bind=main.slice(main.indexOf('function bindBuy('),main.indexOf('function openWallet()'));
 const walletView=main.slice(main.indexOf('function renderWallet()'),main.indexOf('// ---- cloud save on the wallet'));
 const A='0x'+'1'.repeat(40),B='0x'+'2'.repeat(40),TX='0x'+'ab'.repeat(32);
-const q1={dmtOut:0.5,minOut:'0.45',ethIn:0.001,usdIn:0,loss:null},q2={dmtOut:2.5,minOut:'2.25',ethIn:0.005,usdIn:0,loss:null};
+const q1={dmtOut:1,minOut:'0.9',ethIn:0.001,usdIn:0,loss:null},q2={dmtOut:2,minOut:'1.8',ethIn:0.005,usdIn:0,loss:null};
 function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};}
 async function fixture(onBuy=async()=>({tx:TX})){
   const store=new Map(),nodes=new Map(),quotes=[],buys=[];
@@ -25,7 +25,7 @@ async function fixture(onBuy=async()=>({tx:TX})){
     const box={className:'',html:'',textContent:'',get innerHTML(){return this.html;},set innerHTML(value){this.html=value;if($('wlbuyq')===this){nodes.delete('wlbuygo');if(value.includes('id="wlbuygo"'))nodes.set('wlbuygo',{disabled:false});}}};
     Object.defineProperty(box,'textContent',{get(){return this.html;},set(value){this.html=value;if($('wlbuyq')===this)nodes.delete('wlbuygo');}});
     nodes.set('wlbuyq',box);nodes.delete('wlbuygo');
-    buttons=[0.5,2.5].map(dmt=>({dataset:{dmt:String(dmt)},classList:{toggle(){}},click(){return this.onclick?.();}}));
+    buttons=[1,2].map(dmt=>({dataset:{dmt:String(dmt)},classList:{toggle(){}},click(){return this.onclick?.();}}));
     if(!nodes.has('walletmsg'))nodes.set('walletmsg',{textContent:''});
     app?.bind(W.current(),{eth:1},msg);return box;
   }
@@ -73,7 +73,7 @@ test('a queued old Buy callback cannot send after a newer quote replaced its but
   assert.equal(f.buys.length,0);assert.equal(f.go().disabled,false);
 });
 test('one pending buy survives rerenders and repeated events',async()=>{
-  const pending=deferred(),f=await fixture(()=>pending.promise);await f.quote();f.app.want(0.5);
+  const pending=deferred(),f=await fixture(()=>pending.promise);await f.quote();f.app.want(1);
   const oldGo=f.go().onclick,first=oldGo();f.rerender();
   const repeat=oldGo(),newGo=f.go()?.onclick;
   const newest=newGo?newGo():undefined;
@@ -89,20 +89,20 @@ test('quote clicks during a pending buy cannot overwrite its financial status',a
   assert.equal(requests,1);assert.ok(f.box().innerHTML.includes(TX));
 });
 for(const change of ['wallet','intent'])test(`cached ranked quote is not reauthorized by rerender after new ${change}`,async()=>{
-  const f=await fixture();await f.quote();f.app.want(0.5);
+  const f=await fixture();await f.quote();f.app.want(1);
   if(change==='wallet')await f.switchWallet();else{await assert.rejects(W.connect({p:{request:async()=>{throw new Error('new intent');}}}));f.rerender();}
   const restored=!!f.go(),cache=f.app.quote();await f.flushQuotes();
   assert.equal(restored,false);assert.equal(cache,null);
 });
 test('a price request clears the previous cached Buy before a balance rerender',async()=>{
-  const f=await fixture();await f.quote();f.app.want(0.5);
+  const f=await fixture();await f.quote();f.app.want(1);
   const waiting=f.beginQuote(1);f.rerender();const restored=!!f.go();
   await f.flushQuotes();await waiting;
   assert.equal(restored,false);assert.equal(f.app.quote(),q2);
 });
 for(const hash of [null,TX])test(`uncertain submitted ${hash?'known':'unknown'} hash does not restore consumed quote on rerender`,async()=>{
   const f=await fixture(async()=>{throw Object.assign(new Error('Check wallet activity'),{uncertain:true,...(hash?{tx:hash}:{})});});
-  await f.quote();f.app.want(0.5);await f.go().onclick();f.rerender();
+  await f.quote();f.app.want(1);await f.go().onclick();f.rerender();
   const restored=!!f.go(),cache=f.app.quote();await f.flushQuotes();
   assert.equal(restored,false);assert.equal(cache,null);
 });

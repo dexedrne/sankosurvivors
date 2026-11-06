@@ -1,4 +1,4 @@
-import { RunRecorder, RANKED, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable } from './ranked.js';
+import { RunRecorder, RANKED, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
@@ -19,7 +19,7 @@ import { wallets, watchWallets, takeWalletHandoff, savedPass, forget, prove, sho
 import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
 import { TRANSFER_KEYS as XFER_KEYS, IMPORT_BACKUP_KEY, RUN_SAVE_KEY, importProgress, recoverProgressImport, saveRunProgress, recoverRunProgress } from './progress-import.js';
 import { prepareRunRewards } from './run-rewards.js';
-import { quoteDmt, buyDmt } from './swap.js';
+import { quoteDmt, buyDmt, MIN_BUY_DMT, MAX_BUY_DMT } from './swap.js';
 import { walletConnectLinks } from './wallet-connect.js';
 import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
@@ -322,7 +322,7 @@ function renderRankedFrom() {
     + (b && b.dmt < price ? `<p class="rkwarn">You need ${price} DMT on Arbitrum. <button id="rkbuy" class="linkbtn">Buy DMT here</button> or <a href="${GET_DMT}" target="_blank" rel="noopener">see the market</a></p>` : '')
     + (b && b.eth < ETH_FOR_GAS ? `<p class="rkwarn">You need a little ETH on Arbitrum for the network fee (well under a cent). <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a></p>` : '');
   $('rkchange').onclick = () => openWallet();
-  if ($('rkbuy')) $('rkbuy').onclick = () => { buyWant = Math.max(0.5, Math.ceil((price - (b ? b.dmt : 0)) * 10) / 10); openWallet(); };
+  if ($('rkbuy')) $('rkbuy').onclick = () => { buyWant = Math.max(MIN_BUY_DMT, Math.min(MAX_BUY_DMT, Math.ceil((price - (b ? b.dmt : 0)) * 10) / 10)); openWallet(); };
   enter.textContent = two ? `Enter ${RACE[rankedMode].name} for ${price} DMT` : `Enter for ${price} DMT`;
 }
 const plain = (text) => Object.assign(new Error(text), { plain: true });
@@ -337,14 +337,16 @@ $('rankedenter').onclick = () => {
     showRankedWalletChoices();
     return;
   }
-  const mode = raceList(rankedWeek).includes(rankedMode) ? rankedMode : 'normal', price = Number(RACE[mode].entryDmt);
+  const mode = raceList(rankedWeek).includes(rankedMode) ? rankedMode : 'normal', week = rankedWeek?.week;
+  const expectedPrice = raceForWeek(week, mode).entryDmt, displayedPrice = raceOf(rankedWeek, mode)?.entryDmt, price = Number(expectedPrice);
   rankedAction(async () => {
+    if (!Number.isSafeInteger(week) || week < 0 || displayedPrice !== expectedPrice) throw plain('Refresh ranked details before paying.');
     rankedMessage('Checking your balance on Arbitrum…');
     const b = await refreshBalances(true); // unreadable balances never block: the wallet itself has the last word
     if (b && b.dmt < price) throw plain(`You need ${price} DMT on Arbitrum to enter${mode === 'hard' ? ' the Hard race' : ''}.`);
     if (b && b.eth < ETH_FOR_GAS) throw plain('You need a little ETH on Arbitrum for the network fee.');
     $('rankedtx').replaceChildren();
-    await payEntry(c.w, BASE, rankedMessage, (tx) => { $('rankedtx').innerHTML = `<a href="${arbiscanTx(tx)}" target="_blank" rel="noopener">See your payment on Arbiscan</a>`; }, mode);
+    await payEntry(c.w, BASE, rankedMessage, (tx) => { $('rankedtx').innerHTML = `<a href="${arbiscanTx(tx)}" target="_blank" rel="noopener">See your payment on Arbiscan</a>`; }, mode, week);
     refreshBalances(true);
   });
 };
@@ -1076,10 +1078,10 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 setTimeout(cloudPull, 1500);
 // ---- buy DMT with ETH without leaving the game (src/swap.js: KyberSwap, checked before the wallet sees it) -------------
 let buyWant = 0, buyQuote = null, buyBusy = null, buyPriceRequest = 0, buyNotice = null; // requested DMT, visible quote and this page's swap state
-const BUY_AMOUNTS = [[0.5, '1 entry'], [2.5, '5 entries'], [5, '10 entries'], [1.5, '1 Hard entry']];
+const BUY_AMOUNTS = [1, 2, 5, 10];
 function buyHTML(b) {
-  const amts = buyWant && !BUY_AMOUNTS.some(([d]) => d === buyWant) ? [[buyWant, 'what you need'], ...BUY_AMOUNTS] : BUY_AMOUNTS;
-  return `<div class="wlbuy"><p><b>Buy DMT</b> <span class="dim">with ETH on Arbitrum, in one step</span></p><div class="lurow">${amts.map(([d, l]) => `<button class="ghost wlbuyamt${d === buyWant ? ' on' : ''}" data-dmt="${d}">${d} DMT <small>${l}</small></button>`).join('')}</div><div id="wlbuyq" class="dim">${buyNoticeHTML() || (b && b.eth < ETH_FOR_GAS ? `You need ETH on Arbitrum to buy with. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a>` : 'Swaps through KyberSwap at the best DMT price. The game takes no fee.')}</div></div>`;
+  const amts = buyWant && !BUY_AMOUNTS.includes(buyWant) && buyWant >= MIN_BUY_DMT && buyWant <= MAX_BUY_DMT ? [buyWant, ...BUY_AMOUNTS] : BUY_AMOUNTS;
+  return `<div class="wlbuy"><p><b>Buy DMT</b> <span class="dim">with ETH on Arbitrum, in one step</span></p><p class="dim">Choose 1–10 DMT. The quote shows the approximate output and guaranteed minimum.</p><div class="lurow">${amts.map(d => `<button class="ghost wlbuyamt${d === buyWant ? ' on' : ''}" data-dmt="${d}">${d} DMT</button>`).join('')}</div><div id="wlbuyq" class="dim">${buyNoticeHTML() || (b && b.eth < ETH_FOR_GAS ? `You need ETH on Arbitrum to buy with. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a>` : 'Swaps through KyberSwap at the best DMT price. The game takes no fee.')}</div></div>`;
 }
 function bindBuy(c, b, msg) {
   const box = $('wlbuyq'); if (!box) return;
