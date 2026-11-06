@@ -4,8 +4,9 @@ import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
   ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll,
-  weaponSlotItem, TUMBLE,
+  weaponSlotItem, TUMBLE, PASTURE_NAV,
 } from './content.js';
+import { groundHash } from './ground-pack.js';
 
 export const TICK = 1 / 30;
 export const WORLD = { cx: 365, cz: 300, radius: 70 }; // default (Greentown); each map in content.js has its own centre/radius
@@ -20,8 +21,22 @@ export function mulberry32(a) {
 }
 
 const hyp = dhypot;
+const pastureGroundCache = new WeakMap();
+function pastureGround(ground) {
+  if (!ground || !ground.cell || ground.n !== 512 || !ground.fences) return ground;
+  if (pastureGroundCache.has(ground)) return pastureGroundCache.get(ground);
+  let corrected = ground;
+  if (groundHash(ground) === PASTURE_NAV.hash) {
+    const blocked = ground.blocked.slice();
+    for (const k of PASTURE_NAV.cells) blocked[k] = 0;
+    corrected = { ...ground, blocked };
+  }
+  pastureGroundCache.set(ground, corrected);
+  return corrected;
+}
 
 export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false } = {}) {
+  if (pace >= 2) ground = pastureGround(ground);
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
   const sim = {

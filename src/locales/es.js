@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Pasture fence tumble": "Rodar sobre las cercas del pastizal",
+  "Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.": "Ahora puedes rodar sobre las cercas bajas del pastizal al oeste de Greentown. Las cercas siguen bloqueando al caminar. Se mantienen las comprobaciones de paredes y de aterrizaje.",
   "Keep coinless run history": "Conserva el historial de partidas sin monedas",
   "Cloud sign-in now asks before replacing run history, personal records, quests or gear upgrades, even when this device has no coins.": "Al iniciar sesión en la nube, ahora se pregunta antes de reemplazar el historial de partidas, los récords personales, las misiones o las mejoras de equipo, aunque este dispositivo no tenga monedas.",
   "Finish interrupted run saves": "Completa guardados de partidas interrumpidos",

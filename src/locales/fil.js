@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Pasture fence tumble": "Pagulong sa mga bakod ng pastulan",
+  "Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.": "Nalalampasan na ng pagulong ang mabababang bakod ng pastulan sa kanluran ng Greentown. Hinaharang pa rin ng mga bakod ang paglalakad. Nananatili ang mga pagsusuri sa pader at ligtas na paglapag.",
   "Keep coinless run history": "Panatilihin ang kasaysayan ng larong walang coins",
   "Cloud sign-in now asks before replacing run history, personal records, quests or gear upgrades, even when this device has no coins.": "Nagtatanong na ang cloud sign-in bago palitan ang kasaysayan ng laro, mga personal record, quest o gear upgrade, kahit walang coins ang device na ito.",
   "Finish interrupted run saves": "Tapusin ang naantalang pag-save ng laro",

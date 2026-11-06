@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Pasture fence tumble": "Otlağın çitlerini aş",
+  "Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.": "Takla artık Greentown'un batısındaki alçak otlak çitlerini aşar. Normal yürüyüşte çitler hâlâ yolu keser. Mevcut duvar ve iniş denetimleri korunur.",
   "Keep coinless run history": "Altınsız oyun geçmişini koru",
   "Cloud sign-in now asks before replacing run history, personal records, quests or gear upgrades, even when this device has no coins.": "Bu cihazda hiç altın olmasa bile, bulut kaydına giriş artık oyun geçmişini, kişisel rekorları, görevleri veya ekipman geliştirmelerini değiştirmeden önce sorar.",
   "Finish interrupted run saves": "Kesilen oyun kayıtlarını tamamla",
