@@ -1,5 +1,18 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Know your build": "Kilalanin ang build mo",
+  "See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.": "Tingnan ang kamakailang pinsala ng bawat armas sa minimap o gamit ang Tab. Pindutin nang matagal ang item sa sinturon para basahin ang epekto nang hindi ito ginagamit.",
+  "Menus now render at up to 30 frames per second while controls stay responsive.": "Umaabot na sa 30 frame bawat segundo ang pagguhit ng mga menu habang mabilis pa ring tumutugon ang controls.",
+  "Show weapon damage": "Ipakita ang pinsala ng armas",
+  "Weapon damage": "Pinsala ng armas",
+  "Last 8 seconds. Includes overkill.": "Huling 8 segundo. Kasama ang sobrang pinsala.",
+  "Total damage": "Kabuuang pinsala",
+  "No damage yet.": "Wala pang pinsala.",
+  "Empty item slot": "Bakanteng puwang ng item",
+  "Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.": "Nagbabalik ng 20 buhay, na nadaragdagan ng healing bonus. Mas mabilis kang tatakbo sa loob ng 8 segundo.",
+  "Blasts nearby enemies. Damage grows with run time.": "Pinapasabog ang mga kalapit na kalaban. Lumalakas ang pinsala habang tumatagal ang laro.",
+  "Pulls all dropped bones and coins to you.": "Hinihila papunta sa iyo ang lahat ng buto at barya sa lupa.",
+  "Tap to use. Hold to inspect.": "I-tap para gamitin. Pindutin nang matagal para suriin.",
   "Keep clear of wall edges": "Mas maayos na galaw sa tabi ng pader",
   "Turning out of doorways now keeps adventurers and enemies clear of wall edges. Open doors and reachable low-fence tumbles still work.": "Kapag lumiliko mula sa pintuan, hindi na pumapasok sa gilid ng pader ang mga adventurer at kalaban. Gumagana pa rin ang mga bukas na pintuan at pagulong sa mga maaabot na mababang bakod.",
   "Next week's hunt": "Ang susunod na hamon",

@@ -8,6 +8,8 @@ import { profileValue, profileBest, validProfileValue, finiteNumber } from './pr
 import { asset, pickAssetHost } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, playerStats, previewChoice, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
+import { DamageMeter } from './damage-meter.js';
+import { bindBeltItem } from './belt-input.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { dmtText, poolReadout, prizeEstimate, prizeNotes } from './prize-display.js';
 import { initI18n, translateText } from './i18n.js';
@@ -1358,6 +1360,9 @@ addEventListener('keydown', (e) => {
   if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
   if (e.repeat) return;
   const k = e.key.toLowerCase();
+  if (mode === 'play' && MENU_SCREENS.every(id => $(id).classList.contains('hidden')) && (k === 'tab' && !e.target?.matches?.('button, a[href]') || k === 'escape' && !$('damagepanel').classList.contains('hidden'))) {
+    setDamagePanel(k === 'tab' && $('damagepanel').classList.contains('hidden')); e.preventDefault(); return;
+  }
   if ((k === 'enter' || k === ' ') && e.target?.matches?.('button, a[href]')) return;
   keys.add(k);
   if (mode === 'casket') {
@@ -1636,6 +1641,29 @@ $('ckwear').onclick = () => pickCasket(0); $('ckalch').onclick = () => pickCaske
 
 // ---- HUD -----------------------------------------------------------------------------------------------------------------------------
 let hudT = 0; const slotCache = { w: '', p: '', b: '' };
+const damageMeter = new DamageMeter(); let damageRun = null, damageReading = null, beltDisposers = [];
+function setDamagePanel(open) {
+  $('damagepanel').classList.toggle('hidden', !open); $('damagebtn').setAttribute('aria-expanded', String(open));
+  if (open) { damageReading = null; updateDamageHud(); $('damageclose').focus({ preventScroll: true }); }
+  else if ($('damagepanel').contains(document.activeElement)) $('damagebtn').focus({ preventScroll: true });
+}
+$('damagebtn').onclick = () => setDamagePanel($('damagepanel').classList.contains('hidden'));
+$('damageclose').onclick = () => { setDamagePanel(false); $('damagebtn').focus(); };
+function updateDamageHud() {
+  if (damageRun !== sim) { damageRun = sim; damageReading = null; damageMeter.reset(); }
+  if (!sim) return;
+  if (mode === 'play') damageMeter.sample(sim.tick, sim.dmgBy || {});
+  const reading = damageMeter.read(), rate = Object.values(reading.perSecond).reduce((a, b) => a + b, 0);
+  $('dpsvalue').textContent = Math.round(rate).toLocaleString() + ' DPS';
+  if ($('damagepanel').classList.contains('hidden') || damageReading === reading) return;
+  damageReading = reading;
+  const rows = Object.entries(reading.totals).filter(([, total]) => total > 0).sort((a, b) => (reading.perSecond[b[0]] || 0) - (reading.perSecond[a[0]] || 0));
+  $('damagerows').innerHTML = rows.length ? rows.map(([id, total]) => {
+    const p = sim.players[0], name = Object.hasOwn(WEAPONS, id) ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other';
+    const dps = reading.perSecond[id] || 0, share = rate > 0 ? Math.round(dps / rate * 100) : 0;
+    return `<div class="damagerow"><b>${esc(name)}</b><span>${dps.toFixed(1)} DPS</span><small>${share}% · <span translate="no">${Math.round(total).toLocaleString()}</span> <span>Total damage</span></small><i style="width:${share}%"></i></div>`;
+  }).join('') : '<p class="dim">No damage yet.</p>';
+}
 function updateTumbleHud(me) {
   $('tumblebtn').classList.toggle('hidden', sim.pace < 2);
   $('tumblebtn').disabled = me.rollCd > 0;
@@ -1644,6 +1672,7 @@ function updateTumbleHud(me) {
 function updateHud(view) {
   const me = view.players[0];
   updateTumbleHud(me);
+  updateDamageHud();
   $('hpfill').style.width = Math.min(100, Math.max(0, (me.hp / me.mhp) * 100)) + '%';
   $('hptext').textContent = `${me.hp} / ${me.mhp}`;
   $('xpfill').style.width = Math.min(100, (view.xp / view.xpNeed) * 100) + '%';
@@ -1659,9 +1688,14 @@ function updateHud(view) {
   if (boss) { $('bossname').textContent = bossName(sim && sim.map, boss[1]); $('bossfill').style.width = boss[5] + '%'; }
   const bk = JSON.stringify(me.belt || []);
   if (bk !== slotCache.b) {
+    for (const dispose of beltDisposers) dispose(); beltDisposers = [];
     slotCache.b = bk; const BELT_ICON = { beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard' };
-    $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i]; return `<div class="bslot${k ? '' : ' empty'}" data-i="${i}">${k ? imgTag(BELT_ICON[k]) : ''}<small>${i + 1}</small></div>`; }).join('');
-    for (const el of $('belt').children) el.onclick = () => { pendingUse = Number(el.dataset.i); };
+    const BELT_TIP = { beer: 'Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.', pumpkin: 'Blasts nearby enemies. Damage grows with run time.', warp: 'Pulls all dropped bones and coins to you.' };
+    $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i]; return `<button type="button" class="bslot${k ? '' : ' empty'}" data-i="${i}" data-kind="${k || ''}" ${k ? `aria-label="${BELT_ICON[k]}" aria-describedby="belttip${i}"` : 'disabled aria-label="Empty item slot"'}>${k ? imgTag(BELT_ICON[k]) : ''}<small>${i + 1}</small>${k ? `<span id="belttip${i}" class="belttip" role="tooltip" hidden><b>${BELT_ICON[k]}</b><span>${BELT_TIP[k]}</span><em>Tap to use. Hold to inspect.</em></span>` : ''}</button>`; }).join('');
+    for (const el of $('belt').children) if (el.dataset.kind) {
+      const i = Number(el.dataset.i), kind = el.dataset.kind;
+      beltDisposers.push(bindBeltItem(el, { use: () => { pendingUse = i; }, canUse: () => mode === 'play' && !waitingForMove && !sim.pending[PLAYER] && !sim.over && sim.players[0].belt[i] === kind }));
+    }
   }
   const wk = JSON.stringify([me.w, me.evo, me.wm]), pk = JSON.stringify(me.ps);
   if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" title="${weaponDisplay(id, l, me.evo[id], weaponStep(id, me.wm)).name}">${iconHTML('weapon', id, l, me.evo[id], weaponStep(id, me.wm))}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
@@ -1770,12 +1804,13 @@ function drawMinimap(view) {
 }
 
 // ---- main loop ------------------------------------------------------------------------------------------------------------------------
-let lastDrawn = 0;
+let lastDrawn = 0, lastMenuDrawn = -Infinity;
 function loop(ts) {
   requestAnimationFrame(loop);
   const cap = renderer && Number(renderer.getSettings().fps); // Frame rate cap setting (saves battery)
   if (cap && ts - lastDrawn < 1000 / cap - 2) return;
   lastDrawn = ts;
+  if (mode === 'play') lastMenuDrawn = -Infinity;
   const dt = Math.min(0.1, (ts - last) / 1000 || 0.016); last = ts; frame++;
   const inp = readInput(); const edges = padEdges(inp.pad);
   if (mode !== 'play' && mode !== 'levelup' && mode !== 'casket') {
@@ -1787,7 +1822,8 @@ function loop(ts) {
   if (mode === 'title' || mode === 'end') {
     if (edges.a && mode === 'title' && !$('start').disabled && navScreen()?.id === 'title') startRun(); else if (edges.a && mode === 'end' && navScreen()?.id === 'end') startRun();
     if (!sim) { // title backdrop: the chosen adventurer standing in the chosen map
-      if (frame % 2 === 0) {
+      if (ts - lastMenuDrawn >= 1000 / 30 - 0.1) {
+        lastMenuDrawn = ts;
         if (!window.__idleSim) {
           const T = renderer.terrain;
           window.__idleSim = createSim({ seed: 1, map: MAP_BY_ID[selMap], ground: T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null } : null, players: [{ id: PLAYER, name: 'You', adv: runAdv().id, gear: runAdv().id !== selAdv ? {} : getGear() }] });
@@ -1833,7 +1869,11 @@ function loop(ts) {
     if (mode === 'casket' && !rankedRec && sim.pending[PLAYER]) { const before = sim.pending[PLAYER]; step(sim, {}, dt); if (sim.pending[PLAYER] !== before) afterCasket(); } // the timer picks the recommended choice
   } else if (mode === 'pause') {
     if (edges.start) pause(false);
-    if (frame % 4 !== 0) return;
+    if (mode === 'pause' && ts - lastMenuDrawn < 1000 / 30 - 0.1) return;
+  }
+  if (['pause', 'end', 'recovery'].includes(mode)) {
+    if (ts - lastMenuDrawn < 1000 / 30 - 0.1) return;
+    lastMenuDrawn = ts;
   }
   const view = snapshot(sim, { maxEnemies: 420 });
   view.alpha = Math.min(1, Math.max(0, acc / TICK)); // where between sim ticks this frame is (the renderer slides spells by it)

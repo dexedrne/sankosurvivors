@@ -1,5 +1,18 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Know your build": "Yapını tanı",
+  "See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.": "Her silahın son hasarını mini haritadan veya Tab tuşuyla görün. Bir kemer eşyasını kullanmadan incelemek için basılı tutun.",
+  "Menus now render at up to 30 frames per second while controls stay responsive.": "Menüler artık kontrollerin tepkisini koruyarak saniyede en fazla 30 kare çizilir.",
+  "Show weapon damage": "Silah hasarını göster",
+  "Weapon damage": "Silah hasarı",
+  "Last 8 seconds. Includes overkill.": "Son 8 saniye. Fazladan hasar dahildir.",
+  "Total damage": "Toplam hasar",
+  "No damage yet.": "Henüz hasar yok.",
+  "Empty item slot": "Boş eşya yuvası",
+  "Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.": "İyileştirme bonuslarıyla artan 20 can yeniler. 8 saniye daha hızlı koşarsınız.",
+  "Blasts nearby enemies. Damage grows with run time.": "Yakındaki düşmanları patlatır. Hasar, koşu süresiyle artar.",
+  "Pulls all dropped bones and coins to you.": "Yerdeki tüm kemikleri ve paraları size çeker.",
+  "Tap to use. Hold to inspect.": "Kullanmak için dokunun. İncelemek için basılı tutun.",
   "Keep clear of wall edges": "Duvar kenarlarında daha düzgün hareket",
   "Turning out of doorways now keeps adventurers and enemies clear of wall edges. Open doors and reachable low-fence tumbles still work.": "Kapılardan dönerek geçerken maceracılar ve düşmanlar artık duvar kenarlarına girmez. Açık kapılar ve erişilebilir alçak çitlerden takla atma çalışmaya devam eder.",
   "Next week's hunt": "Gelecek haftanın avı",

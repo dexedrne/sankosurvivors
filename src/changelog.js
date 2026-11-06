@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.38', date: '6 Nov 2026', title: 'Know your build',
+    items: ["See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.", "Menus now render at up to 30 frames per second while controls stay responsive."],
+  },
+  {
     version: '0.44.37', date: '6 Nov 2026', title: 'Keep clear of wall edges',
     items: ['Turning out of doorways now keeps adventurers and enemies clear of wall edges. Open doors and reachable low-fence tumbles still work.', 'Ranked week 0 keeps its original rules.'],
   },

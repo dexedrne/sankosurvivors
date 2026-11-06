@@ -1,5 +1,18 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Know your build": "Conoce tu equipo",
+  "See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.": "Consulta el daño reciente de cada arma desde el minimapa o con Tab. Mantén pulsado un objeto del cinturón para leer su efecto sin usarlo.",
+  "Menus now render at up to 30 frames per second while controls stay responsive.": "Los menús ahora se dibujan hasta a 30 fotogramas por segundo y los controles siguen respondiendo.",
+  "Show weapon damage": "Mostrar daño de armas",
+  "Weapon damage": "Daño de armas",
+  "Last 8 seconds. Includes overkill.": "Últimos 8 segundos. Incluye daño excedente.",
+  "Total damage": "Daño total",
+  "No damage yet.": "Todavía no hay daño.",
+  "Empty item slot": "Espacio de objeto vacío",
+  "Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.": "Restaura 20 de salud, aumentado por los bonos de curación. Corres más rápido durante 8 segundos.",
+  "Blasts nearby enemies. Damage grows with run time.": "Detona sobre los enemigos cercanos. El daño aumenta con el tiempo de la partida.",
+  "Pulls all dropped bones and coins to you.": "Atrae todos los huesos y monedas del suelo hacia ti.",
+  "Tap to use. Hold to inspect.": "Toca para usar. Mantén pulsado para inspeccionar.",
   "Keep clear of wall edges": "Movimiento junto a las paredes",
   "Turning out of doorways now keeps adventurers and enemies clear of wall edges. Open doors and reachable low-fence tumbles still work.": "Al girar después de pasar por una puerta, los aventureros y enemigos ya no se meten en los bordes de las paredes. Las puertas abiertas y las volteretas sobre vallas bajas accesibles siguen funcionando.",
   "Next week's hunt": "La cacería de la próxima semana",

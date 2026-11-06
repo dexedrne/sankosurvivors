@@ -734,3 +734,23 @@ body.ds-layout #levelup .panel, body.ds-layout #casket .panel, body.ds-layout #p
   body.ds-layout #mmwrap { top:calc(var(--ds-control-top) + 4px); width:min(108px,calc(100dvh - var(--ds-control-top) - env(safe-area-inset-bottom,0px) - 8px)); height:min(108px,calc(100dvh - var(--ds-control-top) - env(safe-area-inset-bottom,0px) - 8px)); }
   body.ds-layout #minimap { width:100%; height:100%; }
 }
+
+/* Run insight uses the minimap's existing hit area, leaving movement controls in place. */
+#damagebtn { position:absolute; inset:0; margin:0; padding:0; width:100%; height:100%; min-height:44px; border:0; border-image:none; background:none; border-radius:50%; box-shadow:none; pointer-events:auto; }
+#damagebtn span { position:absolute; bottom:5px; left:50%; transform:translateX(-50%); padding:1px 7px; border-radius:8px; background:#21180ee8; color:var(--gold); font:16px RSPlain,sans-serif; white-space:nowrap; }
+#damagebtn:focus-visible { outline:3px solid var(--gold); outline-offset:4px; }
+#damagepanel { position:absolute; top:70px; right:200px; width:min(290px,calc(100% - 220px)); max-height:min(340px,calc(100dvh - 100px)); overflow:auto; padding:10px; margin:0; pointer-events:auto; font:16px RSPlain,sans-serif; text-align:left; }
+#damagepanel header { display:flex; align-items:center; justify-content:space-between; gap:4px; }
+#damagepanel header b { color:var(--gold); font:20px RSQuill8,sans-serif; }
+#damageclose { width:44px; height:44px; min-height:44px; padding:0; margin:0; flex:none; }
+#damagepanel p { font-size:14px; margin:3px 0 8px; }
+.damagerow { display:grid; grid-template-columns:1fr auto; gap:3px 6px; padding:5px 0; border-top:1px solid #5a4632; }
+.damagerow b { overflow-wrap:anywhere; font-weight:normal; }.damagerow>span { color:var(--gold); white-space:nowrap; }.damagerow small { grid-column:1/-1; color:var(--cream); }.damagerow i { grid-column:1/-1; min-height:4px; background:var(--gold); }
+#belt button.bslot { padding:0; margin:0; min-height:44px; border-radius:0; background:none; box-shadow:none; font:inherit; }
+.belttip { position:fixed; z-index:65; width:min(250px,calc(100vw - 16px)); padding:9px; background:#251c12; border:2px solid #8f642f; box-shadow:0 3px 12px #000b; color:var(--cream); text-align:left; font:16px RSPlain,sans-serif; pointer-events:none; }
+.belttip:not([hidden]) { display:flex; flex-direction:column; gap:5px; }.belttip[hidden] { display:none; }.belttip b { color:var(--gold); }.belttip em { color:#c5b598; font-size:14px; font-style:normal; }
+@media(max-width:760px) { #damagepanel { top:62px; right:134px; width:calc(100% - 150px); } }
+body.ds-layout #damagepanel { position:fixed; top:calc(var(--ds-control-top) + 8px); right:134px; width:min(290px,calc(100% - 150px)); max-height:calc(100dvh - var(--ds-control-top) - env(safe-area-inset-bottom,0px) - 16px); }
+/* A filter on the button would make its fixed tooltip use the button as its viewport. */
+#belt button.bslot { width:44px; height:44px; }
+#belt button.bslot:hover:not(:disabled) { filter:none; outline:2px solid var(--gold); outline-offset:1px; }

@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const out = resolve(root, 'dist-wavedash');
 await build({ root, configFile: resolve(root, 'vite.wavedash.config.mjs') });
 // Vite copies public files. Only the game's local assets/decoder belong in this upload.
-for (const file of await readdir(out)) if (file !== 'index.html' && file !== 'assets' && file !== 'draco') await rm(resolve(out, file), { recursive: true });
+for (const file of await readdir(out)) if (file !== 'index.html' && file !== 'assets' && file !== 'draco' && file !== 'licenses') await rm(resolve(out, file), { recursive: true });
 const files = [];
 async function walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -29,5 +29,5 @@ await walk(out);
 assertCasualBundle('', files.map(file => file.name));
 const bytes = files.reduce((sum, file) => sum + file.bytes, 0);
 if (bytes > 1_000_000_000 || !(await stat(resolve(out, 'index.html'))).isFile()) throw Error('Invalid Wavedash upload');
-await writeFile(resolve(root, 'wavedash-build.json'), JSON.stringify({ edition: '0.44.37-casual.7', bytes, files: files.sort((a,b) => a.name.localeCompare(b.name)) }, null, 2) + '\n');
+await writeFile(resolve(root, 'wavedash-build.json'), JSON.stringify({ edition: '0.44.38-casual.8', bytes, files: files.sort((a,b) => a.name.localeCompare(b.name)) }, null, 2) + '\n');
 console.log(`Casual upload audit passed: ${files.length} files, ${bytes} bytes; no deployment performed.`);
