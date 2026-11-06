@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Update notes in your language": "Mga tala ng update sa wika mo",
+  "Update notes now follow your language choice when a translation is available. Older notes without a translation stay in English.": "Sinusunod na ng mga tala ng update ang napili mong wika kapag may pagsasalin. Nananatiling English ang mga lumang tala na walang pagsasalin.",
+  "Older notes without a translation stay in English.": "Nananatiling English ang mga lumang tala na walang pagsasalin.",
+
   "Keep names while cloud progress loads": "Panatilihin ang pangalan habang naglo-load ang cloud",
   "Automatic cloud loading now preserves name drafts and avoids reloading while you are editing. Confirmed imports and sign-ins still load the chosen saved name.": "Pinapanatili na ng awtomatikong pag-load ng cloud ang pangalang tina-type mo at hindi nagre-reload habang nag-e-edit ka. Patuloy na nilo-load ng kumpirmadong import at pag-sign in ang napiling naka-save na pangalan.",
   "Pasture fence tumble": "Pagulong sa mga bakod ng pastulan",

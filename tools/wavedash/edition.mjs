@@ -196,7 +196,7 @@ export function wavedashEdition() {
     transform(code, id) {
       if (id.endsWith('/src/main.js')) return { code: transformMain(code), map: null };
       if (id.endsWith('/src/assets.js')) return { code: "export const asset = p => (import.meta.env.BASE_URL || './') + 'assets/' + p; export const assetHost = () => 'local'; export const pickAssetHost = async () => 'local';", map: null };
-      if (id.endsWith('/src/changelog.js')) return { code: `export const LATEST='0.44.32-casual.3'; export const CHANGELOG=[{version:LATEST,date:'5 Nov 2026',title:'Pasture fence tumble',items:['Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.','Progress saves on this device. Use Move progress to keep a backup or play on another device.']}];`, map: null };
+      if (id.endsWith('/src/changelog.js')) return { code: `export const LATEST='0.44.34-casual.4'; export const CHANGELOG=[{version:LATEST,date:'5 Nov 2026',title:'Update notes in your language',items:['Update notes now follow your language choice when a translation is available. Older notes without a translation stay in English.','Progress saves on this device. Use Move progress to keep a backup or play on another device.']},{version:'0.44.32-casual.3',date:'5 Nov 2026',title:'Pasture fence tumble',items:['Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.']}];`, map: null };
       const locale = /\/src\/locales\/(tr|es|fil)\.js$/.exec(id);
       if (locale) return { code: localeSource(locale[1]), map: null };
     },

@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Update notes in your language": "Güncelleme notları kendi dilinde",
+  "Update notes now follow your language choice when a translation is available. Older notes without a translation stay in English.": "Çevirisi bulunan güncelleme notları artık seçtiğin dilde gösterilir. Çevirisi olmayan eski notlar İngilizce kalır.",
+  "Older notes without a translation stay in English.": "Çevirisi olmayan eski notlar İngilizce kalır.",
+
   "Keep names while cloud progress loads": "Bulut yüklenirken adını koru",
   "Automatic cloud loading now preserves name drafts and avoids reloading while you are editing. Confirmed imports and sign-ins still load the chosen saved name.": "Otomatik bulut yüklemesi artık yazdığın adı korur ve düzenleme yaparken sayfayı yeniden yüklemez. Onaylanan içe aktarma ve giriş işlemleri seçilen kayıtlı adı yüklemeye devam eder.",
   "Pasture fence tumble": "Otlağın çitlerini aş",

@@ -1,5 +1,9 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Update notes in your language": "Notas de actualización en tu idioma",
+  "Update notes now follow your language choice when a translation is available. Older notes without a translation stay in English.": "Las notas de actualización ahora se muestran en el idioma elegido cuando hay una traducción. Las notas antiguas sin traducción siguen en inglés.",
+  "Older notes without a translation stay in English.": "Las notas antiguas sin traducción siguen en inglés.",
+
   "Keep names while cloud progress loads": "Conserva tu nombre al cargar la nube",
   "Automatic cloud loading now preserves name drafts and avoids reloading while you are editing. Confirmed imports and sign-ins still load the chosen saved name.": "La carga automática de la nube conserva los nombres que estás escribiendo y evita recargar mientras los editas. Las importaciones e inicios de sesión confirmados siguen cargando el nombre guardado elegido.",
   "Pasture fence tumble": "Rodar sobre las cercas del pastizal",

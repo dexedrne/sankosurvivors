@@ -4,7 +4,10 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { wavedashEdition } from './edition.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
+const catalogue = Object.fromEntries(await Promise.all(['tr','es','fil'].map(async language => [language, await import('data:text/javascript,' + encodeURIComponent(wavedashEdition().transform('', `/fixture/src/locales/${language}.js`).code))])));
+const { CHANGELOG } = await import('data:text/javascript,' + encodeURIComponent(wavedashEdition().transform('', '/fixture/src/changelog.js').code));
 const out = resolve(process.argv[2]); mkdirSync(out, { recursive: true });
 assert.equal(spawnSync('pgrep', ['-c', '-x', 'chromium'], { encoding: 'utf8' }).stdout.trim(), '0');
 const profile = mkdtempSync('/tmp/sqs-wavedash-browser-');
@@ -87,12 +90,25 @@ try {
   await assertNoServices();
   await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5},frameSession);await send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
   await evaluate("document.getElementById('setbtn').click();Array.from(document.querySelectorAll('#setlist button')).find(b=>b.dataset.id==='layout'&&JSON.parse(b.dataset.v)==='ds').click();document.getElementById('setclose').click()");
+  await evaluate("(()=>{const e=document.querySelector('[data-language]');e.value='fil';e.dispatchEvent(new Event('change',{bubbles:true}));})()");
   await evaluate('location.reload()');context=null;await wait("__wavedashFixture.loads===2&&"+health);
+  assert.equal(await evaluate('document.documentElement.lang'), 'fil');
   assert.equal(await evaluate("document.body.classList.contains('touch')"),true);
   for(const lang of ['tr','es','fil','en']){
     await evaluate(`(()=>{const e=document.querySelector('[data-language]');e.value='${lang}';e.dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('morebtn').click();})()`);await sleep(100);
     assert.ok(await evaluate("(()=>{const r=document.querySelector('#more .panel').getBoundingClientRect();return r.x>=0&&r.right<=393&&r.y>=0&&r.bottom<=852;})()"));
     assert.ok(!await evaluate("/wallet|DMT|Ranked/.test(document.getElementById('more').textContent)"));await shot('mobile-more-'+lang);await click('#moreclose');
+    await click('#morebtn');await click('#updbtn');
+    const translated = text => lang === 'en' ? text : catalogue[lang].text[text];
+    await wait(`document.querySelector('#updlist .upd b').textContent===${JSON.stringify(translated(CHANGELOG[0].title))}`);
+    for (const [i, entry] of CHANGELOG.entries()) {
+      for (const text of [entry.title, ...entry.items]) { assert.equal(typeof translated(text), 'string'); if (lang !== 'en') assert.notEqual(translated(text), text); }
+      assert.equal(await evaluate(`document.querySelectorAll('#updlist .updhead b')[${i}].textContent`), translated(entry.title));
+      assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('#updlist .upd')[${i}].querySelectorAll('li'),node=>node.textContent)`), entry.items.map(translated));
+      assert.equal(await evaluate(`document.querySelectorAll('#updlist .updhead span')[${i}].textContent`), `${entry.date} · v${entry.version}`);
+    }
+    assert.ok(await evaluate("(()=>{const p=document.querySelector('#updates .panel').getBoundingClientRect(),b=document.getElementById('updclose').getBoundingClientRect();return p.x>=0&&p.right<=393&&p.y>=0&&p.bottom<=852&&b.bottom<=852&&document.body.scrollWidth<=393;})()"));
+    await shot('mobile-updates-'+lang);await click('#updclose');
     const scalingStart = {en:'Each skill rank',tr:'Her beceri kademesi',es:'Cada rango de habilidad',fil:'Bawat antas ng kasanayan'}[lang];
     for (const [button,panel,close] of [['skillsbtn','skills','skillsclose'],['gearbtn','gear','gearclose']]) {
       await click('#'+button);await sleep(100);
@@ -130,7 +146,7 @@ try {
   await evaluate("__wavedashFixture.fault={op:'set',key:'sq-coins'};(()=>{const s=__sq.sim,p=s.players[0];Object.assign(s,{t:1,kills:0,bossKills:0,evolves:0,loot:[],alched:[],killsByType:{},over:'dead'});Object.assign(p,{coins:1,alch:0});})()");await wait("__sq.mode==='recovery'");
   assert.equal(await evaluate("localStorage.getItem('sq-coins')"),'609');assert.equal(await evaluate("JSON.parse(localStorage.getItem('sq-run-save-v1')).data['sq-coins']"),'612');await assertNoServices();
   await evaluate('location.reload()');context=null;await wait("__wavedashFixture.loads===4&&"+health);assert.equal(await evaluate("localStorage.getItem('sq-coins')"),'612');assert.equal(await evaluate("localStorage.getItem('sq-run-save-v1')"),null);await assertNoServices();await shot('startup-recovers-interrupted-run');
-  notes.push('PASS393px DS trusted touch movement, four-language menus, full609coin/gear/quest retry once, local record10:00, actual reload persistence and zero credential/provider/API traffic.');
+  notes.push('PASS393px DS trusted touch movement, actual translated update titles/items and exact date/version in four languages, realreload Filipino choice, four-language menus, full609coin/gear/quest retry once, local record10:00, actual reload persistence and zero credential/provider/API traffic.');
   await send('Page.navigate',{url:`http://localhost:${port}/review.html?failboot=1`});context=null;
   await wait("document.getElementById('loadtext').textContent.startsWith('Could not load the world:')");
   assert.equal(await evaluate('__wavedashFixture.ready.length'),0);assert.notEqual(await evaluate('window.__sqReady'),true);await assertNoServices();await shot('failed-boot-no-sdk-ready');
