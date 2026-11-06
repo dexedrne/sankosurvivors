@@ -127,12 +127,21 @@ try {
   await evaluate("(()=>{const s=__sq.sim,p=s.players[0];s.gems.push({id:s.nextId++,x:p.x,z:p.z,v:s.xpNeed,vx:0,vz:0});})()");
   await wait("__sq.mode==='levelup'");
   const levelLeft=await evaluate("dispatchEvent(new Event('blur'));dispatchEvent(new Event('focus'));__sq.sim.pending.p1.left");assert.equal(await evaluate('__sq.mode'),'pause');await sleep(350);assert.equal(await evaluate('__sq.sim.pending.p1.left'),levelLeft);await click('#resume');assert.equal(await evaluate('__sq.mode'),'levelup');
-  assert.ok(await evaluate("(()=>{const c=document.getElementById('cards').getBoundingClientRect(),v=document.getElementById('c').getBoundingClientRect();return c.y>=v.bottom&&c.bottom<=852;})()"));
+  assert.ok(await evaluate("(()=>{const c=document.getElementById('cards').getBoundingClientRect(),v=document.getElementById('c').getBoundingClientRect(),p=document.querySelector('#levelup .panel').getBoundingClientRect();return c.y>=v.bottom&&p.y>=v.bottom&&p.bottom<=852&&p.x>=0&&p.right<=393;})()"));
+  for (const which of ['last-child','first-child']) {
+    await evaluate(`document.querySelector('#cards .card:${which}').scrollIntoView({block:'nearest'})`);
+    assert.ok(await evaluate(`(()=>{const e=document.querySelector('#cards .card:${which}'),r=e.getBoundingClientRect();return r.y>=426&&r.bottom<=852&&r.width>=44&&r.height>=44&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));})()`),which+' card remains visible and reachable while scrolling');
+  }
   await shot('mobile-ds-upgrade');
-  const card=await evaluate("(()=>{const r=document.querySelector('#cards .card').getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()");
+  await evaluate("document.querySelector('#cards .card:last-child').scrollIntoView({block:'nearest'})");
+  const card=await evaluate("(()=>{const r=document.querySelector('#cards .card:last-child').getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()");
   await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...card,id:0}]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await wait("__sq.mode==='play'");
   const pausedTime=await evaluate('__sq.sim.t');await sleep(350);assert.equal(await evaluate('__sq.sim.t'),pausedTime);
   await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:controls.x,y:controls.y,id:0}]});await send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:controls.x+45,y:controls.y,id:0}]});await sleep(400);await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});assert.ok(await evaluate(`__sq.sim.t>${pausedTime}`));
+  await evaluate("(()=>{const s=__sq.sim,p=s.players[0];s.gems.push({id:s.nextId++,x:p.x,z:p.z,v:s.xpNeed,vx:0,vz:0});})()");
+  await wait("__sq.mode==='levelup'");
+  assert.ok(await evaluate("(()=>{const e=document.querySelector('#cards .card.sel'),r=e.getBoundingClientRect();return e.dataset.i==='0'&&r.y>=426&&r.bottom<=852;})()"),'the next reward must reveal its first selected card after scrolling the previous reward');
+  await shot('mobile-second-upgrade');await click('#cards .card.sel');await wait("__sq.mode==='play'");
   await evaluate("__sq.wearNow({head:'Bronze Helmet'});__sq.casketOf('Iron Helmet')");await wait("__sq.mode==='casket'");
   const casketLeft=await evaluate("dispatchEvent(new Event('blur'));dispatchEvent(new Event('focus'));__sq.sim.pending.p1.left");assert.equal(await evaluate('__sq.mode'),'pause');await sleep(350);assert.equal(await evaluate('__sq.sim.pending.p1.left'),casketLeft);await click('#resume');assert.equal(await evaluate('__sq.mode'),'casket');await click('#ckwear');await wait("__sq.mode==='play'");
   notes.push('PASS focus loss during awaited Start, levelup and casket preserves sim/choice timers and requires explicit Resume; touch reward waits for movement.');

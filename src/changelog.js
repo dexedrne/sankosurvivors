@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.35', date: '6 Nov 2026', title: 'Quality in every upgrade',
+    items: ['Every upgrade gives one level. Common, Uncommon, Rare and Epic rolls retain different stat gains for this run. Maxed items cannot roll again. Cards show the resulting stats.', 'Ranked week 0 keeps its original rules.'],
+  },
+  {
     version: '0.44.34', date: '5 Nov 2026', title: 'Update notes in your language',
     items: ['Update notes now follow your language choice when a translation is available. Older notes without a translation stay in English.'],
   },

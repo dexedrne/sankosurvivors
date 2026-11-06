@@ -574,15 +574,17 @@ body.touch .ckbtns .kb { display: none; }
 /* Hard mode and Endless are always on show; greyed out until the map is cleared */
 #hardwrap.locked, #endlesswrap.locked { opacity: .55; cursor: default; } .lockhint { display: none; opacity: .85; margin-left: 4px; }
 #hardwrap.locked .lockhint, #endlesswrap.locked .lockhint { display: inline; }
-/* ---- level-up card rarity (pace 2): a coloured frame, a glow and a label; Common grey, Rare blue, Epic purple,
-   Legendary gold. The label sits in the corner so the phone layout (icon left, text right) is unchanged ---- */
+/* ---- level-up quality: Common grey, Uncommon green, Rare blue, Epic purple ---- */
 .card.rar { position: relative; --rar: #b9b4ac; --glow: rgba(185, 180, 172, 0); outline: 3px solid var(--rar); outline-offset: -3px; box-shadow: 0 0 12px var(--glow); }
 .card.r-common { --rar: #b9b4ac; --glow: rgba(185, 180, 172, 0); }
+.card.r-uncommon { --rar: #77d58d; --glow: rgba(119, 213, 141, .4); }
 .card.r-rare { --rar: #4aa3ff; --glow: rgba(74, 163, 255, .5); }
 .card.r-epic { --rar: #b56bff; --glow: rgba(181, 107, 255, .6); }
-.card.r-legendary { --rar: #ffc83a; --glow: rgba(255, 200, 58, .75); box-shadow: 0 0 20px var(--glow); animation: rarglow 1.6s ease-in-out infinite alternate; }
-@keyframes rarglow { from { box-shadow: 0 0 10px rgba(255, 200, 58, .45); } to { box-shadow: 0 0 26px rgba(255, 200, 58, .95); } }
-@media (prefers-reduced-motion: reduce) { .card.r-legendary { animation: none; } }
+.card .upstats { margin-top: 6px; color: var(--cream); font: 15px/1.15 RSSmall, sans-serif; }
+.upstats > div { display: flex; justify-content: space-between; gap: 8px; }
+.upstats span { text-align: left; }
+.upstats b { font-weight: 400; white-space: nowrap; }
+@media (max-width: 760px) { .card .upstats { grid-column: 2; } }
 .card .rarity { position: absolute; top: 3px; right: 7px; font-family: RSSmall, sans-serif; font-size: 16px; line-height: 1; color: var(--rar); text-shadow: 1px 1px 0 #000, 0 0 6px #000; pointer-events: none; }
 .card.r-common .rarity { opacity: .85; }
 .card.rar .tier { color: var(--rar); }

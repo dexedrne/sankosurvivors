@@ -3,7 +3,7 @@ import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in e
 import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
   ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
-  WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll,
+  WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength,
   weaponSlotItem, TUMBLE, PASTURE_NAV,
 } from './content.js';
 import { groundHash } from './ground-pack.js';
@@ -68,6 +68,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}, pace), rerolls: REROLLS_PER_RUN, belt: [],
       casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
       wm: {}, // weapon metals from caskets (pace 2): { katana: 0..5, bow: 0..3, arrow: 0..4, ... } (missing = Bronze / plain Bow)
+      ...(pace >= 2 ? { quality: { weapons: {}, passives: {} } } : {}),
     });
   });
   // veterans: skill ranks plus two for every piece of gear worn, 1.5% each, to +75% at 50 (pace 2 only; ranked has neither)
@@ -200,28 +201,28 @@ export function playerStats(p, meta = p.meta || {}) {
   const B = (ADVENTURER_BY_ID[p.adv] || {}).bonus || {};
   const G = p.gb || {}; // worn gear
   const bf = p.buffs || {}; // timed boons: beer, a blizzard's chill, the shrines' Strength, Agility and Magic
-  const might = (1 + 0.12 * passiveLevel(p, 'might') + 0.04 * m('combat') + (B.dmg || 0) + (G.dmg || 0)) * (bf.strength > 0 ? 1.3 : 1);
-  const haste = Math.max(0.3, 1 - 0.07 * passiveLevel(p, 'haste') - 0.03 * m('fletching') - (B.haste || 0) - (G.haste || 0));
+  const might = (1 + 0.12 * passiveStrength(p, 'might') + 0.04 * m('combat') + (B.dmg || 0) + (G.dmg || 0)) * (bf.strength > 0 ? 1.3 : 1);
+  const haste = Math.max(0.3, 1 - 0.07 * passiveStrength(p, 'haste') - 0.03 * m('fletching') - (B.haste || 0) - (G.haste || 0));
   return {
     might, haste,
-    speed: PLAYER_BASE.speed * (1 + 0.08 * passiveLevel(p, 'boots') + 0.03 * m('woodcutting') + (B.speed || 0) + (G.speed || 0)) * ((p.buffs && p.buffs.speed > 0) ? 1.35 : 1) * ((p.buffs && p.buffs.chill > 0) ? 0.9 : 1) * (bf.agility > 0 ? 1.25 : 1), // beer speeds you up, a blizzard slows you
-    magnet: PLAYER_BASE.magnet * (1 + 0.3 * passiveLevel(p, 'magnet') + 0.1 * m('magic') + (B.magnet || 0) + (G.magnet || 0)),
-    armor: passiveLevel(p, 'armor') + (B.armor || 0) + (G.armor || 0) + (m('mining') >= 2 ? 1 : 0) + (m('mining') >= 4 ? 1 : 0),
-    growth: (1 + 0.1 * passiveLevel(p, 'growth') + 0.05 * m('herblore') + (B.growth || 0) + (G.growth || 0)) * (bf.wisdom > 0 ? 1.4 : 1),
-    maxHp: Math.round(PLAYER_BASE.hp + 20 * passiveLevel(p, 'vigor') + 8 * m('smithing') + (B.hp || 0) + (G.hp || 0)),
-    regen: 0.15 * passiveLevel(p, 'vigor') + 0.1 * m('cooking') + (G.regen || 0),
-    coin: 1 + (G.coin || 0) + 0.15 * passiveLevel(p, 'greed'),
+    speed: PLAYER_BASE.speed * (1 + 0.08 * passiveStrength(p, 'boots') + 0.03 * m('woodcutting') + (B.speed || 0) + (G.speed || 0)) * ((p.buffs && p.buffs.speed > 0) ? 1.35 : 1) * ((p.buffs && p.buffs.chill > 0) ? 0.9 : 1) * (bf.agility > 0 ? 1.25 : 1), // beer speeds you up, a blizzard slows you
+    magnet: PLAYER_BASE.magnet * (1 + 0.3 * passiveStrength(p, 'magnet') + 0.1 * m('magic') + (B.magnet || 0) + (G.magnet || 0)),
+    armor: passiveStrength(p, 'armor') + (B.armor || 0) + (G.armor || 0) + (m('mining') >= 2 ? 1 : 0) + (m('mining') >= 4 ? 1 : 0),
+    growth: (1 + 0.1 * passiveStrength(p, 'growth') + 0.05 * m('herblore') + (B.growth || 0) + (G.growth || 0)) * (bf.wisdom > 0 ? 1.4 : 1),
+    maxHp: Math.round(PLAYER_BASE.hp + 20 * passiveStrength(p, 'vigor') + 8 * m('smithing') + (B.hp || 0) + (G.hp || 0)),
+    regen: 0.15 * passiveStrength(p, 'vigor') + 0.1 * m('cooking') + (G.regen || 0),
+    coin: 1 + (G.coin || 0) + 0.15 * passiveStrength(p, 'greed'),
     luck: 1 + 0.15 * m('luck'),
-    casket: (1 + 0.25 * passiveLevel(p, 'greed')) * (1 + 0.15 * m('luck')),
+    casket: (1 + 0.25 * passiveStrength(p, 'greed')) * (1 + 0.15 * m('luck')),
     coinBonus: 1 + 0.1 * m('coins'),
     weaponSlots: MAX_WEAPONS + m('strength'), passiveSlots: MAX_PASSIVES + m('prayer'),
     projectileSpeed: 1 + 0.1 * m('projectileSpeed'),
     rerolls: REROLLS_PER_RUN + m('rerolls'), revives: m('revive'),
-    area: 1 + 0.1 * passiveLevel(p, 'area') + 0.05 * m('area'),
+    area: 1 + 0.1 * passiveStrength(p, 'area') + 0.05 * m('area'),
     amount: m('amount') + (passiveLevel(p, 'amount') >= 1 ? 1 : 0) + (passiveLevel(p, 'amount') >= 4 ? 1 : 0),
-    reach: 1 + 0.06 * passiveLevel(p, 'amount'), // Feather: projectiles fly a little farther every level
-    critC: 0.08 + 0.05 * passiveLevel(p, 'crit'), critM: 1.8 + 0.1 * passiveLevel(p, 'crit'),
-    thorns: 8 * passiveLevel(p, 'thorns'),
+    reach: 1 + 0.06 * passiveStrength(p, 'amount'), // Feather: projectiles fly a little farther every level
+    critC: 0.08 + 0.05 * passiveStrength(p, 'crit'), critM: 1.8 + 0.1 * passiveStrength(p, 'crit'),
+    thorns: 8 * passiveStrength(p, 'thorns'),
     heal: 1 + 0.12 * m('fishing'),
     magic: 1 + (G.magic || 0), // the Minion set: magic weapons (Shard Staff, Lighter) hit harder
   };
@@ -435,18 +436,18 @@ export function rollChoices(sim, p) {
   // pace 1 (ranked week 0): no rarity, one level a card, and no extra rolls, exactly as before
   if (!(sim.pace >= 2)) return out.map(({ kind, id, level }) => ({ kind, id, level }));
   // each card rolls its rarity (evolutions are their own reward and do not roll)
-  const luck = cardLuck(p.meta || {}, p.passives);
+  const luck = cardLuck(p.meta || {}, { greed: passiveStrength(p, 'greed') });
   return out.map(({ kind, id, level }) => {
     if (kind === 'evolve') return { kind, id, level };
-    let r = rarityFromRoll(sim.rng(), luck);
+    if (id === 'curse') return { kind, id, level, from: level - 1 };
+    const r = rarityFromRoll(sim.rng(), luck);
     if (kind === 'heal') return { kind, id, level, rarity: CARD_RARITIES[r] };
     const from = level - 1, max = kind === 'weapon' ? MAX_WEAPON_LEVEL : MAX_PASSIVE_LEVEL;
-    if (r < 3) r = Math.min(r, max - from - 1); // Rare/Epic only when their levels fit under the max
     return { kind, id, level: Math.min(max, from + CARD_GAIN[r]), from, rarity: CARD_RARITIES[r] };
   });
 }
 // levels a card gives: a rarity card says how many (from -> level); a card without rarity (pace 1) gives one
-const cardGain = (c) => (c.rarity && typeof c.from === 'number' && c.level > c.from ? c.level - c.from : 1);
+const cardGain = (sim, c) => sim.pace >= 2 ? 1 : (c.rarity && typeof c.from === 'number' && c.level > c.from ? c.level - c.from : 1);
 
 function openLevel(sim, p) {
   if (!(sim.pace >= 2) || !p.alive || sim.pending[p.id] || !p.levelQ || sim.over) return false;
@@ -457,13 +458,29 @@ function openLevel(sim, p) {
 
 export function applyChoice(sim, p, choice) {
   if (choice.kind === 'evolve') { p.evo[choice.id] = true; sim.evolves++; sim.fx.push({ k: 'evolve', id: choice.id }); return; }
-  if (choice.kind === 'weapon') p.weapons[choice.id] = Math.min(MAX_WEAPON_LEVEL, (p.weapons[choice.id] || 0) + cardGain(choice));
+  if (sim.pace >= 2 && (choice.kind === 'weapon' || choice.kind === 'passive')) {
+    const key = choice.kind === 'weapon' ? 'weapons' : 'passives', max = choice.kind === 'weapon' ? MAX_WEAPON_LEVEL : MAX_PASSIVE_LEVEL;
+    if ((p[key][choice.id] || 0) >= max) return;
+    const bonus = CARD_QUALITY[Math.max(0, CARD_RARITIES.indexOf(choice.rarity))] - 100;
+    if (bonus && choice.id !== 'curse') {
+      p.quality ||= { weapons: {}, passives: {} };
+      p.quality[key][choice.id] = (p.quality[key][choice.id] || 0) + bonus;
+    }
+  }
+  if (choice.kind === 'weapon') p.weapons[choice.id] = Math.min(MAX_WEAPON_LEVEL, (p.weapons[choice.id] || 0) + cardGain(sim, choice));
   else if (choice.kind === 'passive') {
-    p.passives[choice.id] = Math.min(MAX_PASSIVE_LEVEL, (p.passives[choice.id] || 0) + cardGain(choice));
+    p.passives[choice.id] = Math.min(MAX_PASSIVE_LEVEL, (p.passives[choice.id] || 0) + cardGain(sim, choice));
     const st = playerStats(p);
     if (!p.godMode) { const gain = st.maxHp - p.maxHp; p.maxHp = st.maxHp; p.hp = Math.min(p.maxHp, p.hp + Math.max(0, gain)); }
   } else { const r = Math.max(0, CARD_RARITIES.indexOf(choice.rarity)); p.hp = Math.min(p.maxHp, p.hp + CARD_HEAL[r] * playerStats(p).heal); return; }
-  if (choice.rarity === 'legendary' && !p.godMode) p.hp = p.maxHp; // a Legendary card also heals you to full
+  if (sim.pace >= 2 && choice.rarity === 'epic' && choice.id !== 'curse' && !p.godMode) p.hp = p.maxHp;
+}
+
+export function previewChoice(sim, p, choice) {
+  const after = { ...p, weapons: { ...p.weapons }, passives: { ...p.passives }, evo: { ...p.evo },
+    ...(p.quality ? { quality: { weapons: { ...p.quality.weapons }, passives: { ...p.quality.passives } } } : {}) };
+  applyChoice({ ...sim, fx: [] }, after, choice);
+  return after;
 }
 
 export function choose(sim, playerId, index) {
@@ -565,7 +582,7 @@ function fireWeapons(sim, p, dt, st) {
   p.orbit += dt;
   for (const id of Object.keys(p.weapons)) {
     const lvl = p.weapons[id];
-    let s = WEAPONS[id].stats(lvl);
+    let s = weaponStats(p, id);
     if (p.evo[id]) s = evolveStats(id, s);
     s = withPassives(id, s, st);
     if (id === 'shield' || id === 'lighter') continue; // handled continuously
@@ -644,7 +661,7 @@ function fireWeapons(sim, p, dt, st) {
   }
   // the lighter: a ring of fire that burns everything inside it every half second
   if (p.weapons.lighter) {
-    let s = WEAPONS.lighter.stats(p.weapons.lighter);
+    let s = weaponStats(p, 'lighter');
     if (p.evo.lighter) s = evolveStats('lighter', s);
     s = withPassives('lighter', s, st);
     p.fire = s.radius;
@@ -656,7 +673,7 @@ function fireWeapons(sim, p, dt, st) {
   } else p.fire = 0;
   // kiteshields: positions are derived from time, so hosts and clients agree
   if (p.weapons.shield) {
-    let s = WEAPONS.shield.stats(p.weapons.shield);
+    let s = weaponStats(p, 'shield');
     if (p.evo.shield) s = evolveStats('shield', s);
     s = withPassives('shield', s, st);
     p.shields = s;

@@ -78,3 +78,8 @@ for(const [language,catalogue] of Object.entries({tr,es,fil})) {
 test('unknown locales use the English source without prototype lookups',()=>{
   for(const language of ['zh','__proto__','constructor',null]) assert.equal(translateText('Settings',language),'Settings');
 });
+
+test('retained quality labels and release notes translate in every supported catalogue',()=>{
+ const labels=['Base weapon stats','Common rank:','Uncommon','Base damage','Cooldown','Projectiles','Pierce','Bounces','Range','Radius','Size','Arc','Orbit speed','Burst radius','Damage multiplier','Cooldown multiplier','Movement speed','Pickup range','Armor','XP multiplier','Maximum health','Health per second','Coin multiplier','Casket multiplier','Card luck','Area multiplier','Extra projectiles','Reach multiplier','Critical chance','Critical multiplier','Thorns damage','Quality in every upgrade','Every upgrade gives one level. Common, Uncommon, Rare and Epic rolls retain different stat gains for this run. Maxed items cannot roll again. Cards show the resulting stats.'];
+ for(const lang of ['tr','es','fil'])for(const label of labels)assert.notEqual(translateText(label,lang),label,lang+': '+label);
+});

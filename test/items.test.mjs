@@ -155,7 +155,7 @@ test('arrows go on the Bow: more damage and pierce; better bows hit harder', () 
 });
 
 test('level-up card rarity: the odds over many seeds are close to the table, and luck lifts them a little', () => {
-  assert.deepEqual(CARD_ODDS, [70, 22, 7, 1]); assert.deepEqual(CARD_GAIN, [1, 2, 3, 4]);
+  assert.deepEqual(CARD_ODDS, [70, 22, 7, 1]); assert.deepEqual(CARD_GAIN, [1, 1, 1, 1]);
   const count = (greed) => {
     const n = [0, 0, 0, 0]; let total = 0;
     for (let seed = 1; seed <= 2500; seed++) { const s = createSim({ seed }), p = s.players[0]; if (greed) p.passives.greed = greed; for (const c of rollChoices(s, p)) if (c.rarity) { n[CARD_RARITIES.indexOf(c.rarity)]++; total++; } }
@@ -171,12 +171,12 @@ test('level-up card rarity: the odds over many seeds are close to the table, and
   for (let seed = 1; seed < 50; seed++) { const s = createSim({ seed, pace: 1 }); for (const c of rollChoices(s, s.players[0])) assert.deepEqual(Object.keys(c), ['kind', 'id', 'level']); }
 });
 
-test('rarer cards give more levels, never past the max; a new pick starts higher; Legendary heals to full', () => {
+test('rarer cards retain strength at one level per pick, never past the max; Epic heals to full', () => {
   const at = (u, setup) => { const s = createSim({ seed: 4 }), p = s.players[0]; setup(p); s.rng = () => u; return { s, p, cards: rollChoices(s, p) }; };
-  // Epic everywhere (a roll of 0.05): +3 levels, a new weapon or passive starts at level 3
-  { const { s, p, cards } = at(0.05, () => {}); for (const c of cards) { assert.equal(c.rarity, 'epic'); assert.equal(c.level - c.from, 3); }
-    const nw = cards.find((c) => c.from === 0); assert.ok(nw); applyChoice(s, p, nw); assert.equal((nw.kind === 'weapon' ? p.weapons : p.passives)[nw.id], 3); }
-  // near the top: a Rare or Epic that would overshoot is shown as what fits; a Legendary goes to the max and heals
+  // Rare everywhere (roll 0.05): one level and 30 retained bonus points, including new acquisitions.
+  { const { s, p, cards } = at(0.05, () => {}); for (const c of cards) { assert.equal(c.rarity, 'rare'); assert.equal(c.level - c.from, 1); }
+    const nw = cards.find((c) => c.from === 0); assert.ok(nw); applyChoice(s, p, nw); const key = nw.kind === 'weapon' ? 'weapons' : 'passives'; assert.equal(p[key][nw.id], 1); assert.equal(p.quality[key][nw.id], 30); }
+  // Near the cap every rarity still fits; Curse is a fixed-risk, unrolled offer.
   for (let seed = 1; seed <= 400; seed++) {
     const s = createSim({ seed }), p = s.players[0];
     p.weapons = { katana: 5, bow: 4, axe: 6 }; p.passives = { might: 4, haste: 3, vigor: 5 };
@@ -184,14 +184,16 @@ test('rarer cards give more levels, never past the max; a new pick starts higher
       if (c.kind === 'evolve' || c.kind === 'heal') continue;
       const max = c.kind === 'weapon' ? MAX_WEAPON_LEVEL : MAX_PASSIVE_LEVEL, have = (c.kind === 'weapon' ? p.weapons : p.passives)[c.id] || 0;
       assert.equal(c.from, have); assert.ok(c.level > c.from && c.level <= max, JSON.stringify(c));
-      if (c.rarity !== 'legendary') assert.equal(c.level - c.from, CARD_GAIN[CARD_RARITIES.indexOf(c.rarity)], 'the rarity shown is what it gives');
-      const q = structuredClone({ weapons: p.weapons, passives: p.passives }); const pp = { ...p, weapons: q.weapons, passives: q.passives, hp: 10 };
+      assert.equal(c.level - c.from, 1);
+      if (c.id === 'curse') assert.equal(c.rarity, undefined);
+      else assert.equal(CARD_GAIN[CARD_RARITIES.indexOf(c.rarity)], 1);
+      const pp = structuredClone(p); pp.hp = 10;
       applyChoice(s, pp, c); assert.ok((c.kind === 'weapon' ? pp.weapons : pp.passives)[c.id] <= max);
-      if (c.rarity === 'legendary') assert.equal(pp.hp, pp.maxHp, 'a Legendary card heals to full');
+      if (c.rarity === 'epic') assert.equal(pp.hp, pp.maxHp, 'an Epic card heals to full');
     }
   }
   { const { s, p, cards } = at(0.005, (q) => { q.weapons = { katana: 5 }; }); const k = cards.find((c) => c.id === 'katana'); p.hp = 5;
-    assert.deepEqual([k.rarity, k.from, k.level], ['legendary', 5, 6]); applyChoice(s, p, k); assert.equal(p.weapons.katana, 6); assert.equal(p.hp, p.maxHp); }
+    assert.deepEqual([k.rarity, k.from, k.level], ['epic', 5, 6]); applyChoice(s, p, k); assert.equal(p.weapons.katana, 6); assert.equal(p.hp, p.maxHp); }
   // the heal card heals more the rarer it is
   const heal = (u) => { const s = createSim({ seed: 1 }), p = s.players[0]; p.maxHp = 1000; p.hp = 1; s.rng = () => u; applyChoice(s, p, { kind: 'heal', id: 'fish', level: 1, rarity: CARD_RARITIES[rarityFromRoll(u)] }); return p.hp; };
   assert.ok(heal(0.9) < heal(0.2) && heal(0.2) < heal(0.05) && heal(0.005) === 1000);

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {createSim,step,choose,skipLevel,mulberry32,TICK} from '../src/sim.js';
+import {createSim,step,choose,skipLevel,mulberry32,playerStats,previewChoice,TICK} from '../src/sim.js';
 import {RunRecorder,rankedSim} from '../src/ranked.js';
 import * as content from '../src/content.js';
 import {rankedStep,rankedChoice,resumeRanked} from '../src/ranked-play.js';
@@ -14,7 +14,7 @@ function setup({phone=true,held=false,ranked=false,natural=null,shown=!natural,c
   if(!natural){sim.spawnAcc=-1e9;sim.bossIndex=99;sim.eventT=1e9;sim.shrineT=1e9;p.skips=2;sim.pending.p1={choices,left:20};}
   const elements=new Map(),el=id=>{if(!elements.has(id)){const classes=new Set(['hidden']);elements.set(id,{style:{},innerHTML:'',textContent:'',children:[],dataset:{},appendChild(child){this.children.push(child);},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle(x,on){if(on??!classes.has(x))classes.add(x);else classes.delete(x);}}});}return elements.get(id);};
   const touch={id:held?7:null,ox:0,oy:0,x:held?1:0,y:0};
-  const events=new Map(),context={...content,sim,phone,touch,events,step,choose,skipLevel,TICK,rankedStep,rankedChoice,RunRecorder,$:el,
+  const events=new Map(),context={...content,sim,phone,touch,events,step,choose,skipLevel,playerStats,previewChoice,TICK,rankedStep,rankedChoice,RunRecorder,$:el,
     addEventListener:(name,fn)=>events.set(name,fn),document:{hidden:false,addEventListener:(name,fn)=>events.set(name,fn),createElement:()=>({dataset:{},classList:{toggle(){}}})},
     preloadNextIcons(){},audio:{duck(){},play(){}},renderer:{getYaw:()=>0},navigator:{getGamepads:()=>[]},
     iconHTML:()=>'',imgTag:()=>'',stepOf:()=>null,markCard(){},showCasket(){},persistRanked(){},endRun(){},hop(){},console};
@@ -146,11 +146,31 @@ test('a refused forced-heal choice falls back to its card instead of spinning th
 });
 
 for(const[weapon,first,second]of [['bow','Winged Boots','Amanita'],['staff','Wizard Hat','Cape']])for(const pace of [1,2])test(`actual ${weapon} max-level card explains ${pace===1?'legacy':'alternative'} evolution requirements`,()=>{
- const h=setup({shown:false,choices:[{kind:'weapon',id:weapon,level:6}]});h.sim.pace=pace;h.showReal();const html=h.element('cards').children[0].innerHTML;assert.ok(html.includes(first));if(pace===2){assert.ok(html.includes(' or '));assert.ok(html.includes(second));}else assert.ok(!html.includes(second));
+ const h=setup({shown:false,choices:[{kind:'weapon',id:weapon,level:6}]});h.sim.pace=pace;h.p.weapons[weapon]=5;h.showReal();const html=h.element('cards').children[0].innerHTML;assert.ok(html.includes(first));if(pace===2){assert.ok(html.includes(' or '));assert.ok(html.includes(second));}else assert.ok(!html.includes(second));
 });
 for(const[passive,weapons]of [['area',['staff','pickaxe']],['thorns',['katana','shield']],['crit',['bow','lighter']],['boots',['bow','shortsword']]])test(`actual ${passive} passive card discloses every shared evolution route`,()=>{
  const h=setup({shown:false,choices:[{kind:'passive',id:passive,level:1}]});h.showReal();const html=h.element('cards').children[0].innerHTML;for(const id of weapons)assert.ok(html.includes(content.weaponTitle(id,6,null)),id+' missing from '+html);
 });
 for(const pace of [1,2])test(`Vigor card also discloses both already-existing evolution pairings on pace${pace}`,()=>{
  const h=setup({shown:false,choices:[{kind:'passive',id:'vigor',level:1}]});h.sim.pace=pace;h.showReal();const html=h.element('cards').children[0].innerHTML;for(const id of ['axe','greatsword'])assert.ok(html.includes(content.weaponTitle(id,6,null)),id+' missing from '+html);
+});
+
+for(const [rarity,damage]of [['common','11.3'],['uncommon','11.72'],['rare','12.14'],['epic','12.7']])test(`actual ${rarity} Bow card shows exact nominal gain and accepts one retained level`,()=>{
+ const h=setup({shown:false,choices:[{kind:'weapon',id:'bow',level:2,from:1,rarity}]});h.p.weapons={bow:1};const before=structuredClone(h.p);h.showReal();const card=h.element('cards').children[0];
+ assert.match(card.className,new RegExp('r-'+rarity));assert.ok(card.innerHTML.includes('Base weapon stats'));assert.ok(card.innerHTML.includes('Base damage'));assert.ok(card.innerHTML.includes('8.5 → '+damage));assert.ok(card.innerHTML.includes('Cooldown'));assert.ok(card.innerHTML.includes('Projectiles'));assert.ok(card.innerHTML.includes('Lv 2'));assert.deepEqual(h.p,before);
+ h.pick(0);assert.equal(h.p.weapons.bow,2);assert.equal(Number(content.weaponStats(h.p,'bow').dmg.toFixed(4)),Number(damage));
+});
+test('new weapon card shows resulting stats, retained Common improves existing quality, and max offers explain evolution',()=>{
+ const h=setup({shown:false,choices:[{kind:'weapon',id:'bow',level:1,from:0,rarity:'epic'}]});h.p.weapons={katana:1};h.showReal();let html=h.element('cards').children[0].innerHTML;assert.ok(html.includes('Base damage'));assert.ok(html.includes('9.9'));assert.ok(html.includes('1.155'));assert.ok(!html.includes('0 →'));assert.ok(html.includes('NEW'));h.pick(0);assert.equal(h.p.weapons.bow,1);
+ const k=setup({shown:false,choices:[{kind:'weapon',id:'bow',level:6,from:5,rarity:'common'}]});k.p.weapons={bow:5};k.p.quality.weapons.bow=50;k.showReal();html=k.element('cards').children[0].innerHTML;assert.ok(html.includes('21.1 → 23.9'));assert.ok(html.includes('Winged Boots'));assert.ok(html.includes('Amanita'));
+});
+test('passive preview shows actual capped cooldown and maximum health/regen, without changing live state',()=>{
+ for(const id of ['haste','vigor']){
+  const h=setup({shown:false,choices:[{kind:'passive',id,level:5,from:4,rarity:'epic'}]});h.p.passives={[id]:4};h.p.quality.passives[id]=200;if(id==='haste'){h.p.meta={fletching:5};h.p.gb.haste=.2;}const before=structuredClone(h.p);h.showReal();const html=h.element('cards').children[0].innerHTML;assert.deepEqual(h.p,before);
+  if(id==='haste'){assert.ok(html.includes('Cooldown multiplier'));assert.ok(html.includes('×0.3 → ×0.3'));}else {assert.ok(html.includes('Common rank:'));assert.ok(html.includes('Maximum health'));assert.ok(html.includes('Health per second'));assert.ok(html.includes('220 → 250'));}
+ }
+});
+test('fixed Curse and legacy cards do not promise rolled quality or new stat previews',()=>{
+ const h=setup({shown:false,choices:[{kind:'passive',id:'curse',level:1,from:0}]});h.showReal();const card=h.element('cards').children[0];assert.ok(!card.className.includes('rar'));assert.ok(!card.innerHTML.includes('Heals you to full'));assert.ok(!card.innerHTML.includes('upstats'));
+ const old=setup({shown:false,choices:[{kind:'weapon',id:'bow',level:2}]});old.sim.pace=1;old.p.weapons={bow:1};old.showReal();assert.ok(!old.element('cards').children[0].innerHTML.includes('upstats'));
 });

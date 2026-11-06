@@ -6,7 +6,7 @@ import { cleanSettings } from './settings.js';
 import { createScreenLayout } from './screen-layout.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, playerStats, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, playerStats, previewChoice, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { dmtText, poolReadout, prizeEstimate, prizeNotes } from './prize-display.js';
@@ -26,7 +26,7 @@ import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, evolutionPassives, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
   GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, bonusText, QUESTS, deltaText, gearRarity, alchValue, ARMOR_TIERS,
-  gearGroups, isWeaponItem, WEAPON_ITEMS, weaponItemText, weaponItemLabel, weaponStep, CARD_RARITIES, CARD_RARITY_NAMES, CARD_HEAL,
+  gearGroups, isWeaponItem, WEAPON_ITEMS, weaponItemText, weaponItemLabel, weaponStep, CARD_RARITIES, CARD_RARITY_NAMES, CARD_HEAL, weaponStats, passiveStrength, cardLuck,
 } from './content.js';
 
 const $ = (id) => document.getElementById(id);
@@ -1529,8 +1529,24 @@ function showLevelUp() {
   waitingForMove = false; $('movehint').classList.add('hidden'); stickEl.classList.add('hidden');
   const wrap = $('cards'); wrap.innerHTML = '';
   $('lutitle').textContent = pend.choices.some((c) => c.kind === 'evolve') ? 'Evolution!' : 'Level up!';
+  const me = sim.players.find((q) => q.id === PLAYER);
+  function statLines(c) {
+    if (!(sim.pace >= 2) || !me || c.id === 'curse' || !['weapon', 'passive'].includes(c.kind)) return '';
+    const after = previewChoice(sim, me, c), fresh = !(c.kind === 'weapon' ? me.weapons[c.id] : me.passives[c.id]);
+    let before, next, rows;
+    if (c.kind === 'weapon') {
+      before = weaponStats(me, c.id); next = weaponStats(after, c.id);
+      rows = [['dmg', 'Base damage'], ['cd', 'Cooldown', ' s'], ['count', 'Projectiles'], ['pierce', 'Pierce'], ['bounces', 'Bounces'], ['range', 'Range'], ['radius', 'Radius'], ['r', 'Size'], ['arc', 'Arc'], ['spin', 'Orbit speed'], ['burst', 'Burst radius']];
+    } else {
+      const stats = p => ({ ...playerStats(p), cardLuck: cardLuck(p.meta, { greed: passiveStrength(p, 'greed') }) });
+      before = stats(me); next = stats(after);
+      rows = { might: [['might', 'Damage multiplier', '×']], haste: [['haste', 'Cooldown multiplier', '×']], boots: [['speed', 'Movement speed']], magnet: [['magnet', 'Pickup range']], armor: [['armor', 'Armor']], growth: [['growth', 'XP multiplier', '×']], vigor: [['maxHp', 'Maximum health'], ['regen', 'Health per second']], greed: [['coin', 'Coin multiplier', '×'], ['casket', 'Casket multiplier', '×'], ['cardLuck', 'Card luck', '%']], area: [['area', 'Area multiplier', '×']], amount: [['amount', 'Extra projectiles'], ['reach', 'Reach multiplier', '×']], crit: [['critC', 'Critical chance', '%'], ['critM', 'Critical multiplier', '×']], thorns: [['thorns', 'Thorns damage']] }[c.id];
+    }
+    const number = (n, unit) => (unit === '×' ? '×' : '') + Number((unit === '%' ? n * 100 : n).toFixed(4)) + (unit && unit !== '×' ? unit : '');
+    return '<div class="upstats">' + (c.kind === 'weapon' ? '<div>Base weapon stats</div>' : '') + rows.filter(([key]) => typeof next[key] === 'number').map(([key, label, unit]) => `<div><span>${label}</span><b>${fresh ? '' : number(before[key], unit) + ' → '}${number(next[key], unit)}</b></div>`).join('') + '</div>';
+  }
   pend.choices.forEach((c, i) => {
-    // rarity (pace 2): Common grey, Rare blue, Epic purple, Legendary gold; a rarer card gives more levels at once
+    // Rarity strengthens one accepted level; discrete unlocks use the integer level.
     const ri = c.rarity ? Math.max(0, CARD_RARITIES.indexOf(c.rarity)) : -1;
     const el = document.createElement('div'); el.className = 'card' + (c.kind === 'evolve' ? ' evo' : '') + (ri >= 0 ? ` rar r-${CARD_RARITIES[ri]}` : ''); el.dataset.i = i;
     const from = typeof c.from === 'number' && c.rarity ? c.from : c.level - 1; // the level you have now
@@ -1546,23 +1562,22 @@ function showLevelUp() {
         if (needs.length) text += needs.length === 2 ? ` Evolves with ${needs[0]} or ${needs[1]}.` : ` Evolves with ${needs[0]}.`;
       }
     } else if (c.kind === 'passive') {
-      const p = PASSIVES[c.id]; name = passiveTitle(c.id, c.level); tag = lvTag(); text = p.blurb; icon = iconHTML('passive', c.id, c.level);
+      const p = PASSIVES[c.id]; name = passiveTitle(c.id, c.level); tag = lvTag(); text = sim.pace >= 2 && c.id !== 'curse' ? `<span>Common rank:</span> ${p.blurb}` : p.blurb; icon = iconHTML('passive', c.id, c.level);
       const ev = Object.keys(EVOLUTIONS).filter(id => evolutionPassives(id, sim.pace).includes(c.id));
       if (ev.length) text += ` Evolves ${ev.map(id => weaponTitle(id, 6, stepOf(id))).join(', ')}.`;
     } else { const hp = CARD_HEAL[Math.max(0, ri)]; name = 'Cooked Bubba Bass'; tag = 'Heal'; text = hp >= 9999 ? 'Restore all your health.' : `Restore ${hp} health.`; icon = iconHTML('item', 'Cooked Bubba Bass'); }
     if (ri === 3 && c.kind !== 'heal') text += ' Heals you to full.';
     const rar = ri >= 0 ? `<div class="rarity">${CARD_RARITY_NAMES[ri]}</div>` : '';
-    el.innerHTML = `${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p><div class="key">[${i + 1}]</div>`;
+    el.innerHTML = `${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p>${statLines(c)}<div class="key">[${i + 1}]</div>`;
     el.onclick = () => pick(i); wrap.appendChild(el);
   });
-  const me = sim.players.find((q) => q.id === PLAYER);
   $('reroll').innerHTML = `Reroll<span class="key"> (R)</span> · ${me ? me.rerolls : 0} left`; $('reroll').disabled = !me || me.rerolls <= 0;
-  markCard(); $('levelup').classList.remove('hidden');
+  $('levelup').classList.remove('hidden'); markCard();
 }
 function doReroll() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 'r') : reroll(sim, PLAYER))) { shownPending = false; showLevelUp(); if (rankedRec) persistRanked(); } }
 function doSkip() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 's') : skipLevel(sim, PLAYER))) { audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward(); if (rankedRec) persistRanked(); } }
 $('reroll').onclick = doReroll; $('skiplv').onclick = doSkip;
-function markCard() { [...$('cards').children].forEach((el, i) => el.classList.toggle('sel', i === selCard)); }
+function markCard() { [...$('cards').children].forEach((el, i) => { el.classList.toggle('sel', i === selCard); if (i === selCard) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }); }
 function pick(i) {
   if (!sim.pending[PLAYER] || sim.pending[PLAYER].casket) return;
   if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else choose(sim, PLAYER, i); audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward();

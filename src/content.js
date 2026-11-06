@@ -176,6 +176,21 @@ export const WEAPONS = {
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
 
+// Only continuous growth uses quality; projectile counts and unlocks keep the real level.
+export function weaponStats(p, id) {
+  const level = p.weapons[id] || 0;
+  if (!level) return null;
+  const stats = WEAPONS[id].stats(level), points = p.quality?.weapons?.[id] || 0;
+  if (!points) return stats;
+  const stronger = WEAPONS[id].stats(level + points / 100);
+  // shortcut: classify new continuous stats here when adding weapons.
+  for (const key of ['dmg', 'cd', 'range', 'arc', 'r', 'radius', 'spin', 'burst']) if (typeof stats[key] === 'number') stats[key] = stronger[key];
+  return stats;
+}
+export function passiveStrength(p, id) {
+  return (p.passives[id] || 0) + (p.quality?.passives?.[id] || 0) / 100;
+}
+
 // ---- passives -----------------------------------------------------------
 // Each passive is a real SankoQuest item (names and icons from the item catalog).
 export const PASSIVES = {
@@ -324,19 +339,17 @@ export function evolveStats(id, s) {
 }
 
 // ---- rarity on level-up cards (pace 2: casual, ranked from week 1) -----------------------------------------------------
-// Every card rolls a rarity (sim.rng, so runs replay exactly). Rarer cards give more levels: Common +1, Rare +2, Epic +3,
-// Legendary +4 and a full heal. Never past a weapon's or passive's max level: a card that would overshoot is shown at the
-// rarity that fits (Legendary stays Legendary for its heal). The heal card heals more the rarer it is. Evolutions do not
-// roll. Pace 1 (ranked week 0) has no rarity: one level a card, as before.
-export const CARD_RARITIES = ['common', 'rare', 'epic', 'legendary'];
-export const CARD_RARITY_NAMES = ['Common', 'Rare', 'Epic', 'Legendary'];
+// One real level per pick; quality retains extra continuous rank strength for this run.
+// Evolutions and fixed-risk Curse offers do not roll. Pace1 keeps its original cards.
+export const CARD_RARITIES = ['common', 'uncommon', 'rare', 'epic'];
+export const CARD_RARITY_NAMES = ['Common', 'Uncommon', 'Rare', 'Epic'];
 export const CARD_ODDS = [70, 22, 7, 1];          // percent at no luck
-export const CARD_GAIN = [1, 2, 3, 4];             // levels per rarity
-export const CARD_HEAL = [40, 60, 80, 9999];       // the heal card: health per rarity (Legendary = full)
+export const CARD_GAIN = [1, 1, 1, 1];           // real levels per rarity
+export const CARD_QUALITY = [100, 115, 130, 150]; // continuous rank strength; retain integer bonus points
+export const CARD_HEAL = [40, 60, 80, 9999];     // Epic heals to full
 /** card luck from the Luck skill (+0.05 per rank) and the Rusty Key passive (+0.04 per level); ranked has no skills */
 export function cardLuck(meta = {}, passives = {}) { return 0.05 * (Number(meta.luck) || 0) + 0.04 * (Number(passives.greed) || 0); }
-/** percent odds [common, rare, epic, legendary]: luck lifts the rarer ones a little (Rare ×(1+luck), Epic ×(1+1.5 luck),
- *  Legendary ×(1+2 luck)) */
+/** percent odds [common, uncommon, rare, epic]: luck lifts the upper tiers */
 export function cardOdds(luck = 0) {
   const L = Math.max(0, luck), r = CARD_ODDS[1] * (1 + L), e = CARD_ODDS[2] * (1 + 1.5 * L), l = CARD_ODDS[3] * (1 + 2 * L);
   return [100 - r - e - l, r, e, l];
