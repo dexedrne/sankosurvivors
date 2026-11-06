@@ -987,9 +987,12 @@ function syncTitleNames(force = false) {
   const value = load('sq-name', ''), name = typeof value === 'string' ? value : '';
   for (const id of ['rankedname', 'lbname']) {
     const input = $(id);
-    if ((force || input.value === titleName) && input.value !== name) input.value = name;
+    if ((force || input !== document.activeElement && input.value === titleName) && input.value !== name) input.value = name;
   }
   titleName = name;
+}
+function titleNameEditing() {
+  return ['rankedname', 'lbname'].some(id => { const input = $(id); return input === document.activeElement || input.value !== titleName; });
 }
 function syncTitleProgress() {
   titleProgressPending = false;
@@ -1005,13 +1008,13 @@ function refreshTitleProgress() {
 function refreshPendingTitleProgress() {
   if (titleProgressPending && progressCanLoad()) return refreshTitleProgress();
 }
-function queuePageReload(text, delay) {
+function queuePageReload(text, delay, forceNames = true) {
   if (!cloudCanLoad()) return;
-  syncTitleNames(true);
+  if (forceNames) syncTitleNames(true);
   refreshTitleProgress();
-  if (!canReloadGame()) return;
+  if (!canReloadGame() || !forceNames && titleNameEditing()) return;
   clearTimeout(reloadTimer); banner(text, 3000);
-  reloadTimer = setTimeout(() => { reloadTimer = 0; if (canReloadGame()) location.reload(); }, delay);
+  reloadTimer = setTimeout(() => { reloadTimer = 0; if (canReloadGame() && (forceNames || !titleNameEditing())) location.reload(); }, delay);
 }
 const cloud = createCloud(BASE, {
   signing: active => { walletRequests += active ? 1 : -1; },
@@ -1068,7 +1071,7 @@ function bindCloud(c, msg) {
   if (off) off.onclick = () => { if ($('wlcloudoff') !== off || !sameSession()) return; cloudConnecting = null; cloud.signOut(); msg('Cloud save is off on this device. Your saved progress stays on the wallet.'); renderWallet(); };
 }
 // open the game or come back to it: a newer save from another device loads (only between runs)
-const cloudPull = async () => { if (!cloud.state() || !progressCanLoad()) return; if (await cloud.pull()) queuePageReload('Loading your progress from your other device…', 600); else cloud.changed(); };
+const cloudPull = async () => { if (!cloud.state() || !progressCanLoad()) return; if (await cloud.pull()) queuePageReload('Loading your progress from your other device…', 600, false); else cloud.changed(); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); else if (cloud.state()) cloud.push(true); });
 setTimeout(cloudPull, 1500);
 // ---- buy DMT with ETH without leaving the game (src/swap.js: KyberSwap, checked before the wallet sees it) -------------

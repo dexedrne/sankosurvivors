@@ -35,7 +35,7 @@ const A='0x'+'1'.repeat(40),deferred=()=>{let resolve;const promise=new Promise(
 const reply=(value,status=200)=>new Response(JSON.stringify(value),{status});
 async function setup(t,{pause='login',established=false,holdStart=true,failStart=false,browserFailure=null,noBrowserApis=false,importData={'sq-coins':'100'},importFailure=null,holderReply=false,cloudData={'sq-coins':'100'},pullData={'sq-coins':'700'},failMap=false,putResponses=[],failSettings=false,initialName=null}={}){
   const previous=globalThis.localStorage,previousWindow=globalThis.window,store=new Map(established?[['sq-coins','500'],['sq-cloud',JSON.stringify({a:A,key:'fixture-key',rev:1})],['sq-cloud-base',JSON.stringify({'sq-coins':'500'})]]:[]);
-  if(initialName!==null)store.set('sq-name',JSON.stringify(initialName));
+  if(initialName!==null){store.set('sq-name',JSON.stringify(initialName));if(established)store.set('sq-cloud-base',JSON.stringify({'sq-coins':'500','sq-name':JSON.stringify(initialName)}));}
   const writes=[];let writesBlocked=false,importFailed=false,holderActive=false,traceConnect=false;
   globalThis.localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>{if(importFailure==='reserve'&&k==='sq-import-backup-v1')throw Error('fixture quota');if(writesBlocked)throw Error('fixture storage blocked');if(importFailure&&k==='sq-name'&&v==='\"Imported\"'&&!importFailed){importFailed=true;writesBlocked=importFailure==='persistent';throw Error('fixture import write failure');}writes.push(k);store.set(k,String(v));},removeItem:k=>{if(writesBlocked)throw Error('fixture storage blocked');store.delete(k);}};globalThis.window={};
   t.mock.timers.enable({apis:['setTimeout']});
@@ -58,10 +58,10 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     throw Error('unexpected fixture route '+route);
   });
   const browserStage=async name=>{calls.push(name);await stage(name);if(browserFailure===name)throw Error('fixture browser API failure');};
-  const nodes=new Map(),$=id=>{
-    if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{value:id==='rankedadv'?'adventurer':id==='rankedname'?(initialName??'Fixture'):id==='lbname'?(initialName??''):'',textContent:'',disabled:false,dataset:{},focus(){if(id==='cloudusewal')gates.choice.hit.resolve();},children:[],querySelectorAll:()=>[],replaceChildren(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);
+  const document={activeElement:null},nodes=new Map(),$=id=>{
+    if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{value:id==='rankedadv'?'adventurer':id==='rankedname'?(initialName??'Fixture'):id==='lbname'?(initialName??''):'',textContent:'',disabled:false,dataset:{},focus(){document.activeElement=this;if(id==='cloudusewal')gates.choice.hit.resolve();},children:[],querySelectorAll:()=>[],replaceChildren(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);
   };
-  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings','recoverRunProgress',`
+  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings','recoverRunProgress','document',`
     let buyBusy=null,walletConnecting=null,walletRequests=0,walletUi=false,walletBal=null,recoveryCanRestart=null,recoveryOptions=null;const walletModalOpen=()=>walletUi;
     let mode='title',sim=null,rankedRun=null,rankedRec=null,rankedBusy=false,storedLive=null,runTicket=null,mapLoading=false,loadedMapId='greentown',selMap='greentown',selAdv='adventurer',acc=0,selCard=0,shownPending=false,waitingForMove=false,rewardWasShown=false,pendingUse=null,slowmo=0,runBest=null,passedBest=false,chase=null;
     const audioApplied=[];const walletHandoff=null;const BASE='./',PLAYER='p',SIM_ID='fixture-sim',params=new URLSearchParams(),keys=new Set(),slotCache={},WEAPONS={},PASSIVES={};
@@ -104,7 +104,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     return{cloud,pickMap,recoveryOptions:()=>recoveryOptions,audioApplied:()=>audioApplied,connect:walletConnect,canRestartRecovery:()=>recoveryCanRestart?.(),boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
   `)(createCloud,W.current,W.walletRevision,W.onWallet,$,{reload(){reloads++;}},()=>stage('gear'),()=>stage('map'),failStart,
     noBrowserApis?{}:{locks:{request:async(name,fn)=>{calls.push('import-lock');await stage('import-lock');return fn();}},serviceWorker:{getRegistrations:async()=>{await browserStage('registrations');return[{update:async()=>browserStage('worker-update')}];}}},
-    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'),cleanSettings,profileValue,profileBest,failSettings,recoverRunProgressImpl);
+    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'),cleanSettings,profileValue,profileBest,failSettings,recoverRunProgressImpl,document);
   const track=p=>{pending.push(p);p.catch(()=>{});return p;};
   t.after(async()=>{for(const x of Object.values(gates))x.gate.resolve();t.mock.timers.tick(1000);await Promise.allSettled(pending);app.dispose();writesBlocked=false;W.disconnect();globalThis.localStorage=previous;globalThis.window=previousWindow;});
   return{app,store,writes,gates,calls,$,allowWrites:()=>writesBlocked=false,reloads:()=>reloads,sign:()=>track(app.cloud.signIn(W.current())),pull:()=>track(app.pull()),update:()=>track(app.update()),check:()=>track(app.check()),
@@ -275,7 +275,7 @@ for(const source of ['sign-in','pull','import'])test(`adopted ${source} selectio
  const data={'sq-coins':'100','sq-map':'"greentown"','sq-adv':'"wizard"','sq-name':'"Loaded"'},f=await setup(t,{pause:null,holdStart:false,established:source==='pull',cloudData:data,pullData:data,importData:data});
  f.$('rankedname').value=f.$('lbname').value='Before';if(source==='sign-in')await f.sign();else if(source==='pull')await f.pull();else await f.app.load();
  const adopted=f.app.state(),names=[f.$('rankedname').value,f.$('lbname').value];const starting=f.start();f.finish();await starting;t.mock.timers.tick(1000);
- assert.equal(adopted.selAdv,'wizard');assert.deepEqual(names,['Loaded','Loaded']);assert.equal(f.app.state().sim.players[0].adv,'wizard');assert.equal(f.reloads(),0);
+ assert.equal(adopted.selAdv,'wizard');assert.deepEqual(names,source==='pull'?['Before','Before']:['Loaded','Loaded']);assert.equal(f.app.state().sim.players[0].adv,'wizard');assert.equal(f.reloads(),0);
  f.app.toMenu();assert.equal(f.app.state().selAdv,'wizard');assert.equal(f.store.get('sq-name'),'"Loaded"');
 });
 test('adopted map loads through the normal picker without rewriting saved selections',async t=>{
@@ -454,7 +454,7 @@ test('an input edit arriving during a cloud PUT survives the resulting title ref
  const f=await mergedTitle(t,{pause:'push'}),saving=f.track(f.app.cloud.push(true));await f.gates.push.hit.promise;f.$('rankedname').value='Before ';f.$('rankedname').oninput();f.gates.push.gate.resolve();await saving;
  assert.equal(f.$('rankedname').value,'Before ');assert.equal(f.store.get('sq-name'),'"Merged"');assert.equal(f.$('lbname').value,'Merged');
 });
-for(const source of ['import','sign-in','pull'])test(`accepted ${source} deliberately refreshes edited names before a fast Start`,async t=>{
+for(const source of ['import','sign-in'])test(`accepted ${source} deliberately refreshes edited names before a fast Start`,async t=>{
  const data={'sq-coins':'250','sq-name':'"Accepted"'},f=await setup(t,{pause:null,holdStart:false,established:source==='pull',importData:data,cloudData:data,pullData:data});
  f.$('rankedname').value='Draft ';f.$('lbname').value='EndDraft';
  if(source==='import')await f.app.load();else if(source==='sign-in')await f.sign();else await f.pull();
@@ -463,4 +463,29 @@ for(const source of ['import','sign-in','pull'])test(`accepted ${source} deliber
 
 test('manual import routes pending-run recovery correctly and never reorders simultaneous journals',async t=>{
  const f=await setup(t,{pause:null,holdStart:false});f.store.set('sq-coins','500');f.store.set('sq-run-save-v1',JSON.stringify({v:1,data:{'sq-coins':'609'}}));f.store.set('sq-import-backup-v1',JSON.stringify({v:1,before:{'sq-coins':'100'}}));const before=new Map(f.store);await f.app.load();assert.equal(f.app.state().mode,'recovery');const options=f.app.recoveryOptions();assert.equal(typeof options?.retry,'function','must select completed-run recovery');assert.equal(options.reload,true);f.app.walletBusy('buy',true);assert.equal(f.app.canRestartRecovery(),false);f.app.walletBusy('buy',false);assert.equal(f.app.canRestartRecovery(),true);assert.throws(()=>options.retry());assert.deepEqual(f.store,before);assert.equal(f.reloads(),0);
+});
+
+// Mutations caught: forced name adoption on automatic pull, or missing live checks
+// before scheduling/firing the automatic reload, lose raw input or active typing.
+for(const id of ['rankedname','lbname'])for(const timing of ['before','during'])test(`automatic pull preserves ${id} raw draft ${timing} GET`,async t=>{
+ const data={'sq-coins':'700','sq-name':'"Other device"','sq-adv':'"wizard"'},f=await setup(t,{pause:timing==='during'?'pull':null,established:true,holdStart:false,initialName:'Before',pullData:data});
+ const draft=' Çağrı 🧀 ';
+ if(timing==='before')f.$(id).value=draft;
+ const pending=f.pull();if(timing==='during'){await f.gates.pull.hit.promise;f.$(id).value=draft;f.gates.pull.gate.resolve();}await pending;
+ assert.equal(f.$(id).value,draft);assert.equal(f.$(id==='rankedname'?'lbname':'rankedname').value,'Other device');t.mock.timers.tick(1000);assert.equal(f.reloads(),0);
+ assert.equal(f.store.get('sq-coins'),'700');assert.equal(f.app.cloud.state().rev,2);await f.start();assert.equal(f.app.state().sim.players[0].adv,'wizard');assert.equal(f.$(id).value,draft);
+});
+for(const id of ['rankedname','lbname'])test(`automatic pull does not reload a focused same-value ${id}`,async t=>{
+ const data={'sq-coins':'700','sq-name':'"Before"'},f=await setup(t,{pause:null,established:true,holdStart:false,initialName:'Before',pullData:data});f.$(id).focus();await f.pull();t.mock.timers.tick(1000);
+ assert.equal(f.$(id).value,'Before');assert.equal(f.reloads(),0);assert.equal(f.store.get('sq-coins'),'700');assert.equal(f.app.cloud.state().rev,2);
+});
+for(const kind of ['draft','focus'])test(`automatic reload rechecks a ${kind} arriving after scheduling`,async t=>{
+ const data={'sq-coins':'700','sq-name':'"Before"'},f=await setup(t,{pause:null,established:true,holdStart:false,initialName:'Before',pullData:data});await f.pull();
+ if(kind==='draft')f.$('lbname').value=' Late edit ';else f.$('rankedname').focus();t.mock.timers.tick(1000);
+ assert.equal(f.reloads(),0);assert.equal(f.store.get('sq-coins'),'700');assert.equal(f.$('lbname').value,kind==='draft'?' Late edit ':'Before');
+});
+
+for(const id of ['rankedname','lbname'])test(`automatic pull retains focused ${id} when the saved name changes`,async t=>{
+ const data={'sq-coins':'700','sq-name':'"Other device"'},f=await setup(t,{pause:null,established:true,holdStart:false,initialName:'Before',pullData:data});f.$(id).focus();await f.pull();
+ assert.equal(f.$(id).value,'Before');assert.equal(f.$(id==='rankedname'?'lbname':'rankedname').value,'Other device');t.mock.timers.tick(1000);assert.equal(f.reloads(),0);assert.equal(f.store.get('sq-name'),'"Other device"');
 });

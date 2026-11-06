@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Keep names while cloud progress loads": "Panatilihin ang pangalan habang naglo-load ang cloud",
+  "Automatic cloud loading now preserves name drafts and avoids reloading while you are editing. Confirmed imports and sign-ins still load the chosen saved name.": "Pinapanatili na ng awtomatikong pag-load ng cloud ang pangalang tina-type mo at hindi nagre-reload habang nag-e-edit ka. Patuloy na nilo-load ng kumpirmadong import at pag-sign in ang napiling naka-save na pangalan.",
   "Pasture fence tumble": "Pagulong sa mga bakod ng pastulan",
   "Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.": "Nalalampasan na ng pagulong ang mabababang bakod ng pastulan sa kanluran ng Greentown. Hinaharang pa rin ng mga bakod ang paglalakad. Nananatili ang mga pagsusuri sa pader at ligtas na paglapag.",
   "Keep coinless run history": "Panatilihin ang kasaysayan ng larong walang coins",

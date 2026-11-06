@@ -1,6 +1,10 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
   {
+    version: '0.44.33', date: '5 Nov 2026', title: 'Keep names while cloud progress loads',
+    items: ['Automatic cloud loading now preserves name drafts and avoids reloading while you are editing. Confirmed imports and sign-ins still load the chosen saved name.'],
+  },
+  {
     version: '0.44.32', date: '5 Nov 2026', title: 'Pasture fence tumble',
     items: ['Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.'],
   },

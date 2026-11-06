@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep names while cloud progress loads": "Bulut yüklenirken adını koru",
+  "Automatic cloud loading now preserves name drafts and avoids reloading while you are editing. Confirmed imports and sign-ins still load the chosen saved name.": "Otomatik bulut yüklemesi artık yazdığın adı korur ve düzenleme yaparken sayfayı yeniden yüklemez. Onaylanan içe aktarma ve giriş işlemleri seçilen kayıtlı adı yüklemeye devam eder.",
   "Pasture fence tumble": "Otlağın çitlerini aş",
   "Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.": "Takla artık Greentown'un batısındaki alçak otlak çitlerini aşar. Normal yürüyüşte çitler hâlâ yolu keser. Mevcut duvar ve iniş denetimleri korunur.",
   "Keep coinless run history": "Altınsız oyun geçmişini koru",

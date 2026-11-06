@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep names while cloud progress loads": "Conserva tu nombre al cargar la nube",
+  "Automatic cloud loading now preserves name drafts and avoids reloading while you are editing. Confirmed imports and sign-ins still load the chosen saved name.": "La carga automática de la nube conserva los nombres que estás escribiendo y evita recargar mientras los editas. Las importaciones e inicios de sesión confirmados siguen cargando el nombre guardado elegido.",
   "Pasture fence tumble": "Rodar sobre las cercas del pastizal",
   "Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.": "Ahora puedes rodar sobre las cercas bajas del pastizal al oeste de Greentown. Las cercas siguen bloqueando al caminar. Se mantienen las comprobaciones de paredes y de aterrizaje.",
   "Keep coinless run history": "Conserva el historial de partidas sin monedas",
