@@ -5,11 +5,12 @@ let createScreenLayout;
 try{({createScreenLayout}=await import('../src/screen-layout.js'));}catch(error){if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;}
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const posture='(device-posture: folded)',stacked='(vertical-viewport-segments: 2)';
-function fixture(t,{stored=null,readDenied=false,writeDenied=false,folded=false,vertical=false}={}){
- const previous=Object.fromEntries(['document','localStorage','matchMedia','addEventListener','ResizeObserver'].map(k=>[k,Object.getOwnPropertyDescriptor(globalThis,k)]));
+function fixture(t,{stored=null,readDenied=false,writeDenied=false,folded=false,vertical=false,phone=true}={}){
+ const previous=Object.fromEntries(['document','localStorage','matchMedia','addEventListener','ResizeObserver','navigator'].map(k=>[k,Object.getOwnPropertyDescriptor(globalThis,k)]));
  t.after(()=>{for(const[k,v]of Object.entries(previous))if(v)Object.defineProperty(globalThis,k,v);else delete globalThis[k];});
  const values=new Map(stored===null?[]:[['sq-screen-layout',stored]]),writes=[],classes=new Set(),media=new Map(),events=new Map();let changes=0;
  const body={classList:{toggle:(name,on)=>on?classes.add(name):classes.delete(name)}};
+ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{userAgent:phone?'Mozilla/5.0 (iPhone; CPU iPhone OS 27_1 like Mac OS X) Mobile Safari':'Mozilla/5.0 (X11; Linux x86_64) Chrome',userAgentData:{mobile:phone}}});
  Object.defineProperty(globalThis,'document',{configurable:true,value:{body,getElementById:()=>({})}});
  Object.defineProperty(globalThis,'localStorage',{configurable:true,get(){if(readDenied)throw Error('fixture storage getter denied');return{getItem:k=>values.get(k)??null,setItem(k,v){if(writeDenied)throw Error('fixture quota');writes.push(k);values.set(k,v);}};}});
  Object.defineProperty(globalThis,'matchMedia',{configurable:true,value:q=>{if(!media.has(q))media.set(q,{matches:q===posture?folded:q===stacked?vertical:false,listeners:[],addEventListener(type,fn){assert.equal(type,'change');this.listeners.push(fn);}});return media.get(q);}});
@@ -43,11 +44,21 @@ test('a failed preference write keeps the chosen live layout and the old stored 
 test('invalid settings values never alter layout or storage',t=>{
  const f=fixture(t);for(const v of [null,{},true,0,'__proto__','constructor','invalid'])f.layout.setMode(v);assert.equal(f.layout.mode,'auto');assert.equal(f.layout.active,false);assert.equal(f.writes.length,0);
 });
+test('desktop ignores saved DS and fold signals without rewriting the phone preference',t=>{
+ const f=fixture(t,{phone:false,stored:'"ds"',folded:true,vertical:true});assert.equal(f.layout.available,false);assert.equal(f.layout.mode,'standard');assert.equal(f.layout.active,false);assert.equal(f.classes.has('ds-layout'),false);
+ for(const mode of ['ds','auto','standard'])f.layout.setMode(mode);assert.equal(f.layout.active,false);assert.equal(f.values.get('sq-screen-layout'),'"ds"');assert.deepEqual(f.writes,[]);
+});
+test('desktop Settings does not offer the phone layout controls',t=>{
+ const f=fixture(t,{phone:false}),nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{html:'',set innerHTML(v){this.html=v;},querySelectorAll:()=>[]});return nodes.get(id);};
+ const ui=main.slice(main.indexOf('const SETTINGS ='),main.indexOf('const openSettings ='));
+ const build=Function('$','screenLayout','renderer',`const save=()=>{},audio={muted:false,volume:()=>50},autoAlchOn=()=>true,autoEquipOn=()=>false;${ui};return buildSettings;`)($,f.layout,{getSettings:()=>({}),applySettings(){}});
+ build();assert.ok(!$('setlist').html.includes('data-id="layout"'));assert.ok($('setlist').html.includes('data-id="autoequip"'));
+});
 test('actual Settings layout choice updates the selected option without editing graphics metadata',t=>{
  const f=fixture(t),nodes=new Map(),raw='{"v":3,"res":"0.75","future":{"keep":true}}';f.values.set('sq-settings',raw);let graphics=0;
  const $=id=>{if(!nodes.has(id))nodes.set(id,{html:'',buttons:[],set innerHTML(value){this.html=value;this.buttons=[...value.matchAll(/<button class="([^"]*)" data-id="([^"]*)" data-v='([^']*)'>(.*?)<\/button>/g)].map(m=>({className:m[1],dataset:{id:m[2],v:m[3]},textContent:m[4]}));},querySelectorAll:q=>q==='button'?nodes.get(id).buttons:[]});return nodes.get(id);};
  const ui=main.slice(main.indexOf('const SETTINGS ='),main.indexOf('const openSettings ='));
- const build=Function('$','screenLayout','renderer','save',`const audio={muted:false,volume:()=>50},autoAlchOn=()=>true;${ui};return buildSettings;`)($,f.layout,{getSettings:()=>({res:'0.75'}),applySettings(){graphics++;}},(k,v)=>{f.writes.push(k);f.values.set(k,JSON.stringify(v));});
+ const build=Function('$','screenLayout','renderer','save',`const audio={muted:false,volume:()=>50},autoAlchOn=()=>true,autoEquipOn=()=>false;${ui};return buildSettings;`)($,f.layout,{getSettings:()=>({res:'0.75'}),applySettings(){graphics++;}},(k,v)=>{f.writes.push(k);f.values.set(k,JSON.stringify(v));});
  build();const ds=$('setlist').buttons.find(b=>b.dataset.id==='layout'&&b.dataset.v==='"ds"');assert.ok(ds,'DS layout choice is reachable in actual Settings');ds.onclick();assert.equal(f.layout.mode,'ds');assert.equal($('setlist').buttons.find(b=>b.dataset.id==='layout'&&b.className==='on').textContent,'DS');assert.equal(f.values.get('sq-settings'),raw);assert.equal(graphics,0);assert.deepEqual(f.writes,['sq-screen-layout']);
 });
 function pointerFixture(active){
@@ -67,7 +78,7 @@ test('actual layout callback clears steering, pauses live play and resizes witho
  const init=main.slice(main.indexOf('const screenLayout = '),main.indexOf('function clearTouch()'));
  const clear=main.slice(main.indexOf('function clearTouch()'),main.indexOf("addEventListener('pointerdown'"));
  const pause=main.slice(main.indexOf('function pause(on)'),main.indexOf("$('start').onclick"));
- const app=Function('createScreenLayout','$','renderer',`let mode='play';const touch={id:7,x:1,y:0},stickEl=$('stick'),audio={duck(){}},sim={t:10};${clear}${pause}${init};return{choose:v=>screenLayout.setMode(v),state:()=>({mode,id:touch.id,x:touch.x,t:sim.t})};`)(createScreenLayout,$,{resize(){resizes++;}});
+ const app=Function('createScreenLayout','$','renderer',`let mode='play';const rankedRun=null,touch={id:7,x:1,y:0},stickEl=$('stick'),audio={duck(){}},sim={t:10};${clear}${pause}${init};return{choose:v=>screenLayout.setMode(v),state:()=>({mode,id:touch.id,x:touch.x,t:sim.t})};`)(createScreenLayout,$,{resize(){resizes++;}});
  app.choose('ds');assert.deepEqual(app.state(),{mode:'pause',id:null,x:0,t:10});assert.equal($('pause').classList.contains('hidden'),false);assert.equal(resizes,1);
 });
 

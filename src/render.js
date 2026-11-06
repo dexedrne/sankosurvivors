@@ -1927,8 +1927,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           if (evo) o.add(glowSprite(0xffd34d, 0.8, 0.5));
           o.add(ball); Object.assign(o.userData, { spinner: ball, trail: evo ? 0xffd34d : 0xfff6dc, every: 0.45 });
         } else if (art === 'axe') {
-          item(weaponModelPath('axe', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) { const m = orientedItem(p, 1.5); o.userData.spinner2 = m; o.add(m); } });
-          const blur = softRing(evo ? 0x7fe0ff : 0xffe2a0, 0.5, 0.95, { opacity: 0.32, arcs: 2 }); o.add(blur); o.userData.blur = blur; // a soft swoosh that turns with the axe
+          item(weaponModelPath('axe', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) { const m = orientedItem(p, 1.0); o.userData.spinner2 = m; o.add(m); } });
+          const blur = softRing(evo ? 0x7fe0ff : 0xffe2a0, 0.35, 0.65, { opacity: 0.32, arcs: 2 }); o.add(blur); o.userData.blur = blur; // a soft swoosh that turns with the axe
           Object.assign(o.userData, { trail: evo ? 0x7fe0ff : 0xffd38a, every: 0.35 });
         }
       }

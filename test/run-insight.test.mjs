@@ -62,7 +62,7 @@ test('mouse and keyboard inspect accessibly and blocked gameplay never queues us
 function loopFixture({fps='max',initialMode='title'}={}){
  let draws=0,inputs=0;const start=main.indexOf('let lastDrawn ='),end=main.indexOf('\nboot().then',start);assert.ok(start>=0&&end>start);
  const nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{disabled:false,classList:{toggle(){},contains:()=>true}});return nodes.get(id);};
- const context={requestAnimationFrame(){},renderer:{getSettings:()=>({fps}),getYaw:()=>0,setYaw(){},update(){draws++;return 0;}},readInput(){inputs++;return{pad:[]};},padEdges:()=>({}),navMove(){},navBack(){},navPress(){},navScreen:()=>({id:'title'}),$,
+ const context={requestAnimationFrame(){},renderer:{getSettings:()=>({fps}),getYaw:()=>0,setYaw(){},setShift(){},update(){draws++;return 0;}},readInput(){inputs++;return{pad:[]};},padEdges:()=>({}),navMove(){},navBack(){},navPress(){},navScreen:()=>({id:'title'}),$,
  snapshot:()=>({players:[{f:0}],fx:[]}),compactMenu:{matches:true},params:{has:()=>true},window:{__idleSim:{}},performance:{now:()=>0},PLAYER:'p1',audio:{onFx(){}},MAP_BY_ID:{},updateHud(){},drawMinimap(){},console};
  vm.createContext(context);vm.runInContext(`let mode='${initialMode}',sim=${initialMode==='pause'?"{map:{world:false,music:''}}":'null'},last=0,frame=0,acc=0,hudT=0,slowmo=0;const TICK=1/30;${main.slice(start,end)};globalThis.frameAt=loop;`,context);
  return{run(ts){context.frameAt(ts);},draws:()=>draws,inputs:()=>inputs};

@@ -53,8 +53,19 @@ function paymentLock(action) {
 export async function rankedApi(base, route, body) {
   const r = await fetch(`${base}api/ranked-${route}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = await r.json();
-  if (!r.ok || d.error) throw Object.assign(new Error(d.error || 'The ranked server could not answer.'), { status: r.status, refund: d.refund, retry: d.retry });
+  if (!r.ok || d.error) throw Object.assign(new Error(d.error || 'The ranked server could not answer.'), { status: r.status, refund: d.refund, retry: d.retry, update: d.update, plain: d.update === true });
   return d;
+}
+
+export async function requireRankedBuild(base, client) {
+  const unavailable = () => Object.assign(plain('Could not verify the latest game version. Reconnect and try again before entering ranked.'), {status:503});
+  let current;
+  try {
+    const r = await fetch(`${base}api/ranked-version`, {cache:'no-store', signal:AbortSignal.timeout(10000)});
+    current = await r.json();
+    if (!r.ok || !current || typeof current.build !== 'string' || !/^[A-Za-z0-9+._-]{1,80}$/.test(current.build) || current.build === 'dev' || typeof current.sim !== 'string' || !/^[0-9a-f]{12}$/.test(current.sim)) throw unavailable();
+  } catch { throw unavailable(); }
+  if (!client || client.build !== current.build || client.sim !== current.sim) throw Object.assign(plain('Update the game before entering or starting ranked. Your saved payments and runs are kept.'), {status:409, update:true});
 }
 
 async function recoverExact(base, onStep, payment, candidate = false) {
@@ -99,17 +110,18 @@ export async function clearUnsentPayment() {
 
 // onTx(hash) hears about the payment as soon as the wallet sends it (for an Arbiscan link while it confirms).
 // The wallet is only ever asked for the selected week's exact race price.
-export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'normal', expectedWeek) {
+export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'normal', expectedWeek, client) {
   if (!Object.hasOwn(RANKED.races, mode)) throw new Error('Pick a ranked race first.');
   return paymentLock(async () => {
     if (readRanked(PAYMENT)) throw plain('Check your saved payment before entering again.');
     writeRanked(ENTRIES, readRanked(ENTRIES, []));
+    await requireRankedBuild(base, client);
     const p = wallet.p;
     onStep('Approve the connection in your wallet…');
     const [address] = await p.request({ method:'eth_requestAccounts' });
     if (!/^0x[\da-f]{40}$/i.test(address || '')) throw new Error('No account was shared.');
     onStep('Checking your entries for this week…');
-    const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}`);
+    const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}&build=${encodeURIComponent(client.build)}&sim=${encodeURIComponent(client.sim)}`);
     const race = raceForWeek(n.week, mode);
     if (!Number.isSafeInteger(n.week) || n.week < 0 || (expectedWeek !== undefined && n.week !== expectedWeek) || !n.message || !n.nonce || n.chainId !== 42161 || String(n.dmt).toLowerCase() !== DMT_CONTRACT || String(n.collect).toLowerCase() !== ENTRY_WALLET || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
     onStep('Switch to Arbitrum One in your wallet…');
@@ -123,6 +135,7 @@ export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'no
     if (String(await p.request({ method:'eth_chainId' })).toLowerCase() !== chain.chainId) throw new Error('Switch to Arbitrum One before paying.');
     onStep('Sign the message in your wallet (free)…');
     const signature = await p.request({ method:'personal_sign', params:[hex(n.message), address] });
+    await requireRankedBuild(base, client);
     if (String(await p.request({ method:'eth_chainId' })).toLowerCase() !== chain.chainId) throw new Error('Switch to Arbitrum One before paying.');
     // Reserve more room than the final record in both stores BEFORE asking the wallet to broadcast.
     const reserved = { tx:null, signature, nonce:n.nonce, reserve:'0'.repeat(66) };

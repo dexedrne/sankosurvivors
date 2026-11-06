@@ -238,7 +238,7 @@ function week1Run(seed, mapId, adv, mode) {
 }
 test('a ranked week-1 run with rare cards and weapon metals replays exactly', () => {
   let found = null;
-  for (const [seed, map, adv, mode] of [[305, 'goblins', 'ranger', 'normal']]) { // genuine inputs earn rare cards and a weapon metal with the current opening
+  for (const [seed, map, adv, mode] of [[307, 'goblins', 'ranger', 'normal']]) { // genuine inputs earn rare cards and a weapon metal with the current opening
     const r = week1Run(seed, map, adv, mode);
     if (r.rare > 0 && r.metals > 0) { found = r; break; }
   }

@@ -1,7 +1,8 @@
 import test,{beforeEach} from 'node:test';
 import assert from 'node:assert/strict';
-import * as client from '../src/ranked-client.js';
-import {paymentBrowser,storage} from './helpers/payment-browser.mjs';
+import * as actualClient from '../src/ranked-client.js';
+const client={...actualClient,payEntry:(...args)=>{args[6]=CLIENT;return actualClient.payEntry(...args);}};
+import {paymentBrowser,storage,CLIENT,mockRankedFetch} from './helpers/payment-browser.mjs';
 const address='0x'+'12'.repeat(20),tx='0x'+'ab'.repeat(32),otherTx='0x'+'cd'.repeat(32);
 const nonce={week:0,nonce:'fixture-nonce',message:'fixture',chainId:42161,dmt:'0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8',collect:'0xa1e6e6ee71300c238935b7d59c8983b06e991be0',amountWei:'500000000000000000'};
 const response=d=>new Response(JSON.stringify(d));
@@ -12,7 +13,7 @@ function wallet(sent,extra={}) {return {p:{request:async({method,params})=>{
   if(method==='personal_sign')return'fixture-signature';if(method==='eth_sendTransaction'){sent.push(params[0]);return tx;}
   if(method==='eth_getTransactionReceipt')return{status:'0x1'};
 }}};}
-function backend(t,registered=[]){t.mock.method(globalThis,'fetch',async(url,options)=>{
+function backend(t,registered=[]){mockRankedFetch(t,async(url,options)=>{
  if(String(url).includes('nonce'))return response(nonce);
  registered.push(JSON.parse(options.body));return response({id:7,entry:'fixture-entry',week:0});
 });return registered;}
@@ -41,7 +42,7 @@ test('post-broadcast storage failure still shows the transaction and registers i
 test('registration never deletes a different pending payment',async t=>{
  const own={tx,signature:'sig-A',nonce:'nonce-A'},other={tx:otherTx,signature:'sig-B',nonce:'nonce-B'};
  localStorage.setItem('sq-ranked-payment',JSON.stringify(own));
- t.mock.method(globalThis,'fetch',async()=>{localStorage.setItem('sq-ranked-payment',JSON.stringify(other));return response({id:1,entry:'entry-A',week:0});});
+ mockRankedFetch(t,async()=>{localStorage.setItem('sq-ranked-payment',JSON.stringify(other));return response({id:1,entry:'entry-A',week:0});});
  await client.recoverPayment('/',()=>{});
  assert.deepEqual(JSON.parse(localStorage.getItem('sq-ranked-payment')),other);
 });
@@ -58,7 +59,7 @@ test('payment creation fails closed when cross-tab locking is unavailable',async
 test('an invalid successful registration response retains recovery instead of forgetting the payment',async t=>{
  const payment={tx,signature:'fixture-signature',nonce:'fixture-nonce'};
  localStorage.setItem('sq-ranked-payment',JSON.stringify(payment));
- t.mock.method(globalThis,'fetch',async()=>response({}));
+ mockRankedFetch(t,async()=>response({}));
  await assert.rejects(client.recoverPayment('/',()=>{}),/entry|answer|server/i);
  assert.deepEqual(client.readRanked('sq-ranked-payment'),payment);
 });
@@ -96,7 +97,7 @@ for(const failure of ['wrong transfer','reverted','refund','network','invalid re
  const reservation={tx:null,signature:'sig-A',nonce:'nonce-A',reserve:'0'.repeat(66)};
  for(const store of [localStorage,sessionStorage])store.setItem('sq-ranked-payment',JSON.stringify(reservation));
  const attempted=[];
- t.mock.method(globalThis,'fetch',async(url,options)=>{
+ mockRankedFetch(t,async(url,options)=>{
   const payment=JSON.parse(options.body);attempted.push(payment.tx);
   if(payment.tx===tx)return response({id:1,entry:'entry-A',week:0});
   if(failure==='network')throw new Error('fixture disconnected');

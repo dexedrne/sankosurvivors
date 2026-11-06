@@ -74,3 +74,8 @@ test('honest ranked tumble logs resume mid-roll and replay to the same result on
   assert.ok(cut);assert.ok(rec.log().uses.some(row=>row[1]===4));const r=replay(rec.log(),params);assert.ok(!r.error,r.error);assert.deepEqual([r.t,r.kills,r.level,r.won],[Math.floor(s.t),s.kills,s.level,s.over==='win']);
  }
 });
+
+test('tumble cannot cross a structural prop edge even when the room is reachable around it',()=>{
+ const{s,p,g}=fixture();for(let z=3;z<16;z++)g.fences[z*g.n+14]=8|(8<<4);
+ ticks(s,6,east);assert.ok(p.x<14,`solid prop stopped tumble: ${p.x}`);
+});

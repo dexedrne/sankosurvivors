@@ -1,5 +1,33 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked allows 20 minutes of total pause time per run. Check the remaining allowance in pause and upgrade menus; reloading does not reset it.": "Las partidas competitivas permiten 20 minutos de pausa en total. Consulta el tiempo restante en los menús de pausa y mejoras; recargar no reinicia el límite.",
+  "The minimap refreshes at a steady rate during busy fights, reducing redraw work without hiding enemies.": "El minimapa se actualiza a un ritmo constante durante los combates intensos y reduce el trabajo de dibujo sin ocultar enemigos.",
+  "20-minute total pause allowance exceeded": "se superó el límite total de pausa de 20 minutos",
+
+  "The diagnostic replay could not be saved. Keep this page open, free some storage and retry.": "No se pudo guardar la repetición de diagnóstico. Mantén esta página abierta, libera espacio y vuelve a intentarlo.",
+  "Ranked is competitive play. Bathroom breaks are fine: you have 20 minutes of total pause allowance per run. Time away, upgrade choices, reloads and connection delays all count. Reloading does not reset it. Exceeding the allowance disqualifies the run.": "Las partidas competitivas requieren atención. Puedes ir al baño: dispones de 20 minutos de pausa en total por partida. El tiempo en segundo plano, las elecciones de mejoras, las recargas y los retrasos de conexión cuentan. Recargar no reinicia el límite. Superarlo descalifica la partida.",
+  "Ranked has a 20-minute total pause allowance. The server checks elapsed time.": "Las partidas competitivas tienen un límite total de pausa de 20 minutos. El servidor comprueba el tiempo transcurrido.",
+  "Pause allowance exceeded. This run cannot qualify.": "Se agotó el tiempo de pausa. Esta partida no puede clasificarse.",
+
+  "The chapel's south doorway stays open for walking. Solid walls and low-fence collision remain in place.": "La puerta sur de la capilla permite pasar caminando. Las paredes sólidas y la colisión de las vallas bajas se mantienen.",
+  "Thrown axes and Mutant Slimers have smaller visuals. Damage and attack ranges are unchanged.": "Las hachas arrojadas y los Mutant Slimers se ven más pequeños. El daño y el alcance de los ataques no cambian.",
+  "Next week's ranked map is Apache Desert. Normal costs 1 DMT and Hard costs 2 DMT.": "El mapa de clasificatorias de la próxima semana es Apache Desert. Normal cuesta 1 DMT y Hard cuesta 2 DMT.",
+
+  "Title music starts after your first tap or key. Music and sound sliders now use mobile-compatible volume controls.": "La música del menú empieza tras tu primer toque o pulsación. Los controles de música y sonido ahora ajustan el volumen en móviles.",
+  "Enemies stop at touching distance instead of walking inside a stationary adventurer. Contact still hurts.": "Los enemigos se detienen al tocarte en lugar de meterse dentro de un aventurero inmóvil. El contacto sigue haciendo daño.",
+  "Map previews have clearer character positions. DS layout is available on phones only.": "Las vistas previas de los mapas muestran mejor al personaje. El diseño DS solo está disponible en teléfonos.",
+  "New ranked payments and starts require the latest game build. Saved payments and compatible runs can still be recovered.": "Los nuevos pagos y comienzos de clasificatorias requieren la última versión del juego. Los pagos guardados y las partidas compatibles se pueden recuperar.",
+  "Could not verify the latest game version. Reconnect and try again before entering ranked.": "No se pudo verificar la última versión del juego. Vuelve a conectarte e inténtalo antes de entrar en clasificatorias.",
+  "Update the game before entering or starting ranked. Your saved payments and runs are kept.": "Actualiza el juego antes de pagar o iniciar clasificatorias. Tus pagos y partidas guardados se conservan.",
+
+  "Choose your build": "Elige tu configuración",
+  "Auto equip safe armour upgrades (this device)": "Equipar mejoras seguras de armadura (este dispositivo)",
+  "Keeps every stat and any set you have started. Weapons stay manual.": "Conserva todos los atributos y los conjuntos iniciados. Las armas se eligen manualmente.",
+  "Banish": "Excluir",
+  "Banished": "Excluida",
+  "Choose a NEW skill to banish for this run. No replacement.": "Elige una habilidad NUEVA para excluir durante esta partida. No se reemplaza la carta.",
+  "Optional auto-equip wears only clear armour upgrades and keeps your stats and started sets. Enable it in Settings on this device.": "El equipamiento automático opcional solo acepta mejoras claras de armadura y conserva tus atributos y conjuntos iniciados. Actívalo en Ajustes en este dispositivo.",
+  "Up to 3 banishes remove unwanted NEW weapons or passives for the rest of this run. Banishing does not replace the card.": "Puedes excluir hasta 3 armas o habilidades pasivas NUEVAS para el resto de esta partida. La carta excluida no se reemplaza.",
   "Know your build": "Conoce tu equipo",
   "See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.": "Consulta el daño reciente de cada arma desde el minimapa o con Tab. Mantén pulsado un objeto del cinturón para leer su efecto sin usarlo.",
   "Menus now render at up to 30 frames per second while controls stay responsive.": "Los menús ahora se dibujan hasta a 30 fotogramas por segundo y los controles siguen respondiendo.",
@@ -1115,6 +1143,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Estimated pause allowance left: {0} / 20:00", "Tiempo de pausa restante estimado: {0} / 20:00"],
   ["{1} Evolves with {2} or {3}.", "{1} Evoluciona con {2} o {3}."],
   ["Swap for {1}: {2}", "Intercambio para {1}: {2}"],
   ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Escalado casual: vida/daño de contacto enemigos +{1}%; presión de aparición base +{2}%."],

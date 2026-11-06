@@ -1,15 +1,16 @@
-import { RunRecorder, RANKED, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek } from './ranked.js';
+import { RunRecorder, RANKED, pauseRemaining, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
-import { rankedApi, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
+import { rankedApi, requireRankedBuild, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
 import { cleanSettings } from './settings.js';
 import { createScreenLayout } from './screen-layout.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, playerStats, previewChoice, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { DamageMeter } from './damage-meter.js';
 import { bindBeltItem } from './belt-input.js';
+import { canAutoEquip } from './auto-equip.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { dmtText, poolReadout, prizeEstimate, prizeNotes } from './prize-display.js';
 import { initI18n, translateText } from './i18n.js';
@@ -45,7 +46,7 @@ const compactMenu = matchMedia('(max-width:760px), (max-width:1180px) and (max-h
 for (const id of ['adventurerpick', 'mappick']) $(id).open = !compactMenu.matches;
 const PLAYER = 'p1';
 
-let sim = null, renderer = null, rendererDefaults = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0;
+let sim = null, renderer = null, rendererDefaults = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0, banishMode = false;
 const keys = new Set();
 const audio = createAudio();
 const p2 = (n) => String(Math.floor(n)).padStart(2, '0');
@@ -94,6 +95,7 @@ const statVal = (st, key) => finiteNumber(st[key]);
 // a new item goes to the bank; a duplicate is sold for coins (unless it was already high alched in the run: sell = false)
 function bankItem(name, sell = true) { if (!Object.hasOwn(GEAR, name)) return false; const raw = load('sq-bank', []), b = Array.isArray(raw) ? raw : []; if (b.includes(name)) { if (sell) save('sq-coins', getCoins() + 25); return false; } b.push(name); save('sq-bank', b); return true; }
 const autoAlchOn = () => load('sq-autoalch', true) !== false; // Settings: auto high alch caskets that are not better (on by default: duplicates kept popping a card)
+const autoEquipOn = () => load('sq-autoequip', false) === true; // Device preference: mobile and desktop can differ.
 // special maps (Tutorial Island) are open from the start and sit outside the campaign chain
 const unlockedMap = (i) => params.has('unlock') || i === 0 || !!MAPS[i].special || clearedMaps().has(MAPS[i].after || MAPS[i - 1].id);
 const unlockedAdv = (a) => params.has('unlock') || a.unlock <= clearedMaps().size;
@@ -173,6 +175,7 @@ function buildMaps() {
 async function pickMap(id, remember = true) {
   if (mapLoading) return; selMap = id; if (remember) save('sq-map', id); window.__idleSim = null;
   const map = MAP_BY_ID[id];
+  playTitleMusic();
   if (loadedMapId !== id) {
     mapLoading = true; $('start').disabled = true; $('loadtext').textContent = `Loading ${map.name}…`;
     try { await renderer.loadMap(map); loadedMapId = id; renderer.reset(); } finally { mapLoading = false; $('start').disabled = false; $('loadtext').textContent = ''; }
@@ -200,7 +203,7 @@ const setRace = (m) => { rankedMode = m === 'hard' ? 'hard' : 'normal'; save('sq
 function liveRace(live) {
   let tk = {};
   try { tk = JSON.parse(atob(String(live.run).split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))) || {}; } catch { /* keep {} */ }
-  return { week: Number.isInteger(live.week) ? live.week : tk.w, mode: (live.mode || tk.m) === 'hard' ? 'hard' : 'normal' };
+  return { week: Number.isInteger(live.week) ? live.week : tk.w, mode: (live.mode || tk.m) === 'hard' ? 'hard' : 'normal', started: Number.isFinite(live.started) ? live.started : tk.s };
 }
 const raceBadge = (m) => (m === 'hard' ? ' (Hard)' : '');
 let walletBal = null; // the connected wallet's DMT and ETH on Arbitrum, last read
@@ -213,6 +216,19 @@ function persistRanked() {
   catch { banner('Run could not be saved. Keep this page open.', 5000); return false; }
 }
 setInterval(() => { if (rankedPlaying()) persistRanked(); }, 3000);
+function updateRankedPause() {
+  const active = rankedPlaying(), started = active ? liveRace(rankedRun).started : null;
+  const now = Date.now() + (Number.isFinite(rankedRun?.clockOffset) ? rankedRun.clockOffset : 0);
+  const left = active ? pauseRemaining(started, sim.t, now) : null;
+  for (const el of document.querySelectorAll('.rankedpause')) {
+    el.classList.toggle('hidden', !active);
+    el.classList.toggle('pauseexpired', left !== null && left < 0);
+    el.textContent = left === null ? 'Ranked has a 20-minute total pause allowance. The server checks elapsed time.'
+      : left < 0 ? 'Pause allowance exceeded. This run cannot qualify.'
+      : `Estimated pause allowance left: ${fmtT(Math.floor(left))} / 20:00`;
+  }
+}
+setInterval(updateRankedPause, 1000);
 addEventListener('pagehide', persistRanked);
 document.addEventListener('visibilitychange', () => { if (rankedPlaying()) persistRanked(); });
 $('rankedname').value = load('sq-name', '');
@@ -348,7 +364,7 @@ $('rankedenter').onclick = () => {
     if (b && b.dmt < price) throw plain(`You need ${price} DMT on Arbitrum to enter${mode === 'hard' ? ' the Hard race' : ''}.`);
     if (b && b.eth < ETH_FOR_GAS) throw plain('You need a little ETH on Arbitrum for the network fee.');
     $('rankedtx').replaceChildren();
-    await payEntry(c.w, BASE, rankedMessage, (tx) => { $('rankedtx').innerHTML = `<a href="${arbiscanTx(tx)}" target="_blank" rel="noopener">See your payment on Arbiscan</a>`; }, mode, week);
+    await payEntry(c.w, BASE, rankedMessage, (tx) => { $('rankedtx').innerHTML = `<a href="${arbiscanTx(tx)}" target="_blank" rel="noopener">See your payment on Arbiscan</a>`; }, mode, week, {build:BUILD, sim:SIM_ID});
     refreshBalances(true);
   });
 };
@@ -356,14 +372,15 @@ async function startRankedEntry(entry) {
   await rankedAction(async () => {
     if (rankedLive()) throw new Error('Resume your saved ranked run first.');
     if (!SIM_ID) throw new Error('This build has no ranked simulation version.');
+    await requireRankedBuild(BASE, {build:BUILD, sim:SIM_ID});
     writeRanked('sq-ranked-entries', readRanked('sq-ranked-entries', []));
     const adv = $('rankedadv').value;
     rankedMessage('Loading this week’s map…');
     if (mapLoading) throw new Error('The map is still loading. Try again in a moment.');
     await pickMap(rankedWeek.map);
     rankedMessage('Starting your ranked run…');
-    const d = await rankedApi(BASE, 'start', { entry: entry.entry, adv, sim: SIM_ID });
-    const live = { run: d.run, adv, seed: d.seed, map: d.map, week: d.week, mode: d.mode === 'hard' ? 'hard' : 'normal', sim: SIM_ID, name: $('rankedname').value.trim().slice(0, 16) || 'Adventurer', log: new RunRecorder().log() };
+    const d = await rankedApi(BASE, 'start', { entry: entry.entry, adv, sim: SIM_ID, build:BUILD });
+    const live = { run: d.run, started: d.started, clockOffset: Number.isFinite(d.serverNow) ? d.serverNow - Date.now() : 0, adv, seed: d.seed, map: d.map, week: d.week, mode: d.mode === 'hard' ? 'hard' : 'normal', sim: SIM_ID, name: $('rankedname').value.trim().slice(0, 16) || 'Adventurer', log: new RunRecorder().log() };
     writeRanked('sq-ranked-live', live);
     writeRanked('sq-ranked-entries', readRanked('sq-ranked-entries', []).filter((e) => e.id !== entry.id));
     await startRun(live);
@@ -416,9 +433,18 @@ async function submitRanked() {
     localStorage.removeItem('sq-ranked-submit'); localStorage.removeItem('sq-ranked-live');
     rankedRun = null; rankedRec = null;
   } catch (e) {
-    if (e.status === 400 && !e.retry) { localStorage.removeItem('sq-ranked-submit'); localStorage.removeItem('sq-ranked-live'); rankedRun = null; rankedRec = null; }
-    else $('rankedretry').classList.remove('hidden');
-    const text = e.status ? e.message : 'Could not reach ranked. Your run is saved: retry when your connection returns.';
+    let archiveFailed = false;
+    if (e.status === 400 && !e.retry) {
+      try {
+        let r = {};
+        try { const payload = JSON.parse(atob(String(body.run).split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))); if (payload && typeof payload === 'object') r = payload; } catch { /* malformed tickets still retain gameplay evidence */ }
+        // Keep one diagnostic replay, without its signed ticket, wallet or player name.
+        writeRanked('sq-ranked-rejected', { params: { id:r.id, week:r.w, seed:r.seed, adv:r.adv, sim:r.v, started:r.s, mode:r.m === 'hard' ? 'hard' : 'normal' }, log:body.log, reason:String(e.message).slice(0,500) });
+        localStorage.removeItem('sq-ranked-submit'); localStorage.removeItem('sq-ranked-live'); rankedRun = null; rankedRec = null;
+      } catch { archiveFailed = true; $('rankedretry').classList.remove('hidden'); }
+    } else $('rankedretry').classList.remove('hidden');
+    const text = (e.status ? e.message : 'Could not reach ranked. Your run is saved: retry when your connection returns.')
+      + (archiveFailed ? ' The diagnostic replay could not be saved. Keep this page open, free some storage and retry.' : '');
     $('rankedresult').textContent = text; rankedMessage(text);
   } finally { rankedBusy = false; renderRanked(); }
 }
@@ -491,6 +517,7 @@ async function boot() {
     applySavedGraphics();
     $('start').disabled = false; buildAdventurers(); buildMaps(); showBest(); renderer.setZoom(0.45); renderer.setShift(2.4);
     if (selMap !== 'greentown') await pickMap(selMap);
+    playTitleMusic();
     if (params.has('clean')) $('title').classList.add('hidden');
     if (params.has('autostart') && !rankedLive()) {
       for (const ch of (params.get('hold') || '')) keys.add(ch);
@@ -600,22 +627,30 @@ const SETTINGS = [
   { id: 'fx', name: 'Effects', opts: [['full', 'Full'], ['reduced', 'Reduced']] },
   { id: 'numbers', name: 'Damage numbers', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'shake', name: 'Screen shake', opts: [[true, 'On'], [false, 'Off']] },
+  { id: 'autoequip', name: 'Auto equip safe armour upgrades (this device)', opts: [[true, 'On'], [false, 'Off']] },
+  { note: 'Keeps every stat and any set you have started. Weapons stay manual.' },
   { id: 'autoalch', name: 'Auto high alch caskets that are not better', opts: [[true, 'On'], [false, 'Off']] },
 ];function buildSettings() {
-  const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn(), layout: screenLayout.mode };
-  $('setlist').innerHTML = SETTINGS.map((o) => o.head ? `<h3 class="sethead">${o.head}</h3>` : o.vol ? `<div class="setrow"><span>${o.name}</span><div class="volrow"><input type="range" min="0" max="100" step="5" value="${audio.volume(o.vol)}" data-vol="${o.vol}" aria-label="${o.name} volume"><b>${audio.volume(o.vol)}%</b></div></div>` : `<div class="setrow"><span>${o.name}</span><div class="seg">${o.opts.map(([v, label]) => `<button class="${cur[o.id] === v ? 'on' : 'ghost'}" data-id="${o.id}" data-v='${JSON.stringify(v)}'>${label}</button>`).join('')}</div></div>`).join('');
-  let blip = 0;
+  const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn(), autoequip: autoEquipOn(), layout: screenLayout.mode };
+  $('setlist').innerHTML = SETTINGS.filter(o => o.id !== 'layout' || screenLayout.available).map((o) => o.head ? `<h3 class="sethead">${o.head}</h3>` : o.note ? `<p class="dim setnote">${o.note}</p>` : o.vol ? `<div class="setrow"><span>${o.name}</span><div class="volrow"><input type="range" min="0" max="100" step="5" value="${audio.volume(o.vol)}" data-vol="${o.vol}" aria-label="${o.name} volume"><b>${audio.volume(o.vol)}%</b></div></div>` : `<div class="setrow"><span>${o.name}</span><div class="seg">${o.opts.map(([v, label]) => `<button class="${cur[o.id] === v ? 'on' : 'ghost'}" data-id="${o.id}" data-v='${JSON.stringify(v)}'>${label}</button>`).join('')}</div></div>`).join('');
+  let blip = 0, soundPreview = 0;
   for (const r of $('setlist').querySelectorAll('input[data-vol]')) {
     r.addEventListener('keydown', (e) => e.stopPropagation()); // arrow keys move the slider, not the menu
     r.oninput = () => {
+      const revision = ++soundPreview;
       audio.setVolume(r.dataset.vol, r.value); r.nextElementSibling.textContent = `${audio.volume(r.dataset.vol)}%`;
-      if (r.dataset.vol === 's' && performance.now() - blip > 150) { blip = performance.now(); audio.init(); audio.play('pickup', { minGap: 0 }); } // hear it
+      const ready = audio.init();
+      if (r.dataset.vol === 's') ready.then(() => {
+        if (revision !== soundPreview || !r.isConnected || $('settings').classList.contains('hidden') || performance.now() - blip <= 150) return;
+        blip = performance.now(); audio.play('pickup', { minGap: 0 });
+      }).catch(() => {});
+      else ready.catch(() => {});
     };
   }
   for (const b of $('setlist').querySelectorAll('button')) b.onclick = () => {
     const id = b.dataset.id, v = JSON.parse(b.dataset.v);
     if (id === 'layout') { screenLayout.setMode(v); buildSettings(); return; }
-    if (id === 'sound') audio.setMuted(!v); else if (id === 'autoalch') save('sq-autoalch', v === true); else renderer.applySettings({ [id]: v });
+    if (id === 'sound') audio.setMuted(!v); else if (id === 'autoalch') save('sq-autoalch', v === true); else if (id === 'autoequip') save('sq-autoequip', v === true); else renderer.applySettings({ [id]: v });
     const keep = { ...renderer.getSettings(), v: 2 }; save('sq-settings', keep); buildSettings();
   };
 }
@@ -750,6 +785,16 @@ $('updbtn').onclick = () => {
 };
 $('updclose').onclick = () => $('updates').classList.add('hidden');
 $('updates').addEventListener('click', (e) => { if (e.target.id === 'updates') $('updates').classList.add('hidden'); });
+
+function playTitleMusic() {
+  if (mode !== 'title') return;
+  audio.duck(false); audio.music(MAP_BY_ID[selMap].music);
+}
+function unlockAudio(event) {
+  if (!event.isTrusted || !renderer) return;
+  audio.init().catch(() => {});
+}
+for (const type of ['click', 'touchend', 'keydown']) addEventListener(type, unlockAudio, true);
 
 // ---- version, leaderboard and bug reports ------------------------------------------------------------------------------
 $('version').textContent = 'v' + LATEST;
@@ -1249,7 +1294,7 @@ async function startRun(live = null) {
     const map = MAP_BY_ID[isRanked ? live.map : selMap];
     if (loadedMapId !== map.id) await pickMap(map.id);
     if (mode === 'recovery') return;
-    audio.init().then(() => audio.music(map.music)).catch(() => {});
+    audio.music(map.music); audio.init().catch(() => {});
     const seed = Number(params.get('seed')) || (Math.random() * 1e9) | 0;
     const adv = runAdv(), forced = adv.id !== selAdv;
     const gear = isRanked || forced ? {} : getGear();
@@ -1347,6 +1392,7 @@ function toMenu() {
   if (rankedPlaying()) return;
   rankedRun = null; rankedRec = null; applyDmt();
   sim = null; mode = 'title'; window.__idleSim = null;
+  playTitleMusic();
   waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
   for (const id of ['end', 'pause', 'levelup', 'casket', 'hud']) $(id).classList.add('hidden');
   $('hud').classList.add('hidden'); $('title').classList.remove('hidden'); renderer.reset(); renderer.setZoom(0.45); renderer.setShift(2.4);
@@ -1374,11 +1420,12 @@ addEventListener('keydown', (e) => {
   }
   if (mode === 'levelup') {
     if (k === '1' || k === '2' || k === '3') pick(Number(k) - 1);
-    else if (k === 'arrowleft' || k === 'a') { selCard = (selCard + 2) % 3; markCard(); }
-    else if (k === 'arrowright' || k === 'd') { selCard = (selCard + 1) % 3; markCard(); }
+    else if (k === 'arrowleft' || k === 'a') { moveCard(-1); }
+    else if (k === 'arrowright' || k === 'd') { moveCard(1); }
     else if (k === 'enter' || k === ' ') pick(selCard);
     else if (k === 'r') doReroll();
     else if (k === 'x') doSkip();
+    else if (k === 'b') toggleBanish();
     return;
   }
   if (k === 'm') { audio.setMuted(!audio.muted); banner(audio.muted ? 'Sound off' : 'Sound on', 900); }
@@ -1390,7 +1437,7 @@ addEventListener('keydown', (e) => {
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => { keys.clear(); clearTouch(); if (mode === 'play') pause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); if (mode === 'play') pause(true); } });
-function pause(on) { clearTouch(); pendingUse = null; audio.duck(on); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); }
+function pause(on) { clearTouch(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (rankedRun) updateRankedPause(); }
 $('start').onclick = startRun; $('again').onclick = () => { if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
 $('quit').onclick = () => { if (rankedPlaying()) return; pause(false); sim.over = 'dead'; };
 
@@ -1524,10 +1571,11 @@ function resumeAfterReward() {
   acc = 0; audio.duck(waitingForMove);
 }
 function showLevelUp() {
+  banishMode = false; $('banishlv').setAttribute('aria-pressed', 'false'); $('banishhint').classList.add('hidden'); $('cards').classList.remove('banishing');
   if (sim) preloadNextIcons(sim.players.find((q) => q.id === PLAYER));
   let pend = sim.pending[PLAYER];
-  while (pend && !pend.casket && pend.choices.length === 1 && pend.choices[0].kind === 'heal') {
-    const before = pend; pick(0); pend = sim.pending[PLAYER];
+  while (pend && !pend.casket && pend.choices.filter(c => !c.banished).length === 1 && pend.choices[autoChoice(pend)].kind === 'heal') {
+    const before = pend; pick(autoChoice(pend)); pend = sim.pending[PLAYER];
     if (pend === before) break; // a refused choice must not spin the UI
   }
   if (!pend) return;
@@ -1555,7 +1603,7 @@ function showLevelUp() {
   pend.choices.forEach((c, i) => {
     // Rarity strengthens one accepted level; discrete unlocks use the integer level.
     const ri = c.rarity ? Math.max(0, CARD_RARITIES.indexOf(c.rarity)) : -1;
-    const el = document.createElement('div'); el.className = 'card' + (c.kind === 'evolve' ? ' evo' : '') + (ri >= 0 ? ` rar r-${CARD_RARITIES[ri]}` : ''); el.dataset.i = i;
+    const el = document.createElement('div'); el.className = 'card' + (c.banished ? ' banished' : '') + (c.kind === 'evolve' ? ' evo' : '') + (ri >= 0 ? ` rar r-${CARD_RARITIES[ri]}` : ''); el.dataset.i = i; el.setAttribute('role', 'button'); el.setAttribute('aria-disabled', String(!!c.banished)); el.tabIndex = c.banished ? -1 : 0;
     const from = typeof c.from === 'number' && c.rarity ? c.from : c.level - 1; // the level you have now
     const lvTag = () => (from === 0 ? (c.level > 1 ? `NEW · Lv ${c.level}` : 'NEW') : c.level - from > 1 ? `Lv ${from} → ${c.level}` : `Lv ${c.level}`);
     let name, tag, text, icon;
@@ -1575,19 +1623,37 @@ function showLevelUp() {
     } else { const hp = CARD_HEAL[Math.max(0, ri)]; name = 'Cooked Bubba Bass'; tag = 'Heal'; text = hp >= 9999 ? 'Restore all your health.' : `Restore ${hp} health.`; icon = iconHTML('item', 'Cooked Bubba Bass'); }
     if (ri === 3 && c.kind !== 'heal') text += ' Heals you to full.';
     const rar = ri >= 0 ? `<div class="rarity">${CARD_RARITY_NAMES[ri]}</div>` : '';
-    el.innerHTML = `${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p>${statLines(c)}<div class="key">[${i + 1}]</div>`;
-    el.onclick = () => pick(i); wrap.appendChild(el);
+    el.innerHTML = `${c.banished ? '<div class="banished-label">Banished</div>' : ''}${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p>${statLines(c)}<div class="key">[${i + 1}]</div>`;
+    el.onfocus = () => { selCard = i; markCard(); }; el.onclick = () => pick(i); wrap.appendChild(el);
   });
   $('reroll').innerHTML = `Reroll<span class="key"> (R)</span> · ${me ? me.rerolls : 0} left`; $('reroll').disabled = !me || me.rerolls <= 0;
-  $('levelup').classList.remove('hidden'); markCard();
+  $('banishlv').classList.toggle('hidden', !(sim.pace >= 2)); $('banishlv').classList.remove('on');
+  $('banishlv').innerHTML = `<span>Banish</span> <span translate="no">(${me?.banished ? 3 - me.banished.length : 0})</span><span class="key"> (B)</span>`;
+  $('banishlv').disabled = !pend.choices.some((_, i) => canBanish(sim, PLAYER, i));
+  selCard = autoChoice(pend); $('levelup').classList.remove('hidden'); markCard();
 }
 function doReroll() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 'r') : reroll(sim, PLAYER))) { shownPending = false; showLevelUp(); if (rankedRec) persistRanked(); } }
 function doSkip() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 's') : skipLevel(sim, PLAYER))) { audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward(); if (rankedRec) persistRanked(); } }
 $('reroll').onclick = doReroll; $('skiplv').onclick = doSkip;
+function toggleBanish() {
+  if (mode !== 'levelup' || !sim?.pending[PLAYER] || !sim.pending[PLAYER].choices.some((_, i) => canBanish(sim, PLAYER, i))) return;
+  banishMode = !banishMode; $('banishlv').setAttribute('aria-pressed', String(banishMode)); $('banishlv').classList.toggle('on', banishMode); $('banishhint').classList.toggle('hidden', !banishMode); $('cards').classList.toggle('banishing', banishMode);
+}
+function doBanish(i) {
+  if (mode !== 'levelup' || !sim || !(rankedRec ? rankedChoice(sim, rankedRec, 'b' + i) : banish(sim, PLAYER, i))) return;
+  shownPending = false; showLevelUp(); if (rankedRec) persistRanked();
+}
+$('banishlv').onclick = toggleBanish;
+function moveCard(delta) {
+  const choices = sim?.pending[PLAYER]?.choices; if (!choices?.length) return;
+  for (let i = 0; i < choices.length; i++) { selCard = (selCard + delta + choices.length) % choices.length; if (!choices[selCard].banished) break; }
+  markCard();
+}
 function markCard() { [...$('cards').children].forEach((el, i) => { el.classList.toggle('sel', i === selCard); if (i === selCard) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }); }
 function pick(i) {
+  if (banishMode) { doBanish(i); return; }
   if (!sim.pending[PLAYER] || sim.pending[PLAYER].casket) return;
-  if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else choose(sim, PLAYER, i); audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward();
+  if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else if (!choose(sim, PLAYER, i)) return; audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward();
 }
 
 // ---- reward casket card: the item, what it replaces, every stat change, and Wear or High alch ----------------------------
@@ -1604,6 +1670,7 @@ function showCasket() {
   const c = pend.casket;
   // Settings: a piece that improves nothing is high alched without stopping the run (still a recorded choice in ranked)
   if (autoAlchOn() && !c.anyUp) { toast(`${imgTag(c.item)} <span>Auto high alch<br><b>${c.item}</b> +${c.alch} coins</span>`); pickCasket(1, true); return; }
+  if (autoEquipOn() && canAutoEquip(sim.players[0], c.item, sim.pace)) { pickCasket(0, true); return; }
   shownPending = rewardWasShown = true; mode = 'casket'; selCard = pend.rec; audio.duck(true);
   waitingForMove = false; $('movehint').classList.add('hidden'); stickEl.classList.add('hidden');
   const rows = Object.entries(c.delta).map(([k, v]) => `<li class="${v > 0 ? 'up' : 'down'}">${deltaText(k, v)}</li>`);
@@ -1778,10 +1845,11 @@ addEventListener('keydown', (e) => {
 }, true);
 
 // ---- minimap: the game's own map art around you, turned with the camera ---------------------------------------------
-const mmImg = new Image(); mmImg.src = asset('world/world-map-full.webp');
+const mmImg = new Image();
 const mm = $('minimap'), mmx = mm.getContext('2d');
 function drawMinimap(view) {
-  if (!mmImg.complete || !view.players.length) return;
+  if (!view.players.length) return;
+  if (!mmImg.src) mmImg.src = asset('world/world-map-full.webp');
   const me = view.players[0], W = mm.width, R = W / 2, PX = 2.4; // canvas px per world unit
   const yaw = renderer.getYaw();
   mmx.save(); mmx.clearRect(0, 0, W, W);
@@ -1789,7 +1857,7 @@ function drawMinimap(view) {
   mmx.fillStyle = '#244f78'; mmx.fillRect(0, 0, W, W);
   mmx.translate(R, R); mmx.rotate(yaw); mmx.imageSmoothingEnabled = false;
   const span = (R / PX) * 1.5; // world units drawn around you (the corners show when turned)
-  mmx.drawImage(mmImg, (me.x - span) * 4, (me.z - span) * 4, span * 8, span * 8, -span * PX, -span * PX, span * 2 * PX, span * 2 * PX);
+  if (mmImg.complete && mmImg.naturalWidth > 0) mmx.drawImage(mmImg, (me.x - span) * 4, (me.z - span) * 4, span * 8, span * 8, -span * PX, -span * PX, span * 2 * PX, span * 2 * PX);
   const dot = (x, z, r, c) => { mmx.fillStyle = c; mmx.beginPath(); mmx.arc((x - me.x) * PX, (z - me.z) * PX, r, 0, Math.PI * 2); mmx.fill(); };
   // the edge of this map's arena
   if (sim.map.r < 500) { mmx.strokeStyle = 'rgba(255,240,192,0.5)'; mmx.lineWidth = 1.5; mmx.beginPath(); mmx.arc((sim.map.cx - me.x) * PX, (sim.map.cz - me.z) * PX, sim.map.r * PX, 0, Math.PI * 2); mmx.stroke(); }
@@ -1827,9 +1895,11 @@ function loop(ts) {
         if (!window.__idleSim) {
           const T = renderer.terrain;
           window.__idleSim = createSim({ seed: 1, map: MAP_BY_ID[selMap], ground: T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null } : null, players: [{ id: PLAYER, name: 'You', adv: runAdv().id, gear: runAdv().id !== selAdv ? {} : getGear() }] });
-          if (selMap === 'greentown' || selMap === 'world') { const p = window.__idleSim.players[0]; [p.x, p.z] = findWalkable(window.__idleSim, 390, 310); } // title-only clearing, away from the spawn tree
+          const previewSpots = { greentown: [365.5, 339.5], apache: [206.5, 85.5], world: [378.5, 270.5] };
+          if (Object.hasOwn(previewSpots, selMap)) { const p = window.__idleSim.players[0]; [p.x, p.z] = findWalkable(window.__idleSim, ...previewSpots[selMap]); } // title only; Whole World is south of Greentown's bank
         }
         const v = snapshot(window.__idleSim); v.players[0].f = Math.sin(performance.now() / 3000) * 0.5;
+        renderer.setShift(compactMenu.matches ? 2.4 : 4.4);
         if (compactMenu.matches) renderer.setYaw(0);
         else if (!params.has('qa')) renderer.setYaw(renderer.getYaw() + 0.0045); // the desktop title camera drifts slowly
         renderer.update(v, 0.033, PLAYER);
@@ -1857,7 +1927,7 @@ function loop(ts) {
     if (sim.pending[PLAYER] && !shownPending) showLevelUp();
     if (sim.over) endRun();
   } else if (mode === 'levelup') {
-    if (edges.left) { selCard = (selCard + 2) % 3; markCard(); } if (edges.right) { selCard = (selCard + 1) % 3; markCard(); } if (edges.a) pick(selCard);
+    if (edges.left) { moveCard(-1); } if (edges.right) { moveCard(1); } if (edges.b) toggleBanish(); else if (edges.a) pick(selCard);
     const before = sim.pending[PLAYER];
     if (mode === 'levelup' && !rankedRec && sim.pending[PLAYER]) step(sim, {}, dt); // ranked choices wait for the player
     if (shownPending && (!sim.pending[PLAYER] || sim.pending[PLAYER].casket)) { shownPending = false; audio.duck(false); mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward(); } // (a casket card shows next)
@@ -1881,7 +1951,8 @@ function loop(ts) {
   audio.onFx(view.fx, mode === 'play' ? view : null, sim.map.world && view.region ? MAP_BY_ID[view.region].music : sim.map.music);
   const flash = renderer.update(view, mode === 'play' || mode === 'levelup' ? dt : 0.001, PLAYER);
   $('hurt').classList.toggle('on', flash > 0.05);
-  hudT += dt; if (hudT > 0.08 || view.fx.length) { hudT = 0; updateHud(view); drawMinimap(view); }
+  hudT += dt; if (hudT > 0.08 || view.fx.length) updateHud(view);
+  if (hudT > 0.08) { hudT = 0; drawMinimap(view); }
 }
 
 boot().then(async () => {

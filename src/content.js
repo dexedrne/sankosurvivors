@@ -10,7 +10,7 @@ export const MAX_PASSIVES = 4;
 
 // Known native farm fence footprints whose old nav cells duplicate the thin railing collision.
 // Apply only to the matching world on pace2; a changed map must be inspected and rebaked.
-export const PASTURE_NAV = { hash: 'd10eff3c', cells: [
+export const PASTURE_NAV = { hash: '165cf2df', cells: [
   105269, 105272, 105776, 105777, 105778, 105779, 105780, 105781, 105782, 105783, 105784, 105785,
   105786, 105787, 105788, 105789, 105790, 105791, 105792, 105793, 105794, 106301, 106302, 106304,
   106305, 121132, 121644, 121661, 121662, 121664, 121665, 122156, 122157, 122158, 122159, 122160,
@@ -57,7 +57,7 @@ export const ENEMIES = {
   lildragon: { name: 'Lil Dragon',   model: 'mobs/Dragon.glb',                   h: 2.6, r: 1.0, hp: 220, speed: 3.3, dmg: 20, xp: 14, walk: 'Walk', idle: 'Idle' },
   bandit:    { name: 'Bandit',       rig: { hair: 'Short', head: 'Ranger Helmet', chest: 'Ranger Chestplate', hands: 'Ranger Gauntlets', legs: 'Ranger Leggings', feet: 'Ranger Boots' }, h: 1.6, r: 0.5, hp: 28, speed: 3.6, dmg: 9, xp: 3 },
   shapewiz:  { name: 'Shape Wizard', rig: { hair: 'Long', head: 'Shape Wizard Hat', chest: 'Shape Robe', legs: 'Shape Skirt', shirt: 0x7a4ac8 }, h: 1.6, r: 0.5, hp: 70, speed: 3.0, dmg: 15, xp: 7 },
-  mslimer:   { name: 'Mutant Slimer',model: 'mobs/snail/mutant slimer.glb',      h: 2.1, r: 1.5, hp: 260, speed: 2.6, dmg: 22, xp: 15, walk: 'walk', idle: 'walk' },
+  mslimer:   { name: 'Mutant Slimer',model: 'mobs/snail/mutant slimer.glb',      h: 1.85, r: 1.5, hp: 260, speed: 2.6, dmg: 22, xp: 15, walk: 'walk', idle: 'walk' },
   // bosses
   giant:     { name: 'Lesser Giant', model: 'mobs/giant.glb',                    h: 3.9, r: 1.6, hp: 900,  speed: 2.2, dmg: 28, xp: 60, walk: 'walk', idle: 'idle', boss: true, attacks: ['slam'] },
   // Tutorial Island's own boss (owner 3 Nov: "on tutorial island boss should be sankson"): Survival Sankson, grown huge

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {createSim,step,choose,skipLevel,mulberry32,playerStats,previewChoice,TICK} from '../src/sim.js';
+import {createSim,step,choose,skipLevel,mulberry32,playerStats,previewChoice,autoChoice,canBanish,TICK} from '../src/sim.js';
 import {RunRecorder,rankedSim} from '../src/ranked.js';
 import * as content from '../src/content.js';
 import {rankedStep,rankedChoice,resumeRanked} from '../src/ranked-play.js';
@@ -12,17 +12,17 @@ function section(start,end) {const a=source.indexOf(start),b=source.indexOf(end,
 function setup({phone=true,held=false,ranked=false,natural=null,shown=!natural,choices=[{kind:'weapon',id:'katana',level:2}]}={}) {
   const sim=natural?rankedSim(natural):createSim({seed:1104,pace:2}),p=sim.players[0];
   if(!natural){sim.spawnAcc=-1e9;sim.bossIndex=99;sim.eventT=1e9;sim.shrineT=1e9;p.skips=2;sim.pending.p1={choices,left:20};}
-  const elements=new Map(),el=id=>{if(!elements.has(id)){const classes=new Set(['hidden']);elements.set(id,{style:{},innerHTML:'',textContent:'',children:[],dataset:{},appendChild(child){this.children.push(child);},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle(x,on){if(on??!classes.has(x))classes.add(x);else classes.delete(x);}}});}return elements.get(id);};
+  const elements=new Map(),el=id=>{if(!elements.has(id)){const classes=new Set(['hidden']);elements.set(id,{setAttribute(){},style:{},innerHTML:'',textContent:'',children:[],dataset:{},appendChild(child){this.children.push(child);},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle(x,on){if(on??!classes.has(x))classes.add(x);else classes.delete(x);}}});}return elements.get(id);};
   const touch={id:held?7:null,ox:0,oy:0,x:held?1:0,y:0};
-  const events=new Map(),context={...content,sim,phone,touch,events,step,choose,skipLevel,playerStats,previewChoice,TICK,rankedStep,rankedChoice,RunRecorder,$:el,
-    addEventListener:(name,fn)=>events.set(name,fn),document:{hidden:false,addEventListener:(name,fn)=>events.set(name,fn),createElement:()=>({dataset:{},classList:{toggle(){}}})},
-    preloadNextIcons(){},audio:{duck(){},play(){}},renderer:{getYaw:()=>0},navigator:{getGamepads:()=>[]},
+  const events=new Map(),context={...content,sim,phone,touch,events,step,choose,skipLevel,playerStats,previewChoice,autoChoice,canBanish,TICK,rankedStep,rankedChoice,RunRecorder,rankedRun:null,updateRankedPause(){},$:el,
+    addEventListener:(name,fn)=>events.set(name,fn),document:{hidden:false,addEventListener:(name,fn)=>events.set(name,fn),createElement:()=>({dataset:{},classList:{toggle(){}},setAttribute(){}})},
+    preloadNextIcons(){},audio:{duck(){},play(){},init:()=>Promise.resolve()},renderer:{getYaw:()=>0},navigator:{getGamepads:()=>[]},
     iconHTML:()=>'',imgTag:()=>'',stepOf:()=>null,markCard(){},showCasket(){},persistRanked(){},endRun(){},hop(){},console};
   vm.createContext(context);
   const play=section("  if (mode === 'play') {\n    if (edges.start)","  } else if (mode === 'levelup') {");
   const level=section("  } else if (mode === 'levelup') {","  } else if (mode === 'casket') {");
   vm.runInContext(`
-    let mode='${shown?'levelup':'play'}',shownPending=${shown},rewardWasShown=${shown},selCard=0,waitingForMove=false,acc=0,pendingUse=null,slowmo=0;
+    let mode='${shown?'levelup':'play'}',shownPending=${shown},rewardWasShown=${shown},selCard=0,banishMode=false,waitingForMove=false,acc=0,pendingUse=null,slowmo=0;
     const PLAYER='p1',isTouchUI=phone,stickEl=$('stick'),keys=new Set(),rankedRec=${ranked?'new RunRecorder()':'null'};
     ${section('function readInput() {','function padEdges(')}
     ${section('const hop =','let padPrev')}

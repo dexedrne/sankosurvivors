@@ -14,6 +14,7 @@ async function start(raw){
   const $=id=>{if(!nodes.has(id))nodes.set(id,{disabled:true,textContent:'',style:{},classList:{add(){}}});return nodes.get(id);};
   const load=(key,fallback)=>JSON.parse(store.get(key)||'null')??fallback,save=(key,v)=>store.set(key,JSON.stringify(v)),params=new URLSearchParams();
   let applied=null,caught=null,renderer=null,rendererDefaults=null;const console={error:e=>caught=e},getGear=()=>({}),labels={},selMap='greentown';
+  const playTitleMusic=()=>{};
   const createRenderer=async()=>({preloadGear:async()=>{},getSettings:()=>({...factoryDefaults}),applySettings:v=>applied=v,setZoom(){},setShift(){}}),pickAssetHost=async()=>{},buildAdventurers=()=>{},buildMaps=()=>{},showBest=()=>{},requestAnimationFrame=()=>{},loop=()=>{};
   ${helpers}
   ${boot}
@@ -54,7 +55,7 @@ test('invalid later partial updates retain earlier valid device preferences',()=
 });
 test('every existing graphics control option stays accepted by the shared boundary',()=>{
  assert.equal(typeof cleanSettings,'function');const expression=main.slice(main.indexOf('const SETTINGS = ')+17,main.indexOf(';function buildSettings()'));const controls=Function('return ('+expression+');')();
- for(const item of controls)if(item.id&&!['sound','autoalch','layout'].includes(item.id))for(const [value]of item.opts)assert.deepEqual(cleanSettings({[item.id]:value}),{[item.id]:value},item.id+' '+value);
+ for(const item of controls)if(item.id&&!['sound','autoalch','autoequip','layout'].includes(item.id))for(const [value]of item.opts)assert.deepEqual(cleanSettings({[item.id]:value}),{[item.id]:value},item.id+' '+value);
 });
 test('settings boundary rejects primitive, array, coercible and prototype/meta values without mutation',()=>{
  assert.equal(typeof cleanSettings,'function');for(const input of [null,false,42,'broken',[],['low']])assert.deepEqual(cleanSettings(input),{});

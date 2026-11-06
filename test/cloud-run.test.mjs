@@ -71,6 +71,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     let hardOn=false,endlessOn=false;const rankedWeek={map:'greentown'},rankedLive=()=>storedLive,rankedPlaying=()=>!!rankedRun&&!!sim&&!sim.over;
     let rendererDefaults=null;let renderer={getSettings:()=>({}),applySettings(next){if(failSettings&&Object.hasOwn(next,'res'))throw Error('fixture display failure');},async loadMap(map){mapRequests.push(map.id);await mapStage();if(failMap)throw Error('fixture map failure');},async preloadGear(){await gearStage();if(failStart)throw Error('fixture gear failure');},reset(){},setZoom(){},setShift(){},setYaw(){},setAura(){}};
     ${mapPicker}
+    const playTitleMusic=()=>{};
     const audio={init:async()=>{},music(){},applyPreferences:data=>audioApplied.push(data)};
     const getCoins=()=>Number(JSON.parse(localStorage.getItem('sq-coins')||'0')),xferRead=code=>code==='fixture-code'?{data:importData}:{error:'fixture invalid code'};
     const getGear=()=>({}),getGearLv=()=>({}),getSkills=()=>({}),getBests=()=>({}),runGround=()=>null,runAdv=()=>ADVENTURER_BY_ID[MAP_BY_ID[selMap].forceAdv||selAdv],bestKey=()=>'';
@@ -78,6 +79,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     const banner=()=>{},preloadIcons=()=>{},weaponItem=()=>'',passiveItem=()=>'',clearTouch=()=>{},showLevelUp=()=>{},persistRanked=()=>{},fmtT=s=>String(s),slayName=()=> 'Dragon',kpmWeek=()=>false,liveRace=live=>live;
     const renderWallet=()=>{},renderDmt=()=>{},refreshBalances=()=>{},wallets=()=>[],short=a=>a,renderRanked=()=>{},rankedMessage=()=>{},openRanked=()=>{},why=e=>e.message,plain=s=>Error(s),applyDmt=()=>{},buildAdventurers=()=>{},showBest=()=>{},buildSettings=()=>{},submitRanked=async()=>{};
     const readRanked=(key,fallback=null)=>key==='sq-ranked-live'?storedLive:fallback,writeRanked=(key,value)=>{if(key==='sq-ranked-live')storedLive=value;};
+    const requireRankedBuild=async()=>{};
     const rankedApi=async()=>({run:'fixture-run',seed:1,map:'greentown',week:0,mode:'normal'}),RunRecorder=class{log(){return{runs:[]};}};
     ${rankedNameInput}
     ${choices}

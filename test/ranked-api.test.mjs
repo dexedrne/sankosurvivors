@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 Object.assign(process.env, { SUPABASE_URL: 'https://db.test', SUPABASE_KEY: 'dummy', SQS_TICKET_SECRET: 'ticket-secret', SQS_SERVER_KEY: 'server-key', SQS_RANKED: 'on' });
 // The server replays with the rules of the code under test (a fresh bundle in a temp folder), not the last deployed version
 // in tools/vercel-api/sims: a rule change since the last deploy would otherwise make honest runs fail.
+const BUILD_TEST = 'test-client', CLIENT = {build: BUILD_TEST, sim: 'abcdefabcdef'};
 const SIM_TEST_ID = 'abcdefabcdef', simsDir = mkdtempSync(path.join(tmpdir(), 'sqs-sims-'));
 mkdirSync(path.join(simsDir, SIM_TEST_ID));
 execFileSync(fileURLToPath(new URL('../node_modules/esbuild/bin/esbuild', import.meta.url)), [fileURLToPath(new URL('../tools/vercel-api/ranked-entry.mjs', import.meta.url)), '--bundle', '--platform=node', '--format=cjs', '--target=node22', '--log-level=error', `--outfile=${path.join(simsDir, SIM_TEST_ID, 'ranked-bundle.cjs')}`]);
@@ -60,15 +61,15 @@ globalThis.fetch = async (url, opts) => {
   } else throw new Error('offline test blocked URL ' + url);
   return new Response(JSON.stringify(result), { status: 200 });
 };
-beforeEach(() => { now = epoch + 12 * 3600000; db = new RankedDB(); chain = new Map(); blocks = new Map(); serial = 0; submits = []; });
+beforeEach(() => { writeFileSync(path.join(simsDir, 'client.json'), JSON.stringify(CLIENT)); now = epoch + 12 * 3600000; db = new RankedDB(); chain = new Map(); blocks = new Map(); serial = 0; submits = []; });
 after(() => { Date.now = originalNow; globalThis.fetch = originalFetch; sim.ground = originalGround; });
 let slowRefusalOk = false; // a refusal from the database after a full replay is allowed to take the replay's time
-async function call(route, body, { ip = '192.0.2.1', method = body === undefined ? 'GET' : 'POST', headers = {} } = {}) {
+async function call(route, body, { ip = '192.0.2.1', method = body === undefined ? 'GET' : 'POST', headers = {}, responseHeaders = {} } = {}) {
   const req = Readable.from(body === undefined ? [] : [Buffer.from(typeof body === 'string' ? body : JSON.stringify(body))]);
   Object.assign(req, { method, url: '/api/' + route, headers: { 'content-type': 'application/json', 'x-forwarded-for': ip, ...headers } });
   const cpu = process.cpuUsage();
   const out = await new Promise((resolve, reject) => {
-    const res = { statusCode: 200, setHeader() {}, end(s) { resolve({ code: this.statusCode, json: JSON.parse(s) }); } };
+    const res = { statusCode: 200, setHeader(k,v) { responseHeaders[k.toLowerCase()]=v; }, end(s) { resolve({ code: this.statusCode, json: JSON.parse(s) }); } };
     handler(req, res).catch(reject);
   });
   // refused submits must stay cheap; an accepted endless run replays as long as it lasted (up to 2:00:00, minutes)
@@ -76,7 +77,8 @@ async function call(route, body, { ip = '192.0.2.1', method = body === undefined
   return out;
 }
 const expectError = (r, code, error) => assert.deepEqual(r, { code, json: { error } });
-async function nonce(w, opts = {}) { const r = await call('ranked-nonce?wallet=' + w.address + (opts.mode ? '&mode=' + opts.mode : ''), undefined, opts); assert.equal(r.code, 200, JSON.stringify(r)); return { nonce: r.json.nonce, signature: w.sign(r.json.message), message: r.json.message, amountWei: r.json.amountWei }; }
+const nonceRoute=(w,mode='normal')=>'ranked-nonce?'+new URLSearchParams({wallet:w.address,mode,...CLIENT});
+async function nonce(w, opts = {}) { const r = await call(nonceRoute(w,opts.mode), undefined, opts); assert.equal(r.code, 200, JSON.stringify(r)); return { nonce: r.json.nonce, signature: w.sign(r.json.message), message: r.json.message, amountWei: r.json.amountWei }; }
 function payment(w, { amount = now >= epoch + weekMs ? 1000000000000000000n : 500000000000000000n, token = DMT, recipient = ranked.COLLECT, status = '0x1', at = now, amounts } = {}) {
   const tx = '0x' + (++serial).toString(16).padStart(64, '0'), blockNumber = '0x' + serial.toString(16);
   const blockHash = '0x' + (1000 + serial).toString(16).padStart(64, '0');
@@ -89,7 +91,7 @@ async function enter(w = wallet(), opts = {}) {
   assert.equal(r.code, 200, JSON.stringify(r)); return { ...r.json, auth, tx, w };
 }
 async function start(e, extra = {}) {
-  const r = await call('ranked-start', { entry: e.entry, adv: 'adventurer', sim: cur, ...extra }); assert.equal(r.code, 200, JSON.stringify(r)); return r.json;
+  const r = await call('ranked-start', { entry: e.entry, adv: 'adventurer', sim: cur, build:BUILD_TEST, ...extra }); assert.equal(r.code, 200, JSON.stringify(r)); return r.json;
 }
 function play(run) {
   const s = rankedSim({ seed: run.seed, mapId: run.map, adv: run.adv, ground: null, week: run.week, mode: run.mode }), rec = new RunRecorder(), p = s.players[0];
@@ -369,9 +371,9 @@ test('nonce expiry, week, tampering, and personal_sign message are checked', asy
 test('no entry cap (owner 3 Nov: play as much as you like); IP eligibility is checked before payment; paid refusals are refunds', async () => {
   const w = wallet(), auth = await nonce(w);
   for (let i = 0; i < 25; i++) assert.equal((await call('ranked-enter', { ...auth, tx: payment(w) })).code, 200);
-  assert.equal((await call('ranked-nonce?wallet=' + w.address)).code, 200, 'still open after 25 entries');
+  assert.equal((await call(nonceRoute(w))).code, 200, 'still open after 25 entries');
   const b = wallet();
-  expectError(await call('ranked-nonce?wallet=' + b.address), 400, 'one wallet per player each week: this connection already entered with another wallet');
+  expectError(await call(nonceRoute(b)), 400, 'one wallet per player each week: this connection already entered with another wallet');
   const otherAuth = await nonce(b, { ip: '192.0.2.2' });
   assert.deepEqual(await call('ranked-enter', { ...otherAuth, tx: payment(b) }), { code: 400, json: { error: 'one wallet per player each week. Your 0.5 DMT will be sent back.', refund: true } });
   assert.deepEqual(db.rows.slice(-1).map(e => e.refund_reason), ['one wallet per player each week']);
@@ -379,16 +381,16 @@ test('no entry cap (owner 3 Nov: play as much as you like); IP eligibility is ch
 
 test('start rejects forged, wrong-wallet, old-week, stale-version and special adventurer entries', async () => {
   const e = await enter(), tk = decode(e.entry);
-  expectError(await call('ranked-start', { entry: e.entry + 'x', adv: 'adventurer', sim: cur }), 400, 'no entry');
-  expectError(await call('ranked-start', { entry: signed({ ...tk, a: wallet().address }), adv: 'adventurer', sim: cur }), 400, 'that entry was already used');
-  expectError(await call('ranked-start', { entry: signed({ ...tk, w: -1 }), adv: 'adventurer', sim: cur }), 400, 'that entry was for last week');
-  assert.deepEqual(await call('ranked-start', { entry: e.entry, adv: 'adventurer', sim: 'old' }), { code: 409, json: { error: 'a new version of the game is out: tap Update, then start your run', sim: cur } });
-  for (const adv of ['constructor', 'unknown', ADVENTURERS.find(a => a.special).id]) expectError(await call('ranked-start', { entry: e.entry, adv, sim: cur }), 400, 'pick an adventurer');
+  expectError(await call('ranked-start', { entry: e.entry + 'x', adv: 'adventurer', sim: cur, build:BUILD_TEST }), 400, 'no entry');
+  expectError(await call('ranked-start', { entry: signed({ ...tk, a: wallet().address }), adv: 'adventurer', sim: cur, build:BUILD_TEST }), 400, 'that entry was already used');
+  expectError(await call('ranked-start', { entry: signed({ ...tk, w: -1 }), adv: 'adventurer', sim: cur, build:BUILD_TEST }), 400, 'that entry was for last week');
+  assert.deepEqual(await call('ranked-start', { entry: e.entry, adv: 'adventurer', sim: 'old', build:BUILD_TEST }), { code: 409, json: { error: 'Update the game before entering or starting ranked. Your saved payments and runs are kept.', update:true, build:BUILD_TEST, sim:cur } });
+  for (const adv of ['constructor', 'unknown', ADVENTURERS.find(a => a.special).id]) expectError(await call('ranked-start', { entry: e.entry, adv, sim: cur, build:BUILD_TEST }), 400, 'pick an adventurer');
   assert.equal(db.rows[0].started_at, undefined);
   const first = await start(e);
   // the answer got lost: asking again returns the same run (seed, adventurer and clock), whatever adventurer is sent now
   await new Promise((r) => setTimeout(r, 20));
-  const again = await call('ranked-start', { entry: e.entry, adv: 'knight', sim: cur });
+  const again = await call('ranked-start', { entry: e.entry, adv: 'knight', sim: cur, build:BUILD_TEST });
   assert.equal(again.code, 200); assert.equal(again.json.again, true);
   assert.equal(again.json.seed, first.seed); assert.equal(again.json.adv, first.adv);
   assert.equal(decode(again.json.run).s, decode(first.run).s, 'the clock is not restarted');
@@ -501,11 +503,11 @@ test('update 7: a run cut short by a game update starts again on the same entry,
   const out = await call('ranked-void', { run: oldRun(run) });
   assert.equal(out.code, 200); assert.equal(out.json.restart, true); assert.equal(out.json.id, r0.id);
   assert.equal((await db.rpc('sqs_ranked_settle', { p_key: 'reports-key', p_week: 0 })).refunds.length, 0, 'no refund');
-  const again = await call('ranked-start', { entry: out.json.entry, adv: r0.adv, sim: cur });
+  const again = await call('ranked-start', { entry: out.json.entry, adv: r0.adv, sim: cur, build:BUILD_TEST });
   assert.equal(again.code, 200); assert.notEqual(again.json.again, true, 'a fresh start, not the old run');
   // three restarts at most
   let r = again.json;
-  for (let i = 0; i < 2; i++) { const o = await call('ranked-void', { run: oldRun(r) }); assert.equal(o.code, 200); r = (await call('ranked-start', { entry: o.json.entry, adv: r0.adv, sim: cur })).json; }
+  for (let i = 0; i < 2; i++) { const o = await call('ranked-void', { run: oldRun(r) }); assert.equal(o.code, 200); r = (await call('ranked-start', { entry: o.json.entry, adv: r0.adv, sim: cur, build:BUILD_TEST })).json; }
   expectError(await call('ranked-void', { run: oldRun(r) }), 400, 'this entry was restarted 3 times already: tell the dev');
   // not once the week is over
   const e2 = await enter(e.w), run2 = await start(e2);
@@ -514,10 +516,10 @@ test('update 7: a run cut short by a game update starts again on the same entry,
 test('a ranked run played in slow motion does not count (security pass)', async () => {
   const r = await ready(), d = decode(r.run.run);
   const t = r.log.runs.reduce((n, x) => n + x[0], 0) / 30;
-  now = d.s + (t + 600 + 0.1 * t + 30) * 1000; // its game time plus the pause allowance, and then some
+  now = d.s + (t + 1200 + 30) * 1000; // its game time plus the pause allowance, and then some
   slowRefusalOk = true; // refused only after the full replay, so it may take the replay's time
   let out; try { out = await call('ranked-submit', { run: r.run.run, name: 'Slow', log: r.log }); } finally { slowRefusalOk = false; }
-  assert.equal(out.code, 400); assert.match(out.json.error, /much slower than real time/);
+  assert.equal(out.code, 400); assert.match(out.json.error, /pause allowance exceeded/);
 });
 
 test('database finish refusal must not be reported as an accepted score', async () => {
@@ -571,7 +573,7 @@ test('non-string transaction is rejected without coercing an attacker object', a
 
 test('non-string adventurer cannot crash start or consume the entry', async () => {
   const e = await enter();
-  expectError(await call('ranked-start', { entry: e.entry, sim: cur, adv: { toString: null } }), 400, 'pick an adventurer');
+  expectError(await call('ranked-start', { entry: e.entry, sim: cur, build:BUILD_TEST, adv: { toString: null } }), 400, 'pick an adventurer');
   assert.equal(db.rows[0].started_at, undefined);
 });
 
@@ -586,8 +588,8 @@ const week1 = () => { now = epoch + weekMs + 12 * 3600000; };
 
 test('week 0 offers only the Normal race; a Hard nonce is refused before any payment', async () => {
   const w = wallet();
-  expectError(await call('ranked-nonce?wallet=' + w.address + '&mode=hard'), 400, 'that race is not open this week');
-  expectError(await call('ranked-nonce?wallet=' + w.address + '&mode=constructor'), 400, 'that race is not open this week');
+  expectError(await call(nonceRoute(w,'hard')), 400, 'that race is not open this week');
+  expectError(await call(nonceRoute(w,'constructor')), 400, 'that race is not open this week');
   const board = (await call('ranked-week')).json;
   assert.deepEqual(Object.keys(board.races), ['normal']); assert.equal(board.rules, 'time'); assert.equal(board.timeLimit, 7200); // endless, ranked by time
   // the Normal sign-in text is byte-for-byte the one signed before the Hard race (saved payments keep checking out)
@@ -665,11 +667,11 @@ test('week 1: no entry cap in either race; one wallet per connection across both
   week1();
   const w = wallet(), { message, amountWei, ...auth } = await nonce(w);
   for (let i = 0; i < 25; i++) assert.equal((await call('ranked-enter', { ...auth, tx: payment(w) })).code, 200);
-  assert.equal((await call('ranked-nonce?wallet=' + w.address)).code, 200);
+  assert.equal((await call(nonceRoute(w))).code, 200);
   const h = await nonce(w, { mode: 'hard' });
   assert.equal((await call('ranked-enter', { nonce: h.nonce, signature: h.signature, tx: payment(w, { amount: 2000000000000000000n }) })).code, 200);
   const other = wallet();
-  expectError(await call('ranked-nonce?wallet=' + other.address + '&mode=hard'), 400, 'one wallet per player each week: this connection already entered with another wallet');
+  expectError(await call(nonceRoute(other,'hard')), 400, 'one wallet per player each week: this connection already entered with another wallet');
 });
 
 test('week 1: a Hard payment that lands before the reset is owed back at 2 DMT', async () => {
@@ -691,8 +693,8 @@ test('week 1: the late limit follows the longer endless runs', async () => {
   expectError(await call('ranked-submit', { run: run2.run, log }), 400, 'this run did not check out (the run had not ended)');
 });
 
-test('week-one confirmed prices and Tutorial map agree in board, nonce and receipt admission', async()=>{
- week1();const w=wallet();const board=(await call('ranked-week')).json;assert.equal(board.map,'tutorial');
+test('week-one confirmed prices and Apache map agree in board, nonce and receipt admission', async()=>{
+ week1();const w=wallet();const board=(await call('ranked-week')).json;assert.equal(board.map,'apache');
  for(const[mode,dmt,amount]of[['normal','1','1000000000000000000'],['hard','2','2000000000000000000']]){
   assert.equal(board.races[mode].entryDmt,dmt);const n=await nonce(w,{mode});assert.equal(n.amountWei,amount);assert.ok(n.message.includes('the '+dmt+' DMT entry'));
   const tx=payment(w,{amount:BigInt(amount)});assert.equal((await call('ranked-enter',{nonce:n.nonce,signature:n.signature,tx})).code,200);
@@ -711,4 +713,40 @@ test('legacy SQL refund wording still shows the actual new Hard payment amount',
  const original=db.rpc.bind(db);db.rpc=async(fn,p)=>{const out=await original(fn,p);if(fn==='sqs_ranked_enter'&&out.refund)out.error=out.error.replace(/Your [0-9.]+ DMT/,'Your 1.5 DMT');return out;};
  const tx=payment(b,{amount:2000000000000000000n}),out=await call('ranked-enter',{nonce:n.nonce,signature:n.signature,tx});
  assert.equal(out.code,400);assert.equal(out.json.refund,true);assert.match(out.json.error,/Your 2 DMT will be sent back/);assert.equal(db.rows.find(r=>r.tx===tx).paid,'2000000000000000000');
+});
+
+// New admission never gates an already-paid registration or archived submission.
+test('current-build admission is uncached and rejects old UI before eligibility or start RPC', async t => {
+  const w=wallet(), token=signed({k:'rentry',id:1,a:w.address,w:0});
+  const calls=[]; t.mock.method(db,'rpc',async(fn)=>{calls.push(fn);return {left:100,seed:1,adv:'adventurer',started:now};});
+  const responseHeaders={};const version=await call('ranked-version',undefined,{responseHeaders}); assert.equal(version.code,200);assert.equal(responseHeaders['cache-control'],'no-store'); assert.deepEqual(version.json,CLIENT);
+  for(const claim of [{},{build:'old',sim:cur},{build:BUILD_TEST,sim:'123456123456'},{build:{},sim:cur},{build:'dev',sim:cur},{build:'x'.repeat(81),sim:cur}]) {
+    const q=new URLSearchParams({wallet:w.address,...claim});
+    assert.equal((await call('ranked-nonce?'+q)).code,409);
+    assert.equal((await call('ranked-start',{entry:token,adv:'adventurer',...claim})).code,409);
+  }
+  assert.deepEqual(calls,[]);
+  assert.equal((await call('ranked-nonce?'+new URLSearchParams({wallet:w.address,...CLIENT}))).code,200);
+  assert.equal((await call('ranked-start',{entry:token,adv:'adventurer',...CLIENT})).code,200);
+  assert.deepEqual(calls,['sqs_ranked_can_enter','sqs_ranked_start']);
+});
+test('missing or inconsistent admission metadata fails closed before RPC, without changing paid recovery',async t=>{
+  const w=wallet(),e=await enter(w),{auth,tx}=e;
+  const calls=[],original=db.rpc.bind(db);t.mock.method(db,'rpc',async(fn,p)=>{calls.push(fn);return original(fn,p);});
+  for(const value of [null,'{',JSON.stringify({build:BUILD_TEST,sim:'123456123456'}),JSON.stringify({build:'dev',sim:cur})]) {
+    if(value===null)rmSync(path.join(simsDir,'client.json'));else writeFileSync(path.join(simsDir,'client.json'),value);
+    assert.equal((await call('ranked-version')).code,503);
+    assert.equal((await call('ranked-nonce?'+new URLSearchParams({wallet:w.address,...CLIENT}))).code,503);
+    assert.equal((await call('ranked-start',{entry:e.entry,adv:'adventurer',...CLIENT})).code,503);
+  }
+  assert.deepEqual(calls,[]);
+  const recovered=await call('ranked-enter',{tx,nonce:auth.nonce,signature:auth.signature});
+  assert.equal(recovered.code,200);assert.equal(recovered.json.id,e.id);
+});
+
+for(const extra of [1199,20*60,20*60+.001])test(`ranked total pause boundary ${extra}s is enforced after replay`,async()=>{
+ const r=await ready(),d=decode(r.run.run);now=d.s+(r.result.t+extra)*1000;slowRefusalOk=true;
+ let out;try{out=await submit(r);}finally{slowRefusalOk=false;}
+ assert.equal(out.code,extra<=1200?200:400,JSON.stringify(out));
+ if(extra>1200)assert.match(out.json.error,/pause allowance exceeded/);
 });

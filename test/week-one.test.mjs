@@ -14,13 +14,13 @@ test('week-one prices preserve week0 and agree in exact DMT base units',()=>{
  }
  assert.equal(rules.raceForWeek(1,'constructor'),null);
 });
-test('Tutorial Island is a week1 override while other weeks retain their rotation',()=>{
- assert.equal(rules.weekMap(0),'greentown');assert.equal(rules.weekMap(1),'tutorial');
+test('Apache Desert is a week1 override while other weeks retain their rotation',()=>{
+ assert.equal(rules.weekMap(0),'greentown');assert.equal(rules.weekMap(1),'apache');
  for(const w of[2,3,4,5,6])assert.equal(rules.weekMap(w),rules.RANKED.maps[w%rules.RANKED.maps.length]);
 });
 test('Tutorial ranked retains regular adventurers, endless KPM and equal starts',()=>{
  const s=rules.rankedSim({week:1,mapId:rules.weekMap(1),adv:'wizard',seed:1106});
- assert.equal(s.map.id,'tutorial');assert.equal(s.players[0].adv,'wizard');assert.equal(s.endless,true);assert.equal(s.endAt,7200);assert.equal(s.pace,2);assert.equal(rules.RANKED.minSeconds,180);assert.deepEqual(s.players[0].gear,{});
+ assert.equal(s.map.id,'apache');assert.equal(s.players[0].adv,'wizard');assert.equal(s.endless,true);assert.equal(s.endAt,7200);assert.equal(s.pace,2);assert.equal(rules.RANKED.minSeconds,180);assert.deepEqual(s.players[0].gear,{});
 });
 for(const ranked of[false,true])for(const hard of[false,true])for(const seconds of[0,60,239+29/30,240,300])test(`first four minutes movement: ranked=${ranked} hard=${hard} t=${seconds}`,()=>{
  const s=createSim({seed:1106,pace:2,ranked,hard});s.t=seconds;s.tick=Math.round(seconds/TICK);s.spawnAcc=-1e9;s.bossIndex=99;s.eventT=s.shrineT=1e9;

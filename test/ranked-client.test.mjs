@@ -1,8 +1,9 @@
 import test, {beforeEach} from 'node:test';
-import {paymentBrowser} from './helpers/payment-browser.mjs';
+import {paymentBrowser,CLIENT,mockRankedFetch} from './helpers/payment-browser.mjs';
 beforeEach(paymentBrowser);
 import assert from 'node:assert/strict';
-import * as client from '../src/ranked-client.js';
+import * as actualClient from '../src/ranked-client.js';
+const client={...actualClient,payEntry:(...args)=>{args[6]=CLIENT;return actualClient.payEntry(...args);}};
 const address = '0x' + '12'.repeat(20), token = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8', collect = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', tx = '0x' + 'ab'.repeat(32);
 const nonce = { nonce: 'signed', message: 'Sign é', week: 0, dmt: token, collect, amountWei: '500000000000000000', chainId: 42161 };
 const response = (d, status = 200) => new Response(JSON.stringify(d), { status });
@@ -10,7 +11,7 @@ function storage() { const map = new Map(); return { getItem: (k) => map.get(k) 
 
 test('eligibility errors stop before signing or paying', async (t) => {
   assert.equal(typeof client.payEntry, 'function');
-  t.mock.method(globalThis, 'fetch', async () => response({ error: 'all 20 entries used' }, 400));
+  mockRankedFetch(t,async () => response({ error: 'all 20 entries used' }, 400));
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage() });
   const methods = [];
   const wallet = { p: { request: async ({ method }) => { methods.push(method); return [address]; } } };
@@ -22,7 +23,7 @@ test('payment uses signed UTF-8, official chain add, exact transfer and durable 
   assert.equal(typeof client.payEntry, 'function');
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage() });
   const requests = [], progress = [];
-  t.mock.method(globalThis, 'fetch', async (url, opts) => {
+  mockRankedFetch(t,async (url, opts) => {
     if (url.includes('nonce')) return response(nonce);
     assert.equal(opts.headers['Content-Type'], 'application/json');
     const b = JSON.parse(opts.body); assert.deepEqual(b, { tx, signature: 'sig', nonce: 'signed' });
@@ -52,7 +53,7 @@ test('network failure retains payment; recovery never sends another transaction;
   assert.equal(typeof client.recoverPayment, 'function');
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage() });
   localStorage.setItem('sq-ranked-payment', JSON.stringify({ tx, signature: 'sig', nonce: 'signed' }));
-  t.mock.method(globalThis, 'fetch', async () => { throw new TypeError('offline'); });
+  mockRankedFetch(t,async () => { throw new TypeError('offline'); });
   await assert.rejects(client.recoverPayment('/', () => {}), /offline/);
   assert.ok(localStorage.getItem('sq-ranked-payment'));
   globalThis.fetch = async () => response({ error: 'Your 0.5 DMT will be sent back.', refund: true }, 400);
@@ -63,7 +64,7 @@ test('network failure retains payment; recovery never sends another transaction;
 test('a confirmed reverted payment recovered after reload releases entry controls', async (t) => {
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage() });
   localStorage.setItem('sq-ranked-payment', JSON.stringify({ tx, signature: 'sig', nonce: 'signed' }));
-  t.mock.method(globalThis, 'fetch', async () => response({ error: 'that payment failed on-chain' }, 400));
+  mockRankedFetch(t,async () => response({ error: 'that payment failed on-chain' }, 400));
   await assert.rejects(client.recoverPayment('/', () => {}), /failed on-chain/);
   assert.equal(localStorage.getItem('sq-ranked-payment'), null);
 });
@@ -75,7 +76,7 @@ test('inconsistent receipt retries retain the payment until the same transaction
   const schedule = globalThis.setTimeout;
   t.mock.method(globalThis, 'setTimeout', (fn, ms, ...args) => schedule(fn, ms === 3000 ? 0 : ms, ...args));
   let attempts = 0, consistent = false;
-  t.mock.method(globalThis, 'fetch', async (url, options) => {
+  mockRankedFetch(t,async (url, options) => {
     assert.equal(url, '/api/ranked-enter');
     assert.deepEqual(JSON.parse(options.body), payment); attempts++;
     return consistent ? response({ entry: 'ticket', id: 1, week: 0, mode: 'normal' }) : response({ error: 'could not verify that payment on Arbitrum yet', retry: true }, 503);
@@ -107,7 +108,7 @@ test('each race pays its week price: legacy0.5 Normal, week1 Normal1/Hard2; any 
     for (const [amountWei, nonceMode, ok] of [[wei, mode, true], [other, mode, false], ['499999999999999999', mode, false], ['3000000000000000000', mode, false], [wei, mode === 'hard' ? 'normal' : 'hard', false]]) {
       Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage() });
       const requests = [], urls = [];
-      t.mock.method(globalThis, 'fetch', async (url) => {
+      mockRankedFetch(t,async (url) => {
         urls.push(url);
         if (url.includes('nonce')) return response({ ...nonce, week, amountWei, ...(nonceMode === 'normal' ? {} : { mode: nonceMode }) });
         return response({ entry: 'ticket', id: 7, week, mode });
@@ -129,7 +130,7 @@ test('each race pays its week price: legacy0.5 Normal, week1 Normal1/Hard2; any 
 });
 
 test('displayed week1 refuses a stale week0 nonce before signing or paying',async t=>{
- const requests=[];t.mock.method(globalThis,'fetch',async()=>response(nonce));
+ const requests=[];mockRankedFetch(t,async()=>response(nonce));
  await assert.rejects(client.payEntry(payingWallet(requests),'/',()=>{},()=>{},'normal',1),/Invalid entry details/);
  assert.ok(!requests.some(r=>['personal_sign','eth_sendTransaction','wallet_switchEthereumChain'].includes(r.method)));
 });

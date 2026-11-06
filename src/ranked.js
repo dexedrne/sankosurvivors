@@ -1,10 +1,11 @@
 // Ranked weekly DMT runs: the rules, the run recorder and the replay that checks a run. The game and the server both use
 // this file, so a run replays on the server exactly as it was played (the simulation's maths is deterministic, see
 // dmath.js). Ranked runs start equal: no skills, no gear, no DMT perks, any adventurer.
-import { createSim, step, choose, reroll, skipLevel, autoChoice, TICK } from './sim.js';
+import { createSim, step, choose, reroll, skipLevel, autoChoice, banish, TICK } from './sim.js';
 import { MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID } from './content.js';
 
 export const RANKED = {
+  pauseSeconds: 20 * 60,         // total wall-clock slack per run, shared across pauses, choices and reloads
   entryDmt: '0.5',               // legacy defaults; current prices use raceForWeek(week, mode)
   // two races each week from week 1: their own entry price, pot and board; the same map, split, house fee and rules
   races: {
@@ -24,9 +25,13 @@ export const RANKED = {
   maps: MAPS.filter((m) => !m.special).map((m) => m.id), // one map per week, in turn
   advs: ADVENTURERS.filter((a) => !a.special).map((a) => a.id), // every regular adventurer is open in ranked
 };
+export function pauseRemaining(started, played, now = Date.now()) {
+  if (!Number.isFinite(started) || started <= 0 || !Number.isFinite(played) || played < 0 || !Number.isFinite(now)) return null;
+  return RANKED.pauseSeconds - Math.max(0, (now - started) / 1000 - Math.floor(played));
+}
 export const weekOf = (ms = Date.now()) => Math.floor((ms - RANKED.weekEpoch) / (7 * 24 * 3600 * 1000));
 export const weekStart = (w) => RANKED.weekEpoch + w * 7 * 24 * 3600 * 1000;
-export const weekMap = (w) => w === 1 ? 'tutorial' : RANKED.maps[((w % RANKED.maps.length) + RANKED.maps.length) % RANKED.maps.length];
+export const weekMap = (w) => w === 1 ? 'apache' : RANKED.maps[((w % RANKED.maps.length) + RANKED.maps.length) % RANKED.maps.length];
 export function raceForWeek(week, mode = 'normal') {
   if (!Object.hasOwn(RANKED.races, mode)) return null;
   const race = RANKED.races[mode];
@@ -116,6 +121,7 @@ export class RunRecorder {
   auto() { this.picks.push('a'); }     // the card timer ran out and the sim picked by itself (step() does this while a card screen is open): card 0, or a casket's recommended choice
   reroll() { this.picks.push('r'); }
   skip() { this.picks.push('s'); }
+  banish(i) { this.picks.push('b' + i); }
   log() { return { v: 1, runs: this.runs, uses: this.uses, picks: this.picks }; }
 }
 
@@ -142,8 +148,9 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
       if (a === undefined) return 'missing a level-up choice';
       if (a === 'r') { if (!reroll(sim, PID)) return 'reroll not allowed'; }
       else if (a === 's') { if (!skipLevel(sim, PID)) return 'skip not allowed'; }
+      else if (typeof a === 'string' && /^b[0-2]$/.test(a)) { if (!banish(sim, PID, Number(a[1]))) return 'banish not allowed'; }
       else if (a === 'a') choose(sim, PID, autoChoice(sim.pending[PID])); // what step() itself does when the card timer runs out
-      else if (a === 0 || a === 1 || a === 2) { if (!sim.pending[PID].choices[a]) return 'no such choice'; choose(sim, PID, a); }
+      else if (a === 0 || a === 1 || a === 2) { if (!sim.pending[PID].choices[a]) return 'no such choice'; if (!choose(sim, PID, a)) return 'choice not allowed'; }
       else return 'bad choice';
     }
     return null;

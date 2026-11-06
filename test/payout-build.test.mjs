@@ -9,10 +9,12 @@ import { runInNewContext } from 'node:vm';
 test('Vercel output preserves the site/API and deploys no payout function or cron (prizes are signed on the laptop)', {skip:!process.env.SQS_VERCEL_OUTPUT},async()=>{
   const out=process.env.SQS_VERCEL_OUTPUT;
   const json=async path=>JSON.parse(await readFile(join(out,path),'utf8'));
+  assert.deepEqual(await readFile(join(out,'static/version.json')),await readFile(join(out,'functions/api.func/sims/client.json')));
+  const version=await json('static/version.json');assert.match(version.build,/^[A-Za-z0-9+._-]{1,80}$/);assert.equal(version.sim,(await readFile(join(out,'functions/api.func/sims/current.txt'),'utf8')).trim());
   const config=await json('config.json');assert.equal(config.version,3);
   assert.deepEqual(config.crons,[]);
   assert.equal(config.routes.find(r=>r.src==='^/api/payout-cron$'),undefined);
-  assert.deepEqual(config.routes.filter(r=>r.dest?.startsWith('/api?')), [{src:'^/api/(scores|score|report|run|nonce|holder|ranked-week|ranked-nonce|ranked-enter|ranked-start|ranked-submit|ranked-void|save-nonce|save-login|save-get|save-put)$',dest:'/api?route=$1'}]);
+  assert.deepEqual(config.routes.filter(r=>r.dest?.startsWith('/api?')), [{src:'^/api/(scores|score|report|run|nonce|holder|ranked-week|ranked-version|ranked-nonce|ranked-enter|ranked-start|ranked-submit|ranked-void|save-nonce|save-login|save-get|save-put)$',dest:'/api?route=$1'}]);
   assert.equal(config.routes.at(-1).handle,'filesystem');
   assert.ok(config.routes.some(r=>r.dest==='/preview'));
   await assert.rejects(readFile(join(out,'functions/payout.func/.vc-config.json')),'no payout function is deployed');

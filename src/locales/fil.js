@@ -1,5 +1,33 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Ranked allows 20 minutes of total pause time per run. Check the remaining allowance in pause and upgrade menus; reloading does not reset it.": "May kabuuang 20 minutong pahinga bawat ranked na laro. Tingnan ang natitirang oras sa pause at upgrade menu; hindi ito nire-reset ng reload.",
+  "The minimap refreshes at a steady rate during busy fights, reducing redraw work without hiding enemies.": "Regular ang pag-refresh ng minimap sa matitinding laban para mabawasan ang pag-redraw nang walang itinatagong kaaway.",
+  "20-minute total pause allowance exceeded": "lumampas sa kabuuang 20 minutong pahinga",
+
+  "The diagnostic replay could not be saved. Keep this page open, free some storage and retry.": "Hindi na-save ang diagnostic replay. Panatilihing bukas ang page, magbakante ng storage at subukang muli.",
+  "Ranked is competitive play. Bathroom breaks are fine: you have 20 minutes of total pause allowance per run. Time away, upgrade choices, reloads and connection delays all count. Reloading does not reset it. Exceeding the allowance disqualifies the run.": "Seryosong kompetisyon ang ranked. Puwedeng magbanyo: may kabuuang 20 minutong pahinga bawat laro. Kasama rito ang pag-alis sa laro, pagpili ng upgrade, pag-reload at pagkaantala ng koneksyon. Hindi nire-reset ng reload ang oras. Madidiskwalipika ang larong lalampas sa limitasyon.",
+  "Ranked has a 20-minute total pause allowance. The server checks elapsed time.": "May kabuuang 20 minutong pahinga sa ranked. Sinusuri ng server ang lumipas na oras.",
+  "Pause allowance exceeded. This run cannot qualify.": "Lumampas na sa oras ng pahinga. Hindi na puwedeng maging kuwalipikado ang larong ito.",
+
+  "The chapel's south doorway stays open for walking. Solid walls and low-fence collision remain in place.": "Maaari nang lakaran ang timog na pinto ng kapilya. Nananatili ang banggaan sa matitibay na pader at mabababang bakod.",
+  "Thrown axes and Mutant Slimers have smaller visuals. Damage and attack ranges are unchanged.": "Mas maliit na ang itsura ng mga inihagis na palakol at Mutant Slimer. Hindi nagbago ang pinsala at abot ng atake.",
+  "Next week's ranked map is Apache Desert. Normal costs 1 DMT and Hard costs 2 DMT.": "Apache Desert ang mapa ng ranked sa susunod na linggo. 1 DMT ang Normal at 2 DMT ang Hard.",
+
+  "Title music starts after your first tap or key. Music and sound sliders now use mobile-compatible volume controls.": "Magsisimula ang musika ng menu pagkatapos ng unang tap o pindot mo. Gumagana na sa mobile ang mga kontrol ng lakas ng musika at tunog.",
+  "Enemies stop at touching distance instead of walking inside a stationary adventurer. Contact still hurts.": "Humihinto ang mga kalaban sa distansiyang nakakadikit sa halip na pumasok sa nakatayong adventurer. Nakakapinsala pa rin ang pagdikit.",
+  "Map previews have clearer character positions. DS layout is available on phones only.": "Mas malinaw na ang puwesto ng karakter sa mga preview ng mapa. Sa mga telepono lang available ang DS layout.",
+  "New ranked payments and starts require the latest game build. Saved payments and compatible runs can still be recovered.": "Kailangan ang pinakabagong bersiyon para sa bagong bayad at pagsisimula sa ranked. Maaari pa ring bawiin ang mga naka-save na bayad at katugmang run.",
+  "Could not verify the latest game version. Reconnect and try again before entering ranked.": "Hindi matiyak ang pinakabagong bersiyon ng laro. Kumonekta ulit at subukan bago pumasok sa ranked.",
+  "Update the game before entering or starting ranked. Your saved payments and runs are kept.": "I-update ang laro bago magbayad o magsimula sa ranked. Mananatili ang iyong mga naka-save na bayad at run.",
+
+  "Choose your build": "Piliin ang build mo",
+  "Auto equip safe armour upgrades (this device)": "Awtomatikong isuot ang ligtas na upgrade ng baluti (device na ito)",
+  "Keeps every stat and any set you have started. Weapons stay manual.": "Pinapanatili ang lahat ng stat at mga set na sinimulan mo. Mano-mano pa rin ang pagpili ng armas.",
+  "Banish": "Alisin",
+  "Banished": "Inalis",
+  "Choose a NEW skill to banish for this run. No replacement.": "Pumili ng BAGONG skill na aalisin sa mga alok sa takbong ito. Walang kapalit ang card.",
+  "Optional auto-equip wears only clear armour upgrades and keeps your stats and started sets. Enable it in Settings on this device.": "Ang opsyonal na awtomatikong pagsuot ay para lang sa malinaw na upgrade ng baluti at pinapanatili ang mga stat at set na sinimulan mo. I-on ito sa Settings sa device na ito.",
+  "Up to 3 banishes remove unwanted NEW weapons or passives for the rest of this run. Banishing does not replace the card.": "Maaari mong alisin ang hanggang 3 BAGONG armas o passive sa mga susunod na alok sa takbong ito. Walang kapalit ang inalis na card.",
   "Know your build": "Kilalanin ang build mo",
   "See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.": "Tingnan ang kamakailang pinsala ng bawat armas sa minimap o gamit ang Tab. Pindutin nang matagal ang item sa sinturon para basahin ang epekto nang hindi ito ginagamit.",
   "Menus now render at up to 30 frames per second while controls stay responsive.": "Umaabot na sa 30 frame bawat segundo ang pagguhit ng mga menu habang mabilis pa ring tumutugon ang controls.",
@@ -1115,6 +1143,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Estimated pause allowance left: {0} / 20:00", "Tinatayang natitirang pahinga: {0} / 20:00"],
   ["{1} Evolves with {2} or {3}.", "{1} Nag-e-evolve gamit ang {2} o {3}."],
   ["Swap for {1}: {2}", "Swap para sa {1}: {2}"],
   ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Casual scaling: HP/pinsala sa pagdikit ng kalaban +{1}%; batayang pagdami ng kalaban +{2}%."],

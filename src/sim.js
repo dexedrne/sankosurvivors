@@ -68,7 +68,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}, pace), rerolls: REROLLS_PER_RUN, belt: [],
       casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
       wm: {}, // weapon metals from caskets (pace 2): { katana: 0..5, bow: 0..3, arrow: 0..4, ... } (missing = Bronze / plain Bow)
-      ...(pace >= 2 ? { quality: { weapons: {}, passives: {} } } : {}),
+      ...(pace >= 2 ? { quality: { weapons: {}, passives: {} }, banished: [] } : {}),
     });
   });
   // veterans: skill ranks plus two for every piece of gear worn, 1.5% each, to +75% at 50 (pace 2 only; ranked has neither)
@@ -130,6 +130,18 @@ function wallsOf(sim) {
   }
   return sim._W;
 }
+const tumbleWallCache = new WeakMap();
+function tumbleWalls(sim) {
+  const g = sim.ground;
+  if (!g?.walls || sim.pace < 2 || !g.fences) return g?.walls;
+  let walls = tumbleWallCache.get(g);
+  if (!walls) {
+    walls = new Uint8Array(g.walls.length);
+    for (let k = 0; k < walls.length; k++) walls[k] = g.walls[k] | (g.fences[k] >>> 4);
+    tumbleWallCache.set(g, walls);
+  }
+  return walls;
+}
 function marginClear(sim, W, x, z, ox, oz) {
   const nx = x + ox, nz = z + oz, n = sim.ground.n;
   // A footprint needs both axis routes clear at a corner, not an L-shaped detour.
@@ -137,7 +149,7 @@ function marginClear(sim, W, x, z, ox, oz) {
     && crossOK(W, n, nx, z, nx, nz) && crossOK(W, n, x, nz, nx, nz);
 }
 function noWall(sim, x0, z0, x1, z1, tumble = false) {
-  const g = sim.ground, W = tumble ? g?.walls : wallsOf(sim); if (!g || !W || !g.cell) return true;
+  const g = sim.ground, W = tumble ? tumbleWalls(sim) : wallsOf(sim); if (!g || !W || !g.cell) return true;
   const n = g.n;
   // the move itself must not go through a wall...
   if (!crossOK(W, n, x0, z0, x1, z1)) return false;
@@ -457,12 +469,14 @@ export function rollChoices(sim, p) {
     if ((p.weapons[id] || 0) >= MAX_WEAPON_LEVEL && !p.evo[id] && evolutionPassives(id, sim.pace).some(key => (p.passives[key] || 0) >= 1)) opts.push({ kind: 'evolve', id, level: 1, w: 1000 });
   }
   for (const id of WEAPON_IDS) {
+    if (sim.pace >= 2 && p.banished.includes('weapon:' + id)) continue;
     const lvl = p.weapons[id] || 0;
     if (lvl >= MAX_WEAPON_LEVEL) continue;
     if (!lvl && Object.keys(p.weapons).length >= st.weaponSlots) continue;
     opts.push({ kind: 'weapon', id, level: lvl + 1, w: lvl ? 3 : 2 });
   }
   for (const id of passiveIdsAt(sim.pace, sim.ranked)) {
+    if (sim.pace >= 2 && p.banished.includes('passive:' + id)) continue;
     const lvl = p.passives[id] || 0;
     if (lvl >= MAX_PASSIVE_LEVEL) continue;
     if (!lvl && Object.keys(p.passives).length >= st.passiveSlots) continue;
@@ -537,6 +551,7 @@ export function choose(sim, playerId, index) {
   const p = sim.players.find((q) => q.id === playerId);
   if (!pend || !p) return false;
   const c = pend.choices[index] || pend.choices[0];
+  if (sim.pace >= 2 && c.banished) return false;
   if (pend.casket) applyCasket(sim, p, c); else applyChoice(sim, p, c);
   delete sim.pending[playerId];
   sim.fx.push({ k: 'pick', id: playerId });
@@ -544,7 +559,20 @@ export function choose(sim, playerId, index) {
   return true;
 }
 // the card the sim picks by itself when the timer runs out: the first level-up card, or a casket's recommended choice
-export function autoChoice(pend) { return pend && pend.casket ? pend.rec : 0; }
+export function autoChoice(pend) { return pend && pend.casket ? pend.rec : pend?.choices.findIndex(c => !c.banished) ?? 0; }
+
+export function canBanish(sim, playerId, index) {
+  const p = sim.players.find(p => p.id === playerId), pend = sim.pending[playerId];
+  if (!(sim.pace >= 2) || sim.over || !p?.alive || !pend || pend.casket || !Number.isInteger(index) || index < 0 || p.banished.length >= 3) return false;
+  const c = pend.choices[index];
+  return !!c && !c.banished && (c.kind === 'weapon' && !p.weapons[c.id] || c.kind === 'passive' && !p.passives[c.id]) && pend.choices.some((other, i) => i !== index && !other.banished);
+}
+export function banish(sim, playerId, index) {
+  if (!canBanish(sim, playerId, index)) return false;
+  const p = sim.players.find(p => p.id === playerId), c = sim.pending[playerId].choices[index];
+  p.banished.push(c.kind + ':' + c.id); c.banished = true;
+  return true;
+}
 
 // ---- reward caskets: an item for an empty slot goes straight on; otherwise the run pauses on a card: Wear or High alch --
 // put a piece on: a change in max HP adds to (or caps) your health, like the Cooked Meat passive
@@ -1109,12 +1137,13 @@ export function step(sim, inputs = {}, dt = TICK) {
     e.hit = Math.max(0, e.hit - dt);
     if (e.rise > 0) { e.rise -= dt; if (tp) e.face = datan2(tp.x - e.x, tp.z - e.z); continue; } // still climbing out of the ground
     if (tp) {
-      const dx = tp.x - e.x, dz = tp.z - e.z, d = hyp(dx, dz) || 1;
+      const dx = tp.x - e.x, dz = tp.z - e.z, rawD = hyp(dx, dz), d = rawD || 1;
       const blockedApproach = sim.pace >= 2 && d <= Math.max(2.5, def.r + PLAYER_BASE.radius) && !clearPath(sim, e.x, e.z, tp.x, tp.z);
       const blockedSteering = blockedApproach || (sim.pace >= 2 && d <= 2.5 && !clearPath(sim, e.x, e.z, tp.x, tp.z, true));
       let mx = (dx / d) * e.speed, mz = (dz / d) * e.speed;
       if (d > 2.5 || blockedSteering) { const fd = flowDir(sim, e.x, e.z); if (fd) { mx = fd[0] * e.speed; mz = fd[1] * e.speed; } }
-      if (def.boss) { const m = bossAct(sim, e, def, tp, d, dx, dz, dt); if (m) { mx = m[0]; mz = m[1]; } }
+      let bossMove = false;
+      if (def.boss) { const m = bossAct(sim, e, def, tp, d, dx, dz, dt); if (m) { mx = m[0]; mz = m[1]; bossMove = true; } }
       if (e.treasure) { mx = -(dx / d) * e.speed; mz = -(dz / d) * e.speed; } // it runs from you
       if (sim.pace >= 2 && sim.tick <= 7200) { mx *= 1.05; mz *= 1.05; } // first four minutes at 30 Hz; no permanent spawn-speed change
       // soft separation
@@ -1129,10 +1158,39 @@ export function step(sim, inputs = {}, dt = TICK) {
           if (od < min && od > 0.001) { const push = (min - od) / min; mx += (ox / od) * push * 4; mz += (oz / od) * push * 4; }
         }
       }
-      moveTo(sim, e, e.x + (mx + e.kx) * dt, e.z + (mz + e.kz) * dt);
+      const oldX = e.x, oldZ = e.z;
+      let keepDistance = 0, escape = 0;
+      const stop = (def.r + PLAYER_BASE.radius) * 0.95;
+      if (sim.pace >= 2 && !bossMove && !e.treasure && !blockedApproach && (!blockedSteering || rawD < stop)) {
+        // Escape already-overlapping bodies even when target look-ahead faces a wall.
+        if (rawD < stop + (Math.abs(mx + e.kx) + Math.abs(mz + e.kz)) * dt) {
+          const angle = (e.id % 16) * Math.PI / 8, ux = rawD ? dx / rawD : dsin(angle), uz = rawD ? dz / rawD : dcos(angle);
+          const limit = rawD < stop ? -Math.min(e.speed, (stop - rawD) / dt) : (rawD - stop) / dt;
+          const inward = (mx + e.kx) * ux + (mz + e.kz) * uz;
+          if (inward > limit) { mx -= ux * (inward - limit); mz -= uz * (inward - limit); }
+          keepDistance = Math.min(stop, rawD);
+          escape = Math.max(0, Math.min(e.speed * dt, stop - rawD));
+        }
+      }
+      moveTo(sim, e, oldX + (mx + e.kx) * dt, oldZ + (mz + e.kz) * dt);
+      // A wall can turn a valid diagonal into an inward axis slide. Restore the legal old point, then try Z alone.
+      if (keepDistance && hyp(e.x - tp.x, e.z - tp.z) < keepDistance - 1e-9) {
+        e.x = oldX; e.z = oldZ; moveTo(sim, e, oldX, oldZ + (mz + e.kz) * dt);
+        if (hyp(e.x - tp.x, e.z - tp.z) < keepDistance - 1e-9) { e.x = oldX; e.z = oldZ; }
+      }
+      // A pinned overlap can escape sideways; every candidate still uses the wall-constrained mover.
+      if (escape && hyp(e.x - tp.x, e.z - tp.z) <= rawD + 1e-9) {
+        let bestX = e.x, bestZ = e.z, bestD = hyp(e.x - tp.x, e.z - tp.z);
+        for (const [sx, sz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          e.x = oldX; e.z = oldZ; moveTo(sim, e, oldX + sx * escape, oldZ + sz * escape);
+          const candidate = hyp(e.x - tp.x, e.z - tp.z);
+          if (candidate > bestD + 1e-9) { bestD = candidate; bestX = e.x; bestZ = e.z; }
+        }
+        e.x = bestX; e.z = bestZ;
+      }
       e.kx *= 0.86; e.kz *= 0.86;
       e.face = datan2(dx, dz);
-      if (d < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure && !blockedApproach) {
+      if ((sim.pace >= 2 ? rawD : d) < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure && !blockedApproach) {
         const st = playerStats(tp);
         const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? (sim.pace >= 2 ? 0.8 : 0.7) : 1) * (1 + sim.t / (sim.pace >= 2 ? 750 : 1200)) * (sim.pace >= 2 ? sim.vet * (1 + CURSE.dmg * (sim.curse || 0)) : 1) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
         hurtPlayer(sim, tp, dmg, def.boss ? 'boss-contact' : 'contact');

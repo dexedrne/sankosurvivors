@@ -2,7 +2,8 @@
 // ground the browser used). Two bitsets, blocked cells (n x n) and water vertices ((n+1) x (n+1)), then each cell's
 // wall bits (4 per cell, two cells a byte).
 export function packGround({ n, blocked, water, walls, fences }) {
-  const W = n + 1, a = n * n, b = W * W, out = new Uint8Array(4 + Math.ceil(a / 8) + Math.ceil(b / 8) + Math.ceil(a / 2) * (fences ? 2 : 1));
+  const high = fences?.some(v => v & 240);
+  const W = n + 1, a = n * n, b = W * W, out = new Uint8Array(4 + Math.ceil(a / 8) + Math.ceil(b / 8) + Math.ceil(a / 2) * (1 + (fences ? 1 : 0) + (high ? 1 : 0)));
   new DataView(out.buffer).setUint32(0, n, true);
   const A = 4, B = 4 + Math.ceil(a / 8);
   for (let k = 0; k < a; k++) if (blocked[k]) out[A + (k >> 3)] |= 1 << (k & 7);
@@ -12,6 +13,9 @@ export function packGround({ n, blocked, water, walls, fences }) {
   // fences as walls (3 Nov), the same layout after the walls; older readers stop before it
   const D = C + Math.ceil(a / 2);
   if (fences) for (let k = 0; k < a; k++) out[D + (k >> 1)] |= (fences[k] & 15) << ((k & 1) * 4);
+  // Structural prop edges occupy the upper nibble; old ground files have no third layer.
+  const E = D + Math.ceil(a / 2);
+  if (high) for (let k = 0; k < a; k++) out[E + (k >> 1)] |= (fences[k] >>> 4) << ((k & 1) * 4);
   return out;
 }
 
@@ -27,6 +31,8 @@ export function unpackGround(bytes) {
   if (u.length >= C + Math.ceil(a / 2)) for (let k = 0; k < a; k++) walls[k] = (u[C + (k >> 1)] >> ((k & 1) * 4)) & 15;
   const D = C + Math.ceil(a / 2); let fences = null;
   if (u.length >= D + Math.ceil(a / 2)) { fences = new Uint8Array(a); for (let k = 0; k < a; k++) fences[k] = (u[D + (k >> 1)] >> ((k & 1) * 4)) & 15; }
+  const E = D + Math.ceil(a / 2);
+  if (fences && u.length >= E + Math.ceil(a / 2)) for (let k = 0; k < a; k++) fences[k] |= ((u[E + (k >> 1)] >> ((k & 1) * 4)) & 15) << 4;
   return { n, blocked, cell: true, water, walls, fences };
 }
 

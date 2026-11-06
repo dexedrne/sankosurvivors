@@ -34,9 +34,13 @@ const MAX_PICKS = 4000;                // level-up choices, rerolls, skips and c
 const SIMS = process.env.SQS_SIMS_DIR || path.join(__dirname, 'sims'), loaded = new Map(); // tests point SQS_SIMS_DIR at a build of the current code
 const SIM_ID = /^[0-9a-f]{12}$/;
 function currentSim() { try { return fs.readFileSync(path.join(SIMS, 'current.txt'), 'utf8').trim(); } catch { return null; } }
-// a ranked run may be paused, reloaded or restored for a while, but not played in slow motion: its real time may run past
-// its game time by 10 minutes plus a tenth (owner 3 Nov, security first: a 25-minute run took up to 2:40:00 before)
-const pauseAllowance = (t) => 600 + 0.1 * t;
+function currentClient(sim) {
+  try {
+    const client = JSON.parse(fs.readFileSync(path.join(SIMS, 'client.json'), 'utf8'));
+    if (typeof client?.build === 'string' && /^[A-Za-z0-9+._-]{1,80}$/.test(client.build) && client.build !== 'dev' && SIM_ID.test(client.sim) && client.sim === sim) return {build:client.build, sim:client.sim};
+  } catch {}
+  return null;
+}
 function load(id = currentSim()) {
   if (!id || !SIM_ID.test(id)) return null;
   if (!loaded.has(id)) {
@@ -135,7 +139,7 @@ function logShape(log, maxTicks) {
     if (!Array.isArray(u) || u.length !== 2 || !Number.isInteger(u[0]) || u[0] <= lastUse || u[0] >= ticks || !Number.isInteger(u[1]) || u[1] < 0 || u[1] > 4) return 'bad item use';
     lastUse = u[0];
   }
-  for (const p of picks) if (![0, 1, 2, 'a', 'r', 's'].includes(p)) return 'bad choice';
+  for (const p of picks) if (![0, 1, 2, 'a', 'r', 's', 'b0', 'b1', 'b2'].includes(p)) return 'bad choice';
   return null;
 }
 
@@ -144,6 +148,19 @@ async function handle(route, req, res, ctx) {
   const cur = currentSim(), sim = load(cur);
   if (!sim) return send(res, 503, { error: 'ranked runs open soon' });
   const g = sim.game, week = g.weekOf(), mapId = g.weekMap(week);
+  const unavailable = {error:'Could not verify the latest game version. Reconnect and try again before entering ranked.'};
+  function admit(claim) {
+    const client = currentClient(cur);
+    if (!client) { send(res, 503, unavailable); return false; }
+    if (claim.build !== client.build || claim.sim !== client.sim) {
+      send(res, 409, {error:'Update the game before entering or starting ranked. Your saved payments and runs are kept.', update:true, ...client}); return false;
+    }
+    return true;
+  }
+  if (route === 'ranked-version' && req.method === 'GET') {
+    const client = currentClient(cur);
+    return send(res, client ? 200 : 503, client || unavailable, 'no-store');
+  }
   if (route === 'ranked-week' && req.method === 'GET') {
     const races = {};
     try {
@@ -180,6 +197,7 @@ async function handle(route, req, res, ctx) {
     const wallet = String(q.get('wallet') || '').toLowerCase(), mode = String(q.get('mode') || 'normal');
     if (!ADDR.test(wallet)) return send(res, 400, { error: 'connect a wallet first' });
     if (!racesIn(g, week).includes(mode)) return send(res, 400, { error: 'that race is not open this week' });
+    if (!admit({build:q.get('build'), sim:q.get('sim')})) return;
     const price = raceIn(g, week, mode);
     const can = await rpc('sqs_ranked_can_enter', { p_server_key: SERVER_KEY, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
     if (!can || can.error) return send(res, 400, can || { error: 'could not check your entries' });
@@ -240,7 +258,7 @@ async function handle(route, req, res, ctx) {
     const b = await readBody(req); if (b.tooBig) return send(res, 413, { error: 'too big' });
     const e = unsign(b.entry); if (!e || e.k !== 'rentry') return send(res, 400, { error: 'no entry' });
     if (e.w !== week) return send(res, 400, { error: 'that entry was for last week' });
-    if (b.sim !== cur) return send(res, 409, { error: 'a new version of the game is out: tap Update, then start your run', sim: cur });
+    if (!admit(b)) return;
     const adv = typeof b.adv === 'string' ? b.adv : ''; if (!g.RANKED.advs.includes(adv)) return send(res, 400, { error: 'pick an adventurer' });
     const mode = modeOf(e);
     if (!racesIn(g, week).includes(mode)) return send(res, 400, { error: 'that race is not open this week' });
@@ -249,7 +267,7 @@ async function handle(route, req, res, ctx) {
     if (out.mode && out.mode !== mode) return send(res, 500, { error: 'server error: that entry is in another race. Your run was not used up; tell the dev' });
     const runAdv = typeof out.adv === 'string' ? out.adv : adv, started = Number(out.started) || Date.now(); // a repeat keeps the first start
     const run = signed({ k: 'rrun', id: e.id, a: e.a, w: week, seed: out.seed, adv: runAdv, v: cur, s: started, ...(mode === 'normal' ? {} : { m: mode }) });
-    return send(res, 200, { run, seed: out.seed, map: mapId, adv: runAdv, week, mode, again: !!out.again });
+    return send(res, 200, { run, seed: out.seed, map: mapId, adv: runAdv, week, mode, started, serverNow: Date.now(), again: !!out.again });
   }
 
   if (route === 'ranked-submit' && req.method === 'POST') {
@@ -287,7 +305,7 @@ async function handle(route, req, res, ctx) {
       if (early) verdict = 'rejected: faster than real time';
       else if (result.error) verdict = 'rejected: ' + result.error;
       else if (real < result.t * 0.97 - 5) verdict = 'rejected: faster than real time';
-      else if (real > result.t + pauseAllowance(result.t)) verdict = 'rejected: much slower than real time';
+      else if (real > result.t + (g.RANKED.pauseSeconds ?? 1200)) verdict = 'rejected: 20-minute total pause allowance exceeded';
       const ok = verdict === 'ok';
       const out = await rpc('sqs_ranked_finish_v2', { ...ident, p_name: (typeof b.name === 'string' && clean(b.name, 16)) || 'Adventurer', p_t: ok ? result.t : 0, p_kills: ok ? result.kills : 0, p_level: ok ? result.level : 0, p_won: ok && result.won, p_verdict: verdict, p_log: ok ? zlib.gzipSync(JSON.stringify(b.log)).toString('base64') : null });
       if (!out || out.error) return send(res, 503, { error: out?.error || 'could not save the run', retry: true });

@@ -10,7 +10,8 @@ const EXT = { 'NPC_Block': 'wav', 'magic-edit-1': 'wav', 'Bun_Burp_v1': 'wav' };
 const TRACKS = { early: 'Fresh_Beginnings', mid: 'Adobe_Fantasy', late: 'snowdrift_mix', boss: 'payasan_town_mix', final: 'grotto1' };
 
 export function createAudio() {
-  let ctx = null, sfxGain = null, musicEl = null, musicName = '', muted = false, ducked = false;
+  let ctx = null, sfxGain = null, loading = null, resuming = null, current = null, outgoing = null, desired = '', fade = null, muted = false, ducked = false;
+  const musicSlots = [];
   // volume sliders, 0-100 each (Settings, Sound): 60 is the old fixed loudness, so there is room both ways
   const vol = { s: 60, m: 60 };
   function readPreferences(data) {
@@ -25,14 +26,67 @@ export function createAudio() {
   }
   readPreferences();
   const sfxLevel = () => (muted ? 0 : 0.5 * vol.s / 60), musicLevel = () => (muted ? 0 : Math.min(1, 0.3 * vol.m / 60) * (ducked ? 1 / 3 : 1));
-  const buffers = new Map(), musicTracks = new Set(); const last = {};
+  const buffers = new Map(); const last = {};
+  function stopFade() { if (fade !== null) clearInterval(fade); fade = null; }
+  function retire(slot) {
+    slot.generation++; slot.pending = null; slot.ready = false; slot.gain.gain.value = 0; slot.el.pause();
+  }
+  function startFade() {
+    if (fade !== null || !current?.ready) return;
+    fade = setInterval(() => {
+      if (!current?.ready) { stopFade(); return; }
+      const target = musicLevel();
+      current.gain.gain.value = Math.min(target, current.gain.gain.value + 0.02);
+      if (outgoing) {
+        outgoing.gain.gain.value = Math.max(0, Math.min(target, outgoing.gain.gain.value) - 0.03);
+        if (!outgoing.gain.gain.value) { retire(outgoing); outgoing = null; }
+      }
+      if (current.gain.gain.value >= target && !outgoing) stopFade();
+    }, 100);
+  }
+  function attempt(slot) {
+    if (slot.pending) return;
+    const generation = slot.generation;
+    slot.ready = false;
+    let promise;
+    try { promise = Promise.resolve(slot.el.play()); } catch (e) { promise = Promise.reject(e); }
+    slot.pending = promise;
+    promise.then(() => {
+      if (slot.generation !== generation || slot.pending !== promise) return;
+      slot.pending = null; slot.primed = true; slot.ready = true;
+      if (slot === current) startFade();
+      else if (slot !== outgoing) { slot.el.pause(); slot.ready = false; }
+    }, () => {
+      if (slot.generation !== generation || slot.pending !== promise) return;
+      slot.pending = null; slot.ready = false;
+    });
+  }
   async function init() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
-    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    ctx = new AC(); sfxGain = ctx.createGain(); sfxGain.gain.value = sfxLevel(); sfxGain.connect(ctx.destination);
-    await Promise.all([...new Set(Object.values(SFX).flat())].map(async (n) => {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      ctx = new AC(); sfxGain = ctx.createGain(); sfxGain.gain.value = sfxLevel(); sfxGain.connect(ctx.destination);
+      for (let i = 0; i < 2; i++) {
+        const el = new Audio(), gain = ctx.createGain();
+        el.crossOrigin = 'anonymous'; el.loop = true; el.volume = 1; el.preload = 'auto';
+        const file = desired || TRACKS.early; el.src = asset(`music/${file}.mp3`);
+        const source = ctx.createMediaElementSource(el); source.connect(gain); gain.gain.value = 0; gain.connect(ctx.destination);
+        musicSlots.push({ el, gain, source, file, generation: 0, pending: null, ready: false, primed: false });
+      }
+      if (desired) current = musicSlots[0];
+    }
+    if (!resuming && (ctx.state === 'suspended' || ctx.state === 'interrupted')) {
+      try { resuming = Promise.resolve(ctx.resume()); } catch (e) { resuming = Promise.reject(e); }
+      const pending = resuming;
+      pending.then(() => { if (resuming === pending) resuming = null; }, () => { if (resuming === pending) resuming = null; });
+    }
+    const resumed = resuming;
+    // Start both reusable streams in this gesture, before any optional effect decoding.
+    if (current && (!current.ready || current.el.paused)) attempt(current);
+    for (const slot of musicSlots) if (slot !== current && slot !== outgoing && !slot.primed) attempt(slot);
+    loading ||= Promise.all([...new Set(Object.values(SFX).flat())].map(async (n) => {
       try { const r = await fetch(asset(`sound/soundEffects/${n}.${EXT[n] || 'mp3'}`)); buffers.set(n, await ctx.decodeAudioData(await r.arrayBuffer())); } catch { /* optional */ }
     }));
+    await Promise.all([resumed, loading]);
   }
   function play(kind, { minGap = 0.05, vol: gain = 1, rate = 1 } = {}) {
     if (!ctx || muted || !vol.s) return;
@@ -42,17 +96,25 @@ export function createAudio() {
     const g = ctx.createGain(); g.gain.value = gain; src.connect(g); g.connect(sfxGain); src.start();
   }
   function music(key) {
-    const file = TRACKS[key]; if (!file || file === musicName) return;
-    musicName = file;
-    const old = musicEl; const el = new Audio(asset(`music/${file}.mp3`)); el.loop = true; el.volume = 0; el.preload = 'auto';
-    musicEl = el; musicTracks.add(el); el.play().catch(() => {});
-    let v = 0;
-    const fade = setInterval(() => { const target = musicLevel(); v = Math.min(target, v + 0.02); el.volume = el === musicEl ? v : Math.min(el.volume, v); if (old) old.volume = Math.max(0, old.volume - 0.03); if (v >= target && (!old || old.volume <= 0)) { clearInterval(fade); if (old) { old.pause(); musicTracks.delete(old); } } }, 100);
+    const file = TRACKS[key]; if (!file || file === desired) return;
+    desired = file; if (!ctx) return;
+    const old = current, healthy = current?.ready && current.gain.gain.value > 0 ? current : outgoing;
+    const next = musicSlots.find(slot => slot !== (healthy || current));
+    stopFade(); retire(next);
+    if (next.file !== file) { next.file = file; next.el.src = asset(`music/${file}.mp3`); }
+    next.el.currentTime = 0;
+    outgoing = healthy;
+    if (old && old !== next && old !== outgoing) retire(old);
+    current = next; attempt(current);
   }
   const apply = () => {
     if (sfxGain) sfxGain.gain.value = sfxLevel();
     const level = musicLevel();
-    for (const el of musicTracks) el.volume = el === musicEl ? level : Math.min(el.volume, level);
+    if (current) current.gain.gain.value = current.ready ? level : 0;
+    if (outgoing) {
+      outgoing.gain.gain.value = Math.min(outgoing.gain.gain.value, level);
+      if (!outgoing.gain.gain.value) { retire(outgoing); outgoing = null; }
+    }
   };
   function applyPreferences(data) { readPreferences(data); apply(); }
   function setMuted(m) { muted = m; try { localStorage.setItem('sq-muted', m ? '1' : '0'); } catch { /* this visit only */ } apply(); }

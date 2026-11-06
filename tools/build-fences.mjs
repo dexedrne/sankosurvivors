@@ -78,11 +78,13 @@ export async function buildFences() {
   const triCache = {}; for (const f of new Set(placed.map((p) => p.file))) triCache[f] = await modelTris(f);
   const bits = new Map(), add = (map, i, j, b) => { if (i < 0 || j < 0 || i >= N || j >= N) return; const k = j * N + i; map.set(k, (map.get(k) || 0) | b); };
   // one projected edge -> thin walls on the nearest cell boundaries, every cell it touches (so pieces meet at corners)
-  const line = (map, ax, az, bx, bz) => {
+  const line = (map, ax, az, bx, bz, kitJoin = false) => {
+    // Kit-wall endpoints have tiny transform overshoots; do not claim a neighboring door cell.
+    const epsilon = kitJoin ? 1e-4 : 0;
     const dx = bx - ax, dz = bz - az; if (Math.hypot(dx, dz) < 0.05) return;
     if (Math.abs(dx) >= Math.abs(dz)) {
       const x0 = Math.min(ax, bx), x1 = Math.max(ax, bx); let prev = null;
-      for (let i = Math.floor(x0); i <= Math.floor(x1 - 1e-6); i++) {
+      for (let i = Math.floor(x0 + epsilon); i <= Math.floor(x1 - Math.max(epsilon, 1e-6)); i++) {
         const cx = Math.min(x1, Math.max(x0, i + 0.5)), z = az + (dz * (cx - ax)) / (dx || 1e-9), zb = Math.round(z);
         add(map, i, zb - 1, 4); add(map, i, zb, 1);
         if (prev !== null && prev !== zb) for (let j = Math.min(prev, zb); j < Math.max(prev, zb); j++) { add(map, i - 1, j, 2); add(map, i, j, 8); }
@@ -90,7 +92,7 @@ export async function buildFences() {
       }
     } else {
       const z0 = Math.min(az, bz), z1 = Math.max(az, bz); let prev = null;
-      for (let j = Math.floor(z0); j <= Math.floor(z1 - 1e-6); j++) {
+      for (let j = Math.floor(z0 + epsilon); j <= Math.floor(z1 - Math.max(epsilon, 1e-6)); j++) {
         const cz = Math.min(z1, Math.max(z0, j + 0.5)), x = ax + (dx * (cz - az)) / (dz || 1e-9), xb = Math.round(x);
         add(map, xb - 1, j, 2); add(map, xb, j, 8);
         if (prev !== null && prev !== xb) for (let i = Math.min(prev, xb); i < Math.max(prev, xb); i++) { add(map, i, j - 1, 4); add(map, i, j, 1); }
@@ -101,13 +103,14 @@ export async function buildFences() {
   const v = new THREE.Vector3(); let used = 0, skipped = 0; const byFile = {};
   for (const p of placed) {
     const tris = triCache[p.file]; if (!tris) continue;
-    const mine = new Map();
+    const mine = new Map(), joined = p.file.startsWith('kit_Wall') ? new Map() : mine;
     for (const t of tris) {
       const w = []; for (let k = 0; k < 9; k += 3) { v.set(t[k], t[k + 1], t[k + 2]).applyMatrix4(p.W); w.push(v.x, v.y, v.z); }
       const cxz = [(w[0] + w[3] + w[6]) / 3, (w[2] + w[5] + w[8]) / 3]; if (cxz[0] < 0 || cxz[1] < 0 || cxz[0] > N || cxz[1] > N) continue;
       const g = ground(cxz[0], cxz[1]), ylo = Math.min(w[1], w[4], w[7]) - g, yhi = Math.max(w[1], w[4], w[7]) - g;
       if (yhi < BAND[0] || ylo > BAND[1]) continue; // under foot or overhead (lintels, roofs, rugs)
       line(mine, w[0], w[2], w[3], w[5]); line(mine, w[3], w[5], w[6], w[8]); line(mine, w[6], w[8], w[0], w[2]);
+      if (joined !== mine) { line(joined, w[0], w[2], w[3], w[5], true); line(joined, w[3], w[5], w[6], w[8], true); line(joined, w[6], w[8], w[0], w[2], true); }
     }
     if (!mine.size) continue;
     // already walled in the walk map? (most of its edges have a wall, or the cells are blocked anyway)
@@ -120,7 +123,8 @@ export async function buildFences() {
     let have = 0; for (const e of edges) { const [i, j] = e.slice(1).split(',').map(Number); if (e[0] === 'z' ? zEdge(i, j) : xEdge(i, j)) have++; }
     if (!ALWAYS.test(p.file) && edges.size && have / edges.size > 0.4) { skipped++; continue; }
     used++; byFile[p.file] = (byFile[p.file] || 0) + 1;
-    for (const [k, b] of mine) { const i = k % N, j = (k - i) / N; add(bits, i, j, b); }
+    // Keep nav-coverage admission unchanged; only the emitted kit-wall endpoints use the tolerance.
+    for (const [k, b] of joined) { const i = k % N, j = (k - i) / N; add(bits, i, j, b | (/^(Fence|Iron Fence|Wooden Fence)\.glb$/.test(p.file) ? 0 : b << 4)); }
   }
   return { n: N, cells: [...bits.entries()].sort((a, b) => a[0] - b[0]), pieces: placed.length, used, skipped, byFile };
 }

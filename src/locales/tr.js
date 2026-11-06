@@ -1,5 +1,33 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked allows 20 minutes of total pause time per run. Check the remaining allowance in pause and upgrade menus; reloading does not reset it.": "Dereceli tur başına toplam 20 dakika mola hakkın var. Duraklatma ve yükseltme menülerinden kalan süreyi takip et; yeniden yüklemek süreyi sıfırlamaz.",
+  "The minimap refreshes at a steady rate during busy fights, reducing redraw work without hiding enemies.": "Mini harita yoğun çatışmalarda sabit aralıklarla yenilenir; düşmanları gizlemeden çizim yükünü azaltır.",
+  "20-minute total pause allowance exceeded": "20 dakikalık toplam mola hakkı aşıldı",
+
+  "The diagnostic replay could not be saved. Keep this page open, free some storage and retry.": "Tanılama tekrarı kaydedilemedi. Bu sayfayı açık tut, depolama alanı aç ve yeniden dene.",
+  "Ranked is competitive play. Bathroom breaks are fine: you have 20 minutes of total pause allowance per run. Time away, upgrade choices, reloads and connection delays all count. Reloading does not reset it. Exceeding the allowance disqualifies the run.": "Dereceli oyun rekabetçidir. Tuvalet molası sorun değil: tur başına toplam 20 dakika mola hakkın var. Oyundan uzak kalma, yükseltme seçimleri, yeniden yükleme ve bağlantı gecikmeleri bu süreye dahildir. Yeniden yüklemek süreyi sıfırlamaz. Süreyi aşan tur diskalifiye edilir.",
+  "Ranked has a 20-minute total pause allowance. The server checks elapsed time.": "Dereceli turda toplam 20 dakika mola hakkın var. Geçen süreyi sunucu denetler.",
+  "Pause allowance exceeded. This run cannot qualify.": "Mola hakkı aşıldı. Bu tur sıralamaya giremez.",
+
+  "The chapel's south doorway stays open for walking. Solid walls and low-fence collision remain in place.": "Şapelin güney kapısından yürüyerek geçilebilir. Katı duvarlar ve alçak çitlerin çarpışması korunur.",
+  "Thrown axes and Mutant Slimers have smaller visuals. Damage and attack ranges are unchanged.": "Fırlatılan baltalar ve Mutant Slimer'lar daha küçük görünür. Hasar ve saldırı menzilleri değişmez.",
+  "Next week's ranked map is Apache Desert. Normal costs 1 DMT and Hard costs 2 DMT.": "Gelecek haftanın dereceli haritası Apache Desert. Normal 1 DMT, Hard 2 DMT.",
+
+  "Title music starts after your first tap or key. Music and sound sliders now use mobile-compatible volume controls.": "Menü müziği ilk dokunuşunuzdan veya tuşa basışınızdan sonra başlar. Müzik ve ses kaydırıcıları artık mobilde ses düzeyini ayarlar.",
+  "Enemies stop at touching distance instead of walking inside a stationary adventurer. Contact still hurts.": "Düşmanlar duran maceracının içine yürümek yerine temas mesafesinde durur. Temas hâlâ hasar verir.",
+  "Map previews have clearer character positions. DS layout is available on phones only.": "Harita önizlemelerinde karakter daha net görünür. DS düzeni yalnızca telefonlarda kullanılabilir.",
+  "New ranked payments and starts require the latest game build. Saved payments and compatible runs can still be recovered.": "Yeni dereceli ödemeler ve başlangıçlar oyunun en son sürümünü gerektirir. Kayıtlı ödemeler ve uyumlu koşular kurtarılabilir.",
+  "Could not verify the latest game version. Reconnect and try again before entering ranked.": "Oyunun en son sürümü doğrulanamadı. Dereceliye girmeden önce yeniden bağlanıp tekrar deneyin.",
+  "Update the game before entering or starting ranked. Your saved payments and runs are kept.": "Dereceliye ödeme yapmadan veya başlamadan önce oyunu güncelleyin. Kayıtlı ödemeleriniz ve koşularınız korunur.",
+
+  "Choose your build": "Yapını seç",
+  "Auto equip safe armour upgrades (this device)": "Güvenli zırh yükseltmelerini otomatik kuşan (bu cihaz)",
+  "Keeps every stat and any set you have started. Weapons stay manual.": "Tüm özellikleri ve başladığınız setleri korur. Silahlar elle seçilir.",
+  "Banish": "Ele",
+  "Banished": "Elendi",
+  "Choose a NEW skill to banish for this run. No replacement.": "Bu koşu için elemek istediğiniz YENİ yeteneği seçin. Yerine başka kart gelmez.",
+  "Optional auto-equip wears only clear armour upgrades and keeps your stats and started sets. Enable it in Settings on this device.": "İsteğe bağlı otomatik kuşanma yalnızca kesin zırh yükseltmelerini seçer; özelliklerinizi ve başladığınız setleri korur. Bu cihazın Ayarlar menüsünden açın.",
+  "Up to 3 banishes remove unwanted NEW weapons or passives for the rest of this run. Banishing does not replace the card.": "Bir koşuda en fazla 3 kez, istemediğiniz YENİ silah veya pasifleri sonraki seçimlerden eleyebilirsiniz. Elenen kartın yerine başka kart gelmez.",
   "Know your build": "Yapını tanı",
   "See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.": "Her silahın son hasarını mini haritadan veya Tab tuşuyla görün. Bir kemer eşyasını kullanmadan incelemek için basılı tutun.",
   "Menus now render at up to 30 frames per second while controls stay responsive.": "Menüler artık kontrollerin tepkisini koruyarak saniyede en fazla 30 kare çizilir.",
@@ -1115,6 +1143,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Estimated pause allowance left: {0} / 20:00", "Tahmini kalan mola hakkı: {0} / 20:00"],
   ["{1} Evolves with {2} or {3}.", "{1} {2} veya {3} ile evrimleşir."],
   ["Swap for {1}: {2}", "{1} için takas: {2}"],
   ["Casual scaling: enemy HP/contact damage +{1}%; base spawn pressure +{2}%.", "Serbest mod ölçeklemesi: düşman HP/temas hasarı +{1}%; temel doğma baskısı +{2}%."],

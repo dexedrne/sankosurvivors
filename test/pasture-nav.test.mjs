@@ -24,7 +24,7 @@ test('actual pasture: normal walking still stops at both sides of the railing',(
  const south=fixture({z:281.8});travel(south.s,1,false);assert.ok(south.p.z<283);
 });
 test('only native low-fence footprint bits change, without mutating shared ground or its other layers',()=>{
- const before=groundHash(raw),a=fixture(),b=fixture();assert.equal(before,'d10eff3c');
+ const before=groundHash(raw),a=fixture(),b=fixture();assert.equal(before,'165cf2df');
  assert.ok(a.s.ground!==raw,'pace2 has its own corrected ground');assert.ok(a.s.ground===b.s.ground,'normalization is cached');assert.ok(a.s.ground.blocked!==raw.blocked,'only the blocked array is copied');
  for(const layer of ['walls','water','fences'])assert.equal(a.s.ground[layer],raw[layer]);
  let changes=0;for(let k=0;k<raw.blocked.length;k++)if(a.s.ground.blocked[k]!==raw.blocked[k]){
