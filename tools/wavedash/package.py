@@ -17,7 +17,7 @@ def package(root, manifest, output):
     for name in names:
         path = pathlib.PurePosixPath(name)
         assert not path.is_absolute() and all(part not in ('..', '.') and not part.startswith('.') for part in path.parts), 'Unsafe upload path'
-        assert name == 'index.html' or path.parts[0] in ('assets', 'draco'), 'Unexpected upload file'
+        assert name in ('index.html', 'licenses/run-escape.txt') or path.parts[0] in ('assets', 'draco'), 'Unexpected upload file'
     actual = []
     for path in root.rglob('*'):
         assert not path.is_symlink(), 'Upload symlink refused'

@@ -279,6 +279,9 @@ body.touch .card .key { display: none; }
   #ainfo, #mapinfo { height: 36px; } #actions #start { font-size: 24px; padding: 4px 10px; }
 }
 #settings .panel { width: min(560px, 96vw); }
+#pets .panel { width: min(480px, 94vw); }
+#petlist button { min-height: 44px; }
+#petlist button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: #58432c; }
 #setlist { display: flex; flex-direction: column; gap: 6px; text-align: left; margin-bottom: 8px; }
 .setrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--cream); }
 .seg { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }

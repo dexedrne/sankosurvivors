@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import * as character from '../src/character.js';
+import { createPetRenderer } from '../src/pet-renderer.js';
 
 const renderer = readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
 const instantiateCode = renderer.slice(renderer.indexOf('  function instantiate('), renderer.indexOf('  // Orient a (non-skinned)'));
@@ -87,18 +88,20 @@ test('actor cleanup releases only owned attachment geometry and materials, never
   assert.ok(owned.every(x => x.disposed === 1)); assert.ok(shared.every(x => x.disposed === 0));
 });
 
-test('renderer reset releases enemy, corpse, player and NPC actors', () => {
+test('renderer reset releases enemy, corpse, player, NPC and companion actors', async () => {
   const proto = prototype(), actor = () => instantiate(proto);
-  const a = actor(), corpse = actor(), player = actor(), npc = actor(), all = [a, corpse, player, npc];
+  const a = actor(), corpse = actor(), player = actor(), npc = actor(), pet = actor(), all = [a, corpse, player, npc, pet];
   const boneTextures = all.flatMap(a => textures(a.root)), dyn = new THREE.Group(), entGroup = new THREE.Group();
   dyn.add(a.root, corpse.root, player.root); entGroup.add(npc.root);
+  const petRenderer = createPetRenderer({ group: dyn, load: async () => proto, spawn: () => pet, groundAt: () => 0 });
+  await petRenderer.set('chicken'); petRenderer.update({ players: [{ id: 'p1', x: 0, z: 0, al: true }], petActive: false }, 0, 'p1');
   const resetCode = renderer.slice(renderer.indexOf('  function reset() {'), renderer.indexOf('  return { hop:', renderer.indexOf('  function reset() {')));
-  Function('actors', 'corpses', 'playerActors', 'folkActors', 'dyn', 'entGroup', 'disposeActor', `
+  Function('actors', 'corpses', 'playerActors', 'folkActors', 'dyn', 'entGroup', 'disposeActor', 'petRenderer', `
     const slimeFlecks=[],effects=[],pickupSprites=new Map(),numbers=[],parts=[],gemSets=[],partMesh={};
     const projObjs=new Map(),shieldObjs=new Map(),eprojObjs=new Map(),shrineObjs=new Map(),msBursts=[],hazardPool=[],curMap={cx:0,cz:0},cam={};
     let folkT=0,spTick=0; const removePickup=()=>{};
     ${resetCode}; reset();
-  `)(new Map([[1, a]]), [{ a: corpse }], new Map([[1, player]]), new Map([[1, npc]]), dyn, entGroup, character.disposeActor);
+  `)(new Map([[1, a]]), [{ a: corpse }], new Map([[1, player]]), new Map([[1, npc]]), dyn, entGroup, character.disposeActor, petRenderer);
   assert.ok(boneTextures.every(x => x.disposed === 1));
   assert.equal(dyn.children.length, 0); assert.equal(entGroup.children.length, 0);
 });

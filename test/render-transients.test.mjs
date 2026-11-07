@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import * as THREE from 'three';
+import { createPetRenderer } from '../src/pet-renderer.js';
 const source=readFileSync(new URL('../src/render.js',import.meta.url),'utf8');
 const cleanup=source.slice(source.indexOf('  function removePickup('),source.indexOf('  function iconTex('));
 const add=source.slice(source.indexOf('  function addEffect('),source.indexOf('  // a sword swing:'));
@@ -19,11 +21,12 @@ test('new runs remove transient effects, pickup materials and damage labels',()=
   let disposed=0,removed=0;
   const obj=()=>({geometry:{dispose(){disposed++;}},material:{dispose(){disposed++;}}});
   const effects=[obj(),obj()],pickupSprites=new Map([[1,obj()]]),numbers=[{el:{remove(){removed++;}}}],parts=[{life:1}],gemSets=[{geometry:{setDrawRange(){}}}],partMesh={count:700};
-  Function('effects','pickupSprites','numbers','parts','gemSets','partMesh',`
+  Function('effects','pickupSprites','numbers','parts','gemSets','partMesh','THREE','createPetRenderer',`
     const actors=new Map(),playerActors=new Map(),projObjs=new Map(),shieldObjs=new Map(),folkActors=new Map(),eprojObjs=new Map(),shrineObjs=new Map();
-    const slimeFlecks=[],corpses=[],msBursts=[],hazardPool=[],dyn={remove(){}},entGroup={remove(){}},curMap={cx:0,cz:0},cam={};let folkT=0,spTick=0;
+    const slimeFlecks=[],corpses=[],msBursts=[],hazardPool=[],dyn=new THREE.Group(),entGroup={remove(){}},curMap={cx:0,cz:0},cam={};let folkT=0,spTick=0;
+    const petRenderer=createPetRenderer({group:dyn,groundAt:()=>0,load:async()=>null,spawn:()=>{throw Error('No companion selected in this transient fixture');}});
     ${cleanup}${code};reset();
-  `)(effects,pickupSprites,numbers,parts,gemSets,partMesh);
+  `)(effects,pickupSprites,numbers,parts,gemSets,partMesh,THREE,createPetRenderer);
   assert.equal(effects.length,0);assert.equal(pickupSprites.size,0);assert.equal(numbers.length,0);
   assert.equal(removed,1);assert.ok(disposed>=5);assert.equal(partMesh.count,0);
 });

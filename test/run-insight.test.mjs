@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import { createBunCompanions,bunChoice } from '../src/bun-companions.js';
 let DamageMeter,bindBeltItem;
 try{({DamageMeter}=await import('../src/damage-meter.js'));}catch(e){if(e.code!=='ERR_MODULE_NOT_FOUND')throw e;}
 try{({bindBeltItem}=await import('../src/belt-input.js'));}catch(e){if(e.code!=='ERR_MODULE_NOT_FOUND')throw e;}
@@ -62,7 +63,8 @@ test('mouse and keyboard inspect accessibly and blocked gameplay never queues us
 function loopFixture({fps='max',initialMode='title'}={}){
  let draws=0,inputs=0;const start=main.indexOf('let lastDrawn ='),end=main.indexOf('\nboot().then',start);assert.ok(start>=0&&end>start);
  const nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{disabled:false,classList:{toggle(){},contains:()=>true},getBoundingClientRect:()=>({x:0,y:0,left:id==='topright'?300:0,right:id==='brand'?180:393,top:id==='menu'?600:0,bottom:id==='brand'?160:852,width:393,height:852})});return nodes.get(id);};
- const context={requestAnimationFrame(){},renderer:{getSettings:()=>({fps}),getYaw:()=>0,setYaw(){},setShift(){},update(){draws++;return 0;}},readInput(){inputs++;return{pad:[]};},padEdges:()=>({}),navMove(){},navBack(){},navPress(){},navScreen:()=>({id:'title'}),$,
+ const bunCompanions=createBunCompanions({walletNow:()=>null,walletRevision:()=>0,onChange:()=>{}});
+ const context={document:{hidden:false},bunCompanions,bunChoice,selectedPet:null,requestAnimationFrame(){},renderer:{getSettings:()=>({fps}),getYaw:()=>0,setYaw(){},setShift(){},update(){draws++;return 0;}},readInput(){inputs++;return{pad:[]};},padEdges:()=>({}),navMove(){},navBack(){},navPress(){},navScreen:()=>({id:'title'}),$,
  snapshot:()=>({players:[{f:0}],fx:[]}),compactMenu:{matches:true},params:{has:()=>true},window:{__idleSim:{}},performance:{now:()=>0},PLAYER:'p1',audio:{onFx(){}},MAP_BY_ID:{},updateHud(){},drawMinimap(){},console};
  vm.createContext(context);vm.runInContext(`let mode='${initialMode}',sim=${initialMode==='pause'?"{map:{world:false,music:''}}":'null'},last=0,frame=0,acc=0,hudT=0,slowmo=0;const TICK=1/30;${main.slice(start,end)};globalThis.frameAt=loop;`,context);
  return{run(ts){context.frameAt(ts);},draws:()=>draws,inputs:()=>inputs};

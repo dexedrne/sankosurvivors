@@ -10,6 +10,7 @@ const tabTrap = source.slice(source.indexOf("$('ranked').addEventListener('click
 const guideHandlers=source.slice(source.indexOf("$('guidebtn').onclick ="),source.indexOf("$('guide').addEventListener"));
 const moreHandlers=['morebtn','moreclose'].map(id=>source.split('\n').find(line=>line.startsWith("$('"+id+"').onclick"))).join('\n');
 const moreCapture=source.split('\n').find(line=>line.startsWith("for (const b of document.querySelectorAll('#more"));
+const petClose=source.split('\n').find(line=>line.startsWith("$('petsclose').onclick"));
 const trapStart=source.indexOf('function containMenuTab('),sharedTrap=trapStart<0?'':source.slice(trapStart,source.indexOf('\nfor (const id',trapStart));
 const sliderKey = source.slice(source.indexOf("    r.addEventListener('keydown'"), source.indexOf('\n', source.indexOf("    r.addEventListener('keydown'")));
 const choose = source.slice(source.indexOf('choose: (wal, dev)'), source.indexOf('  note: (t) => banner', source.indexOf('choose: (wal, dev)')));
@@ -43,12 +44,13 @@ function menu(mode = 'title') {
     if (parent) { parent.children.push(el); classes.delete('hidden'); }
     elements.set(id, el); return el;
   }
-  for (const id of ['cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'more', 'pause', 'end', 'title']) element(id);
+  for (const id of ['cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'pause', 'end', 'title']) element(id);
   for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('volume', elements.get('settings'), 'input'); element('settingsclose', elements.get('settings'));
   element('morebtn',elements.get('title'));element('guidebtn',elements.get('more'));element('moreclose',elements.get('more'));
   element('guidesummary',elements.get('guide'),'summary');element('guideclose',elements.get('guide'));
+  element('petchoice',elements.get('pets'));element('petsclose',elements.get('pets'));
   element('settingssummary',elements.get('settings'),'summary');element('guidecurrentrecipes');element('guideoldrecipes');
   for (const id of ['walletchip', 'cloudwal', 'clouddev']) element(id);
   const $ = id => { assert.ok(elements.has(id), `unknown DOM id ${id}`); return elements.get(id); };
@@ -70,7 +72,8 @@ function menu(mode = 'title') {
     ${guideHandlers}
     ${moreHandlers}
     ${moreCapture}
-    for(const id of ['guide','more'])if(typeof containMenuTab==='function')$(id).addEventListener('keydown',containMenuTab);
+    ${petClose}
+    for(const id of ['guide','pets','more'])if(typeof containMenuTab==='function')$(id).addEventListener('keydown',containMenuTab);
     let cloudChoice=null;
     const cloud={${choose}};
     return {back:navBack, move:navMove, screen:()=>navScreen()?.id,
@@ -240,4 +243,11 @@ test('guide opening sets focus and forward/reverse Tab stay inside its modal',()
  const m=menu();m.$('guidebtn').click();assert.equal(m.active,'guidesummary');
  m.$('guideclose').focus();m.key('Tab',{native:true});assert.equal(m.active,'guidesummary');
  m.key('Tab',{native:true,shiftKey:true});assert.equal(m.active,'guideclose');
+});
+test('Pets blocks stale keyboard/controller starts and its actual Back handler returns focus',()=>{
+ const m=menu();m.open('pets');m.app.focus('start');m.key('Enter',{native:true});m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);assert.equal(m.app.screen(),'pets');
+ m.key('Escape');assert.equal(m.$('pets').classList.contains('hidden'),true);assert.equal(m.active,'morebtn');
+});
+test('Pets keeps forward and reverse native Tab within its controls',()=>{
+ const m=menu();m.open('pets');m.$('petsclose').focus();m.key('Tab',{native:true});assert.equal(m.active,'petchoice');m.key('Tab',{native:true,shiftKey:true});assert.equal(m.active,'petsclose');
 });

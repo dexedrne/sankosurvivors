@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { ownActorResource, disposeActor } from '../src/character.js';
+import { createPetRenderer } from '../src/pet-renderer.js';
 
 const source = readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
 function between(start, end) {
@@ -11,10 +12,11 @@ function between(start, end) {
   return source.slice(a, b);
 }
 function harness() {
-  return Function('THREE', 'ownActorResource', 'disposeActor', `
+  return Function('THREE', 'ownActorResource', 'disposeActor', 'createPetRenderer', `
     const dyn = new THREE.Group(), entGroup = new THREE.Group(), camera = new THREE.PerspectiveCamera();
     const projObjs = new Map(), eprojObjs = new Map(), shrineObjs = new Map(), shieldObjs = new Map();
     const groundAt = () => 0, fxOnly = o => o, colorOut = s => s, emit = () => {}, A = s => s;
+    const petRenderer = createPetRenderer({group:dyn,groundAt,load:async()=>null,spawn:()=>{throw Error('No companion selected in this cast fixture');}});
     const glowTex = new THREE.Texture(), streakTex = new THREE.Texture();
     const modelGeo = new THREE.BoxGeometry(), modelMap = new THREE.Texture(), modelMat = new THREE.MeshBasicMaterial({ map: modelMap });
     const modelScene = new THREE.Group(), spriteGeometry = new THREE.Sprite(modelMat).geometry; modelScene.add(new THREE.Mesh(modelGeo, modelMat));
@@ -46,7 +48,7 @@ function harness() {
     }
     return { frame, reset, shared, dyn, projObjs, eprojObjs, shrineObjs, msBursts,
       landing: value => { landing = value; }, burst: () => magicBurst(0, 1, 0, SPELL_ELEMENT.fire, 'blast'), expire: () => stepMagicBursts(performance.now() + 1000) };
-  `)(THREE, ownActorResource, disposeActor);
+  `)(THREE, ownActorResource, disposeActor, createPetRenderer);
 }
 const projectile = (id, art, evo = false) => [id, art, 0, 0, 0, 6, 0, evo, -1];
 const enemyShot = id => [id, 0, 0, 'ice'];

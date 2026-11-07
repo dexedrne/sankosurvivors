@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { petChoice } from '../src/pets.js';
+import { createBunCompanions } from '../src/bun-companions.js';
 import { readFileSync } from 'node:fs';
 import { createCloud } from '../src/cloud.js';
 import { cleanSettings } from '../src/settings.js';
@@ -13,6 +15,8 @@ const cloudBlock=main.slice(main.indexOf('let cloudConnecting ='),main.indexOf('
 const pull=main.slice(main.indexOf('const cloudPull ='),main.indexOf("document.addEventListener('visibilitychange'",main.indexOf('const cloudPull =')));
 const preferenceHelpers=main.slice(main.indexOf('function applySavedGraphics('),main.indexOf('async function boot()'));
 const bootSource=main.slice(main.indexOf('async function boot('),main.indexOf('// ---- gear ---'));
+const petInitSource=main.slice(main.indexOf('async function applyPetChoice()'),main.indexOf("$('petsbtn').onclick"));
+const currentPetSource=main.slice(main.indexOf('function currentPetChoice()'),main.indexOf('function buildPets()'));
 const afterBoot=main.slice(main.indexOf('boot().then('),main.indexOf('// QA hooks'));
 const choices=main.slice(main.indexOf('function savedChoice('),main.indexOf('let selMap ='));
 const mapPicker=main.slice(main.indexOf('async function pickMap('),main.indexOf("$('hard').onchange"));
@@ -61,7 +65,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
   const document={activeElement:null},nodes=new Map(),$=id=>{
     if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{value:id==='rankedadv'?'adventurer':id==='rankedname'?(initialName??'Fixture'):id==='lbname'?(initialName??''):'',textContent:'',disabled:false,dataset:{},focus(){document.activeElement=this;if(id==='cloudusewal')gates.choice.hit.resolve();},children:[],querySelectorAll:()=>[],replaceChildren(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);
   };
-  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings','recoverRunProgress','document',`
+  const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings','recoverRunProgress','document','petChoice','createBunCompanions',`
     let buyBusy=null,walletConnecting=null,walletRequests=0,walletUi=false,walletBal=null,recoveryCanRestart=null,recoveryOptions=null;const walletModalOpen=()=>walletUi;
     let mode='title',sim=null,rankedRun=null,rankedRec=null,rankedBusy=false,storedLive=null,runTicket=null,mapLoading=false,loadedMapId='greentown',selMap='greentown',selAdv='adventurer',acc=0,selCard=0,shownPending=false,waitingForMove=false,rewardWasShown=false,pendingUse=null,slowmo=0,runBest=null,passedBest=false,chase=null;
     const audioApplied=[];const walletHandoff=null;const BASE='./',PLAYER='p',SIM_ID='fixture-sim',params=new URLSearchParams(),keys=new Set(),slotCache={},WEAPONS={},PASSIVES={};
@@ -69,7 +73,11 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     const ADVENTURER_BY_ID={adventurer:{id:'adventurer',weapon:'Sword'},wizard:{id:'wizard',weapon:'Staff'},alex:{id:'alex',weapon:'Sword'}},mapRequests=[];
     const load=(key,fallback)=>{try{return profileValue(key,JSON.parse(localStorage.getItem(key)||'null')??fallback,fallback);}catch{return fallback;}},save=(key,value)=>localStorage.setItem(key,JSON.stringify(value)),clearedMaps=()=>new Set(load('sq-cleared',[])),unlockedMap=()=>true,asset=()=>'',bossName=()=> 'Dragon',weaponTitle=()=> 'Sword';
     let hardOn=false,endlessOn=false;const rankedWeek={map:'greentown'},rankedLive=()=>storedLive,rankedPlaying=()=>!!rankedRun&&!!sim&&!sim.over;
-    let rendererDefaults=null;let renderer={getSettings:()=>({}),applySettings(next){if(failSettings&&Object.hasOwn(next,'res'))throw Error('fixture display failure');},async loadMap(map){mapRequests.push(map.id);await mapStage();if(failMap)throw Error('fixture map failure');},async preloadGear(){await gearStage();if(failStart)throw Error('fixture gear failure');},reset(){},setZoom(){},setShift(){},setYaw(){},setAura(){}};
+    let selectedPet=null,petRequest=0;const petRequests=[];
+    let rendererDefaults=null;let renderer={setPet:async id=>{petRequests.push(id);},getSettings:()=>({}),applySettings(next){if(failSettings&&Object.hasOwn(next,'res'))throw Error('fixture display failure');},async loadMap(map){mapRequests.push(map.id);await mapStage();if(failMap)throw Error('fixture map failure');},async preloadGear(){await gearStage();if(failStart)throw Error('fixture gear failure');},reset(){},setZoom(){},setShift(){},setYaw(){},setAura(){}};
+    const bunCompanions=createBunCompanions({walletNow,walletRevision,onChange:applyPetChoice,load:async(address,{identity})=>({status:'ready',address,identity,block:{number:'0x123',hash:'0x'+'a'.repeat(64)},pets:[]})});
+    ${currentPetSource}
+    ${petInitSource}
     ${mapPicker}
     const playTitleMusic=()=>{};
     const audio={init:async()=>{},music(){},applyPreferences:data=>audioApplied.push(data)};
@@ -106,7 +114,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     return{cloud,pickMap,recoveryOptions:()=>recoveryOptions,audioApplied:()=>audioApplied,connect:walletConnect,canRestartRecovery:()=>recoveryCanRestart?.(),boot:()=>{const refreshRanked=async()=>{};return ${afterBoot}},dispose:stopWallet,holder:kind=>kind==='new'?connectDmt(otherWallet):kind==='same'?connectDmt(walletNow().w):(bindPerks(walletNow(),()=>{}),$('wlperks').onclick()),cloudUI:()=>{bindCloud(walletNow(),()=>{});return $('wlcloud').onclick();},recover:()=>recoverProgressImport(localStorage),startRun,rankedAction,startRankedEntry,recoverRankedRun,toMenu,pull:cloudPull,mode:v=>mode=v,state:()=>({mode,rankedBusy,sim,selMap,selAdv,loadedMapId,mapLoading,hardOn,endlessOn,mapRequests}),select:(map,adv)=>{selMap=map;selAdv=adv;},hard:()=>{hardOn=endlessOn=true;},setLive:v=>storedLive=v,update:()=>$('updatebtn').onclick(),check:checkForUpdate,load:(sure=true)=>{$('xferin').value='fixture-code';$('xferload').dataset.sure=sure?'1':'';return $('xferload').onclick();},walletBusy:(kind,value)=>{if(kind==='buy')buyBusy=value?{}:null;else if(kind==='connect')walletConnecting=value?{}:null;else walletUi=value;}};
   `)(createCloud,W.current,W.walletRevision,W.onWallet,$,{reload(){reloads++;}},()=>stage('gear'),()=>stage('map'),failStart,
     noBrowserApis?{}:{locks:{request:async(name,fn)=>{calls.push('import-lock');await stage('import-lock');return fn();}},serviceWorker:{getRegistrations:async()=>{await browserStage('registrations');return[{update:async()=>browserStage('worker-update')}];}}},
-    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'),cleanSettings,profileValue,profileBest,failSettings,recoverRunProgressImpl,document);
+    noBrowserApis?{}:{keys:async()=>{await browserStage('cache-keys');return['sqs-v3'];},delete:async()=>{await browserStage('cache-delete');return true;}},W.connect,async(...args)=>{holderActive=true;try{return await proveHolder(...args);}finally{holderActive=false;}},importData,importProgressImpl,recoverProgressImportImpl,other,failMap,()=>stage('resume'),cleanSettings,profileValue,profileBest,failSettings,recoverRunProgressImpl,document,petChoice,createBunCompanions);
   const track=p=>{pending.push(p);p.catch(()=>{});return p;};
   t.after(async()=>{for(const x of Object.values(gates))x.gate.resolve();t.mock.timers.tick(1000);await Promise.allSettled(pending);app.dispose();writesBlocked=false;W.disconnect();globalThis.localStorage=previous;globalThis.window=previousWindow;});
   return{app,store,writes,gates,calls,$,allowWrites:()=>writesBlocked=false,reloads:()=>reloads,sign:()=>track(app.cloud.signIn(W.current())),pull:()=>track(app.pull()),update:()=>track(app.update()),check:()=>track(app.check()),

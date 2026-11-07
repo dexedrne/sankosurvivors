@@ -1,25 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { petChoice } from '../src/pets.js';
+import { createBunCompanions } from '../src/bun-companions.js';
 import { readFileSync } from 'node:fs';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),render=readFileSync(new URL('../src/render.js',import.meta.url),'utf8');
 const helpers=main.slice(main.indexOf('function applySavedGraphics('),main.indexOf('async function boot()'));
 const boot=main.slice(main.indexOf('async function boot()'),main.indexOf('// ---- gear'));
+const petInit=main.slice(main.indexOf('async function applyPetChoice()'),main.indexOf("$('petsbtn').onclick"));
+const currentPetSource=main.slice(main.indexOf('function currentPetChoice()'),main.indexOf('function buildPets()'));
 const apply=render.slice(render.indexOf('  function applySettings('),render.indexOf('  // rain: streaks',render.indexOf('  function applySettings(')));
 const defaults=render.slice(render.indexOf('  const settings = {'),render.indexOf('  // time of day:',render.indexOf('  const settings = {')));
 let cleanSettings=null;
 try{({cleanSettings}=await import('../src/settings.js'));}catch(e){if(e.code!=='ERR_MODULE_NOT_FOUND')throw e;}
-async function start(raw){
- return Function('raw','cleanSettings','factoryDefaults',`'use strict';
+async function start(raw,petPending=false){
+ return Function('raw','cleanSettings','factoryDefaults','petPending','petChoice','createBunCompanions',`'use strict';
   const store=new Map([['sq-settings',JSON.stringify(raw)],['sq-coins','850']]),nodes=new Map();
-  const $=id=>{if(!nodes.has(id))nodes.set(id,{disabled:true,textContent:'',style:{},classList:{add(){}}});return nodes.get(id);};
+  const $=id=>{if(!nodes.has(id))nodes.set(id,{disabled:true,textContent:'',style:{},classList:{add(){},contains:()=>true}});return nodes.get(id);};
   const load=(key,fallback)=>JSON.parse(store.get(key)||'null')??fallback,save=(key,v)=>store.set(key,JSON.stringify(v)),params=new URLSearchParams();
   let applied=null,caught=null,renderer=null,rendererDefaults=null;const console={error:e=>caught=e},getGear=()=>({}),labels={},selMap='greentown';
   const playTitleMusic=()=>{};
-  const createRenderer=async()=>({preloadGear:async()=>{},getSettings:()=>({...factoryDefaults}),applySettings:v=>applied=v,setZoom(){},setShift(){}}),pickAssetHost=async()=>{},buildAdventurers=()=>{},buildMaps=()=>{},showBest=()=>{},requestAnimationFrame=()=>{},loop=()=>{};
+  let selectedPet=petPending?'chicken':null,petRequest=0;const petRequests=[];
+  const bunCompanions=createBunCompanions({walletNow:()=>null,walletRevision:()=>0,onChange:()=>{}});
+  ${currentPetSource}
+  ${petInit}
+  const createRenderer=async()=>({setPet(id){petRequests.push(id);return petPending?new Promise(()=>{}):Promise.resolve(true);},preloadGear:async()=>{},getSettings:()=>({...factoryDefaults}),applySettings:v=>applied=v,setZoom(){},setShift(){}}),pickAssetHost=async()=>{},buildAdventurers=()=>{},buildMaps=()=>{},showBest=()=>{},requestAnimationFrame=()=>{},loop=()=>{};
   ${helpers}
   ${boot}
-  return (async()=>{await boot();return{disabled:$('start').disabled,applied,error:caught?.message||null,coins:store.get('sq-coins'),saved:JSON.parse(store.get('sq-settings'))};})();
- `)(raw,cleanSettings,Function('low',defaults+';return {...settings};')(true));
+  return (async()=>{await boot();return{disabled:$('start').disabled,applied,error:caught?.message||null,coins:store.get('sq-coins'),saved:JSON.parse(store.get('sq-settings')),petRequests};})();
+ `)(raw,cleanSettings,Function('low',defaults+';return {...settings};')(true),petPending,petChoice,createBunCompanions);
 }
 function change(next,then){
  return Function('next','then','cleanSettings',`'use strict';
@@ -39,6 +47,9 @@ for(const raw of ['broken',42,false,{v:{valueOf:0,toString:0}}])test('strict boo
 test('valid existing settings and legacy migration keep their values',async()=>{
  const current=await start({v:2,quality:'low',res:'0.5',fps:'30',shadows:false});assert.equal(current.error,null);assert.equal(current.disabled,false);assert.equal(current.applied.res,'0.5');assert.equal(current.applied.quality,'low');
  const old=await start({quality:'high',roofs:'auto',res:'0.75'});assert.equal(old.saved.v,2);assert.equal(old.applied.quality,'auto');assert.equal(old.applied.roofs,'off');assert.equal(old.applied.res,'0.75');
+});
+test('boot starts optional companion loading without waiting or changing saved progress',async()=>{
+ const result=await start({v:2,quality:'low'},true);assert.equal(result.error,null);assert.equal(result.disabled,false);assert.equal(result.coins,'850');assert.deepEqual(result.petRequests,['chicken']);
 });
 for(const res of ['0','-2','Infinity','NaN','1000000',0,{},[]])test('renderer ignores invalid resolution '+JSON.stringify(res),()=>{
  const result=change({res});assert.ok(Number.isFinite(result.ratio)&&result.ratio>0&&result.ratio<=4);assert.equal(result.settings.res,'auto');

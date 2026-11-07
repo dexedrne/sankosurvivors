@@ -16,6 +16,9 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, weaponLook, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR, TUMBLE } from './content.js';
 import { createCharacterKit, armorSet, cloneActor, ownActorResource, disposeActor } from './character.js';
+import { NATIVE_PETS, petChoice } from './pets.js';
+import { createPetRenderer } from './pet-renderer.js';
+import { createBunModels } from './bun-models.js';
 import { terrainFromTiles, WATER_Y } from './terrain.js';
 
 const BASE = import.meta.env.BASE_URL || './';
@@ -83,7 +86,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const gltfLoader = new GLTFLoader().setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
   const cache = new Map();
   const loadGLB = (url) => {
-    if (!cache.has(url)) cache.set(url, new Promise((res, rej) => gltfLoader.load(url, res, undefined, rej)));
+    if (!cache.has(url)) {
+      const pending = new Promise((res, rej) => gltfLoader.load(url, res, undefined, rej)); cache.set(url, pending);
+      pending.catch(() => { if (cache.get(url) === pending) cache.delete(url); });
+    }
     return cache.get(url);
   };
 
@@ -1160,6 +1166,32 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   const shieldObjs = new Map(); // `${playerId}:${i}` -> object
   const dyn = new THREE.Group(); dyn.name = 'dyn'; scene.add(dyn);
+  const bunModels = createBunModels(loadGLB, A);
+  const petRenderer = createPetRenderer({
+    choice: id => petChoice(id) || bunModels.choice(id),
+    group: dyn, groundAt,
+    async load(id) {
+      if (bunModels.choice(id)) return bunModels.load(id);
+      const pet = NATIVE_PETS[id], proto = await prepare(A(pet.model), pet.height, pet.walk);
+      if (![proto.k, proto.minY, proto.cx, proto.cz].every(Number.isFinite)) throw new Error('Pet model is unavailable');
+      return proto;
+    },
+    spawn(proto, id) {
+      if (bunModels.choice(id)) return bunModels.spawn(proto);
+      const pet = NATIVE_PETS[id], actor = instantiate(proto, pet.walk), clips = proto.gltf.animations || [], mixer = actor.mixer;
+      actor.root.name = 'companion';
+      const find = name => clips.find(c => c.name.toLowerCase() === name.toLowerCase());
+      const runClip = find(pet.walk) || clips.find(c => /run|walk/i.test(c.name)) || clips[0], idleClip = find(pet.idle) || clips.find(c => /idle/i.test(c.name)) || runClip;
+      const run = mixer && mixer.clipAction(runClip), idle = mixer && mixer.clipAction(idleClip); let moving = false;
+      if (mixer) { mixer.stopAllAction(); idle.play(); }
+      actor.update = (dt, nextMoving) => {
+        if (!mixer || !Number.isFinite(dt) || dt <= 0) return;
+        if (moving !== nextMoving && run !== idle) { (moving ? run : idle).fadeOut(.15); (nextMoving ? run : idle).reset().fadeIn(.15).play(); }
+        moving = nextMoving; mixer.update(dt);
+      };
+      return actor;
+    },
+  });
 
   const fallbackGeo = new THREE.CapsuleGeometry(0.4, 0.8, 4, 8);
   const fallbackMat = new THREE.MeshLambertMaterial({ color: 0xcc5544 });
@@ -1668,6 +1700,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     if (curMap.world && view.region && (!skyMap || skyMap.id !== view.region)) { skyMap = MAPS.find((mm) => mm.id === view.region) || null; if (settingsReady) applyTime(); }
     time += dt; if (waterMat.userData.sh) waterMat.userData.sh.uniforms.uTime.value = time;
     const me = view.players.find((p) => p.id === localId) || view.players[0];
+    petRenderer.update(view, dt, localId);
     spFx.dmg.length = spFx.hurt.length = spFx.burst.length = spFx.volley.length = 0;
     const vt = spellClock(view, dt, !!view.over || (!!view.pending && Object.keys(view.pending).length > 0)); // the sim holds still while a card is up
     if (me) { cam.x += (me.x - cam.x) * Math.min(1, dt * 10); cam.z += (me.z - cam.z) * Math.min(1, dt * 10); }
@@ -2049,6 +2082,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const seenShield = new Set();
 
   function reset() {
+    petRenderer.reset();
     for (const sp of slimeFlecks) { sp.visible = false; sp.userData.life = 0; }
     for (const m of effects) { dyn.remove(m); m.geometry.dispose(); m.material.dispose(); } effects.length = 0;
     for (const sp of pickupSprites.values()) removePickup(sp); pickupSprites.clear();
@@ -2067,7 +2101,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     cam.x = curMap.cx; cam.z = curMap.cz;
   }
   return { hop: () => { hopReq = true; }, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v, previewY = null) { cam.shift = v; cam.previewY = previewY; if (previewY == null) camera.clearViewOffset(); }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
-    preloadGear,
+    preloadGear, setPet: petRenderer.set, petState: petRenderer.state,
     // QA hooks
     setAura(on) { dmtAura = !!on; },
     applySettings, getSettings: () => ({ ...settings }), qaGrade: () => ({ en: grade.enabled, rts: grade.renderToScreen, passes: composer.passes.map((p) => p.constructor.name + (p.enabled ? "" : "(off)")), low: grade.uniforms.uLow.value }),

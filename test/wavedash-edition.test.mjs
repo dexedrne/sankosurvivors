@@ -10,6 +10,22 @@ const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const qa = readFileSync(new URL('../tools/wavedash/qa.mjs', import.meta.url), 'utf8');
 
+test('wallet-free layout instructions name the actual phone Settings choice',async()=>{
+  const code=transformMain(main),start=code.indexOf('const SETTINGS ='),end=code.indexOf(';function buildSettings()',start);
+  assert(start>=0&&end>start);const settings=Function(code.slice(start,end)+';return SETTINGS;')();
+  const label=settings.find(row=>row.id==='layout').opts.find(([value])=>value==='ds')[1];
+  const generated=wavedashEdition().transform('', '/fixture/src/changelog.js').code;
+  const {CHANGELOG}=await import('data:text/javascript,'+encodeURIComponent(generated));
+  const instruction=CHANGELOG.flatMap(note=>note.items).find(text=>text.endsWith('is available on phones only.'));
+  assert(instruction);assert(instruction.includes(label),`${instruction} does not name the available ${label} setting`);
+});
+
+test('casual renderer keeps ordinary companions and excludes Bun ownership and model modules',()=>{
+  const source=readFileSync(new URL('../src/render.js',import.meta.url),'utf8'),result=wavedashEdition().transform(source,'/fixture/src/render.js');
+  assert.equal(typeof result?.code,'string');assert.match(result.code,/createPetRenderer/);assert.match(result.code,/NATIVE_PETS/);
+  assert.doesNotMatch(result.code,/bunModels|bun-models|bun-actor|bun-catalogue/);
+});
+
 for (const language of ['tr', 'es', 'fil']) test(`casual scaling keeps its existing ${language} explanation without ranked copy`, async () => {
   const original = await import(`../src/locales/${language}.js`);
   const generated = wavedashEdition().transform('', `/fixture/src/locales/${language}.js`).code;
@@ -70,8 +86,8 @@ test('casual HTML removes account/payment/PWA/backend UI and legacy redirects', 
 });
 test('bundle audit rejects an accidental provider, production API, updater or private integration', () => {
   assertCasualBundle('game();', ['index.html', 'assets/index.js', 'draco/draco_decoder.wasm']);
-  for (const text of ['https://relay.walletconnect.com', 'api/ranked-week', 'api/run', 'ethereum:0x123', 'd22a7b277a3923fe996af92b3a13386c', 'navigator.serviceWorker.register("/sw.js")']) assert.throws(() => assertCasualBundle(text, ['index.html']), /forbidden/i, text);
-  for (const name of ['sw.js', 'manifest.webmanifest', '.env', 'api/index.js', 'src/wallet.js', 'assets/.env', 'assets/../api/index.js', 'assets/sub/.hidden']) assert.throws(() => assertCasualBundle('', ['index.html', name]), /forbidden/i, name);
+  for (const text of ['https://relay.walletconnect.com', 'api/ranked-week', 'api/run', 'ethereum:0x123', 'd22a7b277a3923fe996af92b3a13386c', 'navigator.serviceWorker.register("/sw.js")', '0xb85ff44289b768ecff58fead92f815b642e3cbb2', 'https://pet-metadata.sanko.xyz/buns/3351', 'sanko/buns/Mini.glb', 'sanko/pets/portraits/Mini.png']) assert.throws(() => assertCasualBundle(text, ['index.html']), /forbidden/i, text);
+  for (const name of ['sw.js', 'manifest.webmanifest', '.env', 'api/index.js', 'src/wallet.js', 'assets/.env', 'assets/../api/index.js', 'assets/sub/.hidden', 'assets/sanko/buns/Mini.glb', 'assets/sanko/pets/portraits/Mini.png']) assert.throws(() => assertCasualBundle('', ['index.html', name]), /forbidden/i, name);
 });
 test('platform loader reports actual progress monotonically and initializes once', () => {
   const calls = [], sdk = { updateLoadProgressZeroToOne: v => calls.push(v), init: () => calls.push('init') };

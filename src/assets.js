@@ -4,9 +4,9 @@
 // from the game's own host as before.
 const LOCAL = (import.meta.env.BASE_URL || './') + 'assets/';
 // jsDelivr caps a repo at 50 MB, so the files live in two (tools/publish-assets.sh): world, icons, sounds and animations
-// in the first, models and music in the second
+// in the first, models, music and native Sanko pets in the second
 const CDN1 = import.meta.env.VITE_ASSET_BASE_1 || '', CDN2 = import.meta.env.VITE_ASSET_BASE_2 || '';
-const PART2 = /^(models|music)\//;
+const PART2 = /^(models|music|sanko)\//;
 let useCdn = !!(CDN1 && CDN2);
 export const asset = (p) => (useCdn ? (PART2.test(p) ? CDN2 : CDN1) : LOCAL) + p;
 export const assetHost = () => (useCdn ? 'cdn' : 'local');

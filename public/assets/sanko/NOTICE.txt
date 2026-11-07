@@ -1,0 +1,17 @@
+SankoQuest / SankoPets native BUN assets
+
+Original game artwork and models are credited to Sanko GameCorp, as in
+SankoSurvivors' existing asset credits. SankoSurvivors is an unofficial
+SankoQuest fan game. These third-party files are not original game art by
+the SankoSurvivors developer; no ownership of their intellectual property
+is claimed here.
+
+Source: https://cdn.sankoquest.com/assets/
+Official appearance/animation manifest:
+https://sigma.sankoquest.com/_next/static/chunks/d7a389ecae32c8f0.js
+Modules 918026 and 451621, captured 6 November 2026.
+
+53 native bodies, 53 portraits, original run and curious animation clips.
+Exact file hashes and capture provenance are in src/bun-catalogue.js.
+Position-track conversion and companion fitting happen on copied animation
+data at runtime; the original asset bytes are preserved.

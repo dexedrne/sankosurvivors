@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createBunCompanions } from '../src/bun-companions.js';
 import { readFileSync } from 'node:fs';
 
 const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
@@ -28,16 +29,17 @@ async function fixture() {
     return elements.get(id);
   };
   const msg = text => { $('walletmsg').textContent = text; };
-  const ui = Function('requestWallet', 'walletDisconnect', 'walletNow', 'onWallet', '$', 'msg', 'why', `
+  const ui = Function('requestWallet', 'walletDisconnect', 'walletNow', 'onWallet', '$', 'msg', 'why', 'walletRevision', 'createBunCompanions', `
     ${initial}
     ${connectWrapper}
     let walletBal=null;
-    let holderChecking=null;const walletRevision=()=>0;const cancelPendingLoads=()=>{},applyDmt=()=>{},renderWallet=()=>{},renderRanked=()=>{},refreshBalances=()=>{};
+    let holderChecking=null;const cancelPendingLoads=()=>{},applyDmt=()=>{},renderWallet=()=>{},renderRanked=()=>{},refreshBalances=()=>{};
     ${picker}
+    const bunCompanions=createBunCompanions({walletNow,walletRevision,onChange:()=>{},load:async(address,{identity})=>({status:'ready',address,identity,block:{number:'0x123',hash:'0x'+'a'.repeat(64)},pets:[]})});
     ${observer}
     ${disconnect}
     return {pick:pickWallet,otherConnect:walletConnect,busy:()=>!!walletConnecting,disconnect:()=>$('wldisc').onclick()};
-  `)(wallet.connect, wallet.disconnect, wallet.current, wallet.onWallet, $, msg, e => e.message);
+  `)(wallet.connect, wallet.disconnect, wallet.current, wallet.onWallet, $, msg, e => e.message,wallet.walletRevision,createBunCompanions);
   function provider(name, answer) {
     const handlers = new Map();
     return { name, p: {

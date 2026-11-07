@@ -5,15 +5,31 @@
 set -e
 cd "$(dirname "$0")/.."
 SRC=$PWD/public/assets; WORK="${SQS_ASSETS_DIR:-$HOME/work/sqs-assets}"
-declare -A PARTS=([1]="world anim ui sound" [2]="models music")
+declare -A PARTS=([1]="world anim ui sound" [2]="models music sanko")
 P="pase""kaalex|prestig""ious|claude""-tech|/home/""alex|sk-""ant-|PRIVATE_KEY="
-export GH_TOKEN=$(gh auth token --user dexedrne)
 for n in 1 2; do
-  repo=dexedrne/sankosurvivors-assets-$n; dir=$WORK/$n
+  dir=$WORK/$n
   if [ ! -d "$dir/.git" ]; then mkdir -p "$dir"; git -C "$dir" init -q -b main; fi
   for d in ${PARTS[$n]}; do mkdir -p "$dir/$d"; rsync -a --delete "$SRC/$d/" "$dir/$d/"; done
   printf '# SankoQuest Survivors game files (%s)\n\nModels, maps, music and art for [sankosurvivors.quest](https://sankosurvivors.quest), served through jsDelivr. SankoQuest art and models belong to Sanko GameCorp.\n' "${PARTS[$n]}" > "$dir/README.md"
   if HITS=$(grep -rlIiE "$P" "$dir" --exclude-dir=.git); then echo "assets: refusing to publish part $n, check: $HITS" >&2; exit 1; fi
+  python3 - "$dir" "$n" <<'PY'
+from pathlib import Path
+import os, sys
+root = Path(sys.argv[1])
+total = 0
+for directory, children, files in os.walk(root):
+    children[:] = [name for name in children if name != '.git']
+    total += sum((Path(directory) / name).lstat().st_size for name in files)
+if total > 50_000_000:
+    print(f'assets: part {sys.argv[2]} exceeds the 50,000,000-byte CDN limit ({total} bytes)', file=sys.stderr)
+    sys.exit(1)
+PY
+done
+# Check both complete trees before authentication, commits or any publication.
+export GH_TOKEN=$(gh auth token --user dexedrne)
+for n in 1 2; do
+  repo=dexedrne/sankosurvivors-assets-$n; dir=$WORK/$n
   cd "$dir"; git add -A
   if ! git diff --cached --quiet; then
     git -c user.name=dexedrne -c user.email=331735862+dexedrne@users.noreply.github.com commit -q -m "Game files $(date -u +%Y-%m-%d)"

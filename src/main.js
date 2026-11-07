@@ -10,6 +10,8 @@ import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, sk
 import { createAudio } from './audio.js';
 import { DamageMeter } from './damage-meter.js';
 import { bindBeltItem } from './belt-input.js';
+import { NATIVE_PETS, petChoice } from './pets.js';
+import { createBunCompanions, bunChoice } from './bun-companions.js';
 import { canAutoEquip } from './auto-equip.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { dmtText, poolReadout, prizeEstimate, prizeNotes } from './prize-display.js';
@@ -513,6 +515,7 @@ async function boot() {
     $('loadtext').textContent = ''; $('loadbar').classList.add('hidden');
     await renderer.preloadGear(Object.values(getGear()));
     applySavedGraphics();
+    applyPetChoice();
     $('start').disabled = false; buildAdventurers(); buildMaps(); showBest(); renderer.setZoom(0.45); renderer.setShift(2.4);
     if (selMap !== 'greentown') await pickMap(selMap);
     playTitleMusic();
@@ -593,12 +596,55 @@ function buildGear() {
 }
 async function refreshIdle() { window.__idleSim = null; if (renderer) await renderer.preloadGear(Object.values(getGear())); }
 $('gearbtn').onclick = () => { buildGear(); $('gear').classList.remove('hidden'); };
+
+// ---- cosmetic companions (device preference, outside progress/cloud/transfer) ----
+const petPreference = value => petChoice(value) || bunChoice(value);
+let selectedPet = petPreference(load('sq-pet', null)), petRemembered = true, petRequest = 0;
+// BUN authority stays in memory; a stored token ID is only a preference.
+const bunCompanions = createBunCompanions({ walletNow, walletRevision, onChange: applyPetChoice });
+document.addEventListener('visibilitychange', () => { if (document.hidden) bunCompanions.clear(); else bunCompanions.refresh(); });
+function currentPetChoice() { return petChoice(selectedPet) || bunCompanions.resolve(selectedPet); }
+function buildPets() {
+  const focused = document.activeElement?.dataset?.pet, hadFocus = $('pets').contains(document.activeElement);
+  const choices = [[null, 'No companion'], ...Object.entries(NATIVE_PETS).map(([id, pet]) => [id, pet.name])];
+  // BUN picker: only a current verified catalogue entry becomes a button.
+  const ownership = bunCompanions.state();
+  for (const pet of ownership.pets) if (pet.eligible) choices.push(['bun:' + pet.tokenId, `${pet.variety} · BUN #${pet.tokenId}`]);
+  $('petbunstatus').textContent = !walletNow() ? 'Connect a wallet from the main menu to check your BUN companions.' : ownership.status === 'loading' ? 'Checking BUN ownership…' : ownership.status !== 'ready' ? 'Could not verify BUN ownership. Ordinary companions are still available.' : ownership.pets.some(pet => pet.eligible) ? 'BUN ownership verified. Companions are cosmetic.' : 'No usable BUN companions found. Eggs must be hatched; unsupported appearances cannot be equipped.';
+  $('petbunrefresh').disabled = !walletNow() || ownership.status === 'loading';
+  // End BUN picker.
+  $('petlist').innerHTML = choices.map(([id, name]) => `<button class="ghost" data-pet="${id || ''}" aria-pressed="${selectedPet === id}">${name}</button>`).join('');
+  for (const button of $('petlist').querySelectorAll('button')) button.onclick = () => {
+    selectedPet = petPreference(button.dataset.pet);
+    try { localStorage.setItem('sq-pet', JSON.stringify(selectedPet)); petRemembered = true; } catch { petRemembered = false; }
+    if (bunChoice(selectedPet)) bunCompanions.refresh(); else applyPetChoice();
+  };
+  const state = renderer?.petState() || 'idle';
+  $('petloadtext').textContent = state === 'loading' ? 'Loading companion…' : state === 'unavailable' ? 'Could not load this companion. You can still play.' : selectedPet ? 'Your companion is ready.' : 'No companion selected.';
+  if (bunChoice(selectedPet) && !currentPetChoice()) $('petloadtext').textContent = 'BUN ownership must be verified before this companion can appear.';
+  $('petvisit').classList.toggle('hidden', petRemembered);
+  $('petretry').classList.toggle('hidden', state !== 'unavailable');
+  if (focused !== undefined || hadFocus && (!$('pets').contains(document.activeElement) || document.activeElement?.disabled)) navFocus($('petlist').querySelector(`[data-pet="${focused}"]`) || $('petlist').querySelector('[aria-pressed="true"]') || $('petlist').querySelector('button'));
+}
+async function applyPetChoice() {
+  if (!renderer) return;
+  const request = ++petRequest, choice = currentPetChoice();
+  const pending = renderer.setPet(choice, () => request === petRequest && choice === currentPetChoice());
+  if (!$('pets').classList.contains('hidden')) buildPets();
+  await pending;
+  if (request === petRequest && !$('pets').classList.contains('hidden')) buildPets();
+}
+$('petsbtn').onclick = () => { buildPets(); $('pets').classList.remove('hidden'); navFocus($('petlist').querySelector('[aria-pressed="true"]') || $('petlist').querySelector('button')); };
+$('petbunrefresh').onclick = () => bunCompanions.refresh();
+$('petretry').onclick = applyPetChoice;
+$('petsclose').onclick = () => { $('pets').classList.add('hidden'); navFocus($('morebtn')); };
+$('pets').addEventListener('click', e => { if (e.target.id === 'pets') $('petsclose').click(); });
 $('gearclose').onclick = () => $('gear').classList.add('hidden');
 
 // ---- settings ---------------------------------------------------------------------------------------------------------
 const SETTINGS = [
   { head: 'Display' },
-  { id: 'layout', name: 'Screen layout', opts: [['auto', 'Auto'], ['standard', 'Standard'], ['ds', 'DS']] },
+  { id: 'layout', name: 'Screen layout', opts: [['auto', 'Auto'], ['standard', 'Standard'], ['ds', 'Flex mode']] },
   { id: 'quality', name: 'Quality', opts: [['auto', 'Auto'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']] },
   { id: 'res', name: 'Resolution', opts: [['auto', 'Auto'], ['0.5', '50%'], ['0.75', '75%'], ['1', '100%'], ['2', 'Sharp']] },
   { id: 'fps', name: 'Frame rate cap', opts: [['30', '30'], ['60', '60'], ['max', 'Max']] },
@@ -680,7 +726,7 @@ function containMenuTab(e) {
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 }
-for (const id of ['guide', 'more']) $(id).addEventListener('keydown', containMenuTab);
+for (const id of ['guide', 'pets', 'more']) $(id).addEventListener('keydown', containMenuTab);
 
 // ---- updates log -------------------------------------------------------------------------------------------------------
 $('updnew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
@@ -1235,6 +1281,7 @@ $('walletchip').onclick = openWallet;
 $('walletclose').onclick = () => { $('wallet').classList.add('hidden'); (!$('ranked').classList.contains('hidden') ? $('rankedclose') : $('walletchip')).focus(); };
 $('wallet').addEventListener('click', (e) => { if (e.target.id === 'wallet') $('walletclose').click(); });
 onWallet((c) => {
+  bunCompanions.refresh();
   if (holderChecking && (!c || c.w.p !== holderChecking.w.p || !holderChecking.connecting && walletRevision() !== holderChecking.revision)) holderChecking = null;
   if (walletConnecting && (!c || c.w.p !== walletConnecting.w.p)) { walletConnecting = null; $('walletmsg').textContent = ''; }
   walletBal = null; applyDmt();
@@ -1344,7 +1391,7 @@ async function startRun(live = null) {
       $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
     } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
     renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
-    for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'more']) $(id).classList.add('hidden');
+    for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'pets', 'more']) $(id).classList.add('hidden');
     $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
     waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
     $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
@@ -1436,7 +1483,7 @@ function toMenu() {
 }
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
-const MENU_SCREENS = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'more'];
+const MENU_SCREENS = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];
 addEventListener('keydown', (e) => {
   if (mode === 'recovery' || walletModalOpen()) return;
   if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
@@ -1874,7 +1921,7 @@ function navBack() {
   if (walletModalOpen()) return true;
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
-    if (id === 'guide' || id === 'more') { $(id + 'close').click(); return true; }
+    if (id === 'guide' || id === 'pets' || id === 'more') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
     navFocus(null); return true;
   }
@@ -1928,6 +1975,7 @@ function drawMinimap(view) {
 let lastDrawn = 0, lastMenuDrawn = -Infinity;
 function loop(ts) {
   requestAnimationFrame(loop);
+  if (!document.hidden) bunCompanions.sync(!!bunChoice(selectedPet));
   const cap = renderer && Number(renderer.getSettings().fps); // Frame rate cap setting (saves battery)
   if (cap && ts - lastDrawn < 1000 / cap - 2) return;
   lastDrawn = ts;
@@ -2002,6 +2050,7 @@ function loop(ts) {
     lastMenuDrawn = ts;
   }
   const view = snapshot(sim, { maxEnemies: 420 });
+  view.petActive = mode === 'play' && !waitingForMove && !Object.keys(view.pending || {}).length && !view.over;
   view.alpha = Math.min(1, Math.max(0, acc / TICK)); // where between sim ticks this frame is (the renderer slides spells by it)
   if (view.fx.some((f) => f.k === 'die' && f.boss)) slowmo = 0.9;
   audio.onFx(view.fx, mode === 'play' ? view : null, sim.map.world && view.region ? MAP_BY_ID[view.region].music : sim.map.music);
