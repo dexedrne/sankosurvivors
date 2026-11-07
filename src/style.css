@@ -823,3 +823,17 @@ body.ds-layout #shrinecharge { top:auto; bottom:calc(100% - var(--ds-play-height
 }
 
 #fullscreenstatus:empty { display:none; }
+
+/* Foldable landscape: collapsed pickers leave the character visible; expanded choices stay bounded. */
+@media (pointer:coarse) and (min-width:761px) and (max-width:1366px) and (min-height:501px) and (orientation:landscape) {
+  #menu { align-items:start; }
+  #menu section { align-self:start; padding:6px; }
+  #apick, #mpick { max-height:190px; max-height:min(190px,30dvh); overflow-y:auto; overscroll-behavior:contain; gap:4px; }
+  #apick { grid-template-columns:repeat(5,minmax(0,1fr)); }
+  #mpick { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  #apick .aopt { min-height:54px; font-size:14px; line-height:1.1; }
+  #apick .aopt img { width:22px; height:22px; }
+  #mpick .mopt { min-height:64px; font-size:14px; line-height:1.1; }
+  #mpick .mopt .thumb { height:20px; }
+  #ainfo, #mapinfo { min-height:0; margin-top:4px; padding:0; }
+}

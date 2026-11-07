@@ -47,8 +47,9 @@ if (walletHandoff?.language && document.documentElement.lang !== walletHandoff.l
 }
 const BASE = import.meta.env.BASE_URL || './';
 const params = new URLSearchParams(location.search);
-const compactMenu = matchMedia('(max-width:760px), (max-width:1180px) and (max-height:500px)');
+const compactMenu = matchMedia('(max-width:760px), (max-width:1180px) and (max-height:500px), (pointer:coarse) and (max-width:1366px) and (orientation:landscape)');
 for (const id of ['adventurerpick', 'mappick']) $(id).open = !compactMenu.matches;
+compactMenu.addEventListener('change', event => { if (event.matches) for (const id of ['adventurerpick', 'mappick']) $(id).open = false; });
 let PLAYER = 'p1';
 let coop = null, coopResult = null, coopDecision = -1, coopHomeMap = null, coopLoading = false;
 
@@ -2124,6 +2125,11 @@ function loop(ts) {
           if (Object.hasOwn(previewSpots, selMap)) { const p = window.__idleSim.players[0]; [p.x, p.z] = findWalkable(window.__idleSim, ...previewSpots[selMap]); } // title only; Whole World is south of Greentown's bank
         }
         const v = snapshot(window.__idleSim); v.players[0].f = Math.sin(performance.now() / 3000) * 0.5;
+        const previewPlayer = v.players[0];
+        if (Number.isFinite(previewPlayer.x) && Number.isFinite(previewPlayer.z)) {
+          const [x, z] = findWalkable(window.__idleSim, previewPlayer.x + 1.4, previewPlayer.z + .4);
+          v.petPreview = { x, z, f: previewPlayer.f };
+        }
         const canvasBox = $('c').getBoundingClientRect(), centreX = canvasBox.x + canvasBox.width / 2;
         const headerBottom = Math.max(24, ...['brand', 'topright'].map(id => { const r = $(id).getBoundingClientRect(); return r.left < centreX && r.right > centreX ? r.bottom + 12 : 0; }));
         const menuTop = Math.max(headerBottom, Math.min(canvasBox.bottom - 24, $('menu').getBoundingClientRect().top - 16));

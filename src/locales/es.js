@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Room for your companion": "Espacio para tu compañero",
+  "Adventurer and Map start collapsed on wide touch screens in landscape. Open them for smaller, scrollable choices.": "Aventurero y Mapa empiezan plegados en pantallas táctiles anchas en horizontal. Ábrelos para ver opciones más pequeñas y desplazables.",
+  "Menu companions stand beside your adventurer instead of on the same spot.": "Los compañeros del menú se colocan al lado del aventurero, sin ocupar su mismo lugar.",
+  "Rabby approval links open its WalletConnect screen. Return to the installed game after approving the holder message.": "Los enlaces de aprobación de Rabby abren su pantalla de WalletConnect. Vuelve al juego instalado tras aprobar el mensaje de titularidad.",
+
   "Room for the world": "Más espacio para el mundo",
   "Large touch screens use smaller title-menu text in landscape while keeping full-size touch buttons.": "Las pantallas táctiles grandes usan texto más pequeño en el menú horizontal y mantienen botones táctiles grandes.",
   "Settings has an Enter fullscreen button when the browser supports it. System bars remain controlled by the browser and phone.": "Ajustes incluye un botón para entrar en pantalla completa si el navegador lo permite. El navegador y el teléfono controlan las barras del sistema.",

@@ -103,5 +103,5 @@ export function createWalletConnect(projectId, origin, load = () => import('@wal
 export function walletConnectLinks(uri = null) {
   const query = uri ? '?uri=' + encodeURIComponent(uri) : '';
   return [['MetaMask', 'https://metamask.app.link/' + (uri ? 'wc' : '') + query],
-    ['Rabby', 'rabbygo://go.rabby.io/mobile/' + (uri ? 'walletconnect' : '') + query]];
+    ['Rabby', 'rabbygo://go.rabby.io/mobile/walletconnect' + query]];
 }

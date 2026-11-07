@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Room for your companion": "Yoldaşınıza yer açın",
+  "Adventurer and Map start collapsed on wide touch screens in landscape. Open them for smaller, scrollable choices.": "Geniş dokunmatik ekranlarda yatay görünümde Maceracı ve Harita kapalı başlar. Daha küçük, kaydırılabilir seçimler için açın.",
+  "Menu companions stand beside your adventurer instead of on the same spot.": "Menüdeki yoldaşlar aynı noktada değil, maceracınızın yanında durur.",
+  "Rabby approval links open its WalletConnect screen. Return to the installed game after approving the holder message.": "Rabby onay bağlantıları WalletConnect ekranını açar. Sahiplik mesajını onayladıktan sonra yüklü oyuna dönün.",
+
   "Room for the world": "Dünyaya yer açın",
   "Large touch screens use smaller title-menu text in landscape while keeping full-size touch buttons.": "Büyük dokunmatik ekranlarda yatay ana menü yazıları daha küçüktür; dokunma düğmeleri tam boy kalır.",
   "Settings has an Enter fullscreen button when the browser supports it. System bars remain controlled by the browser and phone.": "Tarayıcı destekliyorsa Ayarlar’da Tam ekrana geç düğmesi bulunur. Sistem çubuklarını tarayıcı ve telefon kontrol eder.",

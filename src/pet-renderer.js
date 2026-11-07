@@ -28,7 +28,10 @@ export function createPetRenderer({ load, spawn, group, groundAt, choice = petCh
       if (!prototype || !player?.al) { reset(); return; }
       if (owner !== null && owner !== localId) reset();
       const active = view.petActive !== false && Number.isFinite(dt) && dt > 0;
-      const pose = trail.step(player, dt, active); if (!pose) { reset(); return; }
+      const preview = view.petPreview;
+      const isPreview = preview && [preview.x, preview.z, preview.f].every(Number.isFinite);
+      if (isPreview) trail.reset();
+      const pose = isPreview ? { ...preview, moving: false } : trail.step(player, dt, active); if (!pose) { reset(); return; }
       try {
         if (!actor) { actor = spawn(prototype, selected); group.add(actor.root); owner = localId; }
         const y = groundAt(pose.x, pose.z); if (!Number.isFinite(y)) throw new Error('Pet ground is unavailable');

@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Room for your companion": "Puwang para sa iyong kasama",
+  "Adventurer and Map start collapsed on wide touch screens in landscape. Open them for smaller, scrollable choices.": "Nakasara muna ang Adventurer at Map sa malalawak na touch screen sa landscape. Buksan para sa mas maliliit at naii-scroll na pagpipilian.",
+  "Menu companions stand beside your adventurer instead of on the same spot.": "Nakatayo ang kasama sa tabi ng adventurer sa menu, hindi sa parehong puwesto.",
+  "Rabby approval links open its WalletConnect screen. Return to the installed game after approving the holder message.": "Binubuksan ng Rabby approval link ang WalletConnect screen nito. Bumalik sa naka-install na laro matapos aprubahan ang holder message.",
+
   "Room for the world": "Mas maluwag na mundo",
   "Large touch screens use smaller title-menu text in landscape while keeping full-size touch buttons.": "Mas maliit ang teksto ng pangunahing menu sa landscape sa malalaking touch screen, habang nananatiling malaki ang mga pindutan.",
   "Settings has an Enter fullscreen button when the browser supports it. System bars remain controlled by the browser and phone.": "May Enter fullscreen sa Settings kung suportado ng browser. Ang browser at telepono pa rin ang kumokontrol sa mga system bar.",

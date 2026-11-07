@@ -106,3 +106,10 @@ test('active namespace replacement emits account revision, ignoring another sess
  f.sdk.session={...session(),namespaces:{eip155:{accounts:[CHAIN+':'+B]}}};f.handlers.get('session_update')?.({topic:TOPIC,params:{namespaces:f.sdk.session.namespaces}});
  assert.deepEqual(seen,[[B]]);assert.deepEqual(await f.w.p.request({method:'eth_accounts'}),[B]);
 });
+
+test('Rabby approval resumes the WalletConnect route without starting a new pairing or opening a dapp',()=>{
+ const [,href]=walletConnectLinks().find(([name])=>name==='Rabby');
+ const url=new URL(href);
+ // Rabby Mobile's universal-link handler recognizes /mobile/walletconnect as an approval redirect.
+ assert.equal(url.protocol,'rabbygo:');assert.equal(url.hostname,'go.rabby.io');assert.equal(url.pathname,'/mobile/walletconnect');assert.equal(url.search,'');
+});

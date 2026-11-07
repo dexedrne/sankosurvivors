@@ -48,3 +48,11 @@ test('reset during loading spawns only at the current map/local player; pause/de
   s.controller.update(view(3),.1,'p1');assert.equal(s.group.children[0].position.x,3);
   s.controller.reset();assert.equal(s.group.children.length,0);
 });
+
+test('title companion uses its walkable preview spot without overlapping the hero or leaking into the run trail',async()=>{
+ const s=setup(async id=>id);await s.controller.set('fox');
+ const preview={x:1.5,z:2.5,f:.3},v=view(0,{petPreview:preview}),before=structuredClone(v);
+ s.controller.update(v,.1,'p1');assert.deepEqual(s.group.children[0].position.toArray(),[1.5,4,2.5]);assert.deepEqual(v,before);
+ s.controller.update(view(20,{petPreview:{x:21.5,z:2.5,f:0}}),.1,'p1');assert.equal(s.group.children[0].position.x,21.5);
+ s.controller.update(view(0),.1,'p1');assert.equal(s.group.children[0].position.x,0,'run trail starts from the actual hero, not the preview');
+});
