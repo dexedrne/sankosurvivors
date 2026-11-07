@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Tablet landscape": "Tablet na landscape",
+  "Adventurer and Map start expanded on wide tablet-size landscape screens. Narrow phone views keep compact, collapsed pickers.": "Naka-expand ang Adventurer at Map sa malalawak na landscape screen na kasinlaki ng tablet. Compact at nakasara pa rin ang mga pagpipilian sa makitid na phone view.",
+
   "Room for your companion": "Puwang para sa iyong kasama",
   "Adventurer and Map start collapsed on wide touch screens in landscape. Open them for smaller, scrollable choices.": "Nakasara muna ang Adventurer at Map sa malalawak na touch screen sa landscape. Buksan para sa mas maliliit at naii-scroll na pagpipilian.",
   "Menu companions stand beside your adventurer instead of on the same spot.": "Nakatayo ang kasama sa tabi ng adventurer sa menu, hindi sa parehong puwesto.",

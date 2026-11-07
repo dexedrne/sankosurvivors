@@ -1,0 +1,27 @@
+{
+  "id": "/screen-test/default/",
+  "name": "Sanko screen B",
+  "short_name": "Sanko screen B",
+  "start_url": "/screen-test/default/",
+  "scope": "/screen-test/default/",
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "orientation": "any",
+  "background_color": "#00794f",
+  "theme_color": "#00794f",
+  "icons": [
+    {
+      "src": "/icons/air-shard-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/air-shard-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

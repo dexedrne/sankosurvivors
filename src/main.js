@@ -48,8 +48,9 @@ if (walletHandoff?.language && document.documentElement.lang !== walletHandoff.l
 const BASE = import.meta.env.BASE_URL || './';
 const params = new URLSearchParams(location.search);
 const compactMenu = matchMedia('(max-width:760px), (max-width:1180px) and (max-height:500px), (pointer:coarse) and (max-width:1366px) and (orientation:landscape)');
-for (const id of ['adventurerpick', 'mappick']) $(id).open = !compactMenu.matches;
-compactMenu.addEventListener('change', event => { if (event.matches) for (const id of ['adventurerpick', 'mappick']) $(id).open = false; });
+const phoneMenu = matchMedia('(max-width:760px), (max-width:1180px) and (max-height:500px)');
+for (const id of ['adventurerpick', 'mappick']) $(id).open = !phoneMenu.matches;
+phoneMenu.addEventListener('change', event => { for (const id of ['adventurerpick', 'mappick']) $(id).open = !event.matches; });
 let PLAYER = 'p1';
 let coop = null, coopResult = null, coopDecision = -1, coopHomeMap = null, coopLoading = false;
 

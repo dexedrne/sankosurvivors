@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Tablet landscape": "Vista horizontal de tableta",
+  "Adventurer and Map start expanded on wide tablet-size landscape screens. Narrow phone views keep compact, collapsed pickers.": "Aventurero y Mapa empiezan desplegados en pantallas anchas de tamaño tableta en horizontal. En vistas estrechas de teléfono se mantienen compactos y plegados.",
+
   "Room for your companion": "Espacio para tu compañero",
   "Adventurer and Map start collapsed on wide touch screens in landscape. Open them for smaller, scrollable choices.": "Aventurero y Mapa empiezan plegados en pantallas táctiles anchas en horizontal. Ábrelos para ver opciones más pequeñas y desplazables.",
   "Menu companions stand beside your adventurer instead of on the same spot.": "Los compañeros del menú se colocan al lado del aventurero, sin ocupar su mismo lugar.",
