@@ -11,9 +11,15 @@ test('title selects its map music and clears ducking, while live play is left al
 });
 test('trusted click, touchend and keydown unlock in capture phase; synthetic events do not',async()=>{
  const a=main.indexOf('function unlockAudio('),b=main.indexOf('// ---- version, leaderboard',a);assert.ok(a>=0&&b>a,'gesture activation exists');
- const events=[];let starts=0;const unlock=Function('audio','addEventListener','renderer',`${main.slice(a,b)};return unlockAudio;`)({init(){starts++;return Promise.resolve();}},(...args)=>events.push(args),{});
+ const events=[];let starts=0;const unlock=Function('audio','addEventListener','renderer','playTitleMusic',`${main.slice(a,b)};return unlockAudio;`)({init(){starts++;return Promise.resolve();}},(...args)=>events.push(args),{},()=>{});
  assert.deepEqual(events.map(e=>[e[0],e[2]]),[['click',true],['touchend',true],['keydown',true]]);
  unlock({isTrusted:false});assert.equal(starts,0);unlock({isTrusted:true});assert.equal(starts,1);await flush();
+});
+test('the first trusted gesture selects music and unlocks before the renderer finishes loading',()=>{
+ const a=main.indexOf('function unlockAudio('),b=main.indexOf('// ---- version, leaderboard',a),calls=[];
+ const unlock=Function('audio','addEventListener','renderer','playTitleMusic',`${main.slice(a,b)};return unlockAudio;`)({init(){calls.push('init');return Promise.resolve();}},()=>{},null,()=>calls.push('title'));
+ unlock({isTrusted:false});assert.deepEqual(calls,[]);
+ unlock({isTrusted:true});assert.deepEqual(calls,['title','init']);
 });
 test('actual return-to-menu lifecycle selects the title song after a run',()=>{
  const calls=[],a=main.indexOf('function toMenu()'),b=main.indexOf('// ---- input',a);

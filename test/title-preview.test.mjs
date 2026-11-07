@@ -14,7 +14,7 @@ function preview(map,existing) {
   return window.__idleSim;
 }
 test('requested title previews use clear native spots while real runs retain their spawn',()=>{
-  for(const [map,x,z] of [['greentown',365.5,339.5],['apache',206.5,85.5],['world',378.5,270.5]]) {
+  for(const [map,x,z] of [['greentown',378.5,270.5],['apache',202.5,85.5],['world',378.5,270.5]]) {
     const sim=preview(map);assert.equal(sim.players[0].x,x);assert.equal(sim.players[0].z,z);
     assert.equal(preview(map,sim),sim,'existing preview is retained');
     const run=createSim({map:MAP_BY_ID[map]});

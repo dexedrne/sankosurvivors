@@ -210,8 +210,8 @@ returns json language sql stable security definer set search_path = public as $$
     'entries', (select count(*) from sqs_ranked_entries where week = p_week and mode = p_mode and refund_reason is null),
     'paid', (select coalesce(sum(paid), 0)::text from sqs_ranked_entries where week = p_week and mode = p_mode and refund_reason is null),
     'rows', coalesce((select json_agg(x) from (
-      select name, wallet, t, kills, level, won, adv, (extract(epoch from finished_at) * 1000)::bigint as at from (
-        select distinct on (wallet) * from sqs_ranked_entries where week = p_week and mode = p_mode and verdict = 'ok' and refund_reason is null
+      select name, wallet, t, kills, level, won, adv, runs, (extract(epoch from finished_at) * 1000)::bigint as at from (
+        select distinct on (wallet) *, count(*) over (partition by wallet) as runs from sqs_ranked_entries where week = p_week and mode = p_mode and verdict = 'ok' and refund_reason is null
         order by wallet, sqs_ranked_score(week, won, t, kills) desc, finished_at asc, id asc) best
       order by sqs_ranked_score(week, won, t, kills) desc, finished_at asc, id asc limit 25) x), '[]'::json))
 $$;

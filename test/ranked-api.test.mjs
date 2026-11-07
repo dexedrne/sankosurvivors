@@ -79,6 +79,11 @@ async function call(route, body, { ip = '192.0.2.1', method = body === undefined
 const expectError = (r, code, error) => assert.deepEqual(r, { code, json: { error } });
 const nonceRoute=(w,mode='normal')=>'ranked-nonce?'+new URLSearchParams({wallet:w.address,mode,...CLIENT});
 async function nonce(w, opts = {}) { const r = await call(nonceRoute(w,opts.mode), undefined, opts); assert.equal(r.code, 200, JSON.stringify(r)); return { nonce: r.json.nonce, signature: w.sign(r.json.message), message: r.json.message, amountWei: r.json.amountWei }; }
+// A signed nonce from before the race closed; never requests a new Hard authorization.
+function legacyHardNonce(w) {
+ const nonce=signed({k:'rnonce',w:Math.floor((now-epoch)/weekMs),s:now,n:'pre-closure-fixture',m:'hard'}),message=ranked.enterMessage(nonce,Math.floor((now-epoch)/weekMs),'hard');
+ return{nonce,message,signature:w.sign(message),amountWei:'2000000000000000000'};
+}
 function payment(w, { amount = now >= epoch + weekMs ? 1000000000000000000n : 500000000000000000n, token = DMT, recipient = ranked.COLLECT, status = '0x1', at = now, amounts } = {}) {
   const tx = '0x' + (++serial).toString(16).padStart(64, '0'), blockNumber = '0x' + serial.toString(16);
   const blockHash = '0x' + (1000 + serial).toString(16).padStart(64, '0');
@@ -335,15 +340,15 @@ test('a reverted receipt with a non-Transfer DMT event cannot discard payment re
   assert.equal(db.rows.length, 1);
 });
 
-test('receipt proof preserves valid mixed-case hashes and Hard split payments', async () => {
+test('receipt proof preserves mixed-case hashes and records a closed Hard split payment as owed', async () => {
   now += weekMs;
-  const w = wallet(), auth = await nonce(w, { mode: 'hard' });
+  const w = wallet(), auth = legacyHardNonce(w);
   const tx = payment(w, { amounts: [1000000000000000000n, 1000000000000000000n] }), receipt = chain.get(tx), block = blocks.get(receipt.blockNumber);
   const upper = value => '0x' + value.slice(2).toUpperCase();
   receipt.transactionHash = upper(receipt.transactionHash); receipt.blockHash = upper(receipt.blockHash); block.hash = upper(block.hash);
   for (const l of receipt.logs) { l.transactionHash = upper(l.transactionHash); l.blockHash = upper(l.blockHash); l.data = upper(l.data); l.topics = l.topics.map(upper); }
-  assert.equal((await call('ranked-enter', { ...auth, tx })).code, 200);
-  assert.equal(db.rows.length, 1); assert.equal(db.rows[0].mode, 'hard'); assert.equal(db.rows[0].paid, '2000000000000000000');
+  const out=await call('ranked-enter', { ...auth, tx });assert.equal(out.code,400);assert.equal(out.json.refund,true);
+  assert.equal(db.rows.length, 1); assert.equal(db.rows[0].mode, 'hard'); assert.equal(db.rows[0].paid, '2000000000000000000');assert.equal(db.rows[0].refund_reason,'that race is not open this week');
 });
 
 test('pre-reset payments are owed; very old payments are refused without a refund', async () => {
@@ -516,7 +521,7 @@ test('update 7: a run cut short by a game update starts again on the same entry,
 test('a ranked run played in slow motion does not count (security pass)', async () => {
   const r = await ready(), d = decode(r.run.run);
   const t = r.log.runs.reduce((n, x) => n + x[0], 0) / 30;
-  now = d.s + (t + 1200 + 30) * 1000; // its game time plus the pause allowance, and then some
+  now = d.s + (t + 1800 + 30) * 1000; // its game time plus the pause allowance, and then some
   slowRefusalOk = true; // refused only after the full replay, so it may take the replay's time
   let out; try { out = await call('ranked-submit', { run: r.run.run, name: 'Slow', log: r.log }); } finally { slowRefusalOk = false; }
   assert.equal(out.code, 400); assert.match(out.json.error, /pause allowance exceeded/);
@@ -596,27 +601,24 @@ test('week 0 offers only the Normal race; a Hard nonce is refused before any pay
   assert.equal(ranked.enterMessage('N', 0), "SankoQuest Survivors ranked\n\nSign to enter this week's ranked runs (week 0). Signing is free. Your wallet asks separately before sending the 0.5 DMT entry.\n\nNonce: N");
 });
 
-test('week 1: Normal costs 1 DMT and Hard 2 DMT; a Hard entry paid 0.5 DMT is refused', async () => {
-  week1();
-  const w = wallet(), n = await nonce(w), h = await nonce(w, { mode: 'hard' });
-  assert.equal(n.amountWei, '1000000000000000000'); assert.equal(h.amountWei, '2000000000000000000');
-  assert.match(h.message, /Hard ranked race \(week 1\).*2 DMT entry/s);
-  const { message, amountWei, ...auth } = h;
-  expectError(await call('ranked-enter', { ...auth, tx: payment(w, { amount: 500000000000000000n }) }), 400, 'that transaction did not send 2 DMT from your wallet to the entry address');
-  expectError(await call('ranked-enter', { ...auth, tx: payment(w, { amount: 1999999999999999999n }) }), 400, 'that transaction did not send 2 DMT from your wallet to the entry address');
-  assert.equal(db.rows.length, 0);
-  const ok = await call('ranked-enter', { ...auth, tx: payment(w, { amount: 2000000000000000000n }) });
-  assert.equal(ok.code, 200); assert.equal(ok.json.mode, 'hard'); assert.equal(decode(ok.json.entry).m, 'hard');
-  assert.equal(db.rows[0].mode, 'hard'); assert.equal(db.rows[0].paid, '2000000000000000000');
-  // a Normal entry from the same wallet: its own race
-  const normal = await enter(w);
-  assert.equal(normal.mode, 'normal'); assert.equal(decode(normal.entry).m, undefined);
+test('week 1: Standard costs 1 DMT and Hard authorization/start are refused', async () => {
+ week1();const w=wallet(),n=await nonce(w);assert.equal(n.amountWei,'1000000000000000000');
+ expectError(await call(nonceRoute(w,'hard')),400,'that race is not open this week');
+ const token=signed({k:'rentry',id:123,a:w.address,w:1,m:'hard'});
+ expectError(await call('ranked-start',{entry:token,adv:'adventurer',...CLIENT}),400,'that race is not open this week');
+ const h=legacyHardNonce(w),{message,amountWei,...auth}=h;
+ for(const amount of[500000000000000000n,1999999999999999999n])expectError(await call('ranked-enter',{...auth,tx:payment(w,{amount})}),400,'that transaction did not send 2 DMT from your wallet to the entry address');
+ assert.equal(db.rows.length,0);
+ const tx=payment(w,{amount:2000000000000000000n}),out=await call('ranked-enter',{...auth,tx});
+ assert.equal(out.code,400);assert.equal(out.json.refund,true);assert.match(out.json.error,/2 DMT/);
+ assert.deepEqual(await call('ranked-enter',{...auth,tx}),out);assert.equal(db.rows.length,1);assert.ok(db.rows[0].refund_reason);
+ const normal=await enter(w);assert.equal(normal.mode,'normal');assert.equal(decode(normal.entry).m,undefined);
 });
 
 test('an entry costs exactly its race price: a Hard-sized payment on a Normal sign-in (or any overpayment) is owed back in full', async () => {
   for (const [week, mode, amount, dmt, name] of [[0, undefined, 1500000000000000000n, '0.5', 'Normal'], [1, undefined, 1500000000000000000n, '1', 'Normal'], [1, 'hard', 2500000000000000000n, '2', 'Hard']]) {
     db = new RankedDB(); now = epoch + week * weekMs + 12 * 3600000;
-    const w = wallet(), { message, amountWei, ...auth } = await nonce(w, { mode });
+    const w = wallet(), { message, amountWei, ...auth } = mode==='hard'?legacyHardNonce(w):await nonce(w, { mode });
     const tx = payment(w, { amount }), want = { code: 400, json: { error: `That payment sent more than the ${dmt} DMT ${name} entry, so it could not count. All of it will be sent back.`, refund: true } };
     assert.deepEqual(await call('ranked-enter', { ...auth, tx }), want);
     assert.deepEqual(await call('ranked-enter', { ...auth, tx }), want, 'a retry answers the same and records nothing new');
@@ -639,44 +641,34 @@ test('security pass 3: a payment over 100 DMT is recorded (not dropped) and its 
   assert.equal(db.rows.length, 2); assert.equal((await call('ranked-week')).json.entries, 0, 'never counted in a pot');
 });
 
-test('week 1: each race has its own pot and board; Hard runs replay on hard rules and rank by kills per minute', async () => {
-  week1();
-  const a = wallet(), b = wallet();
-  const hard = await ready(a, { mode: 'hard' });
-  assert.equal(hard.run.mode, 'hard'); assert.equal(decode(hard.run.run).m, 'hard');
-  const res = await submit(hard);
-  assert.equal(res.code, 200, JSON.stringify(res)); assert.equal(res.json.mode, 'hard'); assert.equal(res.json.rank, 1);
-  assert.deepEqual([res.json.t, res.json.kills], [hard.result.t, hard.result.kills]);
-  const normal = await ready(b, { ip: '192.0.2.9' });
-  assert.equal((await submit(normal)).code, 200);
-  const board = (await call('ranked-week')).json;
-  assert.equal(board.rules, 'kpm'); assert.equal(board.minSeconds, 180);
-  assert.deepEqual(Object.keys(board.races).sort(), ['hard', 'normal']);
-  assert.deepEqual([board.races.hard.entries, board.races.hard.poolDmt, board.races.hard.entryDmt], [1, 1.8, '2']);
-  assert.deepEqual([board.races.normal.entries, board.races.normal.poolDmt, board.races.normal.entryDmt], [1, 0.9, '1']);
-  assert.deepEqual(board.races.hard.rows.map((r) => r.wallet), [a.address]);
-  assert.deepEqual(board.races.normal.rows.map((r) => r.wallet), [b.address]);
-  assert.equal(board.entries, 1, 'the top-level fields stay the Normal race for older pages');
-  // the same log under Normal rules is a different run: the server used the Hard rules
-  const asNormal = replay(hard.log, { seed: hard.run.seed, mapId: hard.run.map, adv: hard.run.adv, ground: null, week: 1, mode: 'normal' });
-  assert.ok(asNormal.error || asNormal.kills !== hard.result.kills || asNormal.t !== hard.result.t);
-  assert.equal(db.rows.find((r) => r.mode === 'hard').kills, hard.result.kills);
+test('an already-started historical Hard run still replays while the public board offers Standard only', async () => {
+ week1();const a=wallet(),b=wallet();
+ // Reconstruct an entry/start acknowledged before closure; do not use the now-closed admission routes.
+ const e=await db.rpc('sqs_ranked_enter',{p_server_key:'server-key',p_wallet:a.address,p_tx:payment(a,{amount:2000000000000000000n}),p_week:1,p_mode:'hard',p_ip_hash:'legacy',p_paid:'2000000000000000000',p_seed:42,p_max:1000000});
+ const started=await db.rpc('sqs_ranked_start',{p_server_key:'server-key',p_id:e.id,p_wallet:a.address,p_adv:'adventurer'});
+ const run={seed:started.seed,map:'apache',adv:'adventurer',week:1,mode:'hard',run:signed({k:'rrun',id:e.id,a:a.address,w:1,seed:started.seed,adv:'adventurer',v:cur,s:Number(started.started),m:'hard'})};
+ const hard={run,...play(run)};now+=(hard.result.t+10)*1000;
+ const res=await submit(hard);assert.equal(res.code,200,JSON.stringify(res));assert.equal(res.json.mode,'hard');assert.equal(res.json.rank,1);
+ assert.deepEqual([res.json.t,res.json.kills],[hard.result.t,hard.result.kills]);
+ const normal=await ready(b,{ip:'192.0.2.9'});assert.equal((await submit(normal)).code,200);
+ const board=(await call('ranked-week')).json;assert.equal(board.rules,'kpm');assert.equal(board.minSeconds,180);
+ assert.deepEqual(Object.keys(board.races),['normal']);assert.deepEqual([board.races.normal.entries,board.races.normal.poolDmt,board.races.normal.entryDmt],[1,0.9,'1']);
+ assert.deepEqual(board.races.normal.rows.map(r=>r.wallet),[b.address]);
+ const asNormal=replay(hard.log,{seed:run.seed,mapId:run.map,adv:run.adv,ground:null,week:1,mode:'normal'});
+ assert.ok(asNormal.error||asNormal.kills!==hard.result.kills||asNormal.t!==hard.result.t);assert.equal(db.rows.find(r=>r.mode==='hard').kills,hard.result.kills);
 });
 
-test('week 1: no entry cap in either race; one wallet per connection across both races', async () => {
-  week1();
-  const w = wallet(), { message, amountWei, ...auth } = await nonce(w);
-  for (let i = 0; i < 25; i++) assert.equal((await call('ranked-enter', { ...auth, tx: payment(w) })).code, 200);
-  assert.equal((await call(nonceRoute(w))).code, 200);
-  const h = await nonce(w, { mode: 'hard' });
-  assert.equal((await call('ranked-enter', { nonce: h.nonce, signature: h.signature, tx: payment(w, { amount: 2000000000000000000n }) })).code, 200);
-  const other = wallet();
-  expectError(await call(nonceRoute(other,'hard')), 400, 'one wallet per player each week: this connection already entered with another wallet');
+test('week 1: Standard keeps unlimited entries and one wallet per connection', async () => {
+ week1();const w=wallet(),{message,amountWei,...auth}=await nonce(w);
+ for(let i=0;i<25;i++)assert.equal((await call('ranked-enter',{...auth,tx:payment(w)})).code,200);
+ assert.equal((await call(nonceRoute(w))).code,200);const other=wallet();
+ expectError(await call(nonceRoute(other)),400,'one wallet per player each week: this connection already entered with another wallet');
+ expectError(await call(nonceRoute(other,'hard')),400,'that race is not open this week');
 });
 
 test('week 1: a Hard payment that lands before the reset is owed back at 2 DMT', async () => {
   week1();
-  const w = wallet(), { message, amountWei, ...auth } = await nonce(w, { mode: 'hard' });
+  const w = wallet(), { message, amountWei, ...auth } = legacyHardNonce(w);
   const late = await call('ranked-enter', { ...auth, tx: payment(w, { amount: 2000000000000000000n, at: epoch + weekMs - 1000 }) });
   assert.deepEqual(late, { code: 400, json: { error: 'Your payment landed just before the weekly reset, so it could not count. Your 2 DMT will be sent back.', refund: true } });
   assert.equal(db.rows[0].mode, 'hard'); assert.equal(db.rows[0].week, 0);
@@ -695,12 +687,12 @@ test('week 1: the late limit follows the longer endless runs', async () => {
 
 test('week-one confirmed prices and Apache map agree in board, nonce and receipt admission', async()=>{
  week1();const w=wallet();const board=(await call('ranked-week')).json;assert.equal(board.map,'apache');
- for(const[mode,dmt,amount]of[['normal','1','1000000000000000000'],['hard','2','2000000000000000000']]){
+ for(const[mode,dmt,amount]of[['normal','1','1000000000000000000']]){
   assert.equal(board.races[mode].entryDmt,dmt);const n=await nonce(w,{mode});assert.equal(n.amountWei,amount);assert.ok(n.message.includes('the '+dmt+' DMT entry'));
   const tx=payment(w,{amount:BigInt(amount)});assert.equal((await call('ranked-enter',{nonce:n.nonce,signature:n.signature,tx})).code,200);
  }
- assert.deepEqual(db.rows.map(r=>r.paid),['1000000000000000000','2000000000000000000']);
- const after=(await call('ranked-week')).json;assert.deepEqual([after.races.normal.paidWei,after.races.normal.houseWei,after.races.normal.entryPoolWei],['1000000000000000000','100000000000000000','900000000000000000']);assert.deepEqual([after.races.hard.paidWei,after.races.hard.houseWei,after.races.hard.entryPoolWei],['2000000000000000000','200000000000000000','1800000000000000000']);
+ assert.deepEqual(db.rows.map(r=>r.paid),['1000000000000000000']);
+ const after=(await call('ranked-week')).json;assert.deepEqual([after.races.normal.paidWei,after.races.normal.houseWei,after.races.normal.entryPoolWei],['1000000000000000000','100000000000000000','900000000000000000']);assert.equal(after.races.hard,undefined);
 });
 test('week-one reset records an unentered old-price payment as owed, preserving its actual receipt week',async()=>{
  const w=wallet(),n=await nonce(w);week1();const tx=payment(w,{amount:500000000000000000n});const out=await call('ranked-enter',{nonce:n.nonce,signature:n.signature,tx});
@@ -708,11 +700,11 @@ test('week-one reset records an unentered old-price payment as owed, preserving 
  assert.deepEqual(await call('ranked-enter',{nonce:n.nonce,signature:n.signature,tx}),out);assert.equal(db.rows.length,1);
 });
 
-test('legacy SQL refund wording still shows the actual new Hard payment amount',async()=>{
- week1();const a=wallet(),b=wallet(),n=await nonce(b,{mode:'hard'});await enter(a);
+test('legacy SQL refund wording still shows the actual new Standard payment amount',async()=>{
+ week1();const a=wallet(),b=wallet(),n=await nonce(b);await enter(a);
  const original=db.rpc.bind(db);db.rpc=async(fn,p)=>{const out=await original(fn,p);if(fn==='sqs_ranked_enter'&&out.refund)out.error=out.error.replace(/Your [0-9.]+ DMT/,'Your 1.5 DMT');return out;};
- const tx=payment(b,{amount:2000000000000000000n}),out=await call('ranked-enter',{nonce:n.nonce,signature:n.signature,tx});
- assert.equal(out.code,400);assert.equal(out.json.refund,true);assert.match(out.json.error,/Your 2 DMT will be sent back/);assert.equal(db.rows.find(r=>r.tx===tx).paid,'2000000000000000000');
+ const tx=payment(b,{amount:1000000000000000000n}),out=await call('ranked-enter',{nonce:n.nonce,signature:n.signature,tx});
+ assert.equal(out.code,400);assert.equal(out.json.refund,true);assert.match(out.json.error,/Your 1 DMT will be sent back/);assert.equal(db.rows.find(r=>r.tx===tx).paid,'1000000000000000000');
 });
 
 // New admission never gates an already-paid registration or archived submission.
@@ -744,9 +736,9 @@ test('missing or inconsistent admission metadata fails closed before RPC, withou
   assert.equal(recovered.code,200);assert.equal(recovered.json.id,e.id);
 });
 
-for(const extra of [1199,20*60,20*60+.001])test(`ranked total pause boundary ${extra}s is enforced after replay`,async()=>{
+for(const extra of [1201,1799,30*60,30*60+.001])test(`ranked total pause boundary ${extra}s is enforced after replay`,async()=>{
  const r=await ready(),d=decode(r.run.run);now=d.s+(r.result.t+extra)*1000;slowRefusalOk=true;
  let out;try{out=await submit(r);}finally{slowRefusalOk=false;}
- assert.equal(out.code,extra<=1200?200:400,JSON.stringify(out));
- if(extra>1200)assert.match(out.json.error,/pause allowance exceeded/);
+ assert.equal(out.code,extra<=1800?200:400,JSON.stringify(out));
+ if(extra>1800)assert.match(out.json.error,/pause allowance exceeded/);
 });

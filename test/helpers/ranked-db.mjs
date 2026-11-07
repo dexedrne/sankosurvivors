@@ -17,7 +17,7 @@ export class RankedDB {
     const e = this.rows.find(e => e.id === p.p_id && (!wallet || e.wallet === wallet));
     const raceOk = (m, w) => MODES.includes(m) && !(m === 'hard' && w < 1);
     const best = (w, m = mode) => {
-      const rows = this.rows.filter(e => e.week === w && e.mode === m && e.verdict === 'ok').sort(compareRuns(w));
+      const rows = this.rows.filter(e => e.week === w && e.mode === m && e.verdict === 'ok' && e.refund_reason == null).sort(compareRuns(w));
       return rows.filter((e, i) => rows.findIndex(x => x.wallet === e.wallet) === i);
     };
     const hard = (m) => (m === 'hard' ? 'Hard ' : '');
@@ -102,7 +102,7 @@ export class RankedDB {
         Object.assign(e, { claimed_at: Date.now(), finished_at: Date.now(), verdict: 'void', refund_reason: p.p_reason.slice(0, 120) });
         return { ok: true };
       case 'sqs_ranked_board':
-        return { mode, entries: active(week, mode).length, paid: active(week, mode).reduce((n, e) => n + BigInt(e.paid), 0n).toString(), rows: best(week).slice(0, 25).map(({ name, wallet, t, kills, level, won, adv, finished_at }) => ({ name, wallet, t, kills, level, won, adv, at: finished_at })) };
+        return { mode, entries: active(week, mode).length, paid: active(week, mode).reduce((n, e) => n + BigInt(e.paid), 0n).toString(), rows: best(week).slice(0, 25).map(({ name, wallet, t, kills, level, won, adv, finished_at }) => ({ name, wallet, t, kills, level, won, adv, at: finished_at, runs: active(week, mode).filter(e => e.wallet === wallet && e.verdict === 'ok').length })) };
       case 'sqs_ranked_settle':
         if (p.p_key !== 'reports-key') return error('forbidden');
         return { week, mode, rules: week >= 1 ? 'kpm' : 'classic', entries: active(week, mode).length, paid: active(week, mode).reduce((n, e) => n + BigInt(e.paid), 0n).toString(), top: best(week).slice(0, 10).map(({ id, name, wallet, t, kills, level, won, adv, log_sha }) => ({ id, name, wallet, t, kills, level, won, adv, log_sha })), refunds: this.rows.filter(e => e.week === week && e.mode === mode && e.refund_reason != null).map(e => ({ wallet: e.wallet, tx: e.tx, paid: e.paid, why: e.refund_reason })), rejected: this.rows.filter(e => e.week === week && e.mode === mode && e.verdict?.startsWith('rejected')).length, wallets: new Set(active(week, mode).map(e => e.wallet)).size };

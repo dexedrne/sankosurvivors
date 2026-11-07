@@ -4,7 +4,7 @@ import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
   ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength,
-  weaponSlotItem, TUMBLE, PASTURE_NAV,
+  weaponSlotItem, TUMBLE, PASTURE_NAV, SNOW_WAVE_AT, isSnowEnemy,
 } from './content.js';
 import { groundHash } from './ground-pack.js';
 
@@ -68,7 +68,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}, pace), rerolls: REROLLS_PER_RUN, belt: [],
       casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
       wm: {}, // weapon metals from caskets (pace 2): { katana: 0..5, bow: 0..3, arrow: 0..4, ... } (missing = Bronze / plain Bow)
-      ...(pace >= 2 ? { quality: { weapons: {}, passives: {} }, banished: [] } : {}),
+      ...(pace >= 2 ? { pace, quality: { weapons: {}, passives: {} }, banished: [] } : {}),
     });
   });
   // veterans: skill ranks plus two for every piece of gear worn, 1.5% each, to +75% at 50 (pace 2 only; ranked has neither)
@@ -267,7 +267,7 @@ export function playerStats(p, meta = p.meta || {}) {
   return {
     might, haste,
     speed: PLAYER_BASE.speed * (1 + 0.08 * passiveStrength(p, 'boots') + 0.03 * m('woodcutting') + (B.speed || 0) + (G.speed || 0)) * ((p.buffs && p.buffs.speed > 0) ? 1.35 : 1) * ((p.buffs && p.buffs.chill > 0) ? 0.9 : 1) * (bf.agility > 0 ? 1.25 : 1), // beer speeds you up, a blizzard slows you
-    magnet: PLAYER_BASE.magnet * (1 + 0.3 * passiveStrength(p, 'magnet') + 0.1 * m('magic') + (B.magnet || 0) + (G.magnet || 0)),
+    magnet: (p.pace >= 2 ? 2.5 : PLAYER_BASE.magnet) * (1 + 0.3 * passiveStrength(p, 'magnet') + 0.1 * m('magic') + (B.magnet || 0) + (G.magnet || 0)),
     armor: passiveStrength(p, 'armor') + (B.armor || 0) + (G.armor || 0) + (m('mining') >= 2 ? 1 : 0) + (m('mining') >= 4 ? 1 : 0),
     growth: (1 + 0.1 * passiveStrength(p, 'growth') + 0.05 * m('herblore') + (B.growth || 0) + (G.growth || 0)) * (bf.wisdom > 0 ? 1.4 : 1),
     maxHp: Math.round(PLAYER_BASE.hp + 20 * passiveStrength(p, 'vigor') + 8 * m('smithing') + (B.hp || 0) + (G.hp || 0)),
@@ -360,6 +360,7 @@ function killEnemy(sim, e, owner) {
 // ---- spawning -----------------------------------------------------------
 export function spawnEnemy(sim, type, x, z, scaleHp = 1) {
   const def = ENEMIES[type];
+  if (sim.pace >= 2 && isSnowEnemy(type)) sim.snowWave = true;
   const t = sim.t;
   const hp = def.hp * (1 + t / (sim.pace >= 2 ? 240 : 300)) * (sim.pace >= 2 ? sim.vet * (1 + CURSE.hp * (sim.curse || 0)) : 1) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
   // now and then a golden elite: much tougher, a little slower, and it always carries a reward casket
@@ -373,6 +374,7 @@ export function spawnEnemy(sim, type, x, z, scaleHp = 1) {
   });
 }
 
+const spawnReady = (sim, entry) => sim.t >= entry.t && (sim.pace < 2 || sim.t >= SNOW_WAVE_AT || !isSnowEnemy(entry.type));
 function spawnTick(sim, dt) {
   const t = sim.t;
   // bosses
@@ -416,7 +418,7 @@ function spawnTick(sim, dt) {
   // on the whole-world map, the monsters come from the region you are standing in
   const R = M.world ? regionOf(sim, sim.players.find((p) => p.alive) || sim.players[0]) : M;
   if (M.world && R.id !== sim.region) { sim.region = R.id; sim.fx.push({ k: 'region', id: R.id }); }
-  const pool = R.pool.filter((s) => t >= s.t && !(R.retire && R.retire[s.type] && t >= R.retire[s.type]));
+  const pool = R.pool.filter((s) => spawnReady(sim, s) && !(R.retire && R.retire[s.type] && t >= R.retire[s.type]));
   const total = pool.reduce((a, s) => a + s.w, 0);
   while (sim.spawnAcc >= 1 && sim.enemies.length < cap) {
     sim.spawnAcc -= 1;
@@ -909,7 +911,7 @@ function eventTick(sim, dt) {
   const ev = sim.event;
   if (ev) {
     ev.t -= dt;
-    if (ev.kind === 'meteors') { ev.next -= dt; if (ev.next <= 0) { ev.next = 0.45; const p = sim.players.find((q) => q.alive); if (p) { const a = sim.rng() * 6.283, d = sim.rng() * 11; sim.hazards.push({ x: p.x + dcos(a) * d, z: p.z + dsin(a) * d, r: 2.6, t: 1.1, max: 1.1, dmg: Math.round(12 * (1 + sim.t / 600)), meteor: true }); } } }
+    if (ev.kind === 'meteors') { ev.next -= dt; if (ev.next <= 0) { ev.next = 0.45; const p = sim.players.find((q) => q.alive); if (p) { const a = sim.rng() * 6.283, d = sim.rng() * 11; sim.hazards.push({ x: p.x + dcos(a) * d, z: p.z + dsin(a) * d, r: 2.6 * (sim.pace >= 2 ? 0.95 : 1), t: 1.1, max: 1.1, dmg: Math.round(12 * (1 + sim.t / 600)), meteor: true }); } } }
     if (ev.kind === 'treasure' || ev.kind === 'duel') { const g = sim.enemies.find((e) => e.id === ev.id); if (!g) { sim.event = null; return; } if (ev.t <= 0) { g.dead = true; sim.fx.push({ k: 'escape', x: g.x, z: g.z }); } }
     if (ev.t <= 0 || ((ev.kind === 'treasure' || ev.kind === 'duel') && !sim.enemies.some((e) => e.id === ev.id && !e.dead))) sim.event = null;
     return;
@@ -921,7 +923,8 @@ function eventTick(sim, dt) {
   const here = sim.map.world ? regionOf(sim, p) : sim.map; // on the whole-world map, the region you stand in picks the event
   const grow = Math.max(0.5, Math.min(1, sim.t / 420)); // events start gentler and reach full strength by 7:00
   const N = (n) => Math.max(3, Math.round(n * grow));
-  const kinds = here.events || sim.map.events || ['treasure', 'swarm', 'meteors'], kind = kinds[Math.floor(sim.rng() * kinds.length)];
+  const kinds = (here.events || sim.map.events || ['treasure', 'swarm', 'meteors']).filter(kind => kind !== 'blizzard' || sim.pace < 2 || sim.t >= SNOW_WAVE_AT);
+  const kind = kinds.length ? kinds[Math.floor(sim.rng() * kinds.length)] : 'swarm';
   let dir = null;
   if (kind === 'treasure') {
     const a = sim.rng() * 6.283, w = findWalkable(sim, p.x + dcos(a) * 12, p.z + dsin(a) * 12);
@@ -929,7 +932,7 @@ function eventTick(sim, dt) {
     g.treasure = true; g.elite = true; g.speed = PLAYER_BASE.speed * 0.82 * 0.95;
     sim.event = { kind, t: 25, id: g.id };
   } else if (kind === 'swarm') {
-    const pool = here.pool.filter((s) => sim.t >= s.t), type = (pool[pool.length - 1] || pool[0]).type; // the region's own monsters on The Whole World
+    const pool = here.pool.filter((s) => spawnReady(sim, s)), type = (pool[pool.length - 1] || pool[0]).type; // the region's own monsters on The Whole World
     for (let i = 0, n = N(20); i < n; i++) { const a = (i / n) * 6.283, w = findWalkable(sim, p.x + dcos(a) * 16, p.z + dsin(a) * 16); spawnEnemy(sim, type, w[0], w[1], 0.5); }
     sim.event = { kind, t: 1 };
   } else if (kind === 'blizzard') {
@@ -1032,7 +1035,7 @@ function bossAct(sim, e, def, tp, d, dx, dz, dt) {
   const list = def.attacks || ['slam'], kind = list[Math.floor(sim.rng() * list.length)];
   e.atkCd = (4 + sim.rng() * 2.5) * (sim.hard ? 0.8 : 1);
   if (kind === 'slam') {
-    const r = 3.5 + def.r * 1.2, t = 1.1 + r * 0.07; // bigger slams give more warning
+    const baseR = 3.5 + def.r * 1.2, r = baseR * (sim.pace >= 2 ? 0.95 : 1), t = 1.1 + baseR * 0.07; // keep the original warning time
     sim.hazards.push({ x: tp.x, z: tp.z, r, t, max: t, dmg: bossDmg(sim, def, 1.6), ...(sim.pace >= 2 ? { by: e.id } : {}) });
   } else if (kind === 'charge') {
     const ux = dx / (d || 1), uz = dz / (d || 1);
@@ -1255,6 +1258,7 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
   }
   const fx = sim.fx; sim.fx = [];
   return {
+    ...(sim.pace >= 2 ? { snowWave: !!sim.snowWave } : {}),
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
     players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),

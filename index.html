@@ -82,6 +82,7 @@
   <div id="mmwrap"><canvas id="minimap" width="168" height="168"></canvas><button id="damagebtn" type="button" aria-controls="damagepanel" aria-expanded="false" aria-label="Show weapon damage"><span id="dpsvalue" translate="no">0 DPS</span></button></div>
   <section id="damagepanel" class="panel hidden" aria-label="Weapon damage"><header><b>Weapon damage</b><button id="damageclose" type="button" aria-label="Close">×</button></header><p class="dim">Last 8 seconds. Includes overkill.</p><div id="damagerows"></div></section>
   <div id="banner"></div>
+  <div id="shrinecharge" class="hidden"><b id="shrinename"></b><div><span id="shrinestate"></span> <span id="shrinepct" translate="no"></span></div><progress id="shrineprogress" max="100" value="0" aria-labelledby="shrinename shrinestate"></progress></div>
   <div id="movehint" class="hidden" role="status">Drag to resume. The fight is paused.</div>
   <div id="zoomhint">scroll zoom · middle mouse or Q/E turns camera</div>
   <button id="pausebtn" class="ghost" aria-label="Pause">II</button>
@@ -115,7 +116,7 @@
 <div id="gear" class="screen hidden"><div class="panel wide"><h2>Gear</h2><div class="progression-note"><p id="gearpressure" aria-live="polite"></p><small>Each skill rank adds 1.5% enemy HP/contact damage. Each starting gear piece counts as two ranks, up to +75%. Ranked ignores both.</small><small>Before armour and other modifiers.</small></div><div id="gearwrap"><div id="gearslots"></div><div id="gearbank"></div></div><div id="gearinfo"></div><button id="gearclose" class="ghost">Back</button></div></div>
 <div id="quests" class="screen hidden"><div class="panel wide"><h2>Quests</h2><div id="questlist"></div><button id="questclose" class="ghost">Back</button></div></div>
 <div id="toasts"></div>
-<div id="pause" class="screen hidden"><div class="panel"><h2>Paused</h2><p class="rankedpause dim hidden" role="timer" aria-live="off"></p><button id="resume">Resume</button><button id="setbtn2" class="ghost">Settings</button><button id="bugbtn2" class="ghost">Report a bug</button><button id="quit" class="ghost">Quit run</button></div></div>
+<div id="pause" class="screen hidden"><div class="panel"><h2>Paused</h2><p class="rankedpause dim hidden" role="timer" aria-live="off"></p><p class="rankedmovement dim">Week-0 ranked uses Jump and the original evolution recipes. Casual and ranked from week 1 use Tumble and the current recipes.</p><button id="resume">Resume</button><button id="setbtn2" class="ghost">Settings</button><button id="bugbtn2" class="ghost">Report a bug</button><button id="quit" class="ghost">Quit run</button></div></div>
 <div id="updates" class="screen hidden"><div class="panel wide"><h2>Updates</h2><p class="dim">Older notes without a translation stay in English.</p><div id="updlist"></div><button id="updclose" class="ghost">Back</button></div></div>
 <div id="board" class="screen hidden"><div class="panel wide"><h2>Leaderboard</h2><div id="lbtabs"></div><div id="lblist"></div><button id="lbclose" class="ghost">Back</button></div></div>
 <div id="bug" class="screen hidden"><div class="panel"><h2>Report a bug</h2><p class="dim">What happened, and what were you doing? Your settings, map and game version are sent with it.</p><textarea id="bugtext" maxlength="2000" rows="6" placeholder="e.g. On Greentown my character walked through a wall near the bank"></textarea><div id="bugmsg"></div><button id="bugsend">Send report</button><button id="bugclose" class="ghost">Back</button></div></div>
@@ -128,11 +129,49 @@
   <div class="lurow"><button id="xferload" disabled>Load this progress</button><button id="xferclose" class="ghost">Back</button></div>
   <div id="xfermsg" role="status" aria-live="polite"></div>
 </div></div>
-<div id="more" class="screen hidden"><div class="panel"><h2>More</h2><div class="morelist"><button id="updbtn" class="ghost">What's new<span id="updnew" class="hidden">NEW</span></button><button id="dmtbtn" class="ghost hidden">DMT holder perks</button><button id="xferbtn" class="ghost">Move progress to another device</button><button id="bugbtn" class="ghost">Report a bug</button><button id="installbtn" class="ghost hidden">Install the app</button></div><p class="morelinks">Made by <a href="https://x.com/dexedrne" target="_blank" rel="noopener">@dexedrne</a> · Sanko: <a href="https://t.me/sankogamecorp" target="_blank" rel="noopener">Telegram</a> · <a href="https://x.com/SankoGameCorp" target="_blank" rel="noopener">X</a></p><button id="moreclose" class="ghost">Back</button></div></div>
+<div id="more" class="screen hidden"><div class="panel"><h2>More</h2><div class="morelist"><button id="guidebtn" class="ghost">How to play</button><button id="updbtn" class="ghost">What's new<span id="updnew" class="hidden">NEW</span></button><button id="dmtbtn" class="ghost hidden">DMT holder perks</button><button id="xferbtn" class="ghost">Move progress to another device</button><button id="bugbtn" class="ghost">Report a bug</button><button id="installbtn" class="ghost hidden">Install the app</button></div><p class="morelinks">Made by <a href="https://x.com/dexedrne" target="_blank" rel="noopener">@dexedrne</a> · Sanko: <a href="https://t.me/sankogamecorp" target="_blank" rel="noopener">Telegram</a> · <a href="https://x.com/SankoGameCorp" target="_blank" rel="noopener">X</a></p><button id="moreclose" class="ghost">Back</button></div></div>
+
+<div id="guide" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="guidetitle"><div class="panel wide">
+<h2 id="guidetitle">How to play</h2>
+<details open><summary>Controls</summary>
+<p>Move with WASD, arrow keys, the left stick, or drag on the screen. Attacks are automatic.</p>
+<p>Tumble with Space, controller A, or the Tumble button. Cross reachable low fences; buildings stay solid.</p>
+<p>Pause with Esc or the pause button. After a touch-screen reward, drag to resume safely.</p></details>
+<details><summary>Runs and progress</summary>
+<p>Clear maps to unlock adventurers and areas. Clearing a map unlocks its Hard and Endless options.</p>
+<p>Skills and equipped gear carry between casual runs and increase enemy toughness. Tutorial Island uses Alex and its own starting loadout.</p></details>
+<details><summary>Level-ups and rarity</summary>
+<p>Start with room for 4 weapons and 4 passives; skills can add slots. Weapons reach level 6; passives reach level 5.</p>
+<p>Common, Uncommon, Rare and Epic upgrades each give one level with different stat gains. Maxed items cannot roll again.</p>
+<p>Reroll redraws choices. Skip gives a coin. Up to three banishes remove offered NEW weapons or passives for this run, without a replacement.</p></details>
+<details><summary>Gear and caskets</summary>
+<p>Permanent gear and run-only passives are separate. Winged Boots can be both: their speed bonuses stack.</p>
+<p>Caskets can contain upgrades, duplicates or weaker items. Wear changes your current loadout; High alch converts the roll to coins. Settings can auto-alch non-upgrades.</p>
+<p>Reinforce gear up to +3 for +25% of its bonuses per rank. Smithing unlocks the next metal piece and copies its reinforcement level.</p></details>
+<details><summary>Weapon metals and arrows</summary>
+<p>Weapon levels and weapon metals are independent. Casket metals improve a weapon you carry for this run; they do not add another weapon or permanent gear.</p>
+<p>Bronze Arrow is the default arrow and adds no stat bonus. Higher arrows improve bow damage and/or pierce. Check the comparison before wearing or alching.</p></details>
+<details><summary>Evolutions</summary>
+<p>Reach a weapon's maximum level and own one of its listed passives at any level. An evolution can then appear at a level-up.</p>
+<p>Current casual evolution recipes</p><div id="guidecurrentrecipes"></div></details>
+<details><summary>Shrines</summary>
+<p>Stand inside a shrine's circle to charge it. The nearby bar shows its progress. Stepping out drains charge; finishing grants the shrine's reward.</p>
+<p>In casual runs, winter enemies join from 6:00 onward. Their first arrival starts Snowdrift Hollow.</p></details>
+<details><summary>Saving progress</summary>
+<p>Progress saves on this device. Use Move progress to keep a backup or play on another device.</p>
+<p id="guide-cloud">For cloud saves, connect your wallet, enable cloud saving and choose which progress to keep if asked. Finished runs sync while cloud saving is on; check the save status.</p></details>
+<details id="guide-ranked"><summary>Ranked rules</summary>
+<p>Ranked starts equal: no permanent skills, gear or holder perks. Check this week's map, fee and prize estimates in the Ranked panel before paying. New entries use Standard difficulty only.</p>
+<p>Week 0 keeps its original enemies, Jump, evolutions and casket pool. Casual and ranked from week 1 use Tumble, alternate evolution routes and amulets.</p>
+<p>Week 0 ranks survival time, then kills. From week 1, runs of at least 3:00 rank by kills per minute, then kills. Ties use the earlier finish, then entry.</p>
+<p>Pauses, reward choices, reloads and time away count against the visible pause allowance. Reloading does not reset it. Read the current warning in Ranked.</p>
+<p>Week-0 ranked evolution recipes</p><div id="guideoldrecipes"></div></details>
+<button id="guideclose" class="ghost">Back</button>
+</div></div>
 <div id="settings" class="screen hidden"><div class="panel"><h2>Settings</h2><p class="rankedpause dim hidden" role="timer" aria-live="off"></p><label class="langpick"><span>Language</span> <select data-language aria-label="Language"><option value="en" translate="no">English</option><option value="tr" translate="no">Türkçe</option><option value="es" translate="no">Español</option><option value="fil" translate="no">Filipino</option></select></label><div id="setlist"></div><button id="setclose" class="ghost">Back</button></div></div>
 <div id="end" class="screen hidden"><div class="panel"><h2 id="endtitle"></h2><p id="endtext"></p><p id="endcoins"></p><div id="enddmg"></div><div id="endloot"></div><div id="endlb"><label>Name for the leaderboard <input id="lbname" maxlength="16" autocomplete="off" spellcheck="false"></label><button id="lbsubmit">Submit score</button><span id="lbmsg"></span></div><div id="rankedresult" role="status"></div><button id="rankedretry" class="hidden">Retry ranked submission</button><button id="again">Run it back</button><button id="sharex" class="ghost">Share on X</button><button id="tomenu" class="ghost">Main menu</button></div></div>
 <div id="ranked" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="rankedtitle"><div class="panel">
-  <h2 id="rankedtitle">Ranked weekly runs</h2><p id="rankedpausewarning">Ranked is competitive play. Bathroom breaks are fine: you have 20 minutes of total pause allowance per run. Time away, upgrade choices, reloads and connection delays all count. Reloading does not reset it. Exceeding the allowance disqualifies the run.</p>
+  <h2 id="rankedtitle">Ranked weekly runs</h2><p id="rankedpausewarning">Ranked is competitive play. Bathroom breaks are fine: you have 30 minutes of total pause allowance per run. Time away, upgrade choices, reloads and connection delays all count. Reloading does not reset it. Exceeding the allowance disqualifies the run.</p><p class="rankedmovement dim">Week-0 ranked uses Jump and the original evolution recipes. Casual and ranked from week 1 use Tumble and the current recipes.</p>
   <div id="rankedraces" class="rkraces" role="tablist" aria-label="Ranked race"></div>
   <p id="rankedweek">Loading this week…</p><p id="rankedtime" class="dim"></p><p id="rankedpool"></p>
   <div id="rankedstandings"></div>

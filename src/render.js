@@ -1,3 +1,4 @@
+import { frameTitleCamera } from './title-framing.js';
 import { cleanSettings } from './settings.js';
 // Three.js renderer. Reads snapshots from sim.js, owns every GPU object.
 import * as THREE from 'three';
@@ -784,11 +785,6 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       for (let i = 0; i < r.mats.length; i++) r.im.setMatrixAt(i, (roofHidden.has('all') && !isLandmark(r.bldgs[i]) && !(r.wall && keepsWalls(r.bldgs[i]))) || roofHidden.has(r.bldgs[i]) ? ZERO : r.mats[i]);
       r.im.instanceMatrix.needsUpdate = true;
     }
-    // a picture hung up where the roof's walls are (the chapel's stained glass) lifts with that roof; floor rugs stay
-    for (const m of rugs.children) {
-      if (m.userData.bldg === undefined) m.userData.bldg = pictureBuilding(m);
-      m.visible = !(m.userData.bldg && roofHidden.has(m.userData.bldg));
-    }
   }
   // Roofs off: a roof's own walls stay only where they are the building's real walls: the chapel's tall nave, or walls
   // standing on the ground (the wooden hut). Upper walls sitting on a ground floor (the strangehouse's gables, the guild's
@@ -802,11 +798,6 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const b = roofBoxes.get(id); if (!b) return true;
     if (b.keep === undefined) b.keep = KEEP_ROOF_WALLS.test(b.name) || (b.wy < 1e9 && b.wy - groundAt(b.wx, b.wz) < 0.5);
     return b.keep;
-  }
-  function pictureBuilding(m) {
-    const p = new THREE.Vector3().setFromMatrixPosition(m.matrix);
-    for (const [id, b] of roofBoxes) if (p.x > b.x0 - 0.8 && p.x < b.x1 + 0.8 && p.z > b.z0 - 0.8 && p.z < b.z1 + 0.8 && p.y >= b.y0 - 0.4) return id;
-    return 0;
   }
   // Build (or rebuild) the ground and every prop around a map's centre.
   async function loadMap(m, progress = () => {}) {
@@ -2032,6 +2023,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const L = Math.hypot(21, 17) * cam.zoom, cp = Math.cos(cam.pitch) * L;
     camera.position.set(cam.x + sx + Math.sin(cam.yaw) * cp, gy + Math.sin(cam.pitch) * L, cam.z + sz + Math.cos(cam.yaw) * cp + cam.shift);
     camera.lookAt(cam.x, gy + 0.5 + (cam.lookY || 0), cam.z + cam.shift);
+    if (cam.previewY != null) frameTitleCamera(camera, dummy.position.set(cam.x, gy + 0.9, cam.z), canvas.clientWidth, canvas.clientHeight, canvas.clientHeight * cam.previewY);
     // the shadow-casting sun follows the view (snapped to shadow texels so edges do not crawl)
     { const snap = 68 / 2048, tx = Math.round(cam.x / snap) * snap, tz = Math.round((cam.z + cam.shift) / snap) * snap; sun.target.position.set(tx, gy, tz); sun.position.set(tx + SUN_OFF.x, gy + SUN_OFF.y, tz + SUN_OFF.z); }
 
@@ -2074,7 +2066,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     spTick = -1;
     cam.x = curMap.cx; cam.z = curMap.cz;
   }
-  return { hop: () => { hopReq = true; }, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v) { cam.shift = v; }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
+  return { hop: () => { hopReq = true; }, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v, previewY = null) { cam.shift = v; cam.previewY = previewY; if (previewY == null) camera.clearViewOffset(); }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
     preloadGear,
     // QA hooks
     setAura(on) { dmtAura = !!on; },

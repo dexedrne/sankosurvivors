@@ -29,5 +29,5 @@ await walk(out);
 assertCasualBundle('', files.map(file => file.name));
 const bytes = files.reduce((sum, file) => sum + file.bytes, 0);
 if (bytes > 1_000_000_000 || !(await stat(resolve(out, 'index.html'))).isFile()) throw Error('Invalid Wavedash upload');
-await writeFile(resolve(root, 'wavedash-build.json'), JSON.stringify({ edition: '0.44.40-casual.10', bytes, files: files.sort((a,b) => a.name.localeCompare(b.name)) }, null, 2) + '\n');
+await writeFile(resolve(root, 'wavedash-build.json'), JSON.stringify({ edition: '0.44.41-casual.11', bytes, files: files.sort((a,b) => a.name.localeCompare(b.name)) }, null, 2) + '\n');
 console.log(`Casual upload audit passed: ${files.length} files, ${bytes} bytes; no deployment performed.`);

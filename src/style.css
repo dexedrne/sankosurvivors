@@ -553,7 +553,7 @@ body.touch .ckbtns .kb { display: none; }
 .cloudopts button span { font-family: RSPlain, sans-serif; font-size: var(--fs-s); opacity: .85; }
 /* volume sliders (Settings, Sound): bronze on dark, big enough for a thumb */
 .volrow { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 260px; justify-content: flex-end; }
-.volrow input[type=range] { flex: 1; min-width: 120px; height: 28px; accent-color: #c9a25a; cursor: pointer; background: transparent; }
+.volrow input[type=range] { flex: 1; min-width: 120px; height: 44px; accent-color: #c9a25a; cursor: pointer; background: transparent; }
 .volrow b { min-width: 44px; text-align: right; color: var(--gold); font-weight: 400; }
 /* desktop: Skills & upgrades fits a 1080p screen without scrolling (owner 3 Nov: "isnt fitting on my 1080p desktop
    monitor"): 18 skills in 4-5 columns instead of 3, tighter cards when the window is short; Back stays in reach */
@@ -756,7 +756,6 @@ body.ds-layout #damagepanel { position:fixed; top:calc(var(--ds-control-top) + 8
 #belt button.bslot:hover:not(:disabled) { filter:none; outline:2px solid var(--gold); outline-offset:1px; }
 
 /* Build controls keep the reward choices scrollable in short DS panes. */
-#levelup .lurow { position: sticky; bottom: 0; z-index: 2; background: var(--panel); }
 #levelup .lurow button { flex: 1; min-width: 0; min-height: 44px; padding: 2px 4px; white-space: normal; overflow-wrap: anywhere; font-size: 16px; line-height: 1.1; }
 #banishhint { margin: 5px 0; font-size: 14px; line-height: 1.1; }
 #cards .card.banished { opacity: .4; filter: grayscale(1); cursor: default; }
@@ -766,3 +765,38 @@ body.ds-layout #damagepanel { position:fixed; top:calc(var(--ds-control-top) + 8
 
 .rankedpause.pauseexpired { color: #ffaaa0; }
 #rankedpausewarning { border-left: 3px solid var(--gold); padding-left: 10px; }
+
+/* Settings keep their native sections compact while each choice stays touch-sized. */
+#setlist .setgroup > summary { cursor:pointer; min-height:44px; padding:10px 0 6px; margin:0; font-size:20px; }
+#setlist .setgroup[open] > summary { margin-bottom:6px; }
+#setlist .setrow { margin:6px 0; }
+#setlist .setrow > span { min-width:0; flex:1; }
+#setlist .seg { min-width:0; max-width:70%; }
+#setlist .seg button { min-height:44px; min-width:44px; }
+#settings #setclose { position:sticky; bottom:0; z-index:2; background:var(--panel); }
+
+#setlist .volsetting { display:block; padding:6px 0; }
+#setlist .volsetting > label { display:block; margin:0; }
+#setlist .volsetting .volrow { max-width:none; }
+
+.rankedruns { display:block; color:var(--cream); opacity:.8; font-size:14px; white-space:normal; }
+
+.updhead { flex-wrap:wrap; align-items:center; }
+.updhead b { flex:1 1 180px; }
+.updcopy { margin:0; min-height:44px; font-size:16px; }
+.updcopytext { display:block; width:100%; min-height:120px; margin-top:8px; }
+.lootline > summary { cursor:pointer; min-height:44px; padding:8px 0; }
+.lootline > div { margin-bottom:6px; }
+
+#shrinecharge { position:absolute; top:58%; left:50%; transform:translateX(-50%); width:min(240px,80vw); padding:5px 10px; border:6px solid transparent; border-image:url(../assets/ui/sq/grey_slot.png) 14 fill stretch; color:var(--cream); text-align:center; font:18px RSPlain,sans-serif; text-shadow:var(--sh); }
+#shrinename { display:block; color:var(--gold); font-weight:400; }
+#shrineprogress { display:block; width:100%; height:14px; margin-top:4px; accent-color:#ffd34d; }
+body.ds-layout #shrinecharge { top:auto; bottom:calc(100% - var(--ds-play-height) + 12px); width:min(220px,72vw); }
+
+#guide .panel { text-align:left; }
+#guide summary { cursor:pointer; min-height:44px; padding:10px 0; color:var(--gold); }
+#guide p { margin:4px 0 12px; color:var(--cream); }
+#guideclose { position:sticky; bottom:0; background:var(--panel); }
+.guiderecipe { padding:6px 0; border-top:1px solid var(--line); }
+.guiderecipe b { color:var(--gold); font-weight:400; }
+.guiderecipe small { display:block; color:var(--cream); }

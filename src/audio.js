@@ -10,7 +10,7 @@ const EXT = { 'NPC_Block': 'wav', 'magic-edit-1': 'wav', 'Bun_Burp_v1': 'wav' };
 const TRACKS = { early: 'Fresh_Beginnings', mid: 'Adobe_Fantasy', late: 'snowdrift_mix', boss: 'payasan_town_mix', final: 'grotto1' };
 
 export function createAudio() {
-  let ctx = null, sfxGain = null, loading = null, resuming = null, current = null, outgoing = null, desired = '', fade = null, muted = false, ducked = false;
+  let ctx = null, sfxGain = null, loading = null, loadingHost = '', resuming = null, current = null, outgoing = null, desired = '', fade = null, muted = false, ducked = false;
   const musicSlots = [];
   // volume sliders, 0-100 each (Settings, Sound): 60 is the old fixed loudness, so there is room both ways
   const vol = { s: 60, m: 60 };
@@ -61,6 +61,15 @@ export function createAudio() {
       slot.pending = null; slot.ready = false;
     });
   }
+  function loadEffects() {
+    const host = asset('sound/soundEffects/');
+    if (host === loadingHost) return loading;
+    loadingHost = host;
+    // A first gesture can precede CDN selection; retry missing effects only when the selected host changes.
+    return loading = Promise.all([...new Set(Object.values(SFX).flat())].filter(n => !buffers.has(n)).map(async (n) => {
+      try { const r = await fetch(host + `${n}.${EXT[n] || 'mp3'}`); buffers.set(n, await ctx.decodeAudioData(await r.arrayBuffer())); } catch { /* optional */ }
+    }));
+  }
   async function init() {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -68,9 +77,9 @@ export function createAudio() {
       for (let i = 0; i < 2; i++) {
         const el = new Audio(), gain = ctx.createGain();
         el.crossOrigin = 'anonymous'; el.loop = true; el.volume = 1; el.preload = 'auto';
-        const file = desired || TRACKS.early; el.src = asset(`music/${file}.mp3`);
+        const file = desired || TRACKS.early, url = asset(`music/${file}.mp3`); el.src = url;
         const source = ctx.createMediaElementSource(el); source.connect(gain); gain.gain.value = 0; gain.connect(ctx.destination);
-        musicSlots.push({ el, gain, source, file, generation: 0, pending: null, ready: false, primed: false });
+        musicSlots.push({ el, gain, source, file, url, generation: 0, pending: null, ready: false, primed: false });
       }
       if (desired) current = musicSlots[0];
     }
@@ -83,10 +92,7 @@ export function createAudio() {
     // Start both reusable streams in this gesture, before any optional effect decoding.
     if (current && (!current.ready || current.el.paused)) attempt(current);
     for (const slot of musicSlots) if (slot !== current && slot !== outgoing && !slot.primed) attempt(slot);
-    loading ||= Promise.all([...new Set(Object.values(SFX).flat())].map(async (n) => {
-      try { const r = await fetch(asset(`sound/soundEffects/${n}.${EXT[n] || 'mp3'}`)); buffers.set(n, await ctx.decodeAudioData(await r.arrayBuffer())); } catch { /* optional */ }
-    }));
-    await Promise.all([resumed, loading]);
+    await Promise.all([resumed, loadEffects()]);
   }
   function play(kind, { minGap = 0.05, vol: gain = 1, rate = 1 } = {}) {
     if (!ctx || muted || !vol.s) return;
@@ -96,12 +102,15 @@ export function createAudio() {
     const g = ctx.createGain(); g.gain.value = gain; src.connect(g); g.connect(sfxGain); src.start();
   }
   function music(key) {
-    const file = TRACKS[key]; if (!file || file === desired) return;
+    const file = TRACKS[key]; if (!file) return;
+    const url = asset(`music/${file}.mp3`);
+    if (ctx) loadEffects();
+    if (file === desired && (!ctx || current?.url === url)) return;
     desired = file; if (!ctx) return;
     const old = current, healthy = current?.ready && current.gain.gain.value > 0 ? current : outgoing;
     const next = musicSlots.find(slot => slot !== (healthy || current));
     stopFade(); retire(next);
-    if (next.file !== file) { next.file = file; next.el.src = asset(`music/${file}.mp3`); }
+    if (next.url !== url) { next.file = file; next.url = url; next.el.src = url; }
     next.el.currentTime = 0;
     outgoing = healthy;
     if (old && old !== next && old !== outgoing) retire(old);
@@ -147,7 +156,12 @@ export function createAudio() {
       else if (f.k === 'aim') play('bow', { vol: 0.6, rate: 0.6 });
       else if (f.k === 'jump') play('choose', { minGap: 0.2, vol: 0.35, rate: 1.6 });
     }
-    if (view) { const t = view.t; music(t >= 720 ? 'final' : t >= 540 ? 'boss' : t >= 330 ? 'late' : t >= 150 ? 'mid' : base); }
+    if (view) {
+      const t = view.t, winterRules = Object.hasOwn(view, 'snowWave');
+      let track = t >= 720 ? 'final' : t >= 540 ? 'boss' : t >= 330 && !winterRules ? 'late' : t >= 150 ? 'mid' : base;
+      if (winterRules) { if (view.snowWave) track = 'late'; else if (track === 'late') track = 'early'; }
+      music(track);
+    }
   }
   return { init, play, music, onFx, applyPreferences, setMuted, duck, setVolume, volume: (k) => vol[k], get muted() { return muted; } };
 }

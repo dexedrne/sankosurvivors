@@ -1,5 +1,5 @@
 // Ranked weekly DMT runs, server side. Off until SQS_RANKED=on. From week 1 there are two races each week, each with its
-// own entry price, pot and board. Week0 Normal is 0.5 DMT; from week1 Normal is 1 and Hard is 2 DMT.
+// own entry price, pot and board. New entries are Standard only: 0.5 DMT in week0, then1 DMT.
 //   GET  /api/ranked-week                       this week's map, both races' pools and standings (public)
 //   GET  /api/ranked-nonce?wallet=&mode=        a message for the wallet to sign before it pays (mode: normal | hard)
 //   POST /api/ranked-enter {tx, signature, nonce}  checks the race's payment on Arbitrum, returns an entry ticket
@@ -66,7 +66,7 @@ const enterMessage = (nonce, week, mode = 'normal') => {
 };
 const modeOf = (x) => (x && x.m === 'hard' ? 'hard' : 'normal'); // tickets from before the Hard race are Normal
 // the game version's rules for a week (older versions: one 15-minute Normal race)
-const racesIn = (g, w) => (typeof g.racesOf === 'function' ? g.racesOf(w) : ['normal']);
+const racesIn = (g, w) => (typeof g.entryRacesOf === 'function' ? g.entryRacesOf(w) : ['normal']);
 const runSecondsIn = (g, w) => (typeof g.runSeconds === 'function' ? g.runSeconds(w) : LEGACY_RUN_SECONDS);
 
 async function arb(method, params) {
@@ -305,7 +305,7 @@ async function handle(route, req, res, ctx) {
       if (early) verdict = 'rejected: faster than real time';
       else if (result.error) verdict = 'rejected: ' + result.error;
       else if (real < result.t * 0.97 - 5) verdict = 'rejected: faster than real time';
-      else if (real > result.t + (g.RANKED.pauseSeconds ?? 1200)) verdict = 'rejected: 20-minute total pause allowance exceeded';
+      else if (real > result.t + (g.RANKED.pauseSeconds ?? 1800)) verdict = 'rejected: 30-minute total pause allowance exceeded';
       const ok = verdict === 'ok';
       const out = await rpc('sqs_ranked_finish_v2', { ...ident, p_name: (typeof b.name === 'string' && clean(b.name, 16)) || 'Adventurer', p_t: ok ? result.t : 0, p_kills: ok ? result.kills : 0, p_level: ok ? result.level : 0, p_won: ok && result.won, p_verdict: verdict, p_log: ok ? zlib.gzipSync(JSON.stringify(b.log)).toString('base64') : null });
       if (!out || out.error) return send(res, 503, { error: out?.error || 'could not save the run', retry: true });

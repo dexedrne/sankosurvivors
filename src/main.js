@@ -1,4 +1,4 @@
-import { RunRecorder, RANKED, pauseRemaining, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek } from './ranked.js';
+import { RunRecorder, RANKED, pauseRemaining, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, requireRankedBuild, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
@@ -6,7 +6,7 @@ import { cleanSettings } from './settings.js';
 import { createScreenLayout } from './screen-layout.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, BELT_SIZE, TICK, SHRINES } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, BELT_SIZE, TICK, SHRINE, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { DamageMeter } from './damage-meter.js';
 import { bindBeltItem } from './belt-input.js';
@@ -28,7 +28,7 @@ import { connect as requestWallet, disconnect as walletDisconnect, restore as wa
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, evolutionPassives, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
-  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, bonusText, QUESTS, deltaText, gearRarity, alchValue, ARMOR_TIERS,
+  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, gearPieceBonus, bonusText, QUESTS, deltaText, gearRarity, alchValue, ARMOR_TIERS,
   gearGroups, isWeaponItem, WEAPON_ITEMS, weaponItemText, weaponItemLabel, weaponStep, CARD_RARITIES, CARD_RARITY_NAMES, CARD_HEAL, weaponStats, passiveStrength, cardLuck,
 } from './content.js';
 
@@ -189,15 +189,16 @@ $('endless').onchange = (e) => { endlessOn = e.target.checked; showBest(); };
 // ---- ranked: paid tickets, recovery and the holder-style panel ----
 const SIM_ID = import.meta.env.VITE_SIM;
 let rankedWeek = null, rankedRun = null, rankedRec = null, rankedBusy = false;
-// the race shown in the Ranked panel and the leaderboard: 'normal' or 'hard' (from week 1)
-let rankedMode = load('sq-ranked-mode', 'normal') === 'hard' ? 'hard' : 'normal';
+// Standard is the only entry option; saved historical tickets keep their own race.
+let rankedMode = 'normal';
 const RACE = RANKED.races;
-const raceList = (d) => (d && d.races ? ['normal', 'hard'].filter((m) => d.races[m]) : ['normal']);
+const raceList = (d) => entryRacesOf(d?.week).filter((m) => !d?.races || d.races[m]);
 // one race's numbers from /api/ranked-week (an older server only sends the Normal race, at the top level)
 const raceOf = (d, m) => (d && d.races && d.races[m]) || (m === 'normal' && d ? { ...d, mode: 'normal', name: 'Normal', rows: d.rows || [] } : null);
 const kpmRules = (d) => !!d && d.rules === 'kpm';
 const fmtKpm = (r) => kpm(r.kills, r.t).toFixed(2);
-const setRace = (m) => { rankedMode = m === 'hard' ? 'hard' : 'normal'; save('sq-ranked-mode', rankedMode); };
+const completedRunText = (r) => Number.isSafeInteger(r.runs) && r.runs > 0 ? `${r.runs.toLocaleString()} completed ${r.runs === 1 ? 'run' : 'runs'} this week` : 'Run count unavailable';
+const setRace = () => { rankedMode = 'normal'; save('sq-ranked-mode', rankedMode); };
 // the week and race a saved run belongs to, from the run ticket itself if an older save lacks them (display data only:
 // the server checks the signed ticket)
 function liveRace(live) {
@@ -223,9 +224,9 @@ function updateRankedPause() {
   for (const el of document.querySelectorAll('.rankedpause')) {
     el.classList.toggle('hidden', !active);
     el.classList.toggle('pauseexpired', left !== null && left < 0);
-    el.textContent = left === null ? 'Ranked has a 20-minute total pause allowance. The server checks elapsed time.'
+    el.textContent = left === null ? 'Ranked has a 30-minute total pause allowance. The server checks elapsed time.'
       : left < 0 ? 'Pause allowance exceeded. This run cannot qualify.'
-      : `Estimated pause allowance left: ${fmtT(Math.floor(left))} / 20:00`;
+      : `Estimated pause allowance left: ${fmtT(Math.floor(left))} / ${fmtT(RANKED.pauseSeconds)}`;
   }
 }
 setInterval(updateRankedPause, 1000);
@@ -278,6 +279,7 @@ function renderRanked() {
       li.append(name, kp ? ` · ${short(r.wallet)} · ${fmtKpm(r)} kills/min · ${fmtT(r.t)} · ${r.kills} kills${short3 ? ' · too short' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`
         : ` · ${short(r.wallet)} · ${fmtT(r.t)} · ${r.kills} kills${r.won ? ' · ★ Winner' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`);
       if (place[i] < 0) li.classList.add('noprize');
+      const count = document.createElement('small'); count.className = 'rankedruns'; count.textContent = completedRunText(r); li.appendChild(count);
       list.appendChild(li);
     });
     $('rankedstandings').replaceChildren(list);
@@ -314,11 +316,7 @@ $('rankedclose').onclick = () => { $('ranked').classList.add('hidden'); $('ranke
 $('ranked').addEventListener('click', (e) => { if (e.target.id === 'ranked') $('rankedclose').click(); });
 for (const id of ['ranked', 'wallet', 'cloudpick', 'walletlink']) $(id).addEventListener('keydown', (e) => {
   if (id !== 'walletlink' && walletModalOpen()) return;
-  if (e.key !== 'Tab') return;
-  const nodes = [...$(id).querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]')].filter((n) => n.offsetParent !== null);
-  if (!nodes.length) return;
-  if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
-  else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
+  containMenuTab(e);
 });
 async function rankedAction(fn) {
   if (rankedBusy || mode === 'recovery') return;
@@ -561,9 +559,9 @@ function buildGear() {
   const itemHTML = (n) => {
     if (!owned.has(n)) {
       const prev = smithPrev(n), how = prev && owned.has(prev) ? `Smith it from your ${prev}` : prev ? `Smith it from a ${prev}, or find it in a reward casket` : GEAR[n].rarity === 'unique' ? 'A unique drop from reward caskets' : GEAR[n].pace ? 'Found in reward caskets' : 'Found in reward caskets and quests';
-      return `<div class="gitem locked" title="${n}">${imgTag(n)}<div><b>${n}</b><span>${bonusText(GEAR[n].bonus)}</span><span class="dim">${how}</span></div></div>`;
+      return `<div class="gitem locked" title="${n}">${imgTag(n)}<div><b>${n}</b><span>${bonusText(gearPieceBonus(n))}</span><span class="dim">${how}</span></div></div>`;
     }
-    const lv = lvs[n] || 0, cost = gearUpgradeCost(n, lv), m = 1 + 0.25 * lv, b = Object.fromEntries(Object.entries(GEAR[n].bonus).map(([k, v]) => [k, v * m]));
+    const lv = lvs[n] || 0, cost = gearUpgradeCost(n, lv), m = 1 + 0.25 * lv, b = Object.fromEntries(Object.entries(gearPieceBonus(n)).map(([k, v]) => [k, v * m]));
     const up = smithNext(n), smith = up && !owned.has(up.name) ? `<button class="gsmith" data-n="${n}" ${coins < up.cost ? 'disabled' : ''}>Smith into ${up.name} · ${up.cost.toLocaleString()} coins</button>` : '';
     return `<div class="gitem${gear[gearSlotSel] === n ? ' on' : ''}" data-n="${n}" title="${n}">${imgTag(n)}<div><b>${n}${lv ? ` +${lv}` : ''}</b><span>${bonusText(b)}${GEAR[n].set && GEAR_SETS[GEAR[n].set] && !ARMOR_TIERS.includes(GEAR[n].set) ? ` · ${GEAR[n].set} set` : ''}</span>
         ${smith}<button class="gup ghost" data-n="${n}" ${lv >= GEAR_MAX_LV || coins < cost ? 'disabled' : ''}>${lv >= GEAR_MAX_LV ? 'Fully reinforced' : `Reinforce +${lv + 1} · ${cost} coins`}</button></div></div>`;
@@ -620,7 +618,7 @@ const SETTINGS = [
   { id: 'rain', name: 'Rain', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'roofs', name: 'Roofs', opts: [['off', 'Off'], ['auto', 'On, lift when inside']] },
   { head: 'Sound' },
-  { id: 'sound', name: 'Sound and music', opts: [[true, 'On'], [false, 'Off']] },
+  { id: 'sound', name: 'All audio', opts: [[true, 'On'], [false, 'Off']] },
   { vol: 's', name: 'Sound effects' },
   { vol: 'm', name: 'Music' },
   { head: 'Game' },
@@ -632,7 +630,9 @@ const SETTINGS = [
   { id: 'autoalch', name: 'Auto high alch caskets that are not better', opts: [[true, 'On'], [false, 'Off']] },
 ];function buildSettings() {
   const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn(), autoequip: autoEquipOn(), layout: screenLayout.mode };
-  $('setlist').innerHTML = SETTINGS.filter(o => o.id !== 'layout' || screenLayout.available).map((o) => o.head ? `<h3 class="sethead">${o.head}</h3>` : o.note ? `<p class="dim setnote">${o.note}</p>` : o.vol ? `<div class="setrow"><span>${o.name}</span><div class="volrow"><input type="range" min="0" max="100" step="5" value="${audio.volume(o.vol)}" data-vol="${o.vol}" aria-label="${o.name} volume"><b>${audio.volume(o.vol)}%</b></div></div>` : `<div class="setrow"><span>${o.name}</span><div class="seg">${o.opts.map(([v, label]) => `<button class="${cur[o.id] === v ? 'on' : 'ghost'}" data-id="${o.id}" data-v='${JSON.stringify(v)}'>${label}</button>`).join('')}</div></div>`).join('');
+  const groups = [...$('setlist').querySelectorAll('details[data-section]')], expanded = new Set(groups.filter(el => el.open).map(el => el.dataset.section));
+  let section = 0;
+  $('setlist').innerHTML = SETTINGS.filter(o => o.id !== 'layout' || screenLayout.available).map((o) => o.head ? `${section++ ? '</details>' : ''}<details class="setgroup" data-section="${o.head}"${expanded.has(o.head) || !groups.length && o.head === 'Display' ? ' open' : ''}><summary class="sethead">${o.head}</summary>` : o.note ? `<p class="dim setnote">${o.note}</p>` : o.vol ? `<div class="setrow volsetting"><label for="volume-${o.vol}">${o.name}</label><div class="volrow"><input id="volume-${o.vol}" type="range" min="0" max="100" step="5" value="${audio.volume(o.vol)}" data-vol="${o.vol}" aria-label="${o.name} volume"><b>${audio.volume(o.vol)}%</b></div></div>` : `<div class="setrow"><span>${o.name}</span><div class="seg">${o.opts.map(([v, label]) => `<button class="${cur[o.id] === v ? 'on' : 'ghost'}" data-id="${o.id}" data-v='${JSON.stringify(v)}'>${label}</button>`).join('')}</div></div>`).join('') + '</details>';
   let blip = 0, soundPreview = 0;
   for (const r of $('setlist').querySelectorAll('input[data-vol]')) {
     r.addEventListener('keydown', (e) => e.stopPropagation()); // arrow keys move the slider, not the menu
@@ -648,10 +648,14 @@ const SETTINGS = [
     };
   }
   for (const b of $('setlist').querySelectorAll('button')) b.onclick = () => {
-    const id = b.dataset.id, v = JSON.parse(b.dataset.v);
-    if (id === 'layout') { screenLayout.setMode(v); buildSettings(); return; }
-    if (id === 'sound') audio.setMuted(!v); else if (id === 'autoalch') save('sq-autoalch', v === true); else if (id === 'autoequip') save('sq-autoequip', v === true); else renderer.applySettings({ [id]: v });
-    const keep = { ...renderer.getSettings(), v: 2 }; save('sq-settings', keep); buildSettings();
+    const id = b.dataset.id, v = JSON.parse(b.dataset.v), focused = document.activeElement === b;
+    if (id === 'layout') screenLayout.setMode(v);
+    else {
+      if (id === 'sound') audio.setMuted(!v); else if (id === 'autoalch') save('sq-autoalch', v === true); else if (id === 'autoequip') save('sq-autoequip', v === true); else renderer.applySettings({ [id]: v });
+      save('sq-settings', { ...renderer.getSettings(), v: 2 });
+    }
+    buildSettings();
+    if (focused) navFocus($('setlist').querySelector(`button[data-id="${id}"][data-v='${JSON.stringify(v)}']`));
   };
 }
 const openSettings = () => { buildSettings(); $('settings').classList.remove('hidden'); };
@@ -659,12 +663,31 @@ $('setbtn').onclick = openSettings; $('setbtn2').onclick = openSettings;
 $('setclose').onclick = () => $('settings').classList.add('hidden');
 $('settings').addEventListener('click', (e) => { if (e.target.id === 'settings') $('settings').classList.add('hidden'); });
 
+function guideRecipes(pace) {
+  return Object.entries(EVOLUTIONS).map(([id, evolution]) => `<div class="guiderecipe"><span>${esc(WEAPONS[id].name)}</span> → <b>${esc(evolution.name)}</b><small>${evolutionPassives(id, pace).map(passive => `<span>${esc(PASSIVES[passive].name)}</span>`).join(' / ')}</small></div>`).join('');
+}
+$('guidebtn').onclick = () => {
+  $('guidecurrentrecipes').innerHTML = guideRecipes(2);
+  const original = $('guideoldrecipes'); if (original) original.innerHTML = guideRecipes(1);
+  $('guide').classList.remove('hidden'); navFocus($('guide').querySelector('summary'));
+};
+$('guideclose').onclick = () => { $('guide').classList.add('hidden'); navFocus($('morebtn')); };
+$('guide').addEventListener('click', e => { if (e.target.id === 'guide') $('guideclose').click(); });
+function containMenuTab(e) {
+  if (e.key !== 'Tab') return;
+  const nodes = [...e.currentTarget.querySelectorAll('summary, button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]')].filter(n => n.offsetParent !== null);
+  if (!nodes.length) return;
+  if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
+  else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
+}
+for (const id of ['guide', 'more']) $(id).addEventListener('keydown', containMenuTab);
+
 // ---- updates log -------------------------------------------------------------------------------------------------------
 $('updnew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
 $('morenew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
 // More: the extras (settings, what's new, DMT, bug report, install) in one small panel
-$('morebtn').onclick = () => $('more').classList.remove('hidden');
-$('moreclose').onclick = () => $('more').classList.add('hidden');
+$('morebtn').onclick = () => { $('more').classList.remove('hidden'); navFocus($('guidebtn')); };
+$('moreclose').onclick = () => { $('more').classList.add('hidden'); navFocus($('morebtn')); };
 $('more').addEventListener('click', (e) => { if (e.target.id === 'more') $('more').classList.add('hidden'); });
 // ---- move progress to another device: a code with the save (progress and settings only, never ranked tickets, a DMT
 // pass or a wallet), checked key by key on the way in like the old-address hand-off in index.html
@@ -779,8 +802,20 @@ $('xferload').onclick = async () => {
   }
 };
 for (const b of document.querySelectorAll('#more .morelist button')) b.addEventListener('click', () => $('more').classList.add('hidden'), true);
+async function copyUpdate(button) {
+  const block = button.closest('.upd');
+  const text = `${block.querySelector('.updhead b').textContent}\n${block.querySelector('.updhead span').textContent}\n\n${[...block.querySelectorAll('li')].map(el => '- ' + el.textContent).join('\n')}`;
+  button.disabled = true;
+  try { await navigator.clipboard.writeText(text); button.textContent = 'Copied'; }
+  catch {
+    let box = block.querySelector('.updcopytext');
+    if (!box) { box = block.ownerDocument.createElement('textarea'); box.className = 'updcopytext'; box.readOnly = true; box.ariaLabel = 'Update text'; block.append(box); }
+    box.value = text; box.focus(); box.select(); button.textContent = 'Select and copy';
+  } finally { button.disabled = false; }
+}
 $('updbtn').onclick = () => {
-  $('updlist').innerHTML = CHANGELOG.map((u) => `<div class="upd"><div class="updhead"><b>${u.title}</b><span>${u.date} · v${u.version}</span></div><ul>${u.items.map((i) => `<li>${i}</li>`).join('')}</ul></div>`).join('');
+  $('updlist').innerHTML = CHANGELOG.map((u) => `<div class="upd"><div class="updhead"><b>${u.title}</b><span>${u.date} · v${u.version}</span><button class="ghost updcopy" data-copy-update>Copy</button></div><ul>${u.items.map((i) => `<li>${i}</li>`).join('')}</ul></div>`).join('');
+  for (const b of $('updlist').querySelectorAll('[data-copy-update]')) b.onclick = () => copyUpdate(b);
   $('updates').classList.remove('hidden'); save('sq-seen', LATEST); $('updnew').classList.add('hidden'); $('morenew').classList.add('hidden');
 };
 $('updclose').onclick = () => $('updates').classList.add('hidden');
@@ -791,7 +826,8 @@ function playTitleMusic() {
   audio.duck(false); audio.music(MAP_BY_ID[selMap].music);
 }
 function unlockAudio(event) {
-  if (!event.isTrusted || !renderer) return;
+  if (!event.isTrusted) return;
+  playTitleMusic();
   audio.init().catch(() => {});
 }
 for (const type of ['click', 'touchend', 'keydown']) addEventListener(type, unlockAudio, true);
@@ -842,8 +878,8 @@ async function showRankedBoard() {
     const prize = (i) => (place[i] < 0 ? `<span class="dim">${noPrize(rows[i].wallet) ? 'no prize (dev)' : 'too short'}</span>` : estimate?.prizes[place[i]] !== undefined ? `${dmtText(estimate.prizes[place[i]])} DMT` : '—');
     const wal = (x) => esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4));
     $('lblist').innerHTML = head + (rows.length ? (kp
-      ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>KPM</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`
-      : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`)
+      ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>KPM</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span><small class="rankedruns">${esc(completedRunText(x))}</small></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`
+      : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span><small class="rankedruns">${esc(completedRunText(x))}</small></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`)
       : `<p class="dim">No ${two ? race.name + ' ' : ''}ranked runs yet this week. Enter from the Ranked button on the title screen.</p>`);
     for (const b of $('lblist').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); showRankedBoard(); };
   } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
@@ -1308,7 +1344,7 @@ async function startRun(live = null) {
       $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
     } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
     renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
-    for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked']) $(id).classList.add('hidden');
+    for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'more']) $(id).classList.add('hidden');
     $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
     waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
     $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
@@ -1370,7 +1406,7 @@ function endRun() {
     const wname = (id) => (WEAPONS[id] ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other');
     const wicon = (id) => (WEAPONS[id] ? iconHTML('weapon', id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)) : imgTag(id === 'pumpkin' ? 'Pumpkin' : 'Gold'));
     $('enddmg').innerHTML = dmgRows.map(([id, v]) => `<div class="drow">${wicon(id)}<span>${wname(id)}</span><div class="dbar"><i style="width:${(v / top) * 100}%"></i></div><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
-    $('endloot').innerHTML = (lootNotes.length ? `<div class="lootline"><b>Caskets</b> ${lootNotes.join(' · ')}</div>` : '') + questNotes.map((x) => `<div class="questline">${x}</div>`).join('');
+    $('endloot').innerHTML = (lootNotes.length ? `<details class="lootline" open><summary><b>Caskets</b> (${lootNotes.length})</summary><div>${lootNotes.join(' · ')}</div></details>` : '') + questNotes.map((x) => `<div class="questline">${x}</div>`).join('');
     buildMaps(); buildAdventurers(); showBest();
     $('endtitle').textContent = won ? `${sim.map.name} holds!` : sim.over === 'time' ? `The hunt is over at ${fmtT(sim.endAt)}` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
     const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
@@ -1400,7 +1436,7 @@ function toMenu() {
 }
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
-const MENU_SCREENS = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests'];
+const MENU_SCREENS = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'more'];
 addEventListener('keydown', (e) => {
   if (mode === 'recovery' || walletModalOpen()) return;
   if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
@@ -1663,7 +1699,7 @@ function casketItemHTML(n, cls, label) {
   // a weapon metal or arrows: what it is for, and what it does to that weapon
   if (isWeaponItem(n)) return `<div class="ckitem ${cls}"><div class="cklabel">${label}</div>${imgTag(n)}<div class="cktext"><b>${n}</b><small>${weaponItemLabel(n)}</small><span>${weaponItemText(n)}</span></div></div>`;
   const g = GEAR[n];
-  return `<div class="ckitem ${cls}"><div class="cklabel">${label}</div>${imgTag(n)}<div class="cktext"><b>${n}</b><small>${tierLabel(n)}</small><span>${bonusText(g.bonus)}</span></div></div>`;
+  return `<div class="ckitem ${cls}"><div class="cklabel">${label}</div>${imgTag(n)}<div class="cktext"><b>${n}</b><small>${tierLabel(n)}</small><span>${bonusText(gearPieceBonus(n, sim?.pace || 2))}</span></div></div>`;
 }
 function showCasket() {
   const pend = sim.pending[PLAYER]; if (!pend || !pend.casket) return;
@@ -1731,6 +1767,20 @@ function updateDamageHud() {
     return `<div class="damagerow"><b>${esc(name)}</b><span>${dps.toFixed(1)} DPS</span><small>${share}% · <span translate="no">${Math.round(total).toLocaleString()}</span> <span>Total damage</span></small><i style="width:${share}%"></i></div>`;
   }).join('') : '<p class="dim">No damage yet.</p>';
 }
+function updateShrineHud(view) {
+  const me = view.players.find(p => p.id === PLAYER && p.al);
+  let nearest = null, distance = SHRINE.r + 1;
+  if (me) for (const s of view.shrines || []) {
+    const d = Math.hypot(s[2] - me.x, s[3] - me.z);
+    if (SHRINES[s[1]] && d < distance) { nearest = s; distance = d; }
+  }
+  $('shrinecharge').classList.toggle('hidden', !nearest);
+  if (!nearest) return;
+  const percent = Math.round(Math.max(0, Math.min(1, nearest[4])) * 100);
+  $('shrinename').textContent = SHRINES[nearest[1]].name;
+  $('shrinestate').textContent = distance < SHRINE.r ? 'Charging' : 'Step into circle';
+  $('shrineprogress').value = percent; $('shrinepct').textContent = percent + '%';
+}
 function updateTumbleHud(me) {
   $('tumblebtn').classList.toggle('hidden', sim.pace < 2);
   $('tumblebtn').disabled = me.rollCd > 0;
@@ -1738,6 +1788,7 @@ function updateTumbleHud(me) {
 }
 function updateHud(view) {
   const me = view.players[0];
+  updateShrineHud(view);
   updateTumbleHud(me);
   updateDamageHud();
   $('hpfill').style.width = Math.min(100, Math.max(0, (me.hp / me.mhp) * 100)) + '%';
@@ -1793,7 +1844,7 @@ const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
 const NAV_ITEMS = 'summary, .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { if (walletModalOpen()) return null; if (mode === 'recovery') return $('progressrecovery'); return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
-function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden')); }
+function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden') && !el.closest('details:not([open]) > :not(summary)')); }
 function navFocus(el) { if (navEl) navEl.classList.remove('navfocus'); navEl = el; if (el) { el.classList.add('navfocus'); if (el.tabIndex < 0) el.tabIndex = -1; el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
 function navMove(dir) {
   const scr = navScreen(); if (!scr) return;
@@ -1823,6 +1874,7 @@ function navBack() {
   if (walletModalOpen()) return true;
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
+    if (id === 'guide' || id === 'more') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
     navFocus(null); return true;
   }
@@ -1834,11 +1886,12 @@ addEventListener('keydown', (e) => {
   const k = e.key, dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
   if (k === 'Tab' && navEl) navFocus(null);
   const spatialControl = e.target === navEl && e.target?.matches?.('summary, input[data-vol]');
-  if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]') && !(spatialControl && (dir || k === 'Escape'))) return;
+  const summaryEscape = k === 'Escape' && e.target?.matches?.('summary') && navScreen()?.contains(e.target);
+  if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]') && !(spatialControl && (dir || k === 'Escape') || summaryEscape)) return;
   if (mode === 'play' || mode === 'levelup' || mode === 'casket') return;
   const scr = navScreen();
   if ((k === 'Enter' || k === ' ') && scr && MENU_SCREENS.includes(scr.id) && !scr.contains(e.target)) { e.preventDefault(); return; }
-  if (k === 'Escape' && spatialControl && navBack()) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+  if (k === 'Escape' && (spatialControl || summaryEscape) && navBack()) { e.preventDefault(); e.stopImmediatePropagation(); return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target?.matches?.('button, a[href]')) return;
   if (dir) { navMove(dir); e.preventDefault(); e.stopImmediatePropagation(); }
   else if (k === 'Enter' && navEl && navScreen() && navScreen().contains(navEl)) { if (navPress()) { e.stopImmediatePropagation(); e.preventDefault(); } }
@@ -1895,11 +1948,14 @@ function loop(ts) {
         if (!window.__idleSim) {
           const T = renderer.terrain;
           window.__idleSim = createSim({ seed: 1, map: MAP_BY_ID[selMap], ground: T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null } : null, players: [{ id: PLAYER, name: 'You', adv: runAdv().id, gear: runAdv().id !== selAdv ? {} : getGear() }] });
-          const previewSpots = { greentown: [365.5, 339.5], apache: [206.5, 85.5], world: [378.5, 270.5] };
+          const previewSpots = { greentown: [378.5, 270.5], apache: [202.5, 85.5], world: [378.5, 270.5] };
           if (Object.hasOwn(previewSpots, selMap)) { const p = window.__idleSim.players[0]; [p.x, p.z] = findWalkable(window.__idleSim, ...previewSpots[selMap]); } // title only; Whole World is south of Greentown's bank
         }
         const v = snapshot(window.__idleSim); v.players[0].f = Math.sin(performance.now() / 3000) * 0.5;
-        renderer.setShift(compactMenu.matches ? 2.4 : 4.4);
+        const canvasBox = $('c').getBoundingClientRect(), centreX = canvasBox.x + canvasBox.width / 2;
+        const headerBottom = Math.max(24, ...['brand', 'topright'].map(id => { const r = $(id).getBoundingClientRect(); return r.left < centreX && r.right > centreX ? r.bottom + 12 : 0; }));
+        const menuTop = Math.max(headerBottom, Math.min(canvasBox.bottom - 24, $('menu').getBoundingClientRect().top - 16));
+        renderer.setShift(0, Math.max(0.1, Math.min(0.9, ((headerBottom + menuTop) / 2 - canvasBox.top) / (canvasBox.height || 1))));
         if (compactMenu.matches) renderer.setYaw(0);
         else if (!params.has('qa')) renderer.setYaw(renderer.getYaw() + 0.0045); // the desktop title camera drifts slowly
         renderer.update(v, 0.033, PLAYER);

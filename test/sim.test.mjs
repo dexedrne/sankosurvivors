@@ -462,6 +462,7 @@ test('Greentown: a chicken stampede charges in from one side', async () => {
 test('The Whole World: events come from the region you are standing in', async () => {
   const { MAP_BY_ID } = await import('../src/content.js');
   const sim = createSim({ seed: 6, map: MAP_BY_ID.world }); const p = sim.players[0]; p.godMode = true; p.hp = p.maxHp = 1e9;
+  sim.t = 360; sim.tick = 10800; // winter events unlock from6:00
   p.x = MAP_BY_ID.paya.cx; p.z = MAP_BY_ID.paya.cz; // walk to Payasan
   const kinds = new Set();
   for (let tries = 0; tries < 30; tries++) {

@@ -90,6 +90,18 @@ test('an import without audio keys preserves live audio before context init',asy
 });
 
 async function overlap(f){await f.audio.init();f.audio.music('early');await f.settle();for(let i=0;i<20;i++)f.fade();f.audio.music('mid');await f.settle();f.fade();assert.ok(f.tracks[0].level>0);assert.ok(f.tracks[1].level>0);}
+test('an early gesture survives a later CDN fallback for the same menu song and effects',async()=>{
+ const fail={host:'https://failed.test/',failedHost:'https://failed.test/'},f=fixture({},fail);
+ f.audio.music('mid');await f.audio.init();await f.settle();
+ assert.equal(f.sources.length,0);assert(f.tracks.every(s=>s.level===0));
+ fail.host='/assets/';f.audio.music('mid');await f.audio.init();await f.settle();f.fade();
+ assert.equal(f.tracks.length,2,'reuse the two gesture-primed streams');
+ assert(f.tracks.some(s=>s.src==='/assets/music/Adobe_Fantasy.mp3'&&!s.paused&&s.level>0));
+ f.audio.play('pickup');assert.equal(f.sources.length,1);assert.equal(f.sources[0].buffer.fixture,'/assets/sound/soundEffects/PickUp_item.mp3');
+ const plays=f.plays.length,fetches=f.fetches.length;
+ for(let i=0;i<10;i++)f.audio.music('mid');
+ assert.equal(f.plays.length,plays);assert.equal(f.fetches.length,fetches,'same host/song does not retry each frame');
+});
 test('normal music crossfade keeps its existing steps and retires only the outgoing track',async()=>{
  const f=fixture();await overlap(f);assert.ok(Math.abs(f.tracks[0].level-.27)<1e-12);assert.equal(f.tracks[1].level,.02);for(let i=0;i<30;i++)f.fade();assert.equal(f.tracks[0].level,0);assert.equal(f.tracks[0].paused,true);assert.equal(f.tracks[1].level,.3);assert.notEqual(f.tracks[1].paused,true);assert.equal(f.activeFades(),0);
 });
@@ -153,10 +165,21 @@ test('a newer pending transition reuses the pending incoming slot and preserves 
  const fail={},f=fixture({},fail);f.audio.music('early');await f.audio.init();await f.settle();for(let i=0;i<30;i++)f.fade();const healthy=f.tracks[0];fail.deferPlay=true;f.audio.music('mid');const superseded=f.plays.at(-1);f.audio.music('late');const latest=f.plays.at(-1);assert.equal(latest.el,superseded.el);assert.equal(healthy.src,'music/Fresh_Beginnings.mp3');assert.equal(healthy.paused,false);assert.equal(healthy.level,.3);superseded.resolve();await f.settle();for(let i=0;i<20;i++)f.fade();assert.equal(healthy.level,.3);assert.equal(latest.el.level,0);latest.resolve();await f.settle();f.fade();assert.ok(Math.abs(healthy.level-.27)<1e-12);assert.equal(latest.el.level,.02);for(let i=0;i<30;i++)f.fade();assert.equal(healthy.paused,true);assert.equal(latest.el.level,.3);assert.equal(f.tracks.length,2);assert.equal(f.activeFades(),0);
 });
 
-test('trusted input during asset-host probing cannot strand audio before local fallback',async()=>{
+test('trusted input during asset-host probing recovers music and effects without another gesture',async()=>{
  const fail={host:'cdn/',failedHost:'cdn/'},f=fixture({},fail),main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),a=main.indexOf('function unlockAudio('),b=main.indexOf('// ---- version, leaderboard',a);
- const gate=Function('audio','addEventListener',`let renderer=null;${main.slice(a,b)};return{unlockAudio,ready(){renderer={};}};`)(f.audio,()=>{});
- gate.unlockAudio({isTrusted:true});await f.settle();assert.equal(f.fetches.length,0,'wait for selected asset host');
- fail.host='local/';gate.ready();f.audio.music('early');gate.unlockAudio({isTrusted:true});await f.audio.init();await f.settle();f.audio.play('pickup',{minGap:0});
- assert.equal(f.tracks.length,2);assert.ok(f.tracks.every(el=>el.url.startsWith('local/')));assert.ok(f.fetches.every(url=>url.startsWith('local/')));assert.equal(f.sources.length,1);
+ const gate=Function('audio','addEventListener','playTitleMusic',`let renderer=null;${main.slice(a,b)};return unlockAudio;`)(f.audio,()=>{},()=>f.audio.music('early'));
+ gate({isTrusted:true});await f.settle();assert.equal(f.tracks.length,2,'first gesture unlocks during loading');
+ fail.host='local/';f.audio.music('early');await f.audio.init();await f.settle();f.fade();f.audio.play('pickup',{minGap:0});
+ assert.equal(f.tracks.length,2);assert.ok(f.tracks.some(el=>el.url==='local/music/Fresh_Beginnings.mp3'&&!el.paused&&el.level>0));assert.equal(f.sources.length,1);
+});
+
+test('current runs select Snowdrift on actual winter arrival, not the old5:30 timer',async()=>{
+ const f=fixture();await f.audio.init();f.audio.onFx([],{t:330,snowWave:false},'early');await f.settle();
+ assert(f.tracks.some(s=>s.src==='music/Adobe_Fantasy.mp3'&&!s.paused));
+ f.audio.onFx([],{t:360,snowWave:true},'early');await f.settle();assert(f.tracks.some(s=>s.src==='music/snowdrift_mix.mp3'&&!s.paused));
+ f.audio.onFx([],{t:900,snowWave:true},'early');await f.settle();assert(f.tracks.some(s=>s.src==='music/snowdrift_mix.mp3'&&!s.paused));
+ f.audio.onFx([],{t:0,snowWave:false},'early');await f.settle();assert(f.tracks.some(s=>s.src==='music/Fresh_Beginnings.mp3'&&!s.paused));
+});
+test('legacy runs retain their original music schedule',async()=>{
+ const f=fixture();await f.audio.init();f.audio.onFx([],{t:330},'early');await f.settle();assert(f.tracks.some(s=>s.src==='music/snowdrift_mix.mp3'&&!s.paused));
 });

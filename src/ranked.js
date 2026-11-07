@@ -5,9 +5,9 @@ import { createSim, step, choose, reroll, skipLevel, autoChoice, banish, TICK } 
 import { MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID } from './content.js';
 
 export const RANKED = {
-  pauseSeconds: 20 * 60,         // total wall-clock slack per run, shared across pauses, choices and reloads
+  pauseSeconds: 30 * 60,         // total wall-clock slack per run, shared across pauses, choices and reloads
   entryDmt: '0.5',               // legacy defaults; current prices use raceForWeek(week, mode)
-  // two races each week from week 1: their own entry price, pot and board; the same map, split, house fee and rules
+  // Historical race definitions stay available for signed payments, replays and settlement.
   races: {
     normal: { name: 'Normal', entryDmt: '0.5', entryWei: '500000000000000000', hard: false },
     hard: { name: 'Hard', entryDmt: '1.5', entryWei: '1500000000000000000', hard: true },
@@ -41,6 +41,8 @@ export function raceForWeek(week, mode = 'normal') {
 // ---- the week's rules: one switch, used by the game, the server, the boards and the payout bot ----
 export const kpmWeek = (w) => Number.isInteger(w) && w >= RANKED.kpmWeek;
 export const racesOf = (w) => (kpmWeek(w) ? ['normal', 'hard'] : ['normal']);
+// New ranked entries are Standard only; closing a race must not erase historical liabilities.
+export const entryRacesOf = () => ['normal'];
 export const isRace = (w, mode) => racesOf(w).includes(mode);
 // the longest a run of that week can last, in game seconds (a little slack for the end screen)
 export const runSeconds = () => RANKED.timeLimit + 60; // every run of this build is endless

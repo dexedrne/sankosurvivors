@@ -98,6 +98,9 @@ export const SPAWN_POOL = [
 ];
 // Phase out the weakest types as the run goes on.
 export const RETIRE = { chicken: 240, goblin: 420, fox: 420, dog: 360 };
+export const SNOW_WAVE_AT = 360;
+const SNOW_ENEMIES = new Set(['wolf', 'snowman', 'dwarf', 'wight', 'yeti', 'ogre', 'colossus']);
+export const isSnowEnemy = type => SNOW_ENEMIES.has(type);
 
 export const BOSS_SCHEDULE = [
   { t: 180, type: 'giant' },
@@ -568,9 +571,9 @@ Object.assign(GEAR, {
   'Wizard Hat':         { slot: 'head',  set: 'Wizard', tier: 1, bonus: { growth: 0.05 } },
   'Wizard Robe':        { slot: 'chest', set: 'Wizard', tier: 1, bonus: { growth: 0.05, hp: 5 } },
   'Wizard Skirt':       { slot: 'legs',  set: 'Wizard', tier: 1, bonus: { growth: 0.05 } },
-  'Shape Wizard Hat':   { slot: 'head',  set: 'Shape', tier: 3, bonus: { haste: 0.03 } },
-  'Shape Robe':         { slot: 'chest', set: 'Shape', tier: 3, bonus: { haste: 0.03, hp: 5 } },
-  'Shape Skirt':        { slot: 'legs',  set: 'Shape', tier: 3, bonus: { haste: 0.03 } },
+  'Shape Wizard Hat':   { slot: 'head',  set: 'Shape', tier: 3, bonus: { haste: 0.03 }, bonus2: { haste: 0.03, magic: 0.04 } },
+  'Shape Robe':         { slot: 'chest', set: 'Shape', tier: 3, bonus: { haste: 0.03, hp: 5 }, bonus2: { haste: 0.03, magic: 0.12, hp: 8 } },
+  'Shape Skirt':        { slot: 'legs',  set: 'Shape', tier: 3, bonus: { haste: 0.03 }, bonus2: { haste: 0.03, magic: 0.10 } },
   'Mystic Hat':         { slot: 'head',  tier: 3, bonus: { haste: 0.06 } },
   'Straw Hat':          { slot: 'head',  tier: 0, bonus: { hp: 10 } },
   'Bowler Hat':         { slot: 'head',  tier: 1, bonus: { coin: 0.5 } },
@@ -649,11 +652,13 @@ export function gearGroups(slot) {
 /** is this a piece of gear at this pace? (pace 1 knows only the pieces from before the 9 Nov rules; unknown names and
  *  prototype keys are never gear) */
 export const gearOn = (name, pace = 2) => typeof name === 'string' && Object.hasOwn(GEAR, name) && (GEAR[name].pace || 1) <= pace;
+// Week0 keeps the original piece stats; current UI and combat share the newer mage progression.
+export const gearPieceBonus = (name, pace = 2) => pace >= 2 && GEAR[name].bonus2 || GEAR[name].bonus;
 /** total bonus of a gear loadout {slot: itemName} (with Armoury levels {itemName: 0..3}), with any completed set */
 export function gearBonus(gear = {}, levels = {}, pace = 2) {
   const out = {}; const add = (b, m = 1) => { for (const [k, v] of Object.entries(b)) out[k] = (out[k] || 0) + v * m; };
   const sets = {};
-  for (const name of Object.values(gear)) { if (!gearOn(name, pace)) continue; const g = GEAR[name]; add(g.bonus, 1 + 0.25 * Math.min(GEAR_MAX_LV, levels[name] || 0)); if (g.set) sets[g.set] = (sets[g.set] || 0) + 1; }
+  for (const name of Object.values(gear)) { if (!gearOn(name, pace)) continue; const g = GEAR[name]; add(gearPieceBonus(name, pace), 1 + 0.25 * Math.min(GEAR_MAX_LV, levels[name] || 0)); if (g.set) sets[g.set] = (sets[g.set] || 0) + 1; }
   const done = [];
   for (const [s, c] of Object.entries(sets)) if (GEAR_SETS[s] && c >= GEAR_SETS[s].pieces) { add(GEAR_SETS[s].bonus); done.push(s); }
   out.sets = done;

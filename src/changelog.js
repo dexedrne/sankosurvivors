@@ -1,5 +1,6 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.44.41", "date": "6 Nov 2026", "title": "Clearer menus, clearer fights", "items": ["Greentown and Apache previews frame your adventurer more clearly. Settings sections collapse to keep menus shorter.", "Sound effects and music have separate labelled sliders. Menu music can start from your first interaction while the world loads.", "How to play explains upgrades, caskets, arrows and evolution recipes. Update notes have Copy buttons; long casket results can collapse.", "Shrines show charging progress. Shape mage gear has stronger magic bonuses. Chapel stained glass stays visible when the roof lifts.", "Snow-zone enemy waves begin from six minutes onward. Their first arrival starts Snowdrift Hollow.", "Base pickup range and hostile slam and meteor circles are slightly smaller under current combat rules.", "New ranked entries are Standard only. Total pause allowance is 30 minutes; reward choices and reloads count. Week 0 keeps its original combat and movement rules."]},
   { version: '0.44.40', date: '6 Nov 2026', title: "Lighter crowds", items: ["Crowded fights use less animation memory. Enemy models, animations and combat rules stay the same."] },
   {
     version: '0.44.39', date: '6 Nov 2026', title: 'Choose your build',
