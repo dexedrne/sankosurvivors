@@ -35,7 +35,8 @@ function pastureGround(ground) {
   return corrected;
 }
 
-export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false } = {}) {
+export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, coop = false } = {}) {
+  if (coop && (ranked || pace !== 2 || players.length !== 2)) throw Error('Co-op requires two casual pace2 players.');
   if (pace >= 2) ground = pastureGround(ground);
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
@@ -58,21 +59,24 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
     ground,               // optional { n, blocked: Uint8Array, walls?: Uint8Array } one cell per world unit: ridges, mountains, water; thin walls
     flow: null, flowT: 0, // distance-to-player field so monsters find their way around cliffs
   };
+  if (coop) sim.coop = true;
   players.forEach((p, i) => {
     const a = (i / Math.max(players.length, 1)) * Math.PI * 2;
     sim.players.push({
       id: p.id, name: p.name || 'Adventurer', slot: i,
       x: map.cx + dcos(a) * 1.5, z: map.cz + dsin(a) * 1.5,
       face: 0, moving: false, hp: PLAYER_BASE.hp, maxHp: PLAYER_BASE.hp, alive: true, inv: 0,
-      meta, adv: p.adv || 'adventurer', weapons: { [p.weapon || (ADVENTURER_BY_ID[p.adv] ? ADVENTURER_BY_ID[p.adv].weapon : startWeapon)]: 1 }, passives: { ...((ADVENTURER_BY_ID[p.adv] || {}).startPassives || {}) }, evo: {}, buffs: {}, cd: {}, orbit: 0, kills: 0, coins: 0, regen: 0, hurt: 0,
+      meta: coop ? clampSkills(p.meta) : meta, adv: p.adv || 'adventurer', weapons: { [p.weapon || (ADVENTURER_BY_ID[p.adv] ? ADVENTURER_BY_ID[p.adv].weapon : startWeapon)]: 1 }, passives: { ...((ADVENTURER_BY_ID[p.adv] || {}).startPassives || {}) }, evo: {}, buffs: {}, cd: {}, orbit: 0, kills: 0, coins: 0, regen: 0, hurt: 0,
       gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}, pace), rerolls: REROLLS_PER_RUN, belt: [],
       casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
       wm: {}, // weapon metals from caskets (pace 2): { katana: 0..5, bow: 0..3, arrow: 0..4, ... } (missing = Bronze / plain Bow)
       ...(pace >= 2 ? { pace, quality: { weapons: {}, passives: {} }, banished: [] } : {}),
+      ...(coop ? { killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], dmgBy: {} } : {}),
     });
   });
   // veterans: skill ranks plus two for every piece of gear worn, 1.5% each, to +75% at 50 (pace 2 only; ranked has neither)
   { const ranks = Object.values(meta).reduce((a, v) => a + (Number(v) || 0), 0) + 2 * Math.max(0, ...sim.players.map((p) => Object.keys(p.gear || {}).length)); sim.vet = 1 + 0.015 * Math.min(50, ranks); }
+  if (coop) sim.vet = 1 + 0.015 * Math.min(50, Math.max(...sim.players.map(p => Object.values(p.meta).reduce((a, n) => a + n, 0) + 2 * Object.keys(p.gear).length)));
   for (const p of sim.players) { const st = playerStats(p); p.maxHp = st.maxHp; p.hp = st.maxHp; p.rerolls = st.rerolls; p.revives = st.revives; const w = findWalkable(sim, p.x, p.z); p.x = w[0]; p.z = w[1]; }
   return sim;
 }
@@ -315,6 +319,7 @@ export function damageEnemy(sim, e, amount, owner, kb = 0, fromX = 0, fromZ = 0)
   const dmg = Math.max(1, Math.round(amount * (crit ? cr[1] : 1)));
   e.hp -= dmg; e.hit = 0.12;
   const src = sim.src || 'other'; sim.dmgBy[src] = (sim.dmgBy[src] || 0) + dmg; // damage dealt per weapon, for the end screen
+  if (sim.coop) { const p = sim.players.find(p => p.id === owner); if (p) p.dmgBy[src] = (p.dmgBy[src] || 0) + dmg; }
   sim.fx.push({ k: 'dmg', x: e.x, z: e.z, v: dmg, c: crit ? 1 : 0 });
   if (kb && !ENEMIES[e.type].boss) {
     const dx = e.x - fromX, dz = e.z - fromZ, d = hyp(dx, dz) || 1;
@@ -329,6 +334,7 @@ function killEnemy(sim, e, owner) {
   const def = ENEMIES[e.type];
   const p = sim.players.find((q) => q.id === owner);
   if (p) p.kills++;
+  if (sim.coop && p) { p.killsByType[e.type] = (p.killsByType[e.type] || 0) + 1; if (def.boss) p.bossKills++; }
   sim.gems.push({ id: sim.nextId++, x: e.x, z: e.z, v: def.xp, vx: 0, vz: 0 });
   sim.fx.push({ k: 'die', x: e.x, z: e.z, boss: def.boss ? 1 : 0, elite: e.elite ? 1 : 0, ...(sim.pace >= 2 ? { type: e.type } : {}) });
   if (!def.boss) {
@@ -337,7 +343,7 @@ function killEnemy(sim, e, owner) {
     if (sim.rng() < 0.05 * (p ? playerStats(p).coin : 1)) drop('coin');
     // reward caskets (owner 3 Nov: "caskets drop too often tbh"): every elite dropped one, ~60 in a full run. Pace 2: a
     // rare one from anything and an elite's now and then, ~10 a run with the bosses'. Pace 1 (ranked week 0) unchanged.
-    const cs = p ? playerStats(p).casket : 1;
+    const cs = (p ? playerStats(p).casket : 1) / (sim.coop ? Math.max(1, sim.players.filter(p => p.alive).length) : 1);
     if (sim.pace >= 2 ? (sim.rng() < 0.0006 * cs || (e.elite && sim.rng() < 0.08 * cs)) : (sim.rng() < 0.0015 * cs || e.elite)) drop('casket');
     if (e.elite) { for (let i = 0; i < 3; i++) sim.pickups.push({ id: sim.nextId++, x: e.x + (i - 1) * 0.8, z: e.z + 0.8, kind: 'coin' }); }
     if (e.champion) { for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; sim.pickups.push({ id: sim.nextId++, x: e.x + dcos(a) * 1.4, z: e.z + dsin(a) * 1.4, kind: 'coin' }); } sim.fx.push({ k: 'treasure', x: e.x, z: e.z }); }
@@ -522,7 +528,7 @@ function openLevel(sim, p) {
 }
 
 export function applyChoice(sim, p, choice) {
-  if (choice.kind === 'evolve') { p.evo[choice.id] = true; sim.evolves++; sim.fx.push({ k: 'evolve', id: choice.id }); return; }
+  if (choice.kind === 'evolve') { p.evo[choice.id] = true; sim.evolves++; if (sim.coop) p.evolves++; sim.fx.push({ k: 'evolve', id: choice.id, ...(sim.coop ? { player: p.id } : {}) }); return; }
   if (sim.pace >= 2 && (choice.kind === 'weapon' || choice.kind === 'passive')) {
     const key = choice.kind === 'weapon' ? 'weapons' : 'passives', max = choice.kind === 'weapon' ? MAX_WEAPON_LEVEL : MAX_PASSIVE_LEVEL;
     if ((p[key][choice.id] || 0) >= max) return;
@@ -585,9 +591,11 @@ function wearItem(sim, p, item) {
 }
 function gotCasket(sim, p, item) {
   sim.loot.push(item);
-  if (isWeaponItem(item)) { p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1 }); return; } // a weapon always holds a metal: always a card
-  if (!p.gear[GEAR[item].slot]) { wearItem(sim, p, item); sim.fx.push({ k: 'casket', item, worn: 1 }); return; }
-  p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1 });
+  const owner = sim.coop ? { player: p.id } : {};
+  if (sim.coop) p.loot.push(item);
+  if (isWeaponItem(item)) { p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1, ...owner }); return; } // a weapon always holds a metal: always a card
+  if (!p.gear[GEAR[item].slot]) { wearItem(sim, p, item); sim.fx.push({ k: 'casket', item, worn: 1, ...owner }); return; }
+  p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1, ...owner });
 }
 export function openCasket(sim, p) {
   if (!p || !p.alive || sim.pending[p.id] || !p.casketQ.length || sim.over) return false;
@@ -598,17 +606,19 @@ export function openCasket(sim, p) {
   return true;
 }
 function applyCasket(sim, p, c) {
+  const owner = sim.coop ? { player: p.id } : {};
   if (c.kind === 'wear' && isWeaponItem(c.id)) {
     const w = WEAPON_ITEMS[c.id], old = weaponSlotItem(w.slot, p.wm[w.slot]);
     p.wm = { ...p.wm, [w.slot]: w.step };
-    sim.fx.push({ k: 'casket', item: c.id, worn: 1, old, weapon: w.weapon });
+    sim.fx.push({ k: 'casket', item: c.id, worn: 1, old, weapon: w.weapon, ...owner });
   } else if (c.kind === 'wear') {
     const old = p.gear[GEAR[c.id].slot] || null;
     wearItem(sim, p, c.id);
-    sim.fx.push({ k: 'casket', item: c.id, worn: 1, old });
+    sim.fx.push({ k: 'casket', item: c.id, worn: 1, old, ...owner });
   } else {
     p.alch += c.level; sim.alched.push(c.id);
-    sim.fx.push({ k: 'alch', item: c.id, coins: c.level });
+    if (sim.coop) p.alched.push(c.id);
+    sim.fx.push({ k: 'alch', item: c.id, coins: c.level, ...owner });
   }
 }
 
@@ -681,7 +691,7 @@ function fireWeapons(sim, p, dt, st) {
       p.face = a;
       const dirs = s.both ? [a, a + Math.PI] : [a];
       for (const dir of dirs) {
-        sim.fx.push({ k: 'slash', x: p.x, z: p.z, a: dir, range: s.range, arc: s.arc, lvl, mt });
+        sim.fx.push({ k: 'slash', x: p.x, z: p.z, a: dir, range: s.range, arc: s.arc, lvl, mt, ...(sim.coop ? { player: p.id } : {}) });
         const half = (s.arc * Math.PI / 180) / 2;
         for (const e of sim.enemies) {
           const dx = e.x - p.x, dz = e.z - p.z, d = hyp(dx, dz);
@@ -714,7 +724,7 @@ function fireWeapons(sim, p, dt, st) {
         sim.proj.push({ id: sim.nextId++, art: 'bolt', evo: !!p.evo.staff, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: 0, life: s.life, r: 0.5, hit: [], homing: tg.id, speed: s.speed, burst: s.burst, lvl });
       }
     } else if (id === 'greatsword') {
-      sim.fx.push({ k: 'spin', x: p.x, z: p.z, range: s.range, lvl, evo: p.evo.greatsword ? 1 : 0 });
+      sim.fx.push({ k: 'spin', x: p.x, z: p.z, range: s.range, lvl, evo: p.evo.greatsword ? 1 : 0, ...(sim.coop ? { player: p.id } : {}) });
       for (const e of sim.enemies) if (hyp(e.x - p.x, e.z - p.z) <= s.range + ENEMIES[e.type].r) damageEnemy(sim, e, dmg, p.id, s.kb, p.x, p.z);
       if (s.heal) p.hp = Math.min(p.maxHp, p.hp + s.heal);
     } else if (id === 'shortsword') {
@@ -850,7 +860,7 @@ function useItem(sim, p, kind) {
   else if (kind === 'beer') { p.hp = Math.min(p.maxHp, p.hp + 20 * st.heal); p.buffs.speed = 8; }
   else if (kind === 'pumpkin') { sim.src = 'pumpkin'; sim.fx.push({ k: 'nuke', x: p.x, z: p.z, r: 20 }); for (const e of sim.enemies) if (hyp(e.x - p.x, e.z - p.z) < 20) damageEnemy(sim, e, 45 + sim.t * 0.25, p.id, 4, p.x, p.z); }
   else if (kind === 'warp') { for (const g of sim.gems) g.pulled = true; for (const o of sim.pickups) if (o.kind === 'coin') o.pulled = true; }
-  sim.fx.push({ k: 'use', kind, x: p.x, z: p.z });
+  sim.fx.push({ k: 'use', kind, x: p.x, z: p.z, ...(sim.coop ? { player: p.id } : {}) });
 }
 export function useBelt(sim, playerId, slot) {
   const p = sim.players.find((q) => q.id === playerId);
@@ -1230,8 +1240,8 @@ export function step(sim, inputs = {}, dt = TICK) {
       const st = playerStats(p), beforeHp = p.hp;
       if (BELT_KINDS.includes(k.kind) && p.belt.length < BELT_SIZE) p.belt.push(k.kind); // kept for later (1-4)
       else if (BELT_KINDS.includes(k.kind) || FOOD[k.kind]) useItem(sim, p, k.kind);
-      else if (k.kind === 'chest') { if (!sim.pending[p.id]) sim.pending[p.id] = { choices: rollChoices(sim, p), left: 25 }; }
-      else if (k.kind === 'casket') gotCasket(sim, p, rollCasket(sim.rng, sim.casketRank, sim.hard, sim.t, { pace: sim.pace, weapons: p.weapons }));
+      else if (k.kind === 'chest') { for (const member of sim.coop ? sim.players.filter(p => p.alive) : [p]) if (!sim.pending[member.id]) sim.pending[member.id] = { choices: rollChoices(sim, member), left: 25 }; }
+      else if (k.kind === 'casket') { for (const member of sim.coop ? sim.players.filter(p => p.alive) : [p]) gotCasket(sim, member, rollCasket(sim.rng, sim.casketRank, sim.hard, sim.t, { pace: sim.pace, weapons: member.weapons })); }
       else p.coins++;
       sim.fx.push({ k: 'get', kind: k.kind, x: k.x, z: k.z, ...(sim.pace >= 2 && FOOD[k.kind] ? { heal: Math.max(0, p.hp - beforeHp) } : {}) });
     }

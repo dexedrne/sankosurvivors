@@ -333,7 +333,7 @@ body.touch #pausebtn { top: 258px; }
 #lblist th { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; text-align: left; padding: 2px 6px; border-bottom: 1px solid #5a4632; }
 #lblist td { padding: 2px 6px; border-bottom: 1px solid rgba(90,70,50,.4); } #lblist tr.won td { color: var(--gold); } #lblist em { color: var(--ink); font-style: normal; }
 #endlb { margin: 6px 0; color: var(--cream); display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
-#endlb input, #bugtext, #ranked input, #ranked select { font-family: RSPlain, sans-serif; font-size: 16px; background: #1e1710; color: var(--cream); border: 2px solid #5a4632; padding: 3px 6px; }
+#coop input, #endlb input, #bugtext, #ranked input, #ranked select { font-family: RSPlain, sans-serif; font-size: 16px; background: #1e1710; color: var(--cream); border: 2px solid #5a4632; padding: 3px 6px; }
 #endlb button { margin: 0; padding: 0 12px; } #lbmsg { color: var(--gold); }
 #bug .panel { width: min(520px, 96vw); } #bugtext { width: 100%; resize: vertical; } #bugmsg { color: var(--gold); min-height: 18px; margin-top: 4px; }
 
@@ -803,3 +803,10 @@ body.ds-layout #shrinecharge { top:auto; bottom:calc(100% - var(--ds-play-height
 .guiderecipe { padding:6px 0; border-top:1px solid var(--line); }
 .guiderecipe b { color:var(--gold); font-weight:400; }
 .guiderecipe small { display:block; color:var(--cream); }
+
+/* Co-op shares the existing native menu and controls. */
+#coopform { display:grid; gap:10px; text-align:left; }
+#coopform input { width:100%; min-height:44px; box-sizing:border-box; }
+#coopcode { font-size:1.4em; letter-spacing:.12em; user-select:text; }
+#coopstatus { min-height:2.6em; }
+#coopwait { position:fixed; z-index:8; top:calc(env(safe-area-inset-top,0px) + 76px); left:50%; transform:translateX(-50%); max-width:80vw; padding:6px 10px; background:#241b14df; border:1px solid #bca65c; color:#fff0b8; pointer-events:none; text-align:center; }

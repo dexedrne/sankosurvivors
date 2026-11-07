@@ -13,7 +13,7 @@ function between(source, start, end, replacement = '') {
   assert.ok(a >= 0 && b > a && source.indexOf(start, a + 1) < 0, `Missing/duplicate edition anchor: ${start}`);
   return source.slice(0, a) + replacement + source.slice(b);
 }
-const excluded = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug'];
+const excluded = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug'];
 
 const records = `
 $('version').textContent = 'v' + LATEST;
@@ -53,13 +53,14 @@ function queuePageReload(text, delay) {
 
 export function transformMain(source) {
   let s = source;
-  for (const file of ['ranked', 'ranked-play', 'ranked-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'wallet-connect', 'wallet', 'bun-companions']) {
+  for (const file of ['coop-client', 'ranked', 'ranked-play', 'ranked-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'wallet-connect', 'wallet', 'bun-companions']) {
     const re = new RegExp(`^import .+ from './${file}\\.js';\\n`, 'm');
     assert.ok(re.test(s), `Expected import ${file}`); s = s.replace(re, '');
   }
   s = between(s, 'const noPrize =', 'import { TRANSFER_KEYS');
   s = between(s, 'const walletHandoff =', 'const BASE =', "initI18n();\nconst wavedashLoader = createWavedashLoader();\n");
   s = "import { createWavedashLoader } from './wavedash.js';\nimport { betterRun } from './personal-record.js';\n" + s;
+  s = between(s, '// ---- co-op lobby:', '// ---- solo and ranked startup');
   s = between(s, '// ---- ranked: paid tickets', '// ---- skills');
   s = once(s, "  const original = $('guideoldrecipes'); if (original) original.innerHTML = guideRecipes(1);\n");
   s = between(s, '// ---- version, leaderboard', '// ---- DMT holder perks', records);
@@ -72,6 +73,7 @@ export function transformMain(source) {
   s = once(s, "  if (bunChoice(selectedPet) && !currentPetChoice()) $('petloadtext').textContent = 'BUN ownership must be verified before this companion can appear.';\n");
   s = once(s, "$('petbunrefresh').onclick = () => bunCompanions.refresh();\n");
   s = once(s, '  if (!document.hidden) bunCompanions.sync(!!bunChoice(selectedPet));\n');
+  s = once(s, ' && (!sim.coop || !!coop?.run && !coop.run.held && !coop.run.closed)');
   s = between(s, 'function queuePageReload(', '// ---- quests', reload);
   s = once(s, '  syncTitleNames();\n');
   s = once(s, 'async function startRun(live = null)', 'async function startRun()');
@@ -94,20 +96,20 @@ export function transformMain(source) {
   s = once(s, ', dmtOn = !!savedPass();', ';');
   s = once(s, ' * (dmtOn ? 1 + DMT_COIN_BONUS : 1)');
   s = once(s, '  const wasRanked = !!rankedRun;\n');
-  s = once(s, ', sent: false, ticket: runTicket', '');
-  s = between(s, "  $('lbsubmit').disabled = wasRanked;", '  const dmtOn =', "  $('again').textContent = 'Run it back';\n");
+  s = once(s, ', sent: !!sim.coop, ticket: sim.coop ? null : runTicket, coop: !!sim.coop', '');
+  s = between(s, "  $('lbsubmit').disabled = wasRanked || !!sim.coop;", '  const dmtOn =', "  $('again').textContent = 'Run it back';\n");
   s = once(s, '  const dmtOn = !!savedPass(), alchCoins', '  const alchCoins');
   s = once(s, 'let receipt = null, rankedSaved = !wasRanked, submitted = false;', 'let receipt = null;');
   s = between(s, '    if (!rankedSaved) {', '    receipt ||=');
-  s = once(s, '{ earned, ranked: wasRanked }', '{ earned }');
+  s = once(s, '{ earned, ranked: wasRanked, coop: !!sim.coop, playerId: PLAYER, result: coopResult }', '{ earned }');
   s = between(s, '    const kpmNote =', "    let bestNote = '';");
-  s = once(s, '    if (!wasRanked) {', '    {');
+  s = once(s, '    if (!wasRanked && !sim.coop) {', '    {');
   s = once(s, '${kpmNote}', '');
   s = once(s, "${dmtOn ? ' <em class=\"dmtnote\">DMT +25%</em>' : ''}", '');
   s = once(s, '    cloud.push(true);\n');
   s = once(s, '  rankedRun = null; rankedRec = null; applyDmt();\n');
-  s = once(s, "const MENU_SCREENS = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];", "const MENU_SCREENS = ['board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];");
-  s = once(s, "$('again').onclick = () => { if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); };", "$('again').onclick = startRun;");
+  s = once(s, "const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];", "const MENU_SCREENS = ['board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];");
+  s = once(s, "$('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); };", "$('again').onclick = startRun;");
   s = between(s, "addEventListener('blur',", "$('start').onclick", `let resumeMode = 'play', focusLostWhileStarting = false;
 function suspendPage() {
   keys.clear(); clearTouch();
@@ -129,6 +131,9 @@ function pause(on) {
   s = once(s, '  } finally { runStarting = false; }', '    if (focusLostWhileStarting || document.hidden || !document.hasFocus()) suspendPage();\n  } finally { runStarting = false; }');
   s = once(s, 'function loop(ts) {\n  requestAnimationFrame(loop);', 'function loop(ts) {\n  requestAnimationFrame(loop);\n  if ((document.hidden || !document.hasFocus()) && sim) { suspendPage(); last = ts; acc = 0; return; }');
   s = between(s, '// ---- installable app (PWA)', '// folding or rotating');
+  s = once(s, "    $('cooppause').classList.add('hidden'); $('coopwait').classList.add('hidden');\n");
+  s = once(s, "  PLAYER = 'p1'; $('coop').classList.add('hidden'); $('coopwait').classList.add('hidden');", "  PLAYER = 'p1';");
+  s = once(s, "const NAV_ITEMS = '#coop input, ", "const NAV_ITEMS = '");
   for (const action of ['r', 's']) s = once(s, `rankedRec ? rankedChoice(sim, rankedRec, '${action}') : `);
   s = s.replaceAll('if (rankedRec) persistRanked();', '');
   s = s.replaceAll('if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else ', '');
@@ -148,6 +153,7 @@ function pause(on) {
   s = s.replace(/\(\) => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen\(\)(?: && !rankedBusy)?/g, '() => true');
   s = s.replaceAll('rankedLive()', 'null').replaceAll('rankedPlaying()', 'false').replaceAll('rankedRec', 'null').replaceAll('rankedRun', 'null').replaceAll('walletModalOpen()', 'false');
   s = s.replaceAll(' or wallet action', '').replaceAll(' or saving to your wallet', '').replaceAll('wallet action', 'run');
+  s = s.replace(/\b(?:sim|s)\??\.coop\b/g, 'false'); // This edition stays solo until its own online-platform proof.
   // Every removed panel must also leave the list of panels hidden when a run starts.
   for (const id of excluded) s = s.replaceAll(`'${id}', `, '').replaceAll(`, '${id}']`, ']');
   assert.doesNotMatch(s, /fetch\(|serviceWorker|caches\.|savedPass|walletNow|createCloud|api\/|TIP_ETH|rankedApi|openRanked|submitScore|bunCompanions|bunChoice|bun-companions/, 'Forbidden network/service in casual entry');
@@ -177,14 +183,13 @@ function removeElement(source, id) {
   throw Error(`Unclosed edition element ${id}`);
 }
 export function transformHtml(source) {
-  let s = between(source, '<script>', '<meta name="viewport"');
+  let s = source;
   s = s.replace(/^.*(?:rel="manifest"|apple-touch-icon|og:|twitter:|rel="canonical").*\n/gm, '');
   s = s.replaceAll('href="/assets/', 'href="./assets/');
-  for (const id of ['walletchip', 'dmtchip', 'rankedbtn', 'tipwrap', 'updatebtn', 'bugbtn2', 'dmtbtn', 'bugbtn', 'installbtn', 'endlb', 'rankedresult', 'rankedretry', 'sharex', ...excluded.filter(id => id !== 'cloudpick'), 'walletlink', 'cloudpick', 'guide-ranked', 'guide-cloud', 'petbuns']) s = removeElement(s, id);
+  for (const id of ['coopbtn', 'coopwait', 'cooppause', 'walletchip', 'dmtchip', 'rankedbtn', 'tipwrap', 'updatebtn', 'bugbtn2', 'dmtbtn', 'bugbtn', 'installbtn', 'endlb', 'rankedresult', 'rankedretry', 'sharex', ...excluded.filter(id => id !== 'cloudpick'), 'walletlink', 'cloudpick', 'guide-ranked', 'guide-cloud', 'petbuns']) s = removeElement(s, id);
   s = s.replaceAll('<p class="rankedpause dim hidden" role="timer" aria-live="off"></p>', '');
   s = s.replace(/<p class="rankedmovement dim">[^<]*<\/p>/g, '<p class="dim">Tumble with Space, controller A, or the Tumble button. Cross reachable low fences; buildings stay solid.</p>');
   s = s.replaceAll('Leaderboard', 'Best run').replaceAll('before playing or saving to your wallet.', 'before playing.').replaceAll(' Ranked ignores both.', '');
-  s = once(s, '<h2>More</h2>', '<h2>More</h2><p>Progress saves on this device. Use Move progress to keep a backup or play on another device.</p>');
   return s;
 }
 
@@ -213,15 +218,16 @@ export function wavedashEdition() {
     name: 'sqs-wavedash-edition', enforce: 'pre',
     transformIndexHtml: { order: 'pre', handler: transformHtml },
     transform(code, id) {
+      if (id.endsWith('/src/start.js')) return { code: once(once(code, "import { carryProgress } from './carry-progress.js';\n"), '  if (!carryProgress()) return;\n'), map: null };
       if (id.endsWith('/src/main.js')) return { code: transformMain(code), map: null };
       if (id.endsWith('/src/render.js')) return { code: transformRender(code), map: null };
       if (id.endsWith('/src/assets.js')) return { code: "export const asset = p => (import.meta.env.BASE_URL || './') + 'assets/' + p; export const assetHost = () => 'local'; export const pickAssetHost = async () => 'local';", map: null };
-      if (id.endsWith('/src/changelog.js')) return { code: `export const LATEST='0.44.42-casual.12'; export const CHANGELOG=[{"version": "0.44.42-casual.12", "date": "7 Nov 2026", "title": "Companions on the road", "items": ["Choose Chicken, Fox or no companion from More → Pets. Companions follow your path and are cosmetic.", "Optional companions can be retried if a model cannot load. Your selection saves on this device.", "Phone half-fold layout is now called Flex mode. Existing layout choices are kept."]},{"version": "0.44.41-casual.11", "date": "6 Nov 2026", "title": "Clearer menus, clearer fights", "items": ["Greentown and Apache previews frame your adventurer more clearly. Settings sections collapse to keep menus shorter.", "Sound effects and music have separate labelled sliders. Menu music can start from your first interaction while the world loads.", "How to play explains upgrades, caskets, arrows and evolution recipes. Update notes have Copy buttons; long casket results can collapse.", "Shrines show charging progress. Shape mage gear has stronger magic bonuses. Chapel stained glass stays visible when the roof lifts.", "Snow-zone enemy waves begin from six minutes onward. Their first arrival starts Snowdrift Hollow.", "Base pickup range and hostile slam and meteor circles are slightly smaller under current combat rules."]},{version:'0.44.40-casual.10',date:'6 Nov 2026',title:"Lighter crowds",items:["Crowded fights use less animation memory. Enemy models, animations and combat rules stay the same."]},{version:'0.44.39-casual.9',date:'6 Nov 2026',title:'Choose your build',items:["Optional auto-equip wears only clear armour upgrades and keeps your stats and started sets. Enable it in Settings on this device.", "Up to 3 banishes remove unwanted NEW weapons or passives for the rest of this run. Banishing does not replace the card.", "Title music starts after your first tap or key. Music and sound sliders now use mobile-compatible volume controls.", "Enemies stop at touching distance instead of walking inside a stationary adventurer. Contact still hurts.", "Map previews have clearer character positions. Flex mode is available on phones only.", "The chapel's south doorway stays open for walking. Solid walls and low-fence collision remain in place.", "Thrown axes and Mutant Slimers have smaller visuals. Damage and attack ranges are unchanged.", "The minimap refreshes at a steady rate during busy fights, reducing redraw work without hiding enemies."]},{version:'0.44.38-casual.8',date:'6 Nov 2026',title:'Know your build',items:["See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.", "Menus now render at up to 30 frames per second while controls stay responsive."]},{version:'0.44.37-casual.7',date:'6 Nov 2026',title:'Keep clear of wall edges',items:['Turning out of doorways now keeps adventurers and enemies clear of wall edges. Open doors and reachable low-fence tumbles still work.','Progress saves on this device. Use Move progress to keep a backup or play on another device.']},{version:'0.44.36-casual.6',date:'6 Nov 2026',title:'Faster starts, solid walls',items:["Enemies move 5% faster during the first four minutes.",'Movement now respects blocked house corners. Enemies take open routes instead of slipping through walls. Fast knockback cannot skip solid ground.',"Walls now block enemy contact damage. Nearby enemies find open doors.",'Progress saves on this device. Use Move progress to keep a backup or play on another device.']},{version:'0.44.35-casual.5',date:'6 Nov 2026',title:'Quality in every upgrade',items:['Every upgrade gives one level. Common, Uncommon, Rare and Epic rolls retain different stat gains for this run. Maxed items cannot roll again. Cards show the resulting stats.','Progress saves on this device. Use Move progress to keep a backup or play on another device.']},{version:'0.44.34-casual.4',date:'5 Nov 2026',title:'Update notes in your language',items:['Update notes now follow your language choice when a translation is available. Older notes without a translation stay in English.','Progress saves on this device. Use Move progress to keep a backup or play on another device.']},{version:'0.44.32-casual.3',date:'5 Nov 2026',title:'Pasture fence tumble',items:['Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.']}];`, map: null };
+      if (id.endsWith('/src/changelog.js')) return { code: `export const LATEST='0.44.43-casual.13'; export const CHANGELOG=[{"version": "0.44.43-casual.13", "date": "7 Nov 2026", "title": "Keep progress safe", "items": ["One game tab owns this browser profile. Close it before playing in another tab; use Move progress to keep a backup."]},{"version": "0.44.42-casual.12", "date": "7 Nov 2026", "title": "Companions on the road", "items": ["Choose Chicken, Fox or no companion from More → Pets. Companions follow your path and are cosmetic.", "Optional companions can be retried if a model cannot load. Your selection saves on this device.", "Phone half-fold layout is now called Flex mode. Existing layout choices are kept."]},{"version": "0.44.41-casual.11", "date": "6 Nov 2026", "title": "Clearer menus, clearer fights", "items": ["Greentown and Apache previews frame your adventurer more clearly. Settings sections collapse to keep menus shorter.", "Sound effects and music have separate labelled sliders. Menu music can start from your first interaction while the world loads.", "How to play explains upgrades, caskets, arrows and evolution recipes. Update notes have Copy buttons; long casket results can collapse.", "Shrines show charging progress. Shape mage gear has stronger magic bonuses. Chapel stained glass stays visible when the roof lifts.", "Snow-zone enemy waves begin from six minutes onward. Their first arrival starts Snowdrift Hollow.", "Base pickup range and hostile slam and meteor circles are slightly smaller under current combat rules."]},{version:'0.44.40-casual.10',date:'6 Nov 2026',title:"Lighter crowds",items:["Crowded fights use less animation memory. Enemy models, animations and combat rules stay the same."]},{version:'0.44.39-casual.9',date:'6 Nov 2026',title:'Choose your build',items:["Optional auto-equip wears only clear armour upgrades and keeps your stats and started sets. Enable it in Settings on this device.", "Up to 3 banishes remove unwanted NEW weapons or passives for the rest of this run. Banishing does not replace the card.", "Title music starts after your first tap or key. Music and sound sliders now use mobile-compatible volume controls.", "Enemies stop at touching distance instead of walking inside a stationary adventurer. Contact still hurts.", "Map previews have clearer character positions. Flex mode is available on phones only.", "The chapel's south doorway stays open for walking. Solid walls and low-fence collision remain in place.", "Thrown axes and Mutant Slimers have smaller visuals. Damage and attack ranges are unchanged.", "The minimap refreshes at a steady rate during busy fights, reducing redraw work without hiding enemies."]},{version:'0.44.38-casual.8',date:'6 Nov 2026',title:'Know your build',items:["See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.", "Menus now render at up to 30 frames per second while controls stay responsive."]},{version:'0.44.37-casual.7',date:'6 Nov 2026',title:'Keep clear of wall edges',items:['Turning out of doorways now keeps adventurers and enemies clear of wall edges. Open doors and reachable low-fence tumbles still work.','Progress saves on this device. Use Move progress to keep a backup or play on another device.']},{version:'0.44.36-casual.6',date:'6 Nov 2026',title:'Faster starts, solid walls',items:["Enemies move 5% faster during the first four minutes.",'Movement now respects blocked house corners. Enemies take open routes instead of slipping through walls. Fast knockback cannot skip solid ground.',"Walls now block enemy contact damage. Nearby enemies find open doors.",'Progress saves on this device. Use Move progress to keep a backup or play on another device.']},{version:'0.44.35-casual.5',date:'6 Nov 2026',title:'Quality in every upgrade',items:['Every upgrade gives one level. Common, Uncommon, Rare and Epic rolls retain different stat gains for this run. Maxed items cannot roll again. Cards show the resulting stats.','Progress saves on this device. Use Move progress to keep a backup or play on another device.']},{version:'0.44.34-casual.4',date:'5 Nov 2026',title:'Update notes in your language',items:['Update notes now follow your language choice when a translation is available. Older notes without a translation stay in English.','Progress saves on this device. Use Move progress to keep a backup or play on another device.']},{version:'0.44.32-casual.3',date:'5 Nov 2026',title:'Pasture fence tumble',items:['Tumble now clears the low pasture fences west of Greentown. Normal walking still stops at the railings. Existing wall and landing checks remain.']}];`, map: null };
       const locale = /\/src\/locales\/(tr|es|fil)\.js$/.exec(id);
       if (locale) return { code: localeSource(locale[1]), map: null };
     },
     generateBundle(_, bundle) {
-      for (const id of this.getModuleIds()) assert.doesNotMatch(id, /\/(?:wallet(?:-connect)?|dmt|ranked(?:-client|-play)?|cloud|swap|prize-display|config)\.js$|node_modules\/(?:@walletconnect|qrcode|@reown)/, `Forbidden module in casual build: ${id}`);
+      for (const id of this.getModuleIds()) assert.doesNotMatch(id, /\/(?:wallet(?:-connect)?|dmt|ranked(?:-client|-play)?|cloud|swap|prize-display|config|carry-progress)\.js$|node_modules\/(?:@walletconnect|qrcode|@reown)/, `Forbidden module in casual build: ${id}`);
       for (const entry of Object.values(bundle)) if (entry.type === 'chunk') assertCasualBundle(entry.code, [entry.fileName]);
     },
   };

@@ -109,6 +109,6 @@ printf '%s\n' "$DEPLOY_OUT" | grep -E "Preview|Production|Error|error|https://" 
 [ "$DEPLOY_RC" = 0 ] || exit "$DEPLOY_RC"
 # warm jsDelivr in the background so the first players after a change do not wait on it fetching from GitHub
 if [ -n "$VITE_ASSET_BASE_1" ]; then
-  ( cd public/assets && find . -type f -print0 | xargs -0 -P 6 -I{} sh -c 'p=$(printf %s "$2" | sed "s#^\./##; s# #%20#g"); case "$p" in models/*|music/*) b=$1;; *) b=$0;; esac; curl -s -o /dev/null -m 60 "$b$p"' "$VITE_ASSET_BASE_1" "$VITE_ASSET_BASE_2" {} ) > /dev/null 2>&1 &
+  ( cd public/assets && find . -type f -print0 | xargs -0 -P 6 -I{} sh -c 'p=$(printf %s "$2" | sed "s#^\./##; s# #%20#g"); case "$p" in models/*|music/*|sanko/*) b=$1;; *) b=$0;; esac; curl -s -o /dev/null -m 60 "$b$p"' "$VITE_ASSET_BASE_1" "$VITE_ASSET_BASE_2" {} ) > /dev/null 2>&1 &
   echo "assets: warming jsDelivr in the background"
 fi

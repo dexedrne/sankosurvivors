@@ -15,7 +15,7 @@ const best=main.slice(main.indexOf('const bestKey = '),main.indexOf('function sh
 const finish=main.slice(main.indexOf('function runCoins('),main.indexOf('function toMenu()'));
 const persist=main.slice(main.indexOf('function persistRanked()'),main.indexOf('setInterval(() => { if (rankedPlaying())'));
 const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
-function fixture(t,{cloudOn=true,ranked=false,outcome='win',responses=[],storageFault=null}={}){
+function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',responses=[],storageFault=null}={}){
  const previous=globalThis.localStorage,store=new Map(Object.entries({'sq-coins':'100','sq-bank':J(['Bronze Helmet']),'sq-stats':J({kills:299,'kills.goblin':299}),'sq-gear-reset1':'1'})),calls=[],notes=[],nodes=new Map();let submissions=0;
  if(cloudOn){store.set('sq-cloud',J({a:'0x'+'1'.repeat(40),key:'fixture-session',rev:1}));store.set('sq-cloud-base',J(Object.fromEntries(SAVE_KEYS.filter(k=>store.has(k)).map(k=>[k,store.get(k)]))));}
  let armed=false;const denied=(action,k)=>armed&&storageFault?.(action,k);
@@ -27,12 +27,12 @@ function fixture(t,{cloudOn=true,ranked=false,outcome='win',responses=[],storage
   return typeof next==='function'?await next(body):new Response(J(next||{ok:true,rev:body.rev+1}));
  });
  const $=id=>{if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{textContent:'',innerHTML:'',disabled:false,focus(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);};
- const sim=createSim({seed:7,map:content.MAP_BY_ID.greentown});Object.assign(sim,{over:outcome,t:600,kills:6,bossKills:0,evolves:0,loot:['Bronze Helmet','Iron Helmet'],alched:[],killsByType:{goblin:6}});Object.assign(sim.players[0],{coins:2,alch:7});
+ const sim=createSim({seed:7,map:content.MAP_BY_ID.greentown,...(coopPlay?{coop:true,players:[{id:'p1'},{id:'p2'}]}:{})});Object.assign(sim,{over:outcome,t:600,kills:6,bossKills:0,evolves:0,loot:['Bronze Helmet','Iron Helmet'],alched:[],killsByType:{goblin:6}});Object.assign(sim.players[0],{coins:2,alch:7});if(coopPlay)Object.assign(sim.players[1],{kills:3,killsByType:{goblin:3},loot:['Iron Helmet'],alched:[],coins:4,alch:9});
  const app=Function('content','sim','$','createCloud','betterRun','profileValue','profileBest','finiteNumber','playerStats','writeRanked','SAVE_KEYS','note','submit','prepareRunRewards','saveRunProgress','recoverRunProgress','recoverProgressImport',`
   const {MAPS,MAP_BY_ID,ADVENTURER_BY_ID,GEAR,GEAR_SLOTS,GEAR_MAX_LV,clampSkills,ADVENTURERS,QUESTS,WEAPONS,isWeaponItem}=content,params=new URLSearchParams();
   ${profile}
   ${best}
-  let runStarting=false,mode='play',waitingForMove=false,rewardWasShown=false,lastRun=null;
+  const PLAYER='${coopPlay?'p2':'p1'}',coopResult=${coopPlay?"'complete'":'null'},coop=${coopPlay?'{}':'null'},coopLoading=false;let runStarting=false,mode='play',waitingForMove=false,rewardWasShown=false,lastRun=null;
   let rankedRun=${ranked?"{week:0,mode:'normal',run:'fixture-run'}":'null'},rankedRec=${ranked?"{log:()=>({runs:[]})}":'null'};
   const LATEST='fixture-version',runTicket='fixture-ticket',savedPass=()=>null,DMT_COIN_BONUS=.25;
   const fmtT=t=>String(t),imgTag=()=>'',buildMaps=()=>{},buildAdventurers=()=>{},showBest=()=>{},stepOf=()=>null,iconHTML=()=>'',weaponDisplay=()=>({name:'Sword'});
@@ -105,4 +105,10 @@ test('native progress-lock retry rechecks wallet admission and ignores a second 
 
 test('actual Start refuses a new run while interrupted completed rewards are in recovery',async t=>{
  const f=fixture(t,{storageFault:(action,k)=>action==='write'&&k==='sq-coins'});f.arm();f.end();const s=f.sim;await f.app.startRun();assert.equal(f.app.state().mode,'recovery');assert.equal(f.sim,s);assert.equal(f.store.get('sq-coins'),'100');assert.equal(f.calls.length,0);
+});
+test('actual guest end saves only its reward receipt, leaves both solo bests and sends no solo score',async t=>{
+ const f=fixture(t,{coopPlay:true,cloudOn:false});f.store.set('sq-best','{"t":55,"kills":1}');f.store.set('sq-bests','{"greentown:n:r":{"t":55,"kills":1}}');f.end();await f.flush();assert.equal(f.app.state().mode,'end');assert.equal(f.store.get('sq-coins'),'591');assert.equal(JSON.parse(f.store.get('sq-stats')).kills,302);assert.match(f.$('endloot').innerHTML,/Iron Helmet/);assert.doesNotMatch(f.$('endloot').innerHTML,/Bronze Helmet/);assert.equal(f.store.get('sq-best'),'{"t":55,"kills":1}');assert.equal(f.store.get('sq-bests'),'{"greentown:n:r":{"t":55,"kills":1}}');assert.equal(f.app.state().lastRun.sent,true);assert.equal(f.app.state().lastRun.ticket,null);assert(f.$('endlb').classList.contains('hidden'));assert.equal(f.calls.length,0);
+});
+test('actual guest end keeps its local ownership and absolute receipt through a denied save Retry',async t=>{
+ const f=fixture(t,{coopPlay:true,cloudOn:false,storageFault:(action,k)=>action==='write'&&k==='sq-coins'});f.arm();f.end();assert.equal(f.app.state().mode,'recovery');f.restore();await f.$('progressretry').onclick();await f.flush();assert.equal(f.app.state().mode,'end');assert.equal(f.store.get('sq-coins'),'591');assert.equal(JSON.parse(f.store.get('sq-stats')).kills,302);assert.equal(f.store.has('sq-run-save-v1'),false);assert.equal(f.app.state().lastRun.coop,true);
 });

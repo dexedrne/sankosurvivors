@@ -1,0 +1,18 @@
+sankosurvivors-coop.spidertag.app {
+    @relay {
+        method GET HEAD
+        path /coop /health
+    }
+    handle @relay {
+        reverse_proxy 127.0.0.1:8787 {
+            header_up X-Real-IP {remote_host}
+            stream_close_delay 30m
+            transport http {
+                keepalive off
+            }
+        }
+    }
+    handle {
+        respond 404
+    }
+}

@@ -15,3 +15,6 @@ tools/supabase/update2.sql
 # agent worktrees
 .claude/
 .test-results/
+
+dist-coop
+dist-coop-native

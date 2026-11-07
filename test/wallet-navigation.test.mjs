@@ -44,11 +44,12 @@ function menu(mode = 'title') {
     if (parent) { parent.children.push(el); classes.delete('hidden'); }
     elements.set(id, el); return el;
   }
-  for (const id of ['cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'pause', 'end', 'title']) element(id);
+  for (const id of ['coop', 'cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'pause', 'end', 'title']) element(id);
   for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('volume', elements.get('settings'), 'input'); element('settingsclose', elements.get('settings'));
-  element('morebtn',elements.get('title'));element('guidebtn',elements.get('more'));element('moreclose',elements.get('more'));
+  element('coopclose',elements.get('coop'));element('coopname',elements.get('coop'),'input');element('coopinvite',elements.get('coop'),'input');
+  element('morebtn',elements.get('title'));element('guidebtn',elements.get('more'));element('coopbtn',elements.get('more'));element('moreclose',elements.get('more'));
   element('guidesummary',elements.get('guide'),'summary');element('guideclose',elements.get('guide'));
   element('petchoice',elements.get('pets'));element('petsclose',elements.get('pets'));
   element('settingssummary',elements.get('settings'),'summary');element('guidecurrentrecipes');element('guideoldrecipes');
@@ -71,6 +72,7 @@ function menu(mode = 'title') {
     const guideRecipes=()=>'';
     ${guideHandlers}
     ${moreHandlers}
+    $('coopclose').onclick=()=>{$('coop').classList.add('hidden');navFocus($('morebtn'));};
     ${moreCapture}
     ${petClose}
     for(const id of ['guide','pets','more'])if(typeof containMenuTab==='function')$(id).addEventListener('keydown',containMenuTab);
@@ -243,6 +245,9 @@ test('guide opening sets focus and forward/reverse Tab stay inside its modal',()
  const m=menu();m.$('guidebtn').click();assert.equal(m.active,'guidesummary');
  m.$('guideclose').focus();m.key('Tab',{native:true});assert.equal(m.active,'guidesummary');
  m.key('Tab',{native:true,shiftKey:true});assert.equal(m.active,'guideclose');
+});
+test('co-op modal blocks background starts and its Back returns to the existing menu',()=>{
+ const m=menu();m.open('coop');m.key('Enter');m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);assert.equal(m.app.screen(),'coop');m.key('Escape');assert(m.$('coop').classList.contains('hidden'));assert.equal(m.active,'morebtn');
 });
 test('Pets blocks stale keyboard/controller starts and its actual Back handler returns focus',()=>{
  const m=menu();m.open('pets');m.app.focus('start');m.key('Enter',{native:true});m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);assert.equal(m.app.screen(),'pets');

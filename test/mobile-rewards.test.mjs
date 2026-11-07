@@ -19,7 +19,7 @@ function setup({phone=true,held=false,ranked=false,natural=null,shown=!natural,c
     preloadNextIcons(){},audio:{duck(){},play(){},init:()=>Promise.resolve()},renderer:{getYaw:()=>0},navigator:{getGamepads:()=>[]},
     iconHTML:()=>'',imgTag:()=>'',stepOf:()=>null,markCard(){},showCasket(){},persistRanked(){},endRun(){},hop(){},console};
   vm.createContext(context);
-  const play=section("  if (mode === 'play') {\n    if (edges.start)","  } else if (mode === 'levelup') {");
+  const play=section("  else if (mode === 'play') {\n    if (edges.start)","  } else if (mode === 'levelup') {").replace("else if", "if");
   const level=section("  } else if (mode === 'levelup') {","  } else if (mode === 'casket') {");
   vm.runInContext(`
     let mode='${shown?'levelup':'play'}',shownPending=${shown},rewardWasShown=${shown},selCard=0,banishMode=false,waitingForMove=false,acc=0,pendingUse=null,slowmo=0;

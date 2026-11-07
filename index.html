@@ -2,35 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script>
-// Saves live in the browser, one store per web address. The game's old addresses hand the save over to
-// sankosurvivors.quest (in the #fragment, which never reaches a server), then forward there.
-(function () {
-  var HOME = 'sankosurvivors.quest', OLD = ['sankosurvivors.vyvanse.beer', 'sankoquest.vyvanse.beer'];
-  try {
-    if (OLD.indexOf(location.hostname) >= 0) {
-      var s = {}, n = 0;
-      for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('sq-') === 0) { s[k] = localStorage.getItem(k); n++; } }
-      location.replace('https://' + HOME + '/' + location.search + (n ? '#carry=' + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(s))))) : ''));
-      document.write('<plaintext style="display:none">'); // nothing else on this page loads
-      return;
-    }
-    // only a hand-off that really comes from an old address counts: a #carry= link from anywhere else could plant data
-    var m = /^#carry=(.+)$/.exec(location.hash), from = '';
-    try { from = new URL(document.referrer).hostname; } catch (e) { /* no referrer */ }
-    if (m && OLD.indexOf(from) < 0) { history.replaceState(null, '', location.pathname + location.search); m = null; }
-    if (m) {
-      var d = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
-      var fresh = !localStorage.getItem('sq-coins') && !localStorage.getItem('sq-stats'); // nothing played here yet: take it all
-      // progress and settings only (a DMT pass is signed again here), each a value the game itself would have saved
-      var KEEP = ['sq-coins', 'sq-name', 'sq-gear', 'sq-best', 'sq-bests', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-seen', 'sq-roofs', 'sq-quests', 'sq-muted', 'sq-vol', 'sq-map', 'sq-gearlv', 'sq-cleared', 'sq-bank', 'sq-adv'];
-      var ok = function (k, v) { if (typeof v !== 'string' || v.length > 20000) return false; if (k === 'sq-roofs') return v === 'off' || v === 'on'; try { JSON.parse(v); return true; } catch (e) { return false; } };
-      for (var key in d) if (Object.prototype.hasOwnProperty.call(d, key) && KEEP.indexOf(key) >= 0 && ok(key, d[key]) && (fresh || localStorage.getItem(key) === null)) localStorage.setItem(key, d[key]);
-      history.replaceState(null, '', location.pathname + location.search);
-    }
-  } catch (e) { /* storage blocked: nothing to carry */ }
-})();
-</script>
+
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#2b2118">
@@ -67,6 +39,7 @@
 <link rel="stylesheet" href="./src/style.css">
 </head>
 <body>
+<div id="game" inert>
 <canvas id="c"></canvas>
 <div id="fx"></div>
 <div id="hurt"></div>
@@ -116,12 +89,14 @@
 <div id="gear" class="screen hidden"><div class="panel wide"><h2>Gear</h2><div class="progression-note"><p id="gearpressure" aria-live="polite"></p><small>Each skill rank adds 1.5% enemy HP/contact damage. Each starting gear piece counts as two ranks, up to +75%. Ranked ignores both.</small><small>Before armour and other modifiers.</small></div><div id="gearwrap"><div id="gearslots"></div><div id="gearbank"></div></div><div id="gearinfo"></div><button id="gearclose" class="ghost">Back</button></div></div>
 <div id="quests" class="screen hidden"><div class="panel wide"><h2>Quests</h2><div id="questlist"></div><button id="questclose" class="ghost">Back</button></div></div>
 <div id="toasts"></div>
-<div id="pause" class="screen hidden"><div class="panel"><h2>Paused</h2><p class="rankedpause dim hidden" role="timer" aria-live="off"></p><p class="rankedmovement dim">Week-0 ranked uses Jump and the original evolution recipes. Casual and ranked from week 1 use Tumble and the current recipes.</p><button id="resume">Resume</button><button id="setbtn2" class="ghost">Settings</button><button id="bugbtn2" class="ghost">Report a bug</button><button id="quit" class="ghost">Quit run</button></div></div>
+<p id="coopwait" class="hidden" role="status" aria-live="polite"></p>
+<div id="pause" class="screen hidden"><div class="panel"><h2>Paused</h2><p id="cooppause" class="dim hidden">Menus stop your controls, but the shared run continues. Upgrade choices pause the world for both players.</p><p class="rankedpause dim hidden" role="timer" aria-live="off"></p><p class="rankedmovement dim">Week-0 ranked uses Jump and the original evolution recipes. Casual and ranked from week 1 use Tumble and the current recipes.</p><button id="resume">Resume</button><button id="setbtn2" class="ghost">Settings</button><button id="bugbtn2" class="ghost">Report a bug</button><button id="quit" class="ghost">Quit run</button></div></div>
 <div id="updates" class="screen hidden"><div class="panel wide"><h2>Updates</h2><p class="dim">Older notes without a translation stay in English.</p><div id="updlist"></div><button id="updclose" class="ghost">Back</button></div></div>
 <div id="board" class="screen hidden"><div class="panel wide"><h2>Leaderboard</h2><div id="lbtabs"></div><div id="lblist"></div><button id="lbclose" class="ghost">Back</button></div></div>
 <div id="bug" class="screen hidden"><div class="panel"><h2>Report a bug</h2><p class="dim">What happened, and what were you doing? Your settings, map and game version are sent with it.</p><textarea id="bugtext" maxlength="2000" rows="6" placeholder="e.g. On Greentown my character walked through a wall near the bank"></textarea><div id="bugmsg"></div><button id="bugsend">Send report</button><button id="bugclose" class="ghost">Back</button></div></div>
 <div id="xfer" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="xfertitle"><div class="panel"><h2 id="xfertitle">Move progress</h2>
   <p class="dim">Your coins, skills, gear, cleared maps, quests and settings live in this browser. Copy the code here, then paste it in the game on your other computer or phone.</p>
+  <p class="dim">Keep a progress code somewhere safe before clearing browser data or removing the app.</p>
   <div class="lurow"><button id="xfercopy">Copy my progress code</button></div>
   <p class="dim" style="margin-top:14px">On the other device: paste a code here.</p>
   <textarea id="xferin" rows="4" spellcheck="false" autocomplete="off" placeholder="SQS1..."></textarea>
@@ -130,7 +105,7 @@
   <div id="xfermsg" role="status" aria-live="polite"></div>
 </div></div>
 <div id="pets" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="petstitle"><div class="panel"><h2 id="petstitle">Pets</h2><p class="dim">Cosmetic companions follow your path. They do not change combat or rewards.</p><div id="petlist" class="morelist"></div><p id="petstatus" class="dim" role="status"><span id="petloadtext"></span> <span id="petvisit" class="hidden">Your selection applies to this visit only.</span></p><div id="petbuns"><p id="petbunstatus" class="dim" role="status"></p><button id="petbunrefresh" class="ghost">Refresh BUN companions</button></div><button id="petretry" class="ghost hidden">Retry</button><button id="petsclose" class="ghost">Back</button></div></div>
-<div id="more" class="screen hidden"><div class="panel"><h2>More</h2><div class="morelist"><button id="guidebtn" class="ghost">How to play</button><button id="updbtn" class="ghost">What's new<span id="updnew" class="hidden">NEW</span></button><button id="petsbtn" class="ghost">Pets</button><button id="dmtbtn" class="ghost hidden">DMT holder perks</button><button id="xferbtn" class="ghost">Move progress to another device</button><button id="bugbtn" class="ghost">Report a bug</button><button id="installbtn" class="ghost hidden">Install the app</button></div><p class="morelinks">Made by <a href="https://x.com/dexedrne" target="_blank" rel="noopener">@dexedrne</a> · Sanko: <a href="https://t.me/sankogamecorp" target="_blank" rel="noopener">Telegram</a> · <a href="https://x.com/SankoGameCorp" target="_blank" rel="noopener">X</a></p><button id="moreclose" class="ghost">Back</button></div></div>
+<div id="more" class="screen hidden"><div class="panel"><h2>More</h2><p>Progress saves on this device. Use Move progress to keep a backup or play on another device.</p><div class="morelist"><button id="guidebtn" class="ghost">How to play</button><button id="petsbtn" class="ghost">Pets</button><button id="coopbtn" class="ghost">Co-op with a friend</button><button id="updbtn" class="ghost">What's new<span id="updnew" class="hidden">NEW</span></button><button id="dmtbtn" class="ghost hidden">DMT holder perks</button><button id="xferbtn" class="ghost">Move progress to another device</button><button id="bugbtn" class="ghost">Report a bug</button><button id="installbtn" class="ghost hidden">Install the app</button></div><p class="morelinks">Made by <a href="https://x.com/dexedrne" target="_blank" rel="noopener">@dexedrne</a> · Sanko: <a href="https://t.me/sankogamecorp" target="_blank" rel="noopener">Telegram</a> · <a href="https://x.com/SankoGameCorp" target="_blank" rel="noopener">X</a></p><button id="moreclose" class="ghost">Back</button></div></div>
 
 <div id="guide" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="guidetitle"><div class="panel wide">
 <h2 id="guidetitle">How to play</h2>
@@ -190,6 +165,10 @@
 <div id="dmt" class="screen hidden"><div class="panel"><h2>DMT holder perks</h2><div id="dmtbody"></div><div id="dmtmsg"></div><button id="dmtclose" class="ghost">Back</button></div></div>
 <div id="tip" class="screen hidden"><div class="panel"><h2>Tip the maker</h2><p>Enjoying the game? A tip in ETH keeps it going. Thank you!</p><p class="dim">Same address on Ethereum, Arbitrum and Robinhood Chain. Check it against your wallet before you send.</p><code id="tipaddr"></code><div id="tipmsg"></div><div class="lurow"><button id="tipcopy">Copy address</button><button id="tipwallet" class="ghost">Open in wallet</button></div><button id="tipclose" class="ghost">Back</button></div></div>
 
-<script type="module" src="./src/main.js"></script>
+<div id="coop" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="cooptitle"><div class="panel"><h2 id="cooptitle">Co-op with a friend</h2><p class="dim">Two players, shared XP and enemies, your own upgrades and loot. Casual only; co-op scores do not enter solo boards.</p><div id="coopform"><label for="coopname">Your name</label><input id="coopname" maxlength="16" autocomplete="nickname"><button id="coopcreate">Create room</button><label for="coopinvite">Invite code</label><input id="coopinvite" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text"><button id="coopjoin" class="ghost">Join room</button></div><div id="cooproom" class="hidden"><p>Invite code: <b id="coopcode" translate="no"></b></p><p id="coopmap"></p><div id="coopmembers"></div><div class="lurow"><button id="coopready" aria-pressed="false">Ready</button><button id="coopgo">Start together</button></div></div><p id="coopstatus" role="status" aria-live="polite"></p><p class="dim">Keep the host's game open. A guest disconnect pauses the shared run briefly; failed recovery ends the run without saving unfinished rewards.</p><button id="coopclose" class="ghost">Back</button></div></div>
+
+</div>
+<div id="profilegate" class="screen" style="z-index:202" role="alertdialog" aria-modal="true" aria-labelledby="profiletitle"><div class="panel"><h2 id="profiletitle">Opening your progress…</h2><p id="profilemessage" role="status">Please wait…</p><button id="profiletry" disabled>Try again</button></div></div>
+<script type="module" src="./src/start.js"></script>
 </body>
 </html>

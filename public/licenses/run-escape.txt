@@ -25,3 +25,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Adapted client DamageMeter source: https://github.com/Dynrothe/Run-Escape/blob/29c3b1900ee7e16e9fd75dcc047b7e69361da4da/src/game/client/DamageMeter.ts
+
+Co-op protocol and host-ordered frame design adapted from RunEscape v0.27.0:
+https://github.com/Dynrothe/Run-Escape/blob/29c3b1900ee7e16e9fd75dcc047b7e69361da4da/src/game/client/coop/protocol.ts
+https://github.com/Dynrothe/Run-Escape/blob/29c3b1900ee7e16e9fd75dcc047b7e69361da4da/src/game/client/coop/CoopRun.ts
+https://github.com/Dynrothe/Run-Escape/blob/29c3b1900ee7e16e9fd75dcc047b7e69361da4da/src/game/core/lockstep.ts

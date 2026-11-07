@@ -26,6 +26,11 @@ test('casual renderer keeps ordinary companions and excludes Bun ownership and m
   assert.doesNotMatch(result.code,/bunModels|bun-models|bun-actor|bun-catalogue/);
 });
 
+test('casual pet presentation has no relay authority dependency',()=>{
+  const code=transformMain(main),line=code.split('\n').find(line=>line.includes('view.petActive ='));
+  assert.ok(line);assert.doesNotMatch(line,/\bcoop\b/);
+});
+
 for (const language of ['tr', 'es', 'fil']) test(`casual scaling keeps its existing ${language} explanation without ranked copy`, async () => {
   const original = await import(`../src/locales/${language}.js`);
   const generated = wavedashEdition().transform('', `/fixture/src/locales/${language}.js`).code;

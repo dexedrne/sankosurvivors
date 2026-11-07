@@ -1708,10 +1708,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     // effects from sim
     for (const f of view.fx) {
       if (f.k === 'dmg') { number(f.x, f.z, f.v, f.c, f.c ? '#ffd34d' : '#ffffff'); spark(f.x, f.z, f.c); spFx.dmg.push(f); }
-      else if (f.k === 'hurt') { number(f.x, f.z, '-' + f.v, 0, '#ff5a4d'); cam.shake = 0.35; cam.flash = 0.3; spFx.hurt.push(f); }
+      else if (f.k === 'hurt') { number(f.x, f.z, '-' + f.v, 0, '#ff5a4d'); if (f.id === localId) { cam.shake = 0.35; cam.flash = 0.3; } spFx.hurt.push(f); }
       else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; spSlow = 0.9; } // spSlow: main.js slows the sim 0.3x for 0.9 s here
       else if (f.k === 'die') { if (f.type === 'slimer' || f.type === 'mslimer') slimeBurst(f.x, f.z); pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
-      else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
+      else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(f.player || localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'shrine-done') { const c = SHRINE_COLORS[f.kind] || 0xffffff; ringFx(f.x, f.z, 4, c, 1, 0.7); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 50, 6, { s: 1, life: 1.1, color: c, up: 9 }); cam.shake = Math.max(cam.shake, 0.2); }
       else if (f.k === 'shrine') emit(f.x, groundAt(f.x, f.z) + 0.5, f.z, 24, 3, { s: 0.8, life: 1, color: SHRINE_COLORS[f.kind] || 0xffffff, up: 6 });
       else if (f.k === 'land-hop') emit(f.x, groundAt(f.x, f.z) + 0.1, f.z, 8, 2.2, { s: 0.6, life: 0.4, color: 0xc9b38a, up: 1.2, g: 6 });
@@ -1722,7 +1722,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'rise') { crackFx(f.x, f.z, 1.1); emit(f.x, groundAt(f.x, f.z) + 0.3, f.z, 14, 2, { s: 1.3, life: 0.9, color: 0x8f7a5c, up: 3 }); }
       else if (f.k === 'escape') emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 3, { s: 1.2, life: 0.8, color: 0xd9d2c0, up: 3 });
       else if (f.k === 'use') { ringFx(f.x, f.z, f.kind === 'pumpkin' ? 20 : 3, f.kind === 'pumpkin' ? 0xff9a3c : f.kind === 'warp' ? 0xb25cff : 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 16, 3, { s: 0.8, life: 0.6, color: f.kind === 'warp' ? 0xb25cff : 0xffd34d, up: 4 }); }
-      else if (f.k === 'spin') { slashFx(f.x, f.z, 0, f.range, 360, f.evo ? 6 : f.lvl); ringFx(f.x, f.z, f.range, f.evo ? 0xff5a4a : 0xfff0b8); const pa = playerActors.get(localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
+      else if (f.k === 'spin') { slashFx(f.x, f.z, 0, f.range, 360, f.evo ? 6 : f.lvl); ringFx(f.x, f.z, f.range, f.evo ? 0xff5a4a : 0xfff0b8); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'slam') { ringFx(f.x, f.z, f.r, f.meteor ? 0xff9a3c : 0xff6a3a, 1, 0.5); ringFx(f.x, f.z, f.r * 0.6, 0xffc06a, 0, 0.35); scorchFx(f.x, f.z, f.r); emit(f.x, groundAt(f.x, f.z) + 0.3, f.z, 40, 7, { s: 1.4, life: 0.7, color: 0xb8a58a, up: 3 }); cam.shake = Math.max(cam.shake, 0.45); }
       else if (f.k === 'aim') aimFx(f.x, f.z, f.a, f.len, f.t);
       else if (f.k === 'volley') spFx.volley.push(f); // where the boss stood: its shots start there (the game shows no cast puff; the cast sound stays in audio.js)

@@ -54,3 +54,12 @@ test('actual wallet-free post-build cleanup removes BUN-only assets while retain
   assert.equal(await readFile(join(root,'assets/models/mobs/chicken.glb'),'utf8'),'fixture');
   await assert.rejects(readdir(join(root,'assets/sanko')),error=>error.code==='ENOENT');await assert.rejects(readFile(join(root,'manifest.webmanifest')),error=>error.code==='ENOENT');
 });
+
+
+test('the actual deployment warmer routes native companion paths to their published CDN partition',async t=>{
+  const deploy=await readFile(new URL('../tools/deploy.sh',import.meta.url),'utf8'),body=deploy.match(/xargs -0 -P 6 -I\{\} sh -c '([^']+)'/)[1];
+  const bin=await mkdtemp(join(tmpdir(),'sqs-warm-'));t.after(()=>rm(bin,{recursive:true,force:true}));await writeFile(join(bin,'curl'),'#!/usr/bin/python3\nimport sys\nprint(sys.argv[-1])\n',{mode:0o700});
+  for(const [path,want] of [['sanko/buns/Mini.glb','https://two/sanko/buns/Mini.glb'],['sanko/pets/portraits/Orange.png','https://two/sanko/pets/portraits/Orange.png'],['models/mobs/fox.glb','https://two/models/mobs/fox.glb'],['music/menu.mp3','https://two/music/menu.mp3'],['world/ground.json','https://one/world/ground.json']]){
+    const result=spawnSync('/bin/sh',['-c',body,'https://one/','https://two/','./'+path],{encoding:'utf8',env:{PATH:bin+':/usr/bin:/bin'}});assert.equal(result.status,0,result.stderr);assert.equal(result.stdout.trim(),want);
+  }
+});

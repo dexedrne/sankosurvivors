@@ -1,3 +1,5 @@
+import { createCoopClient } from './coop-client.js';
+import { groundHash } from './ground-pack.js';
 import { RunRecorder, RANKED, pauseRemaining, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, requireRankedBuild, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
@@ -16,7 +18,7 @@ import { canAutoEquip } from './auto-equip.js';
 import { CHANGELOG, LATEST } from './changelog.js';
 import { dmtText, poolReadout, prizeEstimate, prizeNotes } from './prize-display.js';
 import { initI18n, translateText } from './i18n.js';
-import { CREATOR, TIP_ETH, NO_PRIZE } from './config.js';
+import { CREATOR, TIP_ETH, NO_PRIZE, COOP_RELAY } from './config.js';
 const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
 // prize place of each board row: the developer's wallet and (from week 1) runs under 3:00 take none, the places pass down
 const prizePlaces = (rows, week) => racePlaces(rows, week, noPrize);
@@ -46,7 +48,8 @@ const BASE = import.meta.env.BASE_URL || './';
 const params = new URLSearchParams(location.search);
 const compactMenu = matchMedia('(max-width:760px), (max-width:1180px) and (max-height:500px)');
 for (const id of ['adventurerpick', 'mappick']) $(id).open = !compactMenu.matches;
-const PLAYER = 'p1';
+let PLAYER = 'p1';
+let coop = null, coopResult = null, coopDecision = -1, coopHomeMap = null, coopLoading = false;
 
 let sim = null, renderer = null, rendererDefaults = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0, banishMode = false;
 const keys = new Set();
@@ -111,7 +114,7 @@ const iconsAsked = new Set();
 function preloadIcons(names) { for (const n of names) { if (!n || iconsAsked.has(n)) continue; iconsAsked.add(n); const im = new Image(); im.src = `${asset('')}ui/items/${itemIconFile(n)}`; } }
 const preloadNextIcons = (p) => { if (!p) return; const out = []; for (const [w, l] of Object.entries(p.weapons || {})) out.push(weaponItem(w, l + 1), weaponItem(w, l + 2)); for (const [k, l] of Object.entries(p.passives || {})) out.push(passiveItem(k, l + 1)); preloadIcons(out); };
 // a weapon's metal in this run (pace 2; null on pace 1, where weapons look like their level)
-const stepOf = (id, p = sim && sim.players[0]) => (sim && sim.pace >= 2 && p ? weaponStep(id, p.wm || {}) : null);
+const stepOf = (id, p = sim && (sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0])) => (sim && sim.pace >= 2 && p ? weaponStep(id, p.wm || {}) : null);
 const imgTag = (name, fallback = '✦') => `<img src="${asset('')}ui/items/${itemIconFile(name)}" alt="${name}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'emoji',textContent:'${fallback}'}))">`;
 // step: the weapon's metal on pace 2 (weaponStep), null on pace 1 (the level's look)
 function iconHTML(kind, id, level, evo, step = null) {
@@ -175,7 +178,7 @@ function buildMaps() {
   if (!cleared && (hardOn || endlessOn)) { hardOn = false; $('hard').checked = false; endlessOn = false; $('endless').checked = false; showBest(); }
 }
 async function pickMap(id, remember = true) {
-  if (mapLoading) return; selMap = id; if (remember) save('sq-map', id); window.__idleSim = null;
+  if (mapLoading || coopLoading && remember) return; selMap = id; if (remember) save('sq-map', id); window.__idleSim = null;
   const map = MAP_BY_ID[id];
   playTitleMusic();
   if (loadedMapId !== id) {
@@ -310,6 +313,7 @@ async function refreshRanked() {
   }
 }
 async function openRanked() {
+  if (coop || mode === 'coop') return;
   $('ranked').classList.remove('hidden'); renderRanked(); $('rankedclose').focus(); refreshBalances(true); await refreshRanked();
 }
 $('rankedbtn').onclick = openRanked;
@@ -321,7 +325,7 @@ for (const id of ['ranked', 'wallet', 'cloudpick', 'walletlink']) $(id).addEvent
   containMenuTab(e);
 });
 async function rankedAction(fn) {
-  if (rankedBusy || mode === 'recovery') return;
+  if (coop || mode === 'coop' || rankedBusy || mode === 'recovery') return;
   cancelPendingLoads();
   rankedBusy = true; renderRanked();
   for (const b of $('rankedwallets').querySelectorAll('button')) b.disabled = true;
@@ -964,7 +968,7 @@ $('lbname').value = load('sq-name', '');
 async function submitScore() {
   const name = $('lbname').value.trim().slice(0, 16);
   if (!name) { $('lbmsg').textContent = 'Type a name first.'; return; }
-  if (!lastRun || lastRun.sent) return;
+  if (!lastRun || lastRun.sent || lastRun.coop) return;
   save('sq-name', name); $('lbsubmit').disabled = true; $('lbmsg').textContent = 'Sending…';
   try {
     const r = await fetch(`${BASE}api/score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...lastRun, name, pass: (savedPass() || {}).pass }) });
@@ -1085,7 +1089,7 @@ function renderWallet() {
 }
 // ---- cloud save on the wallet (src/cloud.js): the same progress on every device ---------------------------------------
 let cloudConnecting = null, cloudChoice = null, reloadTimer = 0, runStarting = false, updateAttempt = null, importAttempt = null, holderChecking = null, titleProgressPending = false;
-const cloudCanLoad = () => mode === 'title' && !runStarting && !rankedBusy && !rankedLive();
+const cloudCanLoad = () => mode === 'title' && !runStarting && !coopLoading && !rankedBusy && !rankedLive();
 const progressCanLoad = () => cloudCanLoad() && !!renderer && !mapLoading && !$('start').disabled;
 const canReloadGame = () => cloudCanLoad() && !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen();
 const canManuallyReload = () => canReloadGame() && !cloudConnecting;
@@ -1264,7 +1268,7 @@ function buyNoticeHTML() {
   if (!buyNotice) return '';
   return `<p>Swap for ${esc(short(buyNotice.address))}: ${esc(buyNotice.text)}${buyNotice.tx ? ` <a href="${arbiscanTx(buyNotice.tx)}" target="_blank" rel="noopener">See it on Arbiscan</a>` : ''}</p>`;
 }
-function openWallet() { $('walletmsg').textContent = ''; renderWallet(); $('wallet').classList.remove('hidden'); $('walletclose').focus(); refreshBalances(true); }
+function openWallet() { if (coop || mode === 'coop') return; $('walletmsg').textContent = ''; renderWallet(); $('wallet').classList.remove('hidden'); $('walletclose').focus(); refreshBalances(true); }
 function refreshWalletChoices() {
   if (!$('wallet').classList.contains('hidden') && !walletConnecting) renderWallet();
   if (!$('dmt').classList.contains('hidden') && !$('dmtbody').querySelector('button:disabled')) renderDmt();
@@ -1333,7 +1337,7 @@ $('bugsend').onclick = async () => {
   const text = $('bugtext').value.trim(); if (text.length < 3) { $('bugmsg').textContent = 'Write a few words first.'; return; }
   $('bugsend').disabled = true; $('bugmsg').textContent = 'Sending…';
   try {
-    const r = await fetch(`${BASE}api/report`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, map: sim ? sim.map.id : selMap, adv: sim ? sim.players[0].adv : selAdv, v: LATEST, settings: renderer.getSettings(), errors: recentErrors }) });
+    const r = await fetch(`${BASE}api/report`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, map: sim ? sim.map.id : selMap, adv: sim ? (sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0]).adv : selAdv, v: LATEST, settings: renderer.getSettings(), errors: recentErrors }) });
     if (r.ok) { $('bugmsg').textContent = 'Thanks, it was sent.'; $('bugtext').value = ''; }
     else $('bugmsg').innerHTML = r.status === 503 ? `Reports open soon. Until then, message <a href="${CREATOR.x}" target="_blank" rel="noopener">@${CREATOR.handle}</a> on X.` : r.status === 429 ? 'One report a minute, please.' : 'Could not send.';
   } catch (e) { $('bugmsg').textContent = 'Could not send.'; }
@@ -1360,8 +1364,115 @@ function runGround() {
   const T = renderer.terrain;
   return T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null, fences: T.fences || null } : null;
 }
+// ---- co-op lobby: casual invite rooms, never paid ranked -------------------------------------------------------------
+const coopRelay = import.meta.env.VITE_COOP_RELAY || COOP_RELAY;
+const COOP_STATUS = {
+  connecting:'Connecting to co-op…', lobby:'Share the invite code, then both players choose Ready.', starting:'Starting together…', loading:'Loading the shared world…', playing:'Connected', waiting:'Waiting for your teammate to reconnect…', reconnecting:'Reconnecting… The shared run is paused.', catchingUp:'Catching up with your teammate…',
+  roomMissing:'Room not found. Check the invite code.', roomFull:'That room already has two players.', serverFull:'Co-op is busy. Try again shortly.', versionMismatch:'Both players need the same game update.', notReady:'Both players must be ready.', invalidStart:'Both players must unlock the selected map and mode.',
+  hostLeft:'The host left. This co-op run has ended.', playerLeft:'Your teammate left. This co-op run has ended.', left:'You left the co-op run.', reconnectExpired:'The connection could not recover in time.', loadFailed:'The shared world could not load. Return to the menu and try again.', loadTimeout:'A player could not finish loading in time.',
+  connectionLost:'Connection lost. This co-op run has ended.', connectionFailed:'Could not connect to co-op.', connectionSlow:'The connection is too slow.', hostStalled:'The host stopped sending the shared run.', desync:'The shared run no longer agrees. It has ended safely.', serverClosed:'The co-op server restarted. This run has ended.', ended:'This co-op run has ended.',
+};
+function coopText(code) { return COOP_STATUS[code] || 'This co-op run could not be verified.'; }
+function showCoopRoom(room) {
+  $('coopform').classList.add('hidden'); $('cooproom').classList.remove('hidden');
+  $('coopcode').textContent = room.code;
+  const map = MAP_BY_ID[room.settings.map];
+  $('coopmap').textContent = `${map.name}${room.settings.hard ? ' · Hard' : ''}${room.settings.endless ? ' · Endless' : ''}`;
+  $('coopmembers').innerHTML = room.members.map(m => `<p><b translate="no">${esc(m.loadout.name)}</b> · ${ADVENTURER_BY_ID[map.forceAdv || m.loadout.adv].name} · <span>${!m.connected ? 'Disconnected' : m.ready ? 'Ready' : 'Not ready'}</span></p>`).join('');
+  const me = room.members.find(m => m.id === room.you);
+  $('coopready').textContent = me.ready ? 'Not ready' : 'Ready'; $('coopready').setAttribute('aria-pressed', String(me.ready));
+  $('coopgo').classList.toggle('hidden', room.you !== 'p1'); $('coopgo').disabled = room.members.length !== 2 || !room.members.every(m => m.ready && m.connected);
+}
+function coopLoadout() {
+  const gear = getGear(), levels = getGearLv();
+  return { name:$('coopname').value.trim().slice(0,16) || 'Adventurer', adv:selAdv, meta:getSkills(), gear, gearLv:Object.fromEntries(Object.values(gear).filter(n => levels[n]).map(n => [n,levels[n]])), cleared:[...clearedMaps()].filter(id => Object.hasOwn(MAP_BY_ID,id)) };
+}
+function openCoop() {
+  if (mode !== 'title' || !canManuallyReload() || !progressCanLoad() || readRanked('sq-ranked-payment') || readRanked('sq-ranked-submit')) { banner('Finish the current action before joining co-op.', 3500); return; }
+  cancelPendingLoads(); mode = 'coop'; coopHomeMap = selMap; coopResult = null; lastRun = null;
+  $('more').classList.add('hidden'); $('coop').classList.remove('hidden'); $('coopform').classList.remove('hidden'); $('cooproom').classList.add('hidden');
+  $('coopname').value = load('sq-name','').slice(0,16); $('coopinvite').value = '';
+  for (const id of ['coopcreate','coopjoin']) $(id).disabled = !coopRelay;
+  $('coopstatus').textContent = coopRelay ? 'Create a room with your selected map and adventurer, or enter an invite code.' : 'Online co-op is not available in this build yet.';
+  $('coopclose').focus();
+  if (!coopRelay) return;
+  const homeMap = coopHomeMap;
+  let c; try { c = createCoopClient({url:coopRelay,identity:{protocol:1,build:BUILD,sim:SIM_ID},
+    load:async game => {
+      if (coop !== c) throw Error('Co-op cancelled');
+      coopLoading = true;
+      try {
+        if (loadedMapId !== game.map) await pickMap(game.map,false);
+        if (coop !== c || c.closed) throw Error('Co-op cancelled');
+        await renderer.preloadGear(game.players.flatMap(p => Object.values(p.loadout.gear)));
+        if (coop !== c || c.closed) throw Error('Co-op cancelled');
+        return runGround();
+      } finally {
+        // Cancelled renderer work owns admission until its home-map restoration settles.
+        try { if (coop !== c || c.closed) await pickMap(homeMap,false); }
+        catch { $('start').disabled = true; banner('Could not restore the selected map.',3000); }
+        finally { coopLoading = false; }
+      }
+    },
+    onRoom:room => { if (coop === c) showCoopRoom(room); },
+    onStatus:code => {
+      if (coop !== c) return; $('coopstatus').textContent = coopText(code);
+      if (['waiting','reconnecting','catchingUp'].includes(code)) { keys.clear(); clearTouch(); pendingUse = null; $('coopwait').textContent = coopText(code); }
+      if (code === 'playing') coopDecision = -1;
+      if (['connecting','starting','loading'].includes(code)) for (const id of ['coopcreate','coopjoin','coopready','coopgo']) $(id).disabled = true;
+      else { $('coopcreate').disabled = $('coopjoin').disabled = false; $('coopready').disabled = false; if (c.room) showCoopRoom(c.room); }
+    },
+    onRun:(run,game,localId) => {
+      if (coop !== c) return; PLAYER = localId; sim = run.sim; coopDecision = -1; rankedRun = rankedRec = null; runTicket = null;
+      renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
+      for (const id of ['title','end','pause','levelup','casket',...MENU_SCREENS]) $(id).classList.add('hidden');
+      $('hud').classList.remove('hidden'); $('cooppause').classList.remove('hidden'); $('coopwait').classList.remove('hidden');
+      mode = 'play'; shownPending = rewardWasShown = waitingForMove = false; $('movehint').classList.add('hidden'); keys.clear(); clearTouch(); pendingUse = null; slowmo = 0;
+      $('quit').disabled = false; $('quit').textContent = 'Leave co-op'; runBest = null; passedBest = false; chase = null;
+      audio.music(sim.map.music); audio.init().catch(() => {}); banner('Co-op · shared world, your own upgrades',3500);
+    },
+    onEnd:reason => {
+      if (coop !== c) return; keys.clear(); clearTouch(); pendingUse = null; $('coopwait').classList.add('hidden');
+      for (const id of ['pause','settings','levelup','casket']) $(id).classList.add('hidden');
+      if (reason === 'complete' && sim?.coop) { coopResult = reason; endRun(); }
+      else { sim = null; mode = 'coop'; $('hud').classList.add('hidden'); $('coop').classList.remove('hidden'); $('coopform').classList.add('hidden'); $('cooproom').classList.add('hidden'); $('coopstatus').innerHTML = `<span>${coopText(reason)}</span> <span>Unfinished co-op rewards were not saved.</span>`; $('coopclose').focus(); }
+    },
+  }); } catch { $('coopstatus').textContent = coopText('connectionFailed'); $('coopcreate').disabled = $('coopjoin').disabled = true; return; }
+  coop = c;
+}
+$('coopbtn').onclick = openCoop;
+$('coopcreate').onclick = () => { if (!coop?.create({map:selMap,hard:hardOn,endless:endlessOn},coopLoadout())) $('coopstatus').textContent = 'Check your name, map and adventurer selection.'; };
+$('coopjoin').onclick = () => { if (!coop?.join($('coopinvite').value,coopLoadout())) $('coopstatus').textContent = 'Enter the six-character invite code.'; };
+$('coopready').onclick = () => { const room = coop?.room, me = room?.members.find(m => m.id === room.you); if (me) coop.ready(!me.ready); };
+$('coopgo').onclick = () => { if (!coop?.start({ground:runGround() ? groundHash(runGround()) : '0',seed:crypto.getRandomValues(new Uint32Array(1))[0]})) $('coopstatus').textContent = coopText('invalidStart'); };
+$('coopclose').onclick = () => { toMenu(); if (!mapLoading && !coopLoading && loadedMapId !== selMap) pickMap(selMap,false).catch(() => banner('Could not restore the selected map.',3000)); navFocus($('morebtn')); };
+$('coop').addEventListener('keydown', containMenuTab);
+// ---- co-op UI controls: the socket client owns all simulation ticks -------------------------------------------------
+function syncCoopRun(inp, edges) {
+  const run = coop?.run; if (!run || run.closed || !['play','levelup','casket','pause'].includes(mode)) return;
+  if (edges.start && mode === 'play') pause(true); else if (edges.start && mode === 'pause') pause(false);
+  if (mode === 'play' && !run.held) {
+    run.input(inp.mx,inp.mz); if (edges.a) pendingUse = 4;
+    if (edges.lb) pendingUse = 0; if (edges.rb) pendingUse = 1; if (edges.x) pendingUse = 2; if (edges.y) pendingUse = 3;
+    if (pendingUse !== null) { run.action({kind:'use',index:pendingUse}); pendingUse = null; }
+  } else run.input(0,0);
+  if (mode === 'levelup') { if (edges.left) moveCard(-1); if (edges.right) moveCard(1); if (edges.b) toggleBanish(); else if (edges.a) pick(selCard); }
+  else if (mode === 'casket') { if (edges.left || edges.up) { selCard = 0; markCasket(); } if (edges.right || edges.down) { selCard = 1; markCasket(); } if (edges.a) pickCasket(0); else if (edges.b) pickCasket(1); }
+  const pending = sim.pending[PLAYER], revision = run.decision(PLAYER);
+  if (mode !== 'pause') {
+    if (pending && revision !== coopDecision) { coopDecision = revision; shownPending = false; $('levelup').classList.add('hidden'); $('casket').classList.add('hidden'); showLevelUp(); }
+    else if (!pending && ['levelup','casket'].includes(mode)) { shownPending = rewardWasShown = false; mode = 'play'; $('levelup').classList.add('hidden'); $('casket').classList.add('hidden'); audio.duck(false); }
+  }
+  const other = sim.players.find(p => p.id !== PLAYER), waiting = other && sim.pending[other.id];
+  if (!run.held) {
+    if (waiting) $('coopwait').innerHTML = `<b translate="no">${esc(other.name)}</b>: <span>Choosing an upgrade…</span>`;
+    else $('coopwait').textContent = !sim.players.find(p => p.id === PLAYER).alive ? 'You fell. Your teammate can still finish the run.' : mode === 'pause' ? 'Your controls are paused. The shared run continues.' : '';
+  }
+  $('coopwait').classList.toggle('hidden', !run.held && !waiting && mode !== 'pause' && sim.players.find(p => p.id === PLAYER).alive);
+}
+// ---- solo and ranked startup ---------------------------------------------------------------------------------------
 async function startRun(live = null) {
-  if (runStarting || mode === 'recovery') return;
+  if (coop || mode === 'coop' || runStarting || coopLoading || mode === 'recovery') return;
   if (!live?.run && (rankedLive() || rankedPlaying())) { openRanked(); return; }
   const isRanked = !!live?.run;
   if (isRanked && live.sim !== SIM_ID) return;
@@ -1392,6 +1503,7 @@ async function startRun(live = null) {
     } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
     renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
     for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'pets', 'more']) $(id).classList.add('hidden');
+    $('cooppause').classList.add('hidden'); $('coopwait').classList.add('hidden');
     $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
     waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
     $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
@@ -1410,22 +1522,23 @@ function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; 
 
 // the coins (GP) a run has earned so far; the HUD shows it live and the end screen adds the 120 for holding the map
 function runCoins(s, won = false) {
-  const p = s.players[0], endlessBonus = s.endless ? Math.floor(Math.max(0, s.t - s.map.length) / 10) : 0, dmtOn = !!savedPass();
-  return Math.round((Math.floor(s.kills / 6) + p.coins * 3 + (won ? 120 : 0) + endlessBonus) * playerStats(p).coinBonus * (s.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1)) + Math.max(0, Math.floor(p.alch || 0));
+  const p = s.coop ? s.players.find(p => p.id === PLAYER) : s.players[0], endlessBonus = s.endless ? Math.floor(Math.max(0, s.t - s.map.length) / 10) : 0, dmtOn = !!savedPass();
+  return Math.round((Math.floor((s.coop ? p.kills : s.kills) / 6) + p.coins * 3 + (won ? 120 : 0) + endlessBonus) * playerStats(p).coinBonus * (s.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1)) + Math.max(0, Math.floor(p.alch || 0));
 }
 function endRun() {
+  if (sim.coop && coopResult !== 'complete') return;
   mode = 'end';
   waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
   const wasRanked = !!rankedRun;
   const won = sim.over === 'win';
-  const p = sim.players[0];
-  lastRun = { map: sim.map.id, t: Math.floor(sim.t), kills: sim.kills, level: sim.level, adv: sim.players[0].adv, won, hard: !!sim.hard, endless: !!sim.endless, v: LATEST, sent: false, ticket: runTicket };
-  $('lbsubmit').disabled = wasRanked; $('lbmsg').textContent = '';
-  $('endlb').classList.toggle('hidden', wasRanked || $('lbbtn').classList.contains('hidden'));
+  const p = sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0];
+  lastRun = { map: sim.map.id, t: Math.floor(sim.t), kills: sim.kills, level: sim.level, adv: p.adv, won, hard: !!sim.hard, endless: !!sim.endless, v: LATEST, sent: !!sim.coop, ticket: sim.coop ? null : runTicket, coop: !!sim.coop };
+  $('lbsubmit').disabled = wasRanked || !!sim.coop; $('lbmsg').textContent = '';
+  $('endlb').classList.toggle('hidden', wasRanked || !!sim.coop || $('lbbtn').classList.contains('hidden'));
   $('rankedresult').textContent = ''; $('rankedretry').classList.add('hidden');
   if (wasRanked) { lastRun.sent = true; lastRun.ranked = true; lastRun.race = sim.hard ? 'hard' : 'normal'; if (sim.endless && kpmWeek(liveRace(rankedRun).week)) lastRun.kpm = kpm(sim.kills, Math.floor(sim.t)); } // week 0 ranks by time
-  $('again').textContent = wasRanked ? 'Next ranked run' : 'Run it back'; // after ranked, play again goes back to Ranked (a free casual run was mistaken for ranked)
-  if (!wasRanked && load('sq-name', '') && sim.t >= 30) setTimeout(submitScore, 300); // named players send runs of 30 s or more automatically
+  $('again').textContent = sim.coop ? 'Co-op lobby' : wasRanked ? 'Next ranked run' : 'Run it back'; // after ranked, play again goes back to Ranked (a free casual run was mistaken for ranked)
+  if (!wasRanked && !sim.coop && load('sq-name', '') && sim.t >= 30) setTimeout(submitScore, 300); // named players send runs of 30 s or more automatically
   const dmtOn = !!savedPass(), alchCoins = Math.max(0, Math.floor(p.alch || 0)), earned = runCoins(sim, won);
   let receipt = null, rankedSaved = !wasRanked, submitted = false;
   const finish = () => {
@@ -1434,7 +1547,7 @@ function endRun() {
       if (!rankedSaved) throw Error('Run could not be saved. Keep this page open.');
     }
     if (wasRanked && !submitted) { submitted = true; submitRanked(); }
-    receipt ||= prepareRunRewards(localStorage, sim, { earned, ranked: wasRanked });
+    receipt ||= prepareRunRewards(localStorage, sim, { earned, ranked: wasRanked, coop: !!sim.coop, playerId: PLAYER, result: coopResult });
     saveRunProgress(localStorage, receipt.data);
     mode = 'end';
     let unlockNote = '';
@@ -1449,7 +1562,7 @@ function endRun() {
     });
     const questNotes = receipt.quests.map(q => `Quest complete: <b>${q.name}</b> · +${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}`);
     // damage by weapon, Run Escape style
-    const dmgRows = Object.entries(sim.dmgBy || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6), top = dmgRows.length ? dmgRows[0][1] : 1;
+    const dmgRows = Object.entries((sim.coop ? p.dmgBy : sim.dmgBy) || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6), top = dmgRows.length ? dmgRows[0][1] : 1;
     const wname = (id) => (WEAPONS[id] ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other');
     const wicon = (id) => (WEAPONS[id] ? iconHTML('weapon', id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)) : imgTag(id === 'pumpkin' ? 'Pumpkin' : 'Gold'));
     $('enddmg').innerHTML = dmgRows.map(([id, v]) => `<div class="drow">${wicon(id)}<span>${wname(id)}</span><div class="dbar"><i style="width:${(v / top) * 100}%"></i></div><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
@@ -1458,7 +1571,7 @@ function endRun() {
     $('endtitle').textContent = won ? `${sim.map.name} holds!` : sim.over === 'time' ? `The hunt is over at ${fmtT(sim.endAt)}` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
     const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
     let bestNote = '';
-    if (!wasRanked) {
+    if (!wasRanked && !sim.coop) {
       const b = receipt.personalBest;
       if (receipt.newPersonalBest) bestNote = b ? ` · new best (was ${fmtT(b.t)})!` : '';
       else bestNote = sim.t < b.t ? ` · ${fmtT(b.t - sim.t)} short of your best (${fmtT(b.t)})` : ` · best ${fmtT(b.t)}`;
@@ -1473,6 +1586,8 @@ function endRun() {
 }
 function toMenu() {
   if (rankedPlaying()) return;
+  if (coop) { const c = coop; coop = null; c.close(); selMap = coopHomeMap || selMap; coopResult = null; }
+  PLAYER = 'p1'; $('coop').classList.add('hidden'); $('coopwait').classList.add('hidden');
   rankedRun = null; rankedRec = null; applyDmt();
   sim = null; mode = 'title'; window.__idleSim = null;
   playTitleMusic();
@@ -1483,7 +1598,7 @@ function toMenu() {
 }
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
-const MENU_SCREENS = ['cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];
+const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];
 addEventListener('keydown', (e) => {
   if (mode === 'recovery' || walletModalOpen()) return;
   if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
@@ -1521,8 +1636,8 @@ addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => { keys.clear(); clearTouch(); if (mode === 'play') pause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); if (mode === 'play') pause(true); } });
 function pause(on) { clearTouch(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (rankedRun) updateRankedPause(); }
-$('start').onclick = startRun; $('again').onclick = () => { if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
-$('quit').onclick = () => { if (rankedPlaying()) return; pause(false); sim.over = 'dead'; };
+$('start').onclick = startRun; $('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
+$('quit').onclick = () => { if (rankedPlaying()) return; if (coop) { coop.close(); return; } pause(false); sim.over = 'dead'; };
 
 // touch: drag anywhere on the field to move (a stick appears under your thumb); the II button pauses
 const touch = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
@@ -1645,6 +1760,7 @@ function padEdges(pad) {
 // ---- level up UI ------------------------------------------------------------------------------------------------------------
 let shownPending = false, rewardWasShown = false;
 function resumeAfterReward() {
+  if (sim?.coop) { waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); return; }
   if (sim.pending[PLAYER] || !rewardWasShown) return;
   rewardWasShown = false;
   const input = readInput();
@@ -1658,7 +1774,7 @@ function showLevelUp() {
   if (sim) preloadNextIcons(sim.players.find((q) => q.id === PLAYER));
   let pend = sim.pending[PLAYER];
   while (pend && !pend.casket && pend.choices.filter(c => !c.banished).length === 1 && pend.choices[autoChoice(pend)].kind === 'heal') {
-    const before = pend; pick(autoChoice(pend)); pend = sim.pending[PLAYER];
+    const before = pend; pick(autoChoice(pend)); if (sim.coop) return; pend = sim.pending[PLAYER];
     if (pend === before) break; // a refused choice must not spin the UI
   }
   if (!pend) return;
@@ -1715,14 +1831,15 @@ function showLevelUp() {
   $('banishlv').disabled = !pend.choices.some((_, i) => canBanish(sim, PLAYER, i));
   selCard = autoChoice(pend); $('levelup').classList.remove('hidden'); markCard();
 }
-function doReroll() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 'r') : reroll(sim, PLAYER))) { shownPending = false; showLevelUp(); if (rankedRec) persistRanked(); } }
-function doSkip() { if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 's') : skipLevel(sim, PLAYER))) { audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward(); if (rankedRec) persistRanked(); } }
+function doReroll() { if (sim?.coop) { coop.run.action({kind:'reroll'},coopDecision); return; } if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 'r') : reroll(sim, PLAYER))) { shownPending = false; showLevelUp(); if (rankedRec) persistRanked(); } }
+function doSkip() { if (sim?.coop) { coop.run.action({kind:'skip'},coopDecision); return; } if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 's') : skipLevel(sim, PLAYER))) { audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward(); if (rankedRec) persistRanked(); } }
 $('reroll').onclick = doReroll; $('skiplv').onclick = doSkip;
 function toggleBanish() {
   if (mode !== 'levelup' || !sim?.pending[PLAYER] || !sim.pending[PLAYER].choices.some((_, i) => canBanish(sim, PLAYER, i))) return;
   banishMode = !banishMode; $('banishlv').setAttribute('aria-pressed', String(banishMode)); $('banishlv').classList.toggle('on', banishMode); $('banishhint').classList.toggle('hidden', !banishMode); $('cards').classList.toggle('banishing', banishMode);
 }
 function doBanish(i) {
+  if (sim?.coop) { coop.run.action({kind:'banish',index:i},coopDecision); return; }
   if (mode !== 'levelup' || !sim || !(rankedRec ? rankedChoice(sim, rankedRec, 'b' + i) : banish(sim, PLAYER, i))) return;
   shownPending = false; showLevelUp(); if (rankedRec) persistRanked();
 }
@@ -1736,6 +1853,7 @@ function markCard() { [...$('cards').children].forEach((el, i) => { el.classList
 function pick(i) {
   if (banishMode) { doBanish(i); return; }
   if (!sim.pending[PLAYER] || sim.pending[PLAYER].casket) return;
+  if (sim.coop) { coop.run.action({kind:'choose',index:i},coopDecision); return; }
   if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else if (!choose(sim, PLAYER, i)) return; audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward();
 }
 
@@ -1753,7 +1871,7 @@ function showCasket() {
   const c = pend.casket;
   // Settings: a piece that improves nothing is high alched without stopping the run (still a recorded choice in ranked)
   if (autoAlchOn() && !c.anyUp) { toast(`${imgTag(c.item)} <span>Auto high alch<br><b>${c.item}</b> +${c.alch} coins</span>`); pickCasket(1, true); return; }
-  if (autoEquipOn() && canAutoEquip(sim.players[0], c.item, sim.pace)) { pickCasket(0, true); return; }
+  if (autoEquipOn() && canAutoEquip(sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0], c.item, sim.pace)) { pickCasket(0, true); return; }
   shownPending = rewardWasShown = true; mode = 'casket'; selCard = pend.rec; audio.duck(true);
   waitingForMove = false; $('movehint').classList.add('hidden'); stickEl.classList.add('hidden');
   const rows = Object.entries(c.delta).map(([k, v]) => `<li class="${v > 0 ? 'up' : 'down'}">${deltaText(k, v)}</li>`);
@@ -1784,6 +1902,7 @@ function afterCasket() {
 }
 function pickCasket(i, auto = false) {
   const pend = sim && sim.pending[PLAYER]; if (!pend || !pend.casket || (!auto && mode !== 'casket')) return;
+  if (sim.coop) { coop.run.action({kind:'choose',index:i},coopDecision); return; }
   if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else choose(sim, PLAYER, i);
   afterCasket();
 }
@@ -1802,14 +1921,14 @@ $('damageclose').onclick = () => { setDamagePanel(false); $('damagebtn').focus()
 function updateDamageHud() {
   if (damageRun !== sim) { damageRun = sim; damageReading = null; damageMeter.reset(); }
   if (!sim) return;
-  if (mode === 'play') damageMeter.sample(sim.tick, sim.dmgBy || {});
+  if (mode === 'play') damageMeter.sample(sim.tick, (sim.coop ? sim.players.find(p => p.id === PLAYER).dmgBy : sim.dmgBy) || {});
   const reading = damageMeter.read(), rate = Object.values(reading.perSecond).reduce((a, b) => a + b, 0);
   $('dpsvalue').textContent = Math.round(rate).toLocaleString() + ' DPS';
   if ($('damagepanel').classList.contains('hidden') || damageReading === reading) return;
   damageReading = reading;
   const rows = Object.entries(reading.totals).filter(([, total]) => total > 0).sort((a, b) => (reading.perSecond[b[0]] || 0) - (reading.perSecond[a[0]] || 0));
   $('damagerows').innerHTML = rows.length ? rows.map(([id, total]) => {
-    const p = sim.players[0], name = Object.hasOwn(WEAPONS, id) ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other';
+    const p = sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0], name = Object.hasOwn(WEAPONS, id) ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other';
     const dps = reading.perSecond[id] || 0, share = rate > 0 ? Math.round(dps / rate * 100) : 0;
     return `<div class="damagerow"><b>${esc(name)}</b><span>${dps.toFixed(1)} DPS</span><small>${share}% · <span translate="no">${Math.round(total).toLocaleString()}</span> <span>Total damage</span></small><i style="width:${share}%"></i></div>`;
   }).join('') : '<p class="dim">No damage yet.</p>';
@@ -1834,7 +1953,7 @@ function updateTumbleHud(me) {
   $('tumblecd').textContent = me.rollCd > 0 ? String(Math.ceil(me.rollCd)) : '';
 }
 function updateHud(view) {
-  const me = view.players[0];
+  const me = sim.coop ? view.players.find(p => p.id === PLAYER) : view.players[0];
   updateShrineHud(view);
   updateTumbleHud(me);
   updateDamageHud();
@@ -1859,13 +1978,14 @@ function updateHud(view) {
     $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i]; return `<button type="button" class="bslot${k ? '' : ' empty'}" data-i="${i}" data-kind="${k || ''}" ${k ? `aria-label="${BELT_ICON[k]}" aria-describedby="belttip${i}"` : 'disabled aria-label="Empty item slot"'}>${k ? imgTag(BELT_ICON[k]) : ''}<small>${i + 1}</small>${k ? `<span id="belttip${i}" class="belttip" role="tooltip" hidden><b>${BELT_ICON[k]}</b><span>${BELT_TIP[k]}</span><em>Tap to use. Hold to inspect.</em></span>` : ''}</button>`; }).join('');
     for (const el of $('belt').children) if (el.dataset.kind) {
       const i = Number(el.dataset.i), kind = el.dataset.kind;
-      beltDisposers.push(bindBeltItem(el, { use: () => { pendingUse = i; }, canUse: () => mode === 'play' && !waitingForMove && !sim.pending[PLAYER] && !sim.over && sim.players[0].belt[i] === kind }));
+      beltDisposers.push(bindBeltItem(el, { use: () => { pendingUse = i; }, canUse: () => mode === 'play' && !waitingForMove && !sim.pending[PLAYER] && !sim.over && (sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0]).belt[i] === kind }));
     }
   }
   const wk = JSON.stringify([me.w, me.evo, me.wm]), pk = JSON.stringify(me.ps);
   if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" title="${weaponDisplay(id, l, me.evo[id], weaponStep(id, me.wm)).name}">${iconHTML('weapon', id, l, me.evo[id], weaponStep(id, me.wm))}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
   if (pk !== slotCache.p) { slotCache.p = pk; $('prow').innerHTML = Object.entries(me.ps).map(([id, l]) => `<div class="slot" title="${passiveTitle(id, l)}">${iconHTML('passive', id, l)}<small>${l}</small></div>`).join(''); }
   for (const f of view.fx) {
+    if (sim.coop && (f.player && f.player !== PLAYER || ['down','revive'].includes(f.k) && f.id !== PLAYER)) continue;
     if (f.k === 'boss') banner(sim && !sim.endless && f.type === sim.map.finalBoss && sim.bossIndex >= sim.map.bosses.length ? `${bossName(sim.map, f.type)} approaches! Slay it to win the run.` : `${bossName(sim && sim.map, f.type)} approaches!`, 3500);
     else if (f.k === 'down') banner('You have fallen…', 3000);
     else if (f.k === 'evolve') banner(`${EVOLUTIONS[f.id].name}!`, 3000);
@@ -1888,7 +2008,7 @@ function updateHud(view) {
 
 // ---- menus with a controller or the arrow keys: spatial focus, A/Enter picks, B/Esc goes back -----------------------
 const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
-const NAV_ITEMS = 'summary, .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
+const NAV_ITEMS = '#coop input, summary, .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { if (walletModalOpen()) return null; if (mode === 'recovery') return $('progressrecovery'); return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden') && !el.closest('details:not([open]) > :not(summary)')); }
@@ -1921,7 +2041,7 @@ function navBack() {
   if (walletModalOpen()) return true;
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
-    if (id === 'guide' || id === 'pets' || id === 'more') { $(id + 'close').click(); return true; }
+    if (id === 'guide' || id === 'pets' || id === 'more' || id === 'coop') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
     navFocus(null); return true;
   }
@@ -1950,7 +2070,7 @@ const mm = $('minimap'), mmx = mm.getContext('2d');
 function drawMinimap(view) {
   if (!view.players.length) return;
   if (!mmImg.src) mmImg.src = asset('world/world-map-full.webp');
-  const me = view.players[0], W = mm.width, R = W / 2, PX = 2.4; // canvas px per world unit
+  const me = sim.coop ? view.players.find(p => p.id === PLAYER) : view.players[0], W = mm.width, R = W / 2, PX = 2.4; // canvas px per world unit
   const yaw = renderer.getYaw();
   mmx.save(); mmx.clearRect(0, 0, W, W);
   mmx.beginPath(); mmx.arc(R, R, R - 2, 0, Math.PI * 2); mmx.clip();
@@ -1961,6 +2081,7 @@ function drawMinimap(view) {
   const dot = (x, z, r, c) => { mmx.fillStyle = c; mmx.beginPath(); mmx.arc((x - me.x) * PX, (z - me.z) * PX, r, 0, Math.PI * 2); mmx.fill(); };
   // the edge of this map's arena
   if (sim.map.r < 500) { mmx.strokeStyle = 'rgba(255,240,192,0.5)'; mmx.lineWidth = 1.5; mmx.beginPath(); mmx.arc((sim.map.cx - me.x) * PX, (sim.map.cz - me.z) * PX, sim.map.r * PX, 0, Math.PI * 2); mmx.stroke(); }
+  for (const p of view.players) if (p.id !== PLAYER && p.al) dot(p.x, p.z, 3, '#69c8ff');
   for (const k of view.pickups) if (k[1] === 'casket' || k[1] === 'chest') dot(k[2], k[3], 3.5, '#ffd34d');
   for (const e of view.enemies) { const def = ENEMIES[e[1]]; dot(e[2], e[3], def.boss ? 5 : e[7] ? 3.5 : 1.8, def.boss ? '#ff3b2f' : e[7] ? '#ffd34d' : '#ff7b6b'); }
   mmx.restore();
@@ -2012,7 +2133,8 @@ function loop(ts) {
     }
   }
   if (!sim) return;
-  if (mode === 'play') {
+  if (sim.coop) syncCoopRun(inp, edges);
+  else if (mode === 'play') {
     if (edges.start) { pause(true); return; }
     if (edges.a) hop();
     if (waitingForMove && (Math.hypot(inp.mx, inp.mz) > 0.01 || pendingUse === 4)) { waitingForMove = false; $('movehint').classList.add('hidden'); audio.duck(false); }
@@ -2050,7 +2172,7 @@ function loop(ts) {
     lastMenuDrawn = ts;
   }
   const view = snapshot(sim, { maxEnemies: 420 });
-  view.petActive = mode === 'play' && !waitingForMove && !Object.keys(view.pending || {}).length && !view.over;
+  view.petActive = mode === 'play' && !waitingForMove && !Object.keys(view.pending || {}).length && !view.over && (!sim.coop || !!coop?.run && !coop.run.held && !coop.run.closed);
   view.alpha = Math.min(1, Math.max(0, acc / TICK)); // where between sim ticks this frame is (the renderer slides spells by it)
   if (view.fx.some((f) => f.k === 'die' && f.boss)) slowmo = 0.9;
   audio.onFx(view.fx, mode === 'play' ? view : null, sim.map.world && view.region ? MAP_BY_ID[view.region].music : sim.map.music);
@@ -2070,20 +2192,20 @@ boot().then(async () => {
 // QA hooks (?qa or ?debug): drive the game from a test browser
 // test controls (god mode, skipping time, items) exist only on a local test copy, never on the live site
 const qaHooks = {
-  get sim() { return rankedRun ? null : sim; }, get mode() { return mode; }, step: (...args) => { if (!rankedRun) step(...args); }, snapshot, keys, renderer: () => rankedRun ? null : renderer,
-  startRun: () => { if (!rankedRun) return startRun(); }, toMenu, pick, pause,
-  setAdv(id) { selAdv = id; buildAdventurers(); window.__idleSim = null; },
-  setMap: (id) => pickMap(id),
-  spawn(type, n = 1, d = 4) { if (rankedRun) return; const p = sim.players[0]; for (let i = 0; i < n; i++) { const a = (i / n) * 6.283; spawnEnemy(sim, type, p.x + Math.cos(a) * d, p.z + Math.sin(a) * d); } },
+  get sim() { return rankedRun || coop ? null : sim; }, get mode() { return mode; }, step: (...args) => { if (!rankedRun && !coop) step(...args); }, snapshot, keys, renderer: () => rankedRun || coop ? null : renderer,
+  startRun: () => { if (!rankedRun && !coop) return startRun(); }, toMenu, pick, pause,
+  setAdv(id) { if (coop) return; selAdv = id; buildAdventurers(); window.__idleSim = null; },
+  setMap: (id) => { if (!coop) return pickMap(id); },
+  spawn(type, n = 1, d = 4) { if (rankedRun || coop) return; const p = sim.players[0]; for (let i = 0; i < n; i++) { const a = (i / n) * 6.283; spawnEnemy(sim, type, p.x + Math.cos(a) * d, p.z + Math.sin(a) * d); } },
   // run the sim forward (no rendering), auto-picking level-ups; keeps the player still unless dir is given
-  warp(sec, dir = [0, 0]) { if (rankedRun) return; for (let i = 0; i < sec / TICK; i++) { step(sim, { [PLAYER]: { mx: dir[0], mz: dir[1] } }, TICK); for (const id of Object.keys(sim.pending)) choose(sim, id, 0); if (sim.over) break; } },
-  god() { if (rankedRun) return; const p = sim.players[0]; p.hp = p.maxHp = 1e6; p.godMode = true; },
-  give(name) { return bankItem(name); }, wear(slot, name) { const g = getGear(); g[slot] = name; save('sq-gear', g); }, buildGear, buildQuests, refreshIdle,
-  drop(kind) { if (rankedRun) return; const p = sim.players[0]; sim.pickups.push({ id: sim.nextId++, x: p.x + 1.5, z: p.z, kind }); },
+  warp(sec, dir = [0, 0]) { if (rankedRun || coop) return; for (let i = 0; i < sec / TICK; i++) { step(sim, { [PLAYER]: { mx: dir[0], mz: dir[1] } }, TICK); for (const id of Object.keys(sim.pending)) choose(sim, id, 0); if (sim.over) break; } },
+  god() { if (rankedRun || coop) return; const p = sim.players[0]; p.hp = p.maxHp = 1e6; p.godMode = true; },
+  give(name) { if (coop) return; return bankItem(name); }, wear(slot, name) { if (coop) return; const g = getGear(); g[slot] = name; save('sq-gear', g); }, buildGear, buildQuests, refreshIdle,
+  drop(kind) { if (rankedRun || coop) return; const p = sim.players[0]; sim.pickups.push({ id: sim.nextId++, x: p.x + 1.5, z: p.z, kind }); },
   // reward caskets: drop n at your feet (rolled by the sim), or queue given items as if a casket held them
-  caskets(n = 1) { if (rankedRun) return; const p = sim.players[0]; for (let i = 0; i < n; i++) sim.pickups.push({ id: sim.nextId++, x: p.x, z: p.z, kind: 'casket' }); },
-  casketOf(...names) { if (rankedRun) return; const p = sim.players[0]; for (const n of names) if (isWeaponItem(n) || GEAR[n]) { if (!isWeaponItem(n) && !p.gear[GEAR[n].slot]) continue; sim.loot.push(n); p.casketQ.push(n); } openCasket(sim, p); }, // as if caskets held them
-  wearNow(gear) { if (rankedRun) return; const p = sim.players[0]; p.gear = { ...p.gear, ...gear }; p.gb = gearBonus(p.gear, p.gearLv || {}, sim.pace); },
+  caskets(n = 1) { if (rankedRun || coop) return; const p = sim.players[0]; for (let i = 0; i < n; i++) sim.pickups.push({ id: sim.nextId++, x: p.x, z: p.z, kind: 'casket' }); },
+  casketOf(...names) { if (rankedRun || coop) return; const p = sim.players[0]; for (const n of names) if (isWeaponItem(n) || GEAR[n]) { if (!isWeaponItem(n) && !p.gear[GEAR[n].slot]) continue; sim.loot.push(n); p.casketQ.push(n); } openCasket(sim, p); }, // as if caskets held them
+  wearNow(gear) { if (rankedRun || coop) return; const p = sim.players[0]; p.gear = { ...p.gear, ...gear }; p.gb = gearBonus(p.gear, p.gearLv || {}, sim.pace); },
 };
 
-if ((params.has('debug') || params.has('qa')) && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) Object.defineProperty(window, '__sq', { get: () => rankedRun || rankedLive() ? undefined : qaHooks });
+if ((params.has('debug') || params.has('qa')) && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) Object.defineProperty(window, '__sq', { get: () => coop || rankedRun || rankedLive() ? undefined : qaHooks });
