@@ -1,5 +1,13 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Room for the world": "Dünyaya yer açın",
+  "Large touch screens use smaller title-menu text in landscape while keeping full-size touch buttons.": "Büyük dokunmatik ekranlarda yatay ana menü yazıları daha küçüktür; dokunma düğmeleri tam boy kalır.",
+  "Settings has an Enter fullscreen button when the browser supports it. System bars remain controlled by the browser and phone.": "Tarayıcı destekliyorsa Ayarlar’da Tam ekrana geç düğmesi bulunur. Sistem çubuklarını tarayıcı ve telefon kontrol eder.",
+
+  "Enter fullscreen": "Tam ekrana geç",
+  "Exit fullscreen": "Tam ekrandan çık",
+  "Fullscreen was blocked by your browser.": "Tarayıcınız tam ekranı engelledi.",
+
   "Invite a friend": "Bir arkadaşını davet et",
   "Keep progress safe": "İlerlemeyi koru",
   "Invite a friend for a two-player casual run from More → Co-op. Create a room or join with a code.": "Diğer → Eşli oyun üzerinden bir arkadaşını iki kişilik gündelik tura davet et. Oda kur veya kodla katıl.",

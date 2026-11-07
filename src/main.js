@@ -6,6 +6,7 @@ import { rankedApi, requireRankedBuild, payEntry, recoverPayment, clearUnsentPay
 import { createRenderer } from './render.js';
 import { cleanSettings } from './settings.js';
 import { createScreenLayout } from './screen-layout.js';
+import { setupFullscreen } from './fullscreen.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, BELT_SIZE, TICK, SHRINE, SHRINES } from './sim.js';
@@ -1644,6 +1645,8 @@ const touch = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
 let waitingForMove = false;
 const isTouchUI = matchMedia('(pointer: coarse)').matches;
 if (isTouchUI) document.body.classList.add('touch');
+setupFullscreen($('fullscreenbtn'), () => { $('fullscreenstatus').textContent = 'Fullscreen was blocked by your browser.'; });
+document.addEventListener('fullscreenchange', () => { $('fullscreenstatus').textContent = ''; });
 // ---- installable app (PWA) ----
 const standalone = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true;
 if (standalone) document.body.classList.add('standalone');

@@ -1,5 +1,13 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Room for the world": "Más espacio para el mundo",
+  "Large touch screens use smaller title-menu text in landscape while keeping full-size touch buttons.": "Las pantallas táctiles grandes usan texto más pequeño en el menú horizontal y mantienen botones táctiles grandes.",
+  "Settings has an Enter fullscreen button when the browser supports it. System bars remain controlled by the browser and phone.": "Ajustes incluye un botón para entrar en pantalla completa si el navegador lo permite. El navegador y el teléfono controlan las barras del sistema.",
+
+  "Enter fullscreen": "Entrar en pantalla completa",
+  "Exit fullscreen": "Salir de pantalla completa",
+  "Fullscreen was blocked by your browser.": "Tu navegador bloqueó la pantalla completa.",
+
   "Invite a friend": "Invita a un amigo",
   "Keep progress safe": "Protege tu progreso",
   "Invite a friend for a two-player casual run from More → Co-op. Create a room or join with a code.": "Invita a un amigo a una partida casual de dos jugadores desde Más → Cooperativo. Crea una sala o únete con un código.",

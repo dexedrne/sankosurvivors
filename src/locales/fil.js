@@ -1,5 +1,13 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Room for the world": "Mas maluwag na mundo",
+  "Large touch screens use smaller title-menu text in landscape while keeping full-size touch buttons.": "Mas maliit ang teksto ng pangunahing menu sa landscape sa malalaking touch screen, habang nananatiling malaki ang mga pindutan.",
+  "Settings has an Enter fullscreen button when the browser supports it. System bars remain controlled by the browser and phone.": "May Enter fullscreen sa Settings kung suportado ng browser. Ang browser at telepono pa rin ang kumokontrol sa mga system bar.",
+
+  "Enter fullscreen": "Buksan ang fullscreen",
+  "Exit fullscreen": "Lumabas sa fullscreen",
+  "Fullscreen was blocked by your browser.": "Hinarang ng browser mo ang fullscreen.",
+
   "Invite a friend": "Mag-imbita ng kaibigan",
   "Keep progress safe": "Ingatan ang progreso",
   "Invite a friend for a two-player casual run from More → Co-op. Create a room or join with a code.": "Mag-imbita ng kaibigan sa casual na laro para sa dalawang manlalaro mula sa More → Co-op. Gumawa ng room o sumali gamit ang code.",

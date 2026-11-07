@@ -810,3 +810,16 @@ body.ds-layout #shrinecharge { top:auto; bottom:calc(100% - var(--ds-play-height
 #coopcode { font-size:1.4em; letter-spacing:.12em; user-select:text; }
 #coopstatus { min-height:2.6em; }
 #coopwait { position:fixed; z-index:8; top:calc(env(safe-area-inset-top,0px) + 76px); left:50%; transform:translateX(-50%); max-width:80vw; padding:6px 10px; background:#241b14df; border:1px solid #bca65c; color:#fff0b8; pointer-events:none; text-align:center; }
+
+/* Wide touch screens keep the three panels with a quieter type scale. */
+@media (pointer:coarse) and (min-width:761px) and (max-width:1366px) and (min-height:501px) and (orientation:landscape) {
+  #title { --fs-s:14px; --fs-m:18px; }
+  #menu summary { font-size:18px; } #menu summary b { font-size:14px; }
+  #brand h1 { font-size:48px; } #brand h2 { font-size:24px; }
+  #coinbox { font-size:24px; } #coinbox img { width:24px; height:24px; }
+  #actions #start { font-size:26px; }
+  #title .langpick select { font-size:18px; }
+  #actions .btngrid button, #walletchip, #title .langpick select { min-height:44px; }
+}
+
+#fullscreenstatus:empty { display:none; }
