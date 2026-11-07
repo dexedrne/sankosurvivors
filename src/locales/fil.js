@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Co-op": "Co-op",
+  "Co-op on the main menu": "Co-op sa main menu",
+  "Open Co-op directly from the main menu. Quests is now in More, keeping the same compact six-button layout.": "Buksan ang Co-op mula mismo sa main menu. Nasa More na ang Quests para manatiling compact ang anim na button.",
   "Tablet landscape": "Tablet na landscape",
   "Adventurer and Map start expanded on wide tablet-size landscape screens. Narrow phone views keep compact, collapsed pickers.": "Naka-expand ang Adventurer at Map sa malalawak na landscape screen na kasinlaki ng tablet. Compact at nakasara pa rin ang mga pagpipilian sa makitid na phone view.",
 

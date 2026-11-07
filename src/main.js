@@ -1355,8 +1355,8 @@ function buildQuests() {
     return `<div class="quest${ok ? ' done' : ''}"><div class="qhead"><b>${q.name}</b><span>${ok ? 'Complete' : `${v.toLocaleString()} / ${q.goal.toLocaleString()}`}</span></div><p>${q.text}</p><div class="qbar"><i style="width:${(v / q.goal) * 100}%"></i></div><div class="qreward">${imgTag('Gold')} ${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}</div></div>`;
   }).join('');
 }
-$('questbtn').onclick = () => { buildQuests(); $('quests').classList.remove('hidden'); };
-$('questclose').onclick = () => $('quests').classList.add('hidden');
+$('questbtn').onclick = () => { buildQuests(); $('quests').classList.remove('hidden'); navFocus($('questclose')); };
+$('questclose').onclick = () => { $('quests').classList.add('hidden'); navFocus($('morebtn')); };
 
 // small notes that slide in during a run (casket loot)
 function toast(html) { const el = document.createElement('div'); el.className = 'toast'; el.innerHTML = html; $('toasts').appendChild(el); setTimeout(() => el.remove(), 4200); }
@@ -1448,7 +1448,7 @@ $('coopcreate').onclick = () => { if (!coop?.create({map:selMap,hard:hardOn,endl
 $('coopjoin').onclick = () => { if (!coop?.join($('coopinvite').value,coopLoadout())) $('coopstatus').textContent = 'Enter the six-character invite code.'; };
 $('coopready').onclick = () => { const room = coop?.room, me = room?.members.find(m => m.id === room.you); if (me) coop.ready(!me.ready); };
 $('coopgo').onclick = () => { if (!coop?.start({ground:runGround() ? groundHash(runGround()) : '0',seed:crypto.getRandomValues(new Uint32Array(1))[0]})) $('coopstatus').textContent = coopText('invalidStart'); };
-$('coopclose').onclick = () => { toMenu(); if (!mapLoading && !coopLoading && loadedMapId !== selMap) pickMap(selMap,false).catch(() => banner('Could not restore the selected map.',3000)); navFocus($('morebtn')); };
+$('coopclose').onclick = () => { toMenu(); if (!mapLoading && !coopLoading && loadedMapId !== selMap) pickMap(selMap,false).catch(() => banner('Could not restore the selected map.',3000)); navFocus($('coopbtn')); };
 $('coop').addEventListener('keydown', containMenuTab);
 // ---- co-op UI controls: the socket client owns all simulation ticks -------------------------------------------------
 function syncCoopRun(inp, edges) {
@@ -2046,6 +2046,7 @@ function navBack() {
   if (walletModalOpen()) return true;
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
+    if (id === 'quests') { $('questclose').click(); return true; }
     if (id === 'guide' || id === 'pets' || id === 'more' || id === 'coop') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
     navFocus(null); return true;

@@ -10,6 +10,8 @@ const tabTrap = source.slice(source.indexOf("$('ranked').addEventListener('click
 const guideHandlers=source.slice(source.indexOf("$('guidebtn').onclick ="),source.indexOf("$('guide').addEventListener"));
 const moreHandlers=['morebtn','moreclose'].map(id=>source.split('\n').find(line=>line.startsWith("$('"+id+"').onclick"))).join('\n');
 const moreCapture=source.split('\n').find(line=>line.startsWith("for (const b of document.querySelectorAll('#more"));
+const questHandlers=source.split('\n').filter(line=>line.startsWith("$('questbtn').onclick")||line.startsWith("$('questclose').onclick")).join('\n');
+const coopClose=source.split('\n').find(line=>line.startsWith("$('coopclose').onclick"));
 const petClose=source.split('\n').find(line=>line.startsWith("$('petsclose').onclick"));
 const trapStart=source.indexOf('function containMenuTab('),sharedTrap=trapStart<0?'':source.slice(trapStart,source.indexOf('\nfor (const id',trapStart));
 const sliderKey = source.slice(source.indexOf("    r.addEventListener('keydown'"), source.indexOf('\n', source.indexOf("    r.addEventListener('keydown'")));
@@ -49,7 +51,7 @@ function menu(mode = 'title') {
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('volume', elements.get('settings'), 'input'); element('settingsclose', elements.get('settings'));
   element('coopclose',elements.get('coop'));element('coopname',elements.get('coop'),'input');element('coopinvite',elements.get('coop'),'input');
-  element('morebtn',elements.get('title'));element('guidebtn',elements.get('more'));element('coopbtn',elements.get('more'));element('moreclose',elements.get('more'));
+  element('morebtn',elements.get('title'));element('guidebtn',elements.get('more'));element('coopbtn',elements.get('title'));element('questbtn',elements.get('more'));element('questclose',elements.get('quests'));element('moreclose',elements.get('more'));
   element('guidesummary',elements.get('guide'),'summary');element('guideclose',elements.get('guide'));
   element('petchoice',elements.get('pets'));element('petsclose',elements.get('pets'));
   element('settingssummary',elements.get('settings'),'summary');element('guidecurrentrecipes');element('guideoldrecipes');
@@ -72,7 +74,9 @@ function menu(mode = 'title') {
     const guideRecipes=()=>'';
     ${guideHandlers}
     ${moreHandlers}
-    $('coopclose').onclick=()=>{$('coop').classList.add('hidden');navFocus($('morebtn'));};
+    const toMenu=()=>{$('coop').classList.add('hidden');},mapLoading=false,coopLoading=false,loadedMapId='greentown',selMap='greentown',pickMap=()=>Promise.resolve(),banner=()=>{},buildQuests=()=>{};
+    ${coopClose}
+    ${questHandlers}
     ${moreCapture}
     ${petClose}
     for(const id of ['guide','pets','more'])if(typeof containMenuTab==='function')$(id).addEventListener('keydown',containMenuTab);
@@ -82,7 +86,7 @@ function menu(mode = 'title') {
       frame(edges){${pad}},
       modal:on=>mobileModal=on, choose:cloud.choose, focus(id){navFocus($(id));},
       state:()=>({started,connected,mode})};
-  `)($, (event, fn, capture = false) => listeners.push({ event, fn, capture }), { get activeElement() { return active; },querySelectorAll:()=>[elements.get('guidebtn')] }, mode, () => () => {}, () => 0);
+  `)($, (event, fn, capture = false) => listeners.push({ event, fn, capture }), { get activeElement() { return active; },querySelectorAll:()=>[elements.get('guidebtn'),elements.get('questbtn')] }, mode, () => () => {}, () => 0);
   return {
     app, $, get active() { return active?.id; },
     open(id) { $(id).classList.remove('hidden'); },
@@ -246,8 +250,8 @@ test('guide opening sets focus and forward/reverse Tab stay inside its modal',()
  m.$('guideclose').focus();m.key('Tab',{native:true});assert.equal(m.active,'guidesummary');
  m.key('Tab',{native:true,shiftKey:true});assert.equal(m.active,'guideclose');
 });
-test('co-op modal blocks background starts and its Back returns to the existing menu',()=>{
- const m=menu();m.open('coop');m.key('Enter');m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);assert.equal(m.app.screen(),'coop');m.key('Escape');assert(m.$('coop').classList.contains('hidden'));assert.equal(m.active,'morebtn');
+test('co-op modal blocks background starts and its Back returns to the title Co-op button',()=>{
+ const m=menu();m.open('coop');m.key('Enter');m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);assert.equal(m.app.screen(),'coop');m.key('Escape');assert(m.$('coop').classList.contains('hidden'));assert.equal(m.active,'coopbtn');
 });
 test('Pets blocks stale keyboard/controller starts and its actual Back handler returns focus',()=>{
  const m=menu();m.open('pets');m.app.focus('start');m.key('Enter',{native:true});m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);assert.equal(m.app.screen(),'pets');
@@ -255,4 +259,8 @@ test('Pets blocks stale keyboard/controller starts and its actual Back handler r
 });
 test('Pets keeps forward and reverse native Tab within its controls',()=>{
  const m=menu();m.open('pets');m.$('petsclose').focus();m.key('Tab',{native:true});assert.equal(m.active,'petchoice');m.key('Tab',{native:true,shiftKey:true});assert.equal(m.active,'petsclose');
+});
+
+test('Quests opens from More without a background start, and Escape returns focus to More',()=>{
+ const m=menu();m.$('morebtn').click();m.$('questbtn').click();assert.equal(m.$('more').classList.contains('hidden'),true);assert.equal(m.app.screen(),'quests');assert.equal(m.active,'questclose');m.app.focus('start');m.key('Enter',{native:true});m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);m.open('quests');m.key('Escape');assert.equal(m.$('quests').classList.contains('hidden'),true);assert.equal(m.active,'morebtn');
 });

@@ -1,5 +1,6 @@
 // What's new, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version":"0.44.47","date":"7 Nov 2026","title":"Co-op on the main menu","items":["Open Co-op directly from the main menu. Quests is now in More, keeping the same compact six-button layout."]},
   {"version": "0.44.46", "date": "7 Nov 2026", "title": "Tablet landscape", "items": ["Adventurer and Map start expanded on wide tablet-size landscape screens. Narrow phone views keep compact, collapsed pickers."]},
   {"version": "0.44.45", "date": "7 Nov 2026", "title": "Room for your companion", "items": ["Adventurer and Map start collapsed on wide touch screens in landscape. Open them for smaller, scrollable choices.", "Menu companions stand beside your adventurer instead of on the same spot.", "Rabby approval links open its WalletConnect screen. Return to the installed game after approving the holder message."]},
   {"version": "0.44.44", "date": "7 Nov 2026", "title": "Room for the world", "items": ["Large touch screens use smaller title-menu text in landscape while keeping full-size touch buttons.", "Settings has an Enter fullscreen button when the browser supports it. System bars remain controlled by the browser and phone."]},

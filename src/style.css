@@ -824,7 +824,7 @@ body.ds-layout #shrinecharge { top:auto; bottom:calc(100% - var(--ds-play-height
 
 #fullscreenstatus:empty { display:none; }
 
-/* Foldable landscape: collapsed pickers leave the character visible; expanded choices stay bounded. */
+/* Tablet landscape keeps the expanded choices bounded. */
 @media (pointer:coarse) and (min-width:761px) and (max-width:1366px) and (min-height:501px) and (orientation:landscape) {
   #menu { align-items:start; }
   #menu section { align-self:start; padding:6px; }

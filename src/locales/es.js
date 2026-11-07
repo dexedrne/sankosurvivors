@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Co-op": "Cooperativo",
+  "Co-op on the main menu": "Cooperativo en el menú principal",
+  "Open Co-op directly from the main menu. Quests is now in More, keeping the same compact six-button layout.": "Abre Cooperativo desde el menú principal. Las misiones están ahora en Más, manteniendo el diseño compacto de seis botones.",
   "Tablet landscape": "Vista horizontal de tableta",
   "Adventurer and Map start expanded on wide tablet-size landscape screens. Narrow phone views keep compact, collapsed pickers.": "Aventurero y Mapa empiezan desplegados en pantallas anchas de tamaño tableta en horizontal. En vistas estrechas de teléfono se mantienen compactos y plegados.",
 

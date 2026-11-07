@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Co-op": "Eşli oyun",
+  "Co-op on the main menu": "Ana menüde eşli oyun",
+  "Open Co-op directly from the main menu. Quests is now in More, keeping the same compact six-button layout.": "Eşli oyunu doğrudan ana menüden açın. Görevler artık Daha fazla içinde; kompakt altı düğmeli düzen aynı kaldı.",
   "Tablet landscape": "Yatay tablet görünümü",
   "Adventurer and Map start expanded on wide tablet-size landscape screens. Narrow phone views keep compact, collapsed pickers.": "Geniş yatay tablet ekranlarında Maceracı ve Harita açık başlar. Dar telefon görünümlerinde kompakt seçimler kapalı kalır.",
 
