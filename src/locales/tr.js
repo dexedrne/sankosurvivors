@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Lighter crowds": "Daha hafif kalabalıklar",
+  "Crowded fights use less animation memory. Enemy models, animations and combat rules stay the same.": "Kalabalık çatışmalar daha az animasyon belleği kullanır. Düşman modelleri, animasyonları ve savaş kuralları aynı kalır.",
+
   "Ranked allows 20 minutes of total pause time per run. Check the remaining allowance in pause and upgrade menus; reloading does not reset it.": "Dereceli tur başına toplam 20 dakika mola hakkın var. Duraklatma ve yükseltme menülerinden kalan süreyi takip et; yeniden yüklemek süreyi sıfırlamaz.",
   "The minimap refreshes at a steady rate during busy fights, reducing redraw work without hiding enemies.": "Mini harita yoğun çatışmalarda sabit aralıklarla yenilenir; düşmanları gizlemeden çizim yükünü azaltır.",
   "20-minute total pause allowance exceeded": "20 dakikalık toplam mola hakkı aşıldı",

@@ -50,19 +50,25 @@ test('native actor disposal frees bone textures and owned materials without touc
 });
 
 test('armor replacement releases old per-instance skeletons while keeping the base body and shared armor materials', async t => {
-  const proto = prototype();
+  const proto = prototype(), armor = prototype();
+  armor.mesh.skeleton.bones.reverse(); armor.mesh.skeleton.boneInverses.reverse();
   t.mock.method(FBXLoader.prototype, 'loadAsync', async () => ({ animations: [new THREE.AnimationClip('fixture', 1, [])], traverse: fn => proto.gltf.scene.traverse(fn) }));
-  const kit = await character.createCharacterKit(async () => proto.gltf, x => x, ['Chest/Clothing/Iron Chestplate', 'Chest/Clothing/Steel Chestplate']);
+  const kit = await character.createCharacterKit(async url => url.includes('Iron') ? armor.gltf : proto.gltf, x => x, ['Chest/Clothing/Iron Chestplate', 'Chest/Clothing/Steel Chestplate']);
   const actor = kit.build({ armor: { chest: 'Iron Chestplate' } }), oldMeshes = [];
   actor.root.traverse(o => { if (o.isSkinnedMesh) oldMeshes.push(o); });
-  const oldArmor = oldMeshes.filter(o => o.material === proto.material);
+  const oldArmor = oldMeshes.filter(o => o.material === armor.material);
   assert.ok(oldArmor.length > 0);
-  const shared = [proto.material, proto.geometry, proto.map].map(watch), boneTextures = new Map();
-  for (const mesh of oldMeshes) { mesh.skeleton.computeBoneTexture(); boneTextures.set(mesh, watch(mesh.skeleton.boneTexture)); }
+  const shared = [proto.material, proto.geometry, proto.map, armor.material, armor.geometry, armor.map].map(watch), boneTextures = new Map();
+  for (const mesh of oldMeshes) { if (!mesh.skeleton.boneTexture) mesh.skeleton.computeBoneTexture(); boneTextures.set(mesh, watch(mesh.skeleton.boneTexture)); }
   actor.setArmor({ chest: 'Steel Chestplate' });
   assert.ok(oldArmor.every(mesh => mesh.parent === null && boneTextures.get(mesh).disposed === 1));
   assert.ok(oldMeshes.filter(mesh => !oldArmor.includes(mesh)).every(mesh => boneTextures.get(mesh).disposed === 0));
   assert.ok(shared.every(x => x.disposed === 0));
+  actor.setArmor({ chest: 'Iron Chestplate' });
+  const replacement = meshList(actor.root).find(mesh => mesh.material === armor.material);
+  assert.notEqual(replacement.skeleton, oldArmor[0].skeleton, 'unused palettes leave the actor pool');
+  replacement.skeleton.computeBoneTexture(); const replacementTexture = watch(replacement.skeleton.boneTexture);
+  actor.setArmor({ chest: 'Steel Chestplate' }); assert.equal(replacementTexture.disposed, 1);
   assert.equal(typeof character.disposeActor, 'function');
   const newTextures = textures(actor.root), painted = [];
   actor.root.traverse(o => { if (o.isMesh) for (const material of [].concat(o.material)) if (material !== proto.material) painted.push(watch(material)); });
@@ -95,4 +101,34 @@ test('renderer reset releases enemy, corpse, player and NPC actors', () => {
   `)(new Map([[1, a]]), [{ a: corpse }], new Map([[1, player]]), new Map([[1, npc]]), dyn, entGroup, character.disposeActor);
   assert.ok(boneTextures.every(x => x.disposed === 1));
   assert.equal(dyn.children.length, 0); assert.equal(entGroup.children.length, 0);
+});
+
+function meshList(root) { const out=[];root.traverse(o=>{if(o.isSkinnedMesh)out.push(o);});return out; }
+function sharedPrototype() {
+ const p=prototype(),second=p.mesh.clone();second.name='second';second.bindMatrix.makeTranslation(.25,0,0);second.bindMatrixInverse.copy(second.bindMatrix).invert();p.gltf.scene.add(second);return p;
+}
+test('cloned meshes share an identical bone palette without changing bind matrices or vertex poses',()=>{
+ const p=sharedPrototype();p.mesh.name='first';p.gltf.scene.updateMatrixWorld(true);
+ const reference=SkeletonUtils.clone(p.gltf.scene),root=character.cloneActor(p.gltf.scene),meshes=meshList(root),before=meshList(reference);
+ assert.equal(meshes.length,2);assert.equal(meshes[0].skeleton,meshes[1].skeleton);assert.notEqual(meshes[0].skeleton,p.mesh.skeleton);
+ meshes[0].skeleton.bones[0].rotation.y=.3;before[0].skeleton.bones[0].rotation.y=.3;root.updateMatrixWorld(true);reference.updateMatrixWorld(true);
+ for(let i=0;i<meshes.length;i++){assert.deepEqual(meshes[i].bindMatrix.elements,before[i].bindMatrix.elements);for(let j=0;j<meshes[i].geometry.attributes.position.count;j++)assert.deepEqual(meshes[i].getVertexPosition(j,new THREE.Vector3()).toArray(),before[i].getVertexPosition(j,new THREE.Vector3()).toArray());}
+ character.disposeActor(root);
+});
+test('cloning never shares different inverse matrices, ordered bones, or independent avatars',()=>{
+ const p=sharedPrototype(),different=p.mesh.clone();different.skeleton=p.mesh.skeleton.clone();different.skeleton.boneInverses=p.mesh.skeleton.boneInverses.map(m=>m.clone());different.skeleton.boneInverses[0].elements[12]+=.1;p.gltf.scene.add(different);
+ const reversed=p.mesh.clone();reversed.skeleton=new THREE.Skeleton(p.mesh.skeleton.bones.slice().reverse(),p.mesh.skeleton.boneInverses.slice().reverse());p.gltf.scene.add(reversed);
+ const a=character.cloneActor(p.gltf.scene),b=character.cloneActor(p.gltf.scene),am=meshList(a),bm=meshList(b);
+ assert.equal(am[0].skeleton,am[1].skeleton);for(const j of [2,3])assert.notEqual(am[0].skeleton,am[j].skeleton);assert.notEqual(am[0].skeleton,bm[0].skeleton);
+ character.disposeActor(a);character.disposeActor(b);
+});
+test('partial actor cleanup releases a shared palette only after its last mesh and stays idempotent',()=>{
+ const p=sharedPrototype(),root=character.cloneActor(p.gltf.scene),[a,b]=meshList(root);assert.equal(a.skeleton,b.skeleton);a.skeleton.computeBoneTexture();const texture=watch(a.skeleton.boneTexture);
+ character.disposeActor(a);assert.equal(texture.disposed,0);character.disposeActor(a);assert.equal(texture.disposed,0);character.disposeActor(root);assert.equal(texture.disposed,1);character.disposeActor(root);assert.equal(texture.disposed,1);
+});
+test('modular body and replacement armor share exact palettes while live bindings retain their texture',async t=>{
+ const p=prototype();t.mock.method(FBXLoader.prototype,'loadAsync',async()=>({animations:[new THREE.AnimationClip('fixture',1,[])],traverse:fn=>p.gltf.scene.traverse(fn)}));
+ const kit=await character.createCharacterKit(async()=>p.gltf,x=>x,['Chest/Clothing/Iron Chestplate','Chest/Clothing/Steel Chestplate']);const a=kit.build({armor:{chest:'Iron Chestplate'}}),b=kit.build();
+ const before=meshList(a.root);assert.equal(new Set(before.map(m=>m.skeleton)).size,1);assert.notEqual(before[0].skeleton,meshList(b.root)[0].skeleton);
+ before[0].skeleton.computeBoneTexture();const texture=watch(before[0].skeleton.boneTexture);a.setArmor({chest:'Steel Chestplate'});assert.equal(texture.disposed,0);assert.equal(new Set(meshList(a.root).map(m=>m.skeleton)).size,1);character.disposeActor(a.root,a.mixer);assert.equal(texture.disposed,1);character.disposeActor(b.root,b.mixer);
 });

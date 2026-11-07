@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Lighter crowds": "Mas magaan na mga laban",
+  "Crowded fights use less animation memory. Enemy models, animations and combat rules stay the same.": "Mas kaunting memory para sa animation ang gamit sa laban na maraming kalaban. Pareho pa rin ang mga modelo, animation at tuntunin ng labanan.",
+
   "Ranked allows 20 minutes of total pause time per run. Check the remaining allowance in pause and upgrade menus; reloading does not reset it.": "May kabuuang 20 minutong pahinga bawat ranked na laro. Tingnan ang natitirang oras sa pause at upgrade menu; hindi ito nire-reset ng reload.",
   "The minimap refreshes at a steady rate during busy fights, reducing redraw work without hiding enemies.": "Regular ang pag-refresh ng minimap sa matitinding laban para mabawasan ang pag-redraw nang walang itinatagong kaaway.",
   "20-minute total pause allowance exceeded": "lumampas sa kabuuang 20 minutong pahinga",

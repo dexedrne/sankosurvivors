@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Lighter crowds": "Multitudes más ligeras",
+  "Crowded fights use less animation memory. Enemy models, animations and combat rules stay the same.": "Los combates con muchos enemigos usan menos memoria de animación. Los modelos, las animaciones y las reglas de combate siguen iguales.",
+
   "Ranked allows 20 minutes of total pause time per run. Check the remaining allowance in pause and upgrade menus; reloading does not reset it.": "Las partidas competitivas permiten 20 minutos de pausa en total. Consulta el tiempo restante en los menús de pausa y mejoras; recargar no reinicia el límite.",
   "The minimap refreshes at a steady rate during busy fights, reducing redraw work without hiding enemies.": "El minimapa se actualiza a un ritmo constante durante los combates intensos y reduce el trabajo de dibujo sin ocultar enemigos.",
   "20-minute total pause allowance exceeded": "se superó el límite total de pausa de 20 minutos",
