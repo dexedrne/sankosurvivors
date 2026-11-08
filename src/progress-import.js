@@ -1,6 +1,6 @@
 // Progress only: wallet credentials and ranked tickets never enter this journal.
 import { validProfileValue } from './progress-values.js';
-export const TRANSFER_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch', 'sq-roofs', 'sq-muted', 'sq-vol', 'sq-seen'];
+export const TRANSFER_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-armoury', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-settings', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch', 'sq-roofs', 'sq-muted', 'sq-vol', 'sq-seen'];
 export const IMPORT_BACKUP_KEY = 'sq-import-backup-v1';
 export const RUN_SAVE_KEY = 'sq-run-save-v1';
 export const RUN_REWARD_KEYS = ['sq-best', 'sq-bests', 'sq-cleared', 'sq-coins', 'sq-bank', 'sq-stats', 'sq-quests'];

@@ -9,7 +9,7 @@
 //   POST /api/save-put   {key, rev, data}        -> {ok, rev} | 409 {conflict, rev, data, at}
 const crypto = require('node:crypto');
 
-const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
+const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-armoury', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
 // the biggest honest save (every gear piece at +5, every map and mode best) is about 8 KB: these leave room and stop one
 // client from filling the database with made-up wallets at 100 KB each (security pass, 3 Nov)
 const MAX_VALUE = 12000, MAX_SAVE = 24000, MAX_BODY = 32000, KEY_DAYS = 90;

@@ -1,5 +1,19 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "The gear change was not confirmed saved. Your previous progress is kept.": "No se confirmó el guardado del cambio de equipo. Se conserva tu progreso anterior.",
+  "Gear was saved on this device. Reopen Gear to refresh its display.": "El equipo se guardó en este dispositivo. Vuelve a abrir Equipo para actualizar la vista.",
+  "Gear payment history could not be read. Keep this device’s progress.": "No se pudo leer el historial de pagos del equipo. Conserva el progreso de este dispositivo.",
+  "Older reinforcements use a conservative refund. New purchases refund their recorded price. Collected gear and Smithing unlocks stay yours.": "Los refuerzos antiguos usan un reembolso conservador. Las compras nuevas devuelven su precio registrado. Conservas las piezas obtenidas y los desbloqueos de forja.",
+  "Refunds reset reinforcements only. Collected gear and Smithing unlocks stay yours.": "Los reembolsos solo reinician los refuerzos. Conservas las piezas obtenidas y los desbloqueos de forja.",
+  "Confirm refund": "Confirmar reembolso",
+  "Could not export Armoury payment history. Keep this device’s progress.": "No se pudo exportar el historial de pagos del equipo. Conserva el progreso de este dispositivo.",
+  "Cloud save paused because gear upgrades changed on both devices. Your local progress is safe. Turn cloud save on again and choose which progress to keep.": "El guardado en la nube se pausó porque las mejoras de equipo cambiaron en ambos dispositivos. Tu progreso local está a salvo. Activa la nube de nuevo y elige qué progreso conservar.",
+  "An Armoury reset": "Reiniciar la Armería",
+  "Refund all permanent gear reinforcements from Gear. Collected pieces and Smithing unlocks stay yours.": "Reembolsa todos los refuerzos permanentes desde Equipo. Conservas las piezas obtenidas y los desbloqueos de forja.",
+  "New reinforcement purchases record their refund value. Older metal upgrades use a clearly marked conservative refund.": "Las nuevas compras de refuerzos registran su valor de reembolso. Las mejoras de metal antiguas usan un reembolso conservador claramente indicado.",
+  "Gear purchases, Smithing and refunds save together and recover safely if browser storage fails.": "Las compras de equipo, la forja y los reembolsos se guardan juntos y se recuperan de forma segura si falla el almacenamiento del navegador.",
+  "If gear upgrades changed on two devices, cloud saving pauses for an explicit progress choice.": "Si las mejoras de equipo cambian en dos dispositivos, el guardado en la nube se pausa para que elijas qué progreso conservar.",
+  "Refund all in Gear resets reinforcements, keeps collected pieces and Smithing unlocks, and shows the coins back before confirmation. New purchases refund recorded costs. Older metal ranks use one Bronze refund value per Smithing family.": "Reembolsar todo en Equipo reinicia los refuerzos, conserva las piezas obtenidas y los desbloqueos de forja, y muestra las monedas que recuperarás antes de confirmar. Las compras nuevas devuelven su coste registrado. Los rangos de metal antiguos usan un único valor de bronce por familia de forja.",
   "Quests & achievements": "Misiones y logros",
   "Achievements": "Logros",
   "Achievement": "Logro",
@@ -1388,6 +1402,9 @@ export const text = {
 };
 
 export const patterns = [
+  ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours.", "¿Recuperar {1} monedas y reiniciar todos los refuerzos? Conservas las piezas obtenidas y los desbloqueos de forja."],
+  ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours. Older metal ranks use one Bronze refund value per Smithing family.", "¿Recuperar {1} monedas y reiniciar todos los refuerzos? Conservas las piezas obtenidas y los desbloqueos de forja. Los rangos de metal antiguos usan un único valor de bronce por familia de forja."],
+
   ["{0} completed runs this week", "{0} partidas completadas esta semana"],
   ["Estimated pause allowance left: {0} / 20:00", "Tiempo de pausa restante estimado: {0} / 20:00"],
   ["Estimated pause allowance left: {0} / 30:00", "Tiempo de pausa restante estimado: {0} / 30:00"],

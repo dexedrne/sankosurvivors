@@ -1,5 +1,19 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "The gear change was not confirmed saved. Your previous progress is kept.": "Hindi nakumpirmang na-save ang pagbabago sa gamit. Nananatili ang dati mong progreso.",
+  "Gear was saved on this device. Reopen Gear to refresh its display.": "Na-save ang gamit sa device na ito. Buksan muli ang Gamit para ma-refresh ang itsura nito.",
+  "Gear payment history could not be read. Keep this device’s progress.": "Hindi mabasa ang tala ng pagbili ng gamit. Panatilihin ang progreso sa device na ito.",
+  "Older reinforcements use a conservative refund. New purchases refund their recorded price. Collected gear and Smithing unlocks stay yours.": "Limitado ang refund ng mga lumang pagpapatibay. Ang mga bagong binili ay ibinabalik sa naitalang presyo. Nananatili ang nakolektang gamit at mga na-unlock sa Pagpapanday.",
+  "Refunds reset reinforcements only. Collected gear and Smithing unlocks stay yours.": "Pagpapatibay lang ang nire-reset ng refund. Nananatili ang nakolektang gamit at mga na-unlock sa Pagpapanday.",
+  "Confirm refund": "Kumpirmahin ang refund",
+  "Could not export Armoury payment history. Keep this device’s progress.": "Hindi ma-export ang tala ng pagbili ng gamit. Panatilihin ang progreso sa device na ito.",
+  "Cloud save paused because gear upgrades changed on both devices. Your local progress is safe. Turn cloud save on again and choose which progress to keep.": "Naka-pause ang cloud save dahil nagbago ang mga upgrade ng gamit sa dalawang device. Ligtas ang lokal mong progreso. I-on muli ang cloud save at piliin kung aling progreso ang itatabi.",
+  "An Armoury reset": "Bagong simula sa Armoury",
+  "Refund all permanent gear reinforcements from Gear. Collected pieces and Smithing unlocks stay yours.": "I-refund ang lahat ng permanenteng pagpapatibay mula sa Gamit. Nananatili ang nakolektang gamit at mga na-unlock sa Pagpapanday.",
+  "New reinforcement purchases record their refund value. Older metal upgrades use a clearly marked conservative refund.": "Naitatala ang halaga ng refund ng bagong biniling pagpapatibay. Malinaw na nakamarka ang limitadong refund para sa lumang metal na upgrade.",
+  "Gear purchases, Smithing and refunds save together and recover safely if browser storage fails.": "Sabay na sine-save ang pagbili ng gamit, Pagpapanday at refund, at ligtas itong naibabalik kung pumalya ang storage ng browser.",
+  "If gear upgrades changed on two devices, cloud saving pauses for an explicit progress choice.": "Kapag nagbago ang mga upgrade ng gamit sa dalawang device, hihinto ang cloud save para mapili kung aling progreso ang itatabi.",
+  "Refund all in Gear resets reinforcements, keeps collected pieces and Smithing unlocks, and shows the coins back before confirmation. New purchases refund recorded costs. Older metal ranks use one Bronze refund value per Smithing family.": "Ang Ibalik lahat sa Gamit ay nagre-reset ng pagpapatibay, nagpapanatili ng nakolektang gamit at mga na-unlock sa Pagpapanday, at nagpapakita ng ibabalik na barya bago kumpirmahin. Nakatala ang presyo ng mga bagong binili. Ang lumang metal na gear ay may iisang halagang refund na batay sa Bronze bawat uring puwedeng pandayin.",
   "Quests & achievements": "Mga Quest at Tagumpay",
   "Achievements": "Mga Tagumpay",
   "Achievement": "Tagumpay",
@@ -1388,6 +1402,9 @@ export const text = {
 };
 
 export const patterns = [
+  ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours.", "Ibalik ang {1} barya at i-reset ang lahat ng pagpapatibay? Nananatili ang nakolektang gamit at mga na-unlock sa Pagpapanday."],
+  ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours. Older metal ranks use one Bronze refund value per Smithing family.", "Ibalik ang {1} barya at i-reset ang lahat ng pagpapatibay? Nananatili ang nakolektang gamit at mga na-unlock sa Pagpapanday. Ang lumang metal na gear ay may iisang halagang refund na batay sa Bronze bawat uring puwedeng pandayin."],
+
   ["{0} completed runs this week", "{0} natapos na laro ngayong linggo"],
   ["Estimated pause allowance left: {0} / 20:00", "Tinatayang natitirang pahinga: {0} / 20:00"],
   ["Estimated pause allowance left: {0} / 30:00", "Tinatayang natitirang pahinga: {0} / 30:00"],

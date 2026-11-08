@@ -11,7 +11,7 @@ import { numberValue, finiteNumber } from './progress-values.js';
 import { MILESTONES, DUPLICATE_GEAR_COINS } from './profile-milestones.js';
 import { importProgress, IMPORT_BACKUP_KEY, RUN_SAVE_KEY } from './progress-import.js';
 
-export const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
+export const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-armoury', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
 const ST = 'sq-cloud', BASE_KEY = 'sq-cloud-base', UPLOAD_KEY = 'sq-cloud-upload';
 
 const parse = (v, d) => { try { const x = JSON.parse(v); return x ?? d; } catch { return d; } };
@@ -48,6 +48,11 @@ function mergeKey(k, base, mine, theirs, sharedQuestCoins = 0) {
   }
 }
 export function mergeSaves(base, mine, theirs) {
+  const armoury = d => ['sq-gearlv','sq-armoury'].map(k => d?.[k] ?? null);
+  const history = d => Object.values(obj(d?.['sq-gearlv'])).some(v => finiteNumber(v) > 0) || Object.keys(obj(d?.['sq-armoury'])).length > 0;
+  const changed = d => JSON.stringify(armoury(d)) !== JSON.stringify(armoury(base));
+  if ([base,mine,theirs].some(history) && changed(mine) && changed(theirs) && !same(mine,theirs))
+    throw Object.assign(Error('Gear upgrades changed on both devices.'), {armouryConflict:true});
   const before = new Set(arr(base?.['sq-quests'])), a = new Set(arr(mine['sq-quests'])), b = new Set(arr(theirs['sq-quests'])), bank = new Set(arr(base?.['sq-bank']));
   const sharedQuestCoins = base ? MILESTONES.reduce((sum, q) => sum + (!before.has(q.id) && a.has(q.id) && b.has(q.id) ? q.coins + (q.item && bank.has(q.item) ? DUPLICATE_GEAR_COINS : 0) : 0), 0) : 0;
   const out = {};
@@ -72,7 +77,7 @@ export function summary(d) {
 // a device that has not really played yet (its progress can be replaced without asking)
 export const isFresh = (d) => {
   const s = summary(d);
-  const history = ['sq-stats', 'sq-gearlv', 'sq-best', 'sq-bests'].some(k => Object.keys(obj(d[k])).length);
+  const history = ['sq-stats', 'sq-gearlv', 'sq-armoury', 'sq-best', 'sq-bests'].some(k => Object.keys(obj(d[k])).length);
   return !s.coins && !s.maps && !s.ranks && !s.gear && !history && !arr(d['sq-quests']).length;
 };
 
@@ -105,6 +110,9 @@ export function createCloud(baseUrl, ui) {
   const live = s => { const now = state(); return now?.key === s.key && now.rev === s.rev; };
   const canSave = () => !!state() && (!ui.canSave || ui.canSave());
   const storageNote = error => {
+    if (error.armouryConflict) {
+      signOut(); ui.note('Cloud save paused because gear upgrades changed on both devices. Your local progress is safe. Turn cloud save on again and choose which progress to keep.'); return;
+    }
     if (!error.storage && !error.recovery) return;
     if (error.recovery) { ui.recover?.(error); ui.note('Progress recovery is required before playing.'); }
     else ui.note('Browser storage is unavailable. Progress is not confirmed saved.');
@@ -232,6 +240,7 @@ export function createCloud(baseUrl, ui) {
       });
     } catch (error) {
       storageNote(error);
+      if (error.armouryConflict) return false;
       if (!error.recovery && upload) {
         try { await progressLock(() => {
           if (!live(s) || !canSave()) return;

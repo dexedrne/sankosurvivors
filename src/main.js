@@ -1,3 +1,4 @@
+import { armouryQuote, prepareArmoury } from './armoury.js';
 import { createCoopClient } from './coop-client.js';
 import { groundHash } from './ground-pack.js';
 import { RunRecorder, RANKED, pauseRemaining, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf } from './ranked.js';
@@ -554,6 +555,23 @@ async function boot() {
 // ---- gear ------------------------------------------------------------------------------------------------------------
 let gearSlotSel = 'head';
 const gearSlotName = slot => slot === 'back' ? 'Cape' : GEAR_SLOT_NAMES[slot];
+function changeArmoury(action) {
+  if (!canManuallyReload() || !progressCanLoad()) return false;
+  try {
+    const next = prepareArmoury(localStorage, action);
+    importProgress(localStorage, next.data);
+  } catch (error) {
+    $('gearstatus').textContent = 'The gear change was not confirmed saved. Your previous progress is kept.';
+    if (error.recovery) { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen() && !rankedBusy, false, error.runRecovery ? { retry: () => recoverRunProgress(localStorage), reload: true } : null); }
+    return false;
+  }
+  const displayFailed = () => { $('gearstatus').textContent = 'Gear was saved on this device. Reopen Gear to refresh its display.'; };
+  try {
+    if (onSaved) onSaved('sq-gearlv');
+    showBest(); buildGear(); Promise.resolve(refreshIdle()).catch(displayFailed);
+  } catch { displayFailed(); }
+  return true;
+}
 function buildGear() {
   const gear = getGear(), bank = getBank(), lvs = getGearLv(), coins = getCoins();
   $('gearpressure').textContent = progressionText(getSkills(), gear);
@@ -582,26 +600,33 @@ function buildGear() {
     const have = g.items.filter((n) => owned.has(n)).length;
     return `<h4 class="ghead">${g.title} <span>${have}/${g.items.length}</span>${GROUP_NOTE[g.title] ? `<small>${GROUP_NOTE[g.title]}</small>` : ''}</h4>${g.items.map(itemHTML).join('')}`;
   }).join('') || '<p class="gempty">Nothing for this slot.</p>';
-  for (const b of $('gearbank').querySelectorAll('.gup')) b.onclick = (e) => {
-    e.stopPropagation(); const n = b.dataset.n, l = getGearLv(), lv = l[n] || 0, cost = gearUpgradeCost(n, lv);
-    if (lv >= GEAR_MAX_LV || getCoins() < cost) return;
-    l[n] = lv + 1; save('sq-gearlv', l); save('sq-coins', getCoins() - cost); showBest(); buildGear();
-  };
-  // smithing: the next metal's piece joins your gear (the old one stays in your collection); worn, it is worn instead,
-  // and its reinforcement carries over
-  for (const b of $('gearbank').querySelectorAll('.gsmith')) b.onclick = (e) => {
-    e.stopPropagation(); const n = b.dataset.n, up = smithNext(n); if (!up || getBank().includes(up.name) || getCoins() < up.cost) return;
-    save('sq-coins', getCoins() - up.cost); bankItem(up.name, false);
-    const l = getGearLv(); if (l[n]) { l[up.name] = Math.max(l[up.name] || 0, l[n]); save('sq-gearlv', l); }
-    const g = getGear(); if (g[gearSlotSel] === n) { g[gearSlotSel] = up.name; save('sq-gear', g); refreshIdle(); }
-    audio.play('smith', { minGap: 0 }); showBest(); buildGear();
-  };
+  for (const b of $('gearbank').querySelectorAll('.gup')) b.onclick = e => { e.stopPropagation(); changeArmoury({kind:'reinforce',name:b.dataset.n}); };
+  for (const b of $('gearbank').querySelectorAll('.gsmith')) b.onclick = e => { e.stopPropagation(); if (changeArmoury({kind:'smith',name:b.dataset.n})) audio.play('smith', {minGap:0}); };
   for (const el of $('gearbank').querySelectorAll('.gitem:not(.locked)')) el.onclick = () => {
     const g = getGear(); if (g[gearSlotSel] === el.dataset.n) delete g[gearSlotSel]; else g[gearSlotSel] = el.dataset.n;
     save('sq-gear', g); buildGear(); refreshIdle();
   };
   const b = gearBonus(gear, lvs), { sets, ...rest } = b;
   $('gearinfo').innerHTML = `<b>Worn:</b> ${Object.keys(rest).length ? bonusText(rest) : 'nothing yet'}${sets.length ? `<br><b>Set bonus:</b> ${sets.map((x) => `${x} (${GEAR_SETS[x].text})`).join(', ')}` : ''}<br><span class="dim">${bank.length} of ${Object.keys(GEAR).length} pieces found · ${coins} coins for the Armoury</span>`;
+  const refund = $('gearrefund'), status = $('gearstatus'); let quote;
+  try { quote = armouryQuote(localStorage); }
+  catch { status.textContent = 'Gear payment history could not be read. Keep this device’s progress.'; for (const b of $('gearbank').querySelectorAll('.gup,.gsmith')) b.disabled = true; }
+  refund.disabled = !quote?.amount; refund.dataset.sure = '';
+  refund.textContent = quote?.amount ? `Refund all · ${quote.amount.toLocaleString()} coins back` : 'Refund all';
+  if (quote) status.textContent = quote.legacy ? 'Older reinforcements use a conservative refund. New purchases refund their recorded price. Collected gear and Smithing unlocks stay yours.' : 'Refunds reset reinforcements only. Collected gear and Smithing unlocks stay yours.';
+  refund.onclick = () => {
+    if (!canManuallyReload() || !progressCanLoad()) return;
+    let latest; try { latest = armouryQuote(localStorage); } catch { status.textContent = 'Gear payment history could not be read. Keep this device’s progress.'; return; }
+    if (!latest.amount) return;
+    if (refund.dataset.sure !== latest.identity) {
+      refund.dataset.sure = latest.identity; refund.textContent = 'Confirm refund';
+      status.textContent = `Refund ${latest.amount.toLocaleString()} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours.`;
+      if (latest.legacy) status.textContent += ' Older metal ranks use one Bronze refund value per Smithing family.';
+      return;
+    }
+    changeArmoury({kind:'refund'});
+  };
+
 }
 async function refreshIdle() { window.__idleSim = null; if (renderer) await renderer.preloadGear(Object.values(getGear())); }
 $('gearbtn').onclick = () => { buildGear(); $('gear').classList.remove('hidden'); };
@@ -648,7 +673,7 @@ $('petbunrefresh').onclick = () => bunCompanions.refresh();
 $('petretry').onclick = applyPetChoice;
 $('petsclose').onclick = () => { $('pets').classList.add('hidden'); navFocus($('morebtn')); };
 $('pets').addEventListener('click', e => { if (e.target.id === 'pets') $('petsclose').click(); });
-$('gearclose').onclick = () => $('gear').classList.add('hidden');
+$('gearclose').onclick = () => { $('gear').classList.add('hidden'); navFocus($('gearbtn')); };
 
 // ---- settings ---------------------------------------------------------------------------------------------------------
 const SETTINGS = [
@@ -735,7 +760,7 @@ function containMenuTab(e) {
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 }
-for (const id of ['guide', 'pets', 'more', 'quests']) $(id).addEventListener('keydown', containMenuTab);
+for (const id of ['guide', 'pets', 'more', 'quests', 'gear']) $(id).addEventListener('keydown', containMenuTab);
 
 // ---- updates log -------------------------------------------------------------------------------------------------------
 $('updnew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
@@ -758,6 +783,7 @@ function xferCode() {
     let value; try { value = JSON.parse(raw); } catch { value = undefined; }
     if (value !== undefined && validProfileValue(k, value)) d[k] = raw;
     else {
+      if (k === 'sq-armoury') throw Error('Could not export Armoury payment history. Keep this device’s progress.');
       const safe = profileValue(k, value);
       if (safe !== undefined) d[k] = JSON.stringify(safe);
     }
@@ -782,6 +808,7 @@ function xferRead(code) {
     try { if (!validProfileValue(k, JSON.parse(v))) return invalid; out[k] = v; } catch { return invalid; }
   }
   if (!Object.keys(out).length) return { error: 'The code has no progress in it.' };
+  if (!Object.hasOwn(out, 'sq-armoury') && ['sq-coins','sq-gearlv','sq-bank'].some(k => Object.hasOwn(out,k))) out['sq-armoury'] = 'null';
   const j = (k, f) => profileValue(k, Object.hasOwn(out, k) ? JSON.parse(out[k]) : f, f);
   const skills = j('sq-skills', {}), ranks = Object.values(skills).reduce((a, b) => a + finiteNumber(b), 0);
   return { data: out, coins: j('sq-coins', 0), maps: j('sq-cleared', []).length, ranks, gear: j('sq-bank', []).length };

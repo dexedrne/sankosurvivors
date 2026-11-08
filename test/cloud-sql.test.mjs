@@ -68,6 +68,10 @@ test('cloud save SQL, update 8: 24000-octet saves, a disk-size ceiling for new w
     assert.deepEqual(await put(W, await sized(23999)), { ok: true, rev: 1 });
     await unrate(); assert.deepEqual(await put(W, await sized(24000), 1), { ok: true, rev: 2 }, '24000 octets is the limit');
     await unrate(); assert.deepEqual(await put(W, await sized(24001), 2), { error: 'that save is too big' }, 'an existing wallet too');
+    const armourySave = {'sq-coins':'950','sq-bank':'["Bronze Helmet"]','sq-gearlv':'{"Bronze Helmet":1}','sq-armoury':JSON.stringify({v:1,rev:1,paid:50,legacy:0,levels:{'Bronze Helmet':1}})};
+    assert.deepEqual(await put(wallet(99),armourySave),{ok:true,rev:1});
+    const armouryRead = await call('sqs_save_get',{p_server_key:'server-key',p_wallet:wallet(99)});
+    assert.equal(armouryRead.rev,1);assert.deepEqual(armouryRead.data,armourySave,'the existing bounded JSONB routine carries the book without DDL');
     // one IP: one new wallet per 10 minutes
     assert.deepEqual(await put(wallet(2), { 'sq-coins': '1' }, 0, 'ip-same'), { ok: true, rev: 1 });
     await db.exec("delete from sqs_rate where ip not like 'new:%'");

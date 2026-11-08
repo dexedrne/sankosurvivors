@@ -26,6 +26,7 @@ export function profileValue(key, value, fallback) {
 export function validProfileValue(key, value) {
   switch (key) {
     case 'sq-coins': return numeric(value);
+    case 'sq-armoury': return value === null || record(value) && value.v === 1 && Number.isSafeInteger(value.rev) && value.rev >= 0 && Object.keys(value).every(k => ['v','rev','paid','legacy','levels'].includes(k)) && Number.isSafeInteger(value.paid) && value.paid >= 0 && Number.isSafeInteger(value.legacy) && value.legacy >= 0 && value.legacy <= value.paid && record(value.levels) && Object.values(value.levels).every(v => Number.isInteger(v) && v >= 1 && v <= 3);
     case 'sq-name': return value === null || typeof value === 'string' || typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value);
     case 'sq-cleared': case 'sq-quests': case 'sq-bank': return Array.isArray(value) && value.every(v => typeof v === 'string');
     case 'sq-skills': case 'sq-gearlv': return record(value) && Object.values(value).every(numeric);

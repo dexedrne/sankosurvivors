@@ -45,7 +45,7 @@ for(const[key,value]of unsafe)test('unsafe included core field is refused before
  const f=fixture(),before=[...f.values];let result;assert.doesNotThrow(()=>{result=f.read(f.pack({'sq-coins':'100',[key]:value}));});assert.equal(typeof result.error,'string');assert.deepEqual([...f.values],before);
 });
 test('graphics fallback policy and excluded credential keys remain compatible',()=>{
- const f=fixture(),result=f.read(f.pack({'sq-coins':'100','sq-settings':J('broken'),'sq-cloud':'fixture-session','sq-ranked-live':'fixture-ticket'}));assert.equal(result.error,undefined);assert.deepEqual(Object.keys(result.data).sort(),['sq-coins','sq-settings']);assert.equal(result.data['sq-settings'],J('broken'));
+ const f=fixture(),result=f.read(f.pack({'sq-coins':'100','sq-settings':J('broken'),'sq-cloud':'fixture-session','sq-ranked-live':'fixture-ticket'}));assert.equal(result.error,undefined);assert.deepEqual(Object.keys(result.data).sort(),['sq-armoury','sq-coins','sq-settings']);assert.equal(result.data['sq-settings'],J('broken'));assert.equal(result.data['sq-armoury'],'null');
 });
 test('cached bad collections fall back without rewriting valid neighboring progress',()=>{
  const f=fixture({'sq-cleared':'{}','sq-quests':'5'}),before=[...f.values];assert.equal(f.clearedMaps().size,0);assert.equal(f.questsDone().size,0);assert.equal(f.getCoins(),850);assert.deepEqual([...f.values],before);

@@ -199,6 +199,7 @@ button.ghost { border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch;
 .btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; } .btnrow button { margin: 4px 0 0; }
 .lurow { display: flex; gap: 8px; justify-content: center; margin-top: 10px; } .lurow button { margin: 0; padding: 2px 14px; }
 .lurow button:disabled { opacity: .45; }
+#gear .lurow button { min-height: 44px; }
 #gearwrap { display: grid; grid-template-columns: 170px 1fr; gap: 14px; text-align: left; min-height: 300px; }
 #gearslots { display: grid; grid-template-columns: repeat(2, 76px); gap: 6px; align-content: start; }
 .gslot { position: relative; width: 76px; height: 76px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch; display: grid; place-items: center; cursor: url(../assets/ui/sq/cursors/customcursor_hand.png), pointer; }

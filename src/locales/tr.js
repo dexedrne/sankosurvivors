@@ -1,5 +1,19 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "The gear change was not confirmed saved. Your previous progress is kept.": "Eşya değişikliğinin kaydedildiği doğrulanamadı. Önceki ilerlemen korunuyor.",
+  "Gear was saved on this device. Reopen Gear to refresh its display.": "Eşya bu cihaza kaydedildi. Görünümü yenilemek için Eşya menüsünü tekrar aç.",
+  "Gear payment history could not be read. Keep this device’s progress.": "Eşya ödeme geçmişi okunamadı. Bu cihazdaki ilerlemeni koru.",
+  "Older reinforcements use a conservative refund. New purchases refund their recorded price. Collected gear and Smithing unlocks stay yours.": "Eski güçlendirmeler için temkinli bir iade tutarı kullanılır. Yeni alımlar kayıtlı fiyatından iade edilir. Topladığın eşyalar ve Demircilikle açtığın parçalar sende kalır.",
+  "Refunds reset reinforcements only. Collected gear and Smithing unlocks stay yours.": "İadeler yalnızca güçlendirmeleri sıfırlar. Topladığın eşyalar ve Demircilikle açtığın parçalar sende kalır.",
+  "Confirm refund": "İadeyi onayla",
+  "Could not export Armoury payment history. Keep this device’s progress.": "Eşya ödeme geçmişi dışa aktarılamadı. Bu cihazdaki ilerlemeni koru.",
+  "Cloud save paused because gear upgrades changed on both devices. Your local progress is safe. Turn cloud save on again and choose which progress to keep.": "İki cihazda da eşya yükseltmeleri değiştiği için bulut kaydı duraklatıldı. Yerel ilerlemen güvende. Bulut kaydını tekrar aç ve hangi ilerlemenin kalacağını seç.",
+  "An Armoury reset": "Cephaneliği sıfırla",
+  "Refund all permanent gear reinforcements from Gear. Collected pieces and Smithing unlocks stay yours.": "Eşya menüsünden tüm kalıcı eşya güçlendirmelerini iade et. Topladığın parçalar ve Demircilikle açtıkların sende kalır.",
+  "New reinforcement purchases record their refund value. Older metal upgrades use a clearly marked conservative refund.": "Yeni güçlendirme alımlarının iade tutarı kaydedilir. Eski metal yükseltmeleri, açıkça belirtilen temkinli bir iade tutarı kullanır.",
+  "Gear purchases, Smithing and refunds save together and recover safely if browser storage fails.": "Eşya alımları, Demircilik ve iadeler birlikte kaydedilir; tarayıcı depolaması hata verirse güvenle geri yüklenir.",
+  "If gear upgrades changed on two devices, cloud saving pauses for an explicit progress choice.": "İki cihazda da eşya yükseltmeleri değişirse bulut kaydı, hangi ilerlemenin kalacağı seçilene kadar duraklar.",
+  "Refund all in Gear resets reinforcements, keeps collected pieces and Smithing unlocks, and shows the coins back before confirmation. New purchases refund recorded costs. Older metal ranks use one Bronze refund value per Smithing family.": "Eşya menüsündeki Tümünü iade et, güçlendirmeleri sıfırlar; topladığın parçaları ve Demircilikle açtıklarını korur ve onaydan önce geri alacağın altını gösterir. Yeni alımlar kayıtlı bedelinden iade edilir. Eski metal kademeleri, her Demircilik ailesi için tek bir Bronz iade tutarı kullanır.",
   "Quests & achievements": "Görevler ve başarımlar",
   "Achievements": "Başarımlar",
   "Achievement": "Başarım",
@@ -1388,6 +1402,9 @@ export const text = {
 };
 
 export const patterns = [
+  ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours.", "{1} altını geri alıp tüm güçlendirmeleri sıfırlamak istiyor musun? Topladığın eşyalar ve Demircilikle açtığın parçalar sende kalır."],
+  ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours. Older metal ranks use one Bronze refund value per Smithing family.", "{1} altını geri alıp tüm güçlendirmeleri sıfırlamak istiyor musun? Topladığın eşyalar ve Demircilikle açtığın parçalar sende kalır. Eski metal kademeleri her Demircilik ailesi için tek bir Bronz iade tutarı kullanır."],
+
   ["{0} completed runs this week", "Bu hafta tamamlanan {0} tur"],
   ["Estimated pause allowance left: {0} / 20:00", "Tahmini kalan mola hakkı: {0} / 20:00"],
   ["Estimated pause allowance left: {0} / 30:00", "Tahmini kalan mola hakkı: {0} / 30:00"],
