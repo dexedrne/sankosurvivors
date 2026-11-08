@@ -1,5 +1,12 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Katana, Two-handed Sword and Pickaxe start attacks when a large enemy’s body is within their existing reach.": "Katana, İki Elli Kılıç ve Kazma, büyük düşmanın gövdesi mevcut menzile girince saldırır.",
+  "Sharper melee and Endless pressure": "Daha isabetli yakın dövüş ve Sonsuz baskısı",
+  "Stronger connections and melee": "Daha sağlam bağlantılar ve yakın dövüş",
+  "Co-op recovery handles delayed acknowledgements and interrupted reconnects.": "Eşli oyun kurtarması gecikmiş onayları ve yarıda kesilen yeniden bağlantıları işler.",
+  "Returning from a suspended page gets time to receive queued frames. A host that stops making progress still times out.": "Askıya alınmış sayfaya dönünce sıradaki kareleri almak için süre tanınır. İlerlemeyi durduran ev sahibi yine zaman aşımına uğrar.",
+  "Katana, Two-handed Sword and Pickaxe start attacks when a large enemy’s body is within their existing reach. Original week-zero ranked combat stays unchanged.": "Katana, İki Elli Kılıç ve Kazma, büyük düşmanın gövdesi mevcut menzile girince saldırır. Sıfırıncı haftanın dereceli dövüşü değişmez.",
+  "In casual Endless, boss returns gradually shorten from 90 to 45 seconds after the normal map duration. Additional returns wait while six bosses are alive.": "Gündelik Sonsuz modda normal harita süresinden sonra boss dönüş aralığı yavaşça 90 saniyeden 45 saniyeye iner. Altı boss hayattayken ek dönüşler bekler.",
   "Co-op": "Eşli oyun",
   "Co-op on the main menu": "Ana menüde eşli oyun",
   "Open Co-op directly from the main menu. Quests is now in More, keeping the same compact six-button layout.": "Eşli oyunu doğrudan ana menüden açın. Görevler artık Daha fazla içinde; kompakt altı düğmeli düzen aynı kaldı.",

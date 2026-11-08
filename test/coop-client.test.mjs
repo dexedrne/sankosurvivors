@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import{createServer}from'node:http';import{once}from'node:events';import WebSocket from'ws';
 import{createCoopRelay}from'../tools/coop-relay.mjs';import{createCoopClient}from'../src/coop-client.js';
+import{createCoopRun}from'../src/coop-run.js';
 const origin='https://sankosurvivors.quest',identity={protocol:1,build:'test-local',sim:'0f890c11956a'},settings={map:'greentown',hard:false,endless:false};
 const me=name=>({name,adv:'adventurer',meta:{},gear:{},gearLv:{},cleared:[]});
 const wait=async(fn,ms=4000)=>{const end=Date.now()+ms;while(!fn()){if(Date.now()>end)assert.fail('Client condition timed out');await new Promise(r=>setTimeout(r,10));}};
@@ -62,4 +63,28 @@ test('changing high-refresh guest movement stays bounded and blur sends immediat
  const f=await fixture(t),p=await party(f);await start(p);const run=p.guest.client.run,ws=p.guest.sockets[0],sent=[],native=ws.send.bind(ws);ws.send=(text,...args)=>{const m=JSON.parse(text);if(m.t==='up'&&m.data.move)sent.push(m.data.move);return native(text,...args);};
  let i=0;const timer=setInterval(()=>{i++;run.input(Math.cos(i*.11),Math.sin(i*.11));},6);t.after(()=>clearInterval(timer));await new Promise(r=>setTimeout(r,3300));clearInterval(timer);assert(i>=250,'exercise changing high-refresh samples');assert.deepEqual(p.guest.ends,[]);assert.equal(p.guest.sockets.length,1,'no rate-limit reconnect');assert(sent.length<=115,'movement is coalesced at network cadence, got '+sent.length);
  p.guest.events.dispatchEvent(new Event('blur'));assert.deepEqual(sent.at(-1),[0,0]);await new Promise(r=>setTimeout(r,180));const position=[run.sim.players[1].x,run.sim.players[1].z];await new Promise(r=>setTimeout(r,120));assert.deepEqual([run.sim.players[1].x,run.sim.players[1].z],position);assert.deepEqual(p.guest.ends,[]);
+});
+
+function suspendedGuest(t){
+ let now=0,tick;const sent=[],ends=[],listeners={},epoch='00112233445566778899aabbccddeeff',roomSettings={...settings,...identity};
+ t.mock.method(Date,'now',()=>now);t.mock.method(performance,'now',()=>now);t.mock.method(globalThis,'setInterval',fn=>{tick=fn;return{unref(){}};});t.mock.method(globalThis,'clearInterval',()=>{});
+ const ws={readyState:1,bufferedAmount:0,addEventListener:(kind,fn)=>listeners[kind]=fn,send:text=>sent.push(JSON.parse(text)),close(){this.readyState=3;}},emit=m=>listeners.message({data:JSON.stringify(m)});
+ const client=createCoopClient({url:'ws://127.0.0.1/coop',identity,load:async()=>null,events:new EventTarget(),createSocket:()=>ws,onEnd:reason=>ends.push(reason)});t.after(()=>client.close());
+ const game={...roomSettings,epoch,ground:'0',seed:711,players:['p1','p2'].map(id=>({id,loadout:me(id)}))};
+ client.join('ABCDEF',me('p2'));emit({t:'hello',protocol:1});emit({t:'session',code:'ABCDEF',epoch,you:'p2',token:'1'.repeat(64)});emit({t:'room',code:'ABCDEF',epoch,you:'p2',hostId:'p1',settings:roomSettings,started:false,members:game.players.map(p=>({...p,ready:true,connected:true}))});emit({t:'start',game});
+ return{client,game,ends,emit,at:n=>{now=n;tick();},async begin(){await Promise.resolve();emit({t:'begin',epoch,frame:0});assert(client.run&&!client.run.held);}};
+}
+test('a suspended guest can consume queued host progress before the stall watchdog ends the run',async t=>{
+ const f=suspendedGuest(t);await f.begin();const down=[],host=createCoopRun({start:f.game,localId:'p1',ground:null,send:m=>down.push(m)});host.begin(0);host.advance();host.advance();
+ f.at(20000);assert.equal(f.client.closed,false,'first resumed timer must allow queued network callbacks');f.emit(down[0]);assert.equal(f.client.run.frame,2);
+ for(let at=20033;at<=34982;at+=33)f.at(at);assert.equal(f.client.closed,false);f.at(35015);assert.deepEqual(f.ends,['hostStalled'],'ordinary fifteen-second silence still ends');
+});
+test('repeated callback suspensions cannot renew guest stall grace without host progress',async t=>{
+ const f=suspendedGuest(t);await f.begin();f.at(20000);assert.equal(f.client.closed,false);f.at(40000);assert.deepEqual(f.ends,['hostStalled']);
+});
+
+test('duplicate old frame packets cannot keep a stalled guest alive without simulation progress',async t=>{
+ const f=suspendedGuest(t);await f.begin();const down=[],host=createCoopRun({start:f.game,localId:'p1',ground:null,send:m=>down.push(m)});host.begin(0);host.advance();host.advance();f.emit(down[0]);assert.equal(f.client.run.frame,2);
+ for(let at=33;at<=14982;at+=33){f.at(at);if(at===9999||at===13992)f.emit(down[0]);}
+ f.at(15015);assert.deepEqual(f.ends,['hostStalled'],'valid but duplicate packets are not forward progress');
 });

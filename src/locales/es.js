@@ -1,5 +1,12 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Katana, Two-handed Sword and Pickaxe start attacks when a large enemy’s body is within their existing reach.": "Katana, Espada a dos manos y Pico atacan cuando el cuerpo de un enemigo grande entra en su alcance actual.",
+  "Sharper melee and Endless pressure": "Mejor alcance cuerpo a cuerpo y presión en Infinito",
+  "Stronger connections and melee": "Conexiones más estables y combate cuerpo a cuerpo",
+  "Co-op recovery handles delayed acknowledgements and interrupted reconnects.": "La recuperación cooperativa gestiona confirmaciones tardías y reconexiones interrumpidas.",
+  "Returning from a suspended page gets time to receive queued frames. A host that stops making progress still times out.": "Al volver a una página suspendida hay tiempo para recibir los fotogramas pendientes. Si el anfitrión deja de avanzar, la conexión sigue caducando.",
+  "Katana, Two-handed Sword and Pickaxe start attacks when a large enemy’s body is within their existing reach. Original week-zero ranked combat stays unchanged.": "Katana, Espada a dos manos y Pico atacan cuando el cuerpo de un enemigo grande entra en su alcance actual. El combate clasificatorio original de la semana cero no cambia.",
+  "In casual Endless, boss returns gradually shorten from 90 to 45 seconds after the normal map duration. Additional returns wait while six bosses are alive.": "En Infinito casual, tras la duración normal del mapa, los jefes vuelven gradualmente cada 90 a 45 segundos. Las nuevas reapariciones esperan mientras haya seis jefes vivos.",
   "Co-op": "Cooperativo",
   "Co-op on the main menu": "Cooperativo en el menú principal",
   "Open Co-op directly from the main menu. Quests is now in More, keeping the same compact six-button layout.": "Abre Cooperativo desde el menú principal. Las misiones están ahora en Más, manteniendo el diseño compacto de seis botones.",

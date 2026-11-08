@@ -293,12 +293,12 @@ export function playerStats(p, meta = p.meta || {}) {
   };
 }
 
-function nearestEnemy(sim, x, z, maxD = 1e9, skip) {
-  let best = null, bd = maxD * maxD;
+function nearestEnemy(sim, x, z, maxD = 1e9, skip, bodyRange = false) {
+  let best = null, bd = bodyRange ? Infinity : maxD * maxD;
   for (const e of sim.enemies) {
     if (skip && skip.has(e.id)) continue;
     const dx = e.x - x, dz = e.z - z, d = dx * dx + dz * dz;
-    if (d < bd) { bd = d; best = e; }
+    if (d < bd && (!bodyRange || d <= (maxD + ENEMIES[e.type].r) ** 2)) { bd = d; best = e; }
   }
   return best;
 }
@@ -396,9 +396,10 @@ function spawnTick(sim, dt) {
   }
   // endless: past the usual run length the map's bosses keep coming back, tougher each time
   if (sim.endless && t >= M.length) {
-    sim.endlessBossT -= dt;
-    if (sim.endlessBossT <= 0 && M.bosses.length) {
-      sim.endlessBossT = 90;
+    const casual = sim.pace >= 2 && !sim.ranked;
+    sim.endlessBossT = casual ? Math.max(0, sim.endlessBossT - dt) : sim.endlessBossT - dt;
+    if (sim.endlessBossT <= 0 && M.bosses.length && (!casual || sim.enemies.filter(e => !e.dead && e.hp > 0 && ENEMIES[e.type].boss).length < 6)) {
+      sim.endlessBossT = casual ? Math.max(45, 90 - 5 * Math.floor((t - M.length) / 120)) : 90;
       const b = M.bosses[sim.endlessCycle % M.bosses.length]; sim.endlessCycle++;
       const p = nearestPlayer(sim, M.cx, M.cz) || sim.players[0], a = sim.rng() * 6.283;
       const w = findWalkable(sim, p.x + dcos(a) * 20, p.z + dsin(a) * 20);
@@ -682,7 +683,8 @@ function fireWeapons(sim, p, dt, st) {
     p.cd[id] = (p.cd[id] ?? 0.2) - dt;
     if (p.cd[id] > 0) continue;
     const reach = id === 'pickaxe' ? 7 : id === 'katana' || id === 'greatsword' ? s.range + 1.5 : id === 'shortsword' ? 20 : id === 'baseball' ? 14 : 18;
-    const target = nearestEnemy(sim, p.x, p.z, reach);
+    const melee = sim.pace >= 2 && (id === 'katana' || id === 'greatsword');
+    const target = nearestEnemy(sim, p.x, p.z, melee ? s.range : reach, undefined, melee);
     if (!target && id !== 'pickaxe') { p.cd[id] = 0; continue; }
     sim.src = id;
     p.cd[id] = s.cd * st.haste;
@@ -743,7 +745,7 @@ function fireWeapons(sim, p, dt, st) {
         sim.proj.push({ id: sim.nextId++, art: 'ball', evo: !!p.evo.baseball, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: s.bounces, life: s.life, r: s.r, hit: [], speed: s.speed, kb: s.kb, lvl });
       }
     } else if (id === 'pickaxe') {
-      if (!sim.enemies.some((e) => hyp(e.x - p.x, e.z - p.z) < s.radius + 2)) { p.cd[id] = 0.3; continue; }
+      if (!sim.enemies.some((e) => sim.pace >= 2 ? hyp(e.x - p.x, e.z - p.z) <= s.radius + ENEMIES[e.type].r : hyp(e.x - p.x, e.z - p.z) < s.radius + 2)) { p.cd[id] = 0.3; continue; }
       sim.fx.push({ k: 'quake', x: p.x, z: p.z, r: s.radius, lvl });
       for (const e of sim.enemies) if (hyp(e.x - p.x, e.z - p.z) <= s.radius + ENEMIES[e.type].r) damageEnemy(sim, e, dmg, p.id, s.kb, p.x, p.z);
     }

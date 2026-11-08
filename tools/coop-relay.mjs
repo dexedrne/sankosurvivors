@@ -28,7 +28,7 @@ export function createCoopRelay({server,origins,maxRooms=64,loopbackProxy=false}
  function view(r,c){return {t:'room',code:r.code,epoch:r.epoch,you:c.member.id,hostId:'p1',settings:r.settings,started:!!r.game,members:r.members.map(m=>({id:m.id,loadout:m.loadout,ready:m.ready,connected:!!m.c}))};}
  const broadcast=(r,message)=>{for(const m of r.members)send(m.c,message);};
  const roomView=r=>{for(const m of r.members)if(m.c)send(m.c,view(r,m.c));};
- function session(r,m){send(m.c,{t:'session',code:r.code,epoch:r.epoch,you:m.id,token:m.token});}
+ function session(r,m){send(m.c,{t:'session',code:r.code,epoch:r.epoch,you:m.id,token:m.pendingToken||m.token});}
  function closeRoom(r,reason){
   if(!rooms.delete(r.code))return;
   clearTimeout(r.loading);
@@ -81,10 +81,11 @@ export function createCoopRelay({server,origins,maxRooms=64,loopbackProxy=false}
   }
   if(v.t==='resume'){
    if(!own(v,['t','code','token','identity'])||r||typeof v.code!=='string'||typeof v.token!=='string'||!/^[0-9a-f]{64}$/.test(v.token)){bad(c);return;}
-   const room=rooms.get(v.code),member=room?.members.find(p=>timingSafeEqual(Buffer.from(p.token,'hex'),Buffer.from(v.token,'hex')));
+   const room=rooms.get(v.code),member=room?.members.find(p=>[p.token,room.held&&p.pendingToken].some(token=>token&&timingSafeEqual(Buffer.from(token,'hex'),Buffer.from(v.token,'hex'))));
    if(!room?.game||!member||member.c){fail(c,'invalidSession','This connection can no longer resume.');return;}
    if(!identity(v.identity,room)){fail(c,'versionMismatch','Both players need the same game version.');return;}
-   member.c=c;member.loaded=false;member.token=randomBytes(32).toString('hex');c.room=room;c.member=member;
+   // Keep one pending rotation until loaded acknowledges receipt, within the original recovery deadline.
+   member.c=c;member.loaded=false;member.pendingToken||=randomBytes(32).toString('hex');c.room=room;c.member=member;
    session(room,member);roomView(room);send(c,{t:'start',game:room.game});send(c,{t:'resumed',epoch:room.epoch,frame:room.frame});return;
   }
   if(!r||!m){fail(c,'notJoined','Create or join a room first.');return;}
@@ -109,7 +110,10 @@ export function createCoopRelay({server,origins,maxRooms=64,loopbackProxy=false}
   }
   if(typeof v.epoch!=='string'||v.epoch!==r.epoch){fail(c,'staleRun','This message belongs to another run.');return;}
   if(v.t==='loaded'&&own(v,['t','epoch','frame'])){
-   if(!r.game||!uint(v.frame)||v.frame!==r.frame){fail(c,'invalidFrame','The run is still catching up.');return;}
+   if(!r.game||!uint(v.frame)||v.frame>r.frame){fail(c,'invalidFrame','The run is still catching up.');return;}
+   // Catch-up checksums may acknowledge a frame before the host's final hold flush.
+   if(v.frame<r.frame)return;
+   if(m.pendingToken){m.token=m.pendingToken;m.pendingToken=null;}
    m.loaded=true;begin(r);return;
   }
   if(v.t==='up'&&own(v,['t','epoch','data'])){

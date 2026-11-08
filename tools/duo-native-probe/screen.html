@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Native Duo screen probe</title>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#00794f;color:white;font:16px system-ui}canvas{position:fixed;inset:0;width:100%;height:100%}main{position:fixed;left:max(16px,env(safe-area-inset-left));top:max(16px,env(safe-area-inset-top));max-width:min(620px,75vw);max-height:calc(100dvh - 48px - env(safe-area-inset-bottom));overflow:auto;padding:12px;background:#102b20e8;border:2px solid yellow;box-sizing:border-box}h1{font-size:22px;margin:0 0 8px}p{margin:8px 0}pre{font-size:12px;white-space:pre-wrap;user-select:text}</style></head><body>
+<canvas id="field" aria-hidden="true"></canvas><main><h1>Native Duo screen probe</h1><p>Offline test. No game, wallet, save access or network requests.</p><p>Open flat and rotate both ways. Does the checkerboard extend behind the clock area? A solid green strip alone does not count.</p><pre id="details" tabindex="0"></pre></main><script>
+let nativeGeometry = null;
+window.reportNativeGeometry = report => { nativeGeometry = report; update(); };
+function update() {
+  const field = document.getElementById('field'), rect = field.getBoundingClientRect();
+  field.width = Math.max(1, Math.round(rect.width)); field.height = Math.max(1, Math.round(rect.height));
+  let ctx=null;try{ctx=field.getContext('2d');}catch{}
+  if (ctx) {
+    for (let y=0;y<field.height;y+=40) for (let x=0;x<field.width;x+=40) { ctx.fillStyle=(x/40+y/40)%2?'#00794f':'#0b9b68';ctx.fillRect(x,y,40,40); }
+    ctx.fillStyle='#ff3477';ctx.fillRect(field.width-24,0,24,field.height);
+    ctx.strokeStyle='yellow';ctx.lineWidth=8;ctx.strokeRect(4,4,field.width-8,field.height-8);
+  }
+  document.getElementById('details').textContent=JSON.stringify({native:nativeGeometry,webViewport:[innerWidth,innerHeight],webCanvas:[rect.width,rect.height],canvasPainted:!!ctx},null,2);
+}
+addEventListener('resize',update);update();
+</script></body></html>

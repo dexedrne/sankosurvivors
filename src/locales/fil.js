@@ -1,5 +1,12 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Katana, Two-handed Sword and Pickaxe start attacks when a large enemy’s body is within their existing reach.": "Umaatake ang Katana, Two-handed Sword at Pickaxe kapag nasa kasalukuyang abot ang katawan ng malaking kalaban.",
+  "Sharper melee and Endless pressure": "Mas maayos na melee at hamon sa Endless",
+  "Stronger connections and melee": "Mas matatag na koneksiyon at melee",
+  "Co-op recovery handles delayed acknowledgements and interrupted reconnects.": "Kaya ng Co-op recovery ang naantalang kumpirmasyon at naputol na muling pagkonekta.",
+  "Returning from a suspended page gets time to receive queued frames. A host that stops making progress still times out.": "May oras na tumanggap ng nakapilang frame kapag bumalik mula sa suspendidong page. Nagta-time out pa rin kapag huminto ang pag-usad ng host.",
+  "Katana, Two-handed Sword and Pickaxe start attacks when a large enemy’s body is within their existing reach. Original week-zero ranked combat stays unchanged.": "Umaatake ang Katana, Two-handed Sword at Pickaxe kapag nasa kasalukuyang abot ang katawan ng malaking kalaban. Hindi nagbago ang orihinal na ranked combat ng week zero.",
+  "In casual Endless, boss returns gradually shorten from 90 to 45 seconds after the normal map duration. Additional returns wait while six bosses are alive.": "Sa casual Endless, unti-unting umiikli mula 90 hanggang 45 segundo ang pagbabalik ng boss pagkatapos ng normal na tagal ng mapa. Naghihintay ang dagdag na boss habang may anim na buhay.",
   "Co-op": "Co-op",
   "Co-op on the main menu": "Co-op sa main menu",
   "Open Co-op directly from the main menu. Quests is now in More, keeping the same compact six-button layout.": "Buksan ang Co-op mula mismo sa main menu. Nasa More na ang Quests para manatiling compact ang anim na button.",

@@ -15,7 +15,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
  if(!keys(identity,['protocol','build','sim'])||!cleanRoomSettings({...identity,map:'greentown',hard:false,endless:false})||typeof load!=='function')throw Error('Invalid co-op identity or loader');
  identity={...identity};
  let socket=null,generation=0,hello=false,stopped=false,intent=null,room=null,session=null,game=null,run=null,loading=false,recovering=false,request=null;
- let retryTimer=null,handshakeTimer=null,recoveryTimer=null,tick=null,lastProgress=0,lastTick=0,carry=0,pendingMove=null,sampledInput=null;
+ let retryTimer=null,handshakeTimer=null,recoveryTimer=null,tick=null,lastProgress=0,lastTick=0,carry=0,pendingMove=null,sampledInput=null,stallGrace=false;
  const status=value=>{if(!stopped)onStatus(value);};
  function send(value){
   if(stopped||!socket||socket.readyState!==1||!hello)return false;
@@ -56,7 +56,9 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
      // Catch short render stalls without fast-forwarding long background gaps or reward timers.
      carry+=Math.max(0,Math.min(250,elapsed));let steps=0;
      while(carry>=1000/COOP_HZ&&steps++<8&&!run.closed){run.advance();carry-=1000/COOP_HZ;}
-    }else{if(pendingMove){const move=pendingMove;pendingMove=null;sampledInput(move[0]/127,move[1]/127);}if(Date.now()-lastProgress>15000)finish('hostStalled');}}catch{finish('invalidState');}
+    }else{if(pendingMove){const move=pendingMove;pendingMove=null;sampledInput(move[0]/127,move[1]/127);}
+     // A resumed timer can precede queued socket events; grant grace once per real progress.
+     if(elapsed>1000&&!stallGrace){lastProgress=Date.now();stallGrace=true;}if(Date.now()-lastProgress>15000)finish('hostStalled');}}catch{finish('invalidState');}
    },1000/COOP_HZ);tick.unref?.();
   }catch{finish('loadFailed');}
  }
@@ -91,7 +93,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
   if(!run){finish('invalidMessage');return;}
   if(v.t==='begin'){
    if(!keys(v,['t','epoch','frame'])||!uint(v.frame)){finish('invalidMessage');return;}
-   if(run.begin(v.frame)){lastTick=performance.now();carry=0;recovering=false;clearTimeout(recoveryTimer);lastProgress=Date.now();status('playing');}return;
+   if(run.begin(v.frame)){lastTick=performance.now();carry=0;recovering=false;clearTimeout(recoveryTimer);lastProgress=Date.now();stallGrace=false;status('playing');}return;
   }
   if(v.t==='hold'){
    if(!keys(v,['t','epoch','held','frame'])||v.held!==true||!uint(v.frame)){finish('invalidMessage');return;}pendingMove=null;run.hold();status('waiting');return;
@@ -103,7 +105,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
    if(!keys(v,['t','epoch','hero','data'])||!run.host||v.hero!==1||!cleanUp(v.data)){finish('invalidMessage');return;}run.accept({hero:1,data:v.data});return;
   }
   if(v.t==='down'){
-   if(!keys(v,['t','epoch','data'])||run.host||!cleanDown(v.data)){finish('invalidMessage');return;}if(run.accept(v.data))lastProgress=Date.now();return;
+   if(!keys(v,['t','epoch','data'])||run.host||!cleanDown(v.data)){finish('invalidMessage');return;}const before=run.frame;if(run.accept(v.data)&&run.frame>before){lastProgress=Date.now();stallGrace=false;}return;
   }
   finish('invalidMessage');
  }
