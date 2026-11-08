@@ -5,15 +5,16 @@ import {pathToFileURL} from 'node:url';
 
 test('rollover SQL: guarded clock, immutable credit, admission and settlement',{skip:!process.env.SQS_PGLITE},async t=>{
  const {PGlite}=await import(pathToFileURL(process.env.SQS_PGLITE)),db=new PGlite();
- const sql=f=>readFile(new URL('../tools/supabase/'+f+'.sql',import.meta.url),'utf8');
+ const rawSql=f=>readFile(new URL('../tools/supabase/'+f+'.sql',import.meta.url),'utf8');
+ const sql=async f=>(await rawSql(f)).replace(/\b(?:clock_timestamp|now)\(\)/g,'sqs_fixture_now()');
  try {
-  await db.exec('create role anon;create role authenticated;');
+  await db.exec(`create role anon;create role authenticated;create table public.sqs_fixture_time(ms bigint);insert into public.sqs_fixture_time values(${Date.UTC(2026,10,8,12)});create function public.sqs_fixture_now() returns timestamptz language sql volatile as $$select to_timestamp(ms/1000.0) from public.sqs_fixture_time$$;`);
   for(const f of ['schema','update2','update3','ranked','payouts','update4','update5','update6','update7','update8','update9','update10','update14','update15']) await db.exec(await sql(f));
   await db.exec('alter default privileges grant execute on functions to authenticated;');
   await db.exec(await sql('update16'));await db.exec(await sql('update16'));
   await db.exec("update sqs_admin set v=encode(sha256(convert_to(case when k='payout_key_sha256' then 'payout-key' else 'server-key' end,'UTF8')),'hex');");
   const rpc=async(fn,p)=>(await db.query(`select ${fn}(${Object.keys(p).map((k,i)=>`${k}=>$${i+1}`).join(',')}) r`,Object.values(p))).rows[0].r;
-  const ms=Number((await db.query('select (extract(epoch from now())*1000)::bigint ms')).rows[0].ms),epoch=Date.UTC(2026,10,2),week=Math.floor((ms-epoch)/604800000),deadline=epoch+(week+1)*604800000;
+  const ms=Number((await db.query('select (extract(epoch from sqs_fixture_now())*1000)::bigint ms')).rows[0].ms),epoch=Date.UTC(2026,10,2),week=Math.floor((ms-epoch)/604800000),deadline=epoch+(week+1)*604800000;
   const wallet='0x'+'1'.repeat(40),identity={p_server_key:'server-key',p_id:1,p_wallet:wallet};
   await db.query("insert into sqs_ranked_entries(week,wallet,tx,paid,ip_hash,seed) values($1,$2,$3,500000000000000000,'fixture',1)",[week,wallet,'0x'+'1'.repeat(64)]);
   const start=p=>rpc('sqs_ranked_clock_start',{...identity,p_adv:'adventurer',p_deadline:deadline,...p});
@@ -27,14 +28,14 @@ test('rollover SQL: guarded clock, immutable credit, admission and settlement',{
   assert.equal((await clock({p_action:'reset'})).error,'bad clock transition');
   assert.equal((await clock({p_action:'pause',p_seq:1})).seq,1);
   for(const duration of [3000,30000,90000]){
-   await db.query('update sqs_ranked_entries set clock_paused_at=(extract(epoch from clock_timestamp())*1000)::bigint-$1 where id=1',[duration]);
+   await db.query('update sqs_ranked_entries set clock_paused_at=(extract(epoch from sqs_fixture_now())*1000)::bigint-$1 where id=1',[duration]);
    const pause=await clock({p_action:'pause',p_seq:1});assert.equal(pause.seq,1);
    const resumed=await clock({p_action:'resume',p_seq:2});assert.ok(resumed.creditMs>=Math.min(duration,30000));assert.ok(resumed.creditMs<=Math.min(duration,30000)+100);
    assert.equal((await clock({p_action:'resume',p_seq:2})).creditMs,resumed.creditMs);
    assert.equal((await clock({p_action:'pause',p_seq:3})).error,'bad clock transition');
    await db.exec('update sqs_ranked_entries set clock_seq=1,clock_action=\'pause\',clock_credit_ms=0 where id=1');
   }
-  await db.exec("update sqs_ranked_entries set clock_paused_at=(extract(epoch from clock_timestamp())*1000)::bigint-3000 where id=1");
+  await db.exec("update sqs_ranked_entries set clock_paused_at=(extract(epoch from sqs_fixture_now())*1000)::bigint-3000 where id=1");
   assert.equal((await clock({p_action:'resume',p_seq:2,p_frame:1})).error,'bad clock transition');
   const claimArgs={...identity,p_started:run.started,p_log_sha:'a'.repeat(64),p_attempt:'00000000-0000-4000-8000-000000000001',p_allow_claim:true};
   const claim=await rpc('sqs_ranked_claim_v2',claimArgs);assert.ok(claim.creditMs>=3000&&claim.creditMs<3200);
@@ -45,9 +46,9 @@ test('rollover SQL: guarded clock, immutable credit, admission and settlement',{
   const plan={p_key:'payout-key',p_week:0,p_plan:{house:'50000000000000000',pool:'450000000000000000',rollover:'450000000000000000',prizes:[]}};
   // Shift only the disposable fixture's week origin so reset is in the past, no system clock change.
   let migration=await sql('update16');migration=migration.replaceAll('2026-11-02T00:00:00Z','2020-01-01T00:00:00Z');await db.exec(migration);
-  await db.exec('update sqs_ranked_entries set week=0,submit_until=now()-interval \'1 day\' where id=1');
+  await db.exec('update sqs_ranked_entries set week=0,submit_until=sqs_fixture_now()-interval \'1 day\' where id=1');
   assert.equal((await rpc('sqs_payout_plan',plan)).error,'replay in progress');
-  await db.exec("update sqs_ranked_entries set finished_at=now(),verdict='rejected: fixture' where id=1");
+  await db.exec("update sqs_ranked_entries set finished_at=sqs_fixture_now(),verdict='rejected: fixture' where id=1");
   assert.equal((await rpc('sqs_payout_plan',plan)).ok,true);
   const payAt=(await db.query('select pay_at from sqs_ranked_payout_weeks where week=0')).rows[0].pay_at;
   assert.ok(Math.abs(new Date(payAt).getTime()-ms)<30000);
@@ -57,9 +58,9 @@ test('rollover SQL: guarded clock, immutable credit, admission and settlement',{
   assert.equal((await rpc('sqs_ranked_enter',{...entry,p_tx:'0x'+'1'.repeat(64)})).id,1);
   // Pin both DB clocks for exact admission/upload/legacy grace boundaries.
   await db.exec(await sql('update16'));
-  await db.exec("delete from sqs_ranked_payouts;delete from sqs_ranked_payout_weeks;delete from sqs_ranked_entries;create table sqs_fixture_time(ms bigint);insert into sqs_fixture_time values(1794180599999);create function public.sqs_fixture_now() returns timestamptz language sql volatile as $$select to_timestamp(ms/1000.0) from public.sqs_fixture_time$$;");
+  await db.exec("delete from sqs_ranked_payouts;delete from sqs_ranked_payout_weeks;delete from sqs_ranked_entries;");
   await db.exec((await sql('update16')).replace(/\b(?:clock_timestamp|now)\(\)/g, 'sqs_fixture_now()'));
-  const legacyStart=(await sql('ranked')).match(/create or replace function public\.sqs_ranked_start\([\s\S]*?end \$\$;/)[0];await db.exec(legacyStart.replaceAll('now()', 'sqs_fixture_now()'));
+  const legacyStart=(await sql('ranked')).match(/create or replace function public\.sqs_ranked_start\([\s\S]*?end \$\$;/)[0];await db.exec(legacyStart);
   const boundary=Date.UTC(2026,10,9),setTime=ms=>db.query('update sqs_fixture_time set ms=$1',[ms]);
   await setTime(boundary-1800001);
   await db.query("insert into sqs_ranked_entries(id,week,wallet,tx,paid,ip_hash,seed) values(1,0,$1,$2,500000000000000000,'fixture',1),(2,0,$1,$3,500000000000000000,'fixture',1)",[wallet,'0x'+'3'.repeat(64),'0x'+'4'.repeat(64)]);

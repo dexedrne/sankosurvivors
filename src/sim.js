@@ -4,7 +4,7 @@ import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
   ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength,
-  weaponSlotItem, TUMBLE, PASTURE_NAV, SNOW_WAVE_AT, isSnowEnemy,
+  weaponSlotItem, TUMBLE, PASTURE_NAV, OASIS_WATER_NAV, SNOW_WAVE_AT, isSnowEnemy,
 } from './content.js';
 import { groundHash } from './ground-pack.js';
 import { extraStorms, stormView } from './weather.js';
@@ -36,9 +36,23 @@ function pastureGround(ground) {
   return corrected;
 }
 
+const oasisGroundCache = new WeakMap();
+function oasisGround(ground) {
+  if (!ground || !ground.cell || ground.n !== 512) return ground;
+  if (oasisGroundCache.has(ground)) return oasisGroundCache.get(ground);
+  let corrected = ground;
+  if (groundHash(ground) === OASIS_WATER_NAV.hash) {
+    const blocked = ground.blocked.slice();
+    for (const k of OASIS_WATER_NAV.cells) blocked[k] = 0;
+    corrected = { ...ground, blocked };
+  }
+  oasisGroundCache.set(ground, corrected);
+  return corrected;
+}
+
 export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, coop = false } = {}) {
   if (coop && (ranked || pace !== 2 || players.length !== 2)) throw Error('Co-op requires two casual pace2 players.');
-  if (pace >= 2) ground = pastureGround(ground);
+  if (pace >= 2) { ground = pastureGround(ground); if (map.id === 'oasis') ground = oasisGround(ground); }
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
   const sim = {
@@ -929,9 +943,19 @@ function shrineTick(sim, dt) {
     sim.shrineT = sim.shrines.length >= 2 ? 20 : SHRINE.every; // two waiting already: look again soon
     if (sim.shrines.length < 2) {
       const p = alive[Math.floor(sim.rng() * alive.length)], M = sim.map;
+      if (sim.ground && flowAt(sim, p.x, p.z) < 0) updateFlow(sim, p);
       for (let tries = 0; tries < 10; tries++) {
         const a = sim.rng() * 6.283, d = 16 + sim.rng() * 10, x = p.x + dcos(a) * d, z = p.z + dsin(a) * d;
-        if (hyp(x - M.cx, z - M.cz) > M.r || !walkable(sim, x, z) || flowAt(sim, x, z) === -2) continue;
+        if (hyp(x - M.cx, z - M.cz) + 2.75 > M.r || !walkable(sim, x, z) || sim.ground && flowAt(sim, x, z) < 0) continue;
+        // Check every cell touched by the visible circle, including gaps between radial probes.
+        let clear = true;
+        for (let j = Math.floor(z - 2.75); j <= Math.floor(z + 2.75) && clear; j++) {
+          for (let i = Math.floor(x - 2.75); i <= Math.floor(x + 2.75) && clear; i++) {
+            if (hyp(Math.max(i - x, x - i - 1, 0), Math.max(j - z, z - j - 1, 0)) > 2.75) continue;
+            clear = walkable(sim, i + 0.5, j + 0.5) && clearPath(sim, x, z, i + 0.5, j + 0.5, true);
+          }
+        }
+        if (!clear) continue;
         const kind = SHRINE_KINDS[Math.floor(sim.rng() * SHRINE_KINDS.length)];
         sim.shrines.push({ id: sim.nextId++, x, z, kind, charge: 0, life: SHRINE.life }); sim.fx.push({ k: 'shrine', kind, x, z });
         break;

@@ -1,5 +1,12 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Casual leaderboards have an All maps view with the top five on each map.": "Normal skor tablolarında her haritanın ilk beşini gösteren Tüm haritalar görünümü var.",
+  "All maps": "Tüm haritalar",
+  "Clearer spells and safer ground": "Daha belirgin büyüler ve daha güvenli zemin",
+  "Spell shards and their original TSL glows are larger for easier reading at normal camera zoom. Thrown axes are slightly larger too; damage and hitboxes stay the same.": "Büyü parçaları ve özgün TSL parıltıları, normal kamera uzaklığında daha kolay görülsün diye büyütüldü. Fırlatılan baltalar da biraz daha büyük; hasar ve vuruş alanları aynı.",
+  "Walk through the two lower-floor pools in Hidden Oasis. Solid walls, the outer void and factory-floor water stay blocked.": "Hidden Oasis’in alt katındaki iki havuzdan yürüyerek geçebilirsin. Katı duvarlar, dış boşluk ve fabrika katındaki su kapalı kalır.",
+  "Shrines keep their full charging circle clear of map edges and walls, with reachable placement near either co-op player.": "Mabetlerin tüm şarj çemberi harita kenarlarından ve duvarlardan uzak durur; eşli oyunda her iki oyuncunun yakınında da ulaşılabilir yerlere çıkar.",
+
   "Submit score & continue as Endless": "Skoru gönder ve Endless olarak devam et",
   "Continue without confirmed score": "Skor doğrulanmadan devam et",
   "Continue as Endless": "Endless olarak devam et",

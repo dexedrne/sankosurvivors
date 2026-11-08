@@ -453,6 +453,8 @@ body.touch .seg button { min-height: 38px; min-width: 44px; }
 .rkraces button span, .lbrace button span { display: block; font-size: .8em; opacity: .85; }
 .lbrace { display: flex; gap: 6px; justify-content: center; margin: 2px 0 6px; }
 .lbrace button { flex: 0 1 220px; margin: 0; }
+#lblist .lbmapgroup + .lbmapgroup { margin-top: 20px; }
+#lblist .lbmapgroup h3 { margin: 4px 6px 8px; color: var(--gold); font-size: 20px; overflow-wrap: anywhere; }
 .lbtable tr.short td { color: #b8a48a; }
 .lbtable .prizeamt { white-space:normal; overflow-wrap:anywhere; }
 #rankedpool, .lbweek { overflow-wrap:anywhere; }

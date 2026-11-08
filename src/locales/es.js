@@ -1,5 +1,12 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Casual leaderboards have an All maps view with the top five on each map.": "Las clasificaciones casuales tienen una vista de Todos los mapas con los cinco mejores de cada mapa.",
+  "All maps": "Todos los mapas",
+  "Clearer spells and safer ground": "Hechizos más visibles y terreno más seguro",
+  "Spell shards and their original TSL glows are larger for easier reading at normal camera zoom. Thrown axes are slightly larger too; damage and hitboxes stay the same.": "Los fragmentos de hechizo y sus brillos TSL originales son más grandes para verlos mejor con el zoom normal. Las hachas arrojadas también son algo mayores; el daño y las zonas de impacto siguen iguales.",
+  "Walk through the two lower-floor pools in Hidden Oasis. Solid walls, the outer void and factory-floor water stay blocked.": "Puedes caminar por las dos piscinas del piso inferior de Hidden Oasis. Las paredes sólidas, el vacío exterior y el agua del piso de la fábrica siguen bloqueados.",
+  "Shrines keep their full charging circle clear of map edges and walls, with reachable placement near either co-op player.": "Los santuarios mantienen todo su círculo de carga alejado de los bordes y las paredes, en lugares accesibles cerca de cualquiera de los jugadores en cooperativo.",
+
   "Submit score & continue as Endless": "Enviar puntuación y continuar en Endless",
   "Continue without confirmed score": "Continuar sin puntuación confirmada",
   "Continue as Endless": "Continuar en Endless",

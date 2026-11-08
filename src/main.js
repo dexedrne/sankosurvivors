@@ -997,32 +997,48 @@ const recentErrors = [];
 addEventListener('error', (e) => { recentErrors.push(String(e.message || e).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 addEventListener('unhandledrejection', (e) => { recentErrors.push(String(e.reason && e.reason.message || e.reason).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 const ADV_NAME = (id) => (ADVENTURER_BY_ID[id] || {}).name || id;
-let lbMap = null, lbMode = 'casual', lbEndless = false;
+let lbMap = null, lbMode = 'casual', lbEndless = false, lbRequest = 0;
 const rankedIsOpen = () => !$('rankedbtn').classList.contains('hidden');
-// the leaderboard: Ranked (this week's standings and pot) or Casual (one map at a time, picked from a list)
+// the leaderboard: Ranked standings or Casual, for one map or the top five on every map
 async function showBoard(mapId, mode) {
+  const request = ++lbRequest;
   if (mode) lbMode = mode; if (mapId && mapId !== 'ranked') lbMap = mapId; lbMap = lbMap || selMap;
   if (mapId === 'ranked') lbMode = 'ranked';
   if (lbMode === 'ranked' && !rankedIsOpen()) lbMode = 'casual';
   $('lbtabs').innerHTML = (rankedIsOpen() ? `<div class="lbmode"><button class="${lbMode === 'ranked' ? 'on' : 'ghost'} rankedtab" data-mode="ranked">Ranked</button><button class="${lbMode === 'casual' ? 'on' : 'ghost'}" data-mode="casual">Casual</button></div>` : '')
-    + (lbMode === 'casual' ? `<label class="lbpick">Map <select id="lbmapsel">${MAPS.map((m) => `<option value="${m.id}"${m.id === lbMap ? ' selected' : ''}>${m.name}</option>`).join('')}</select></label>`
+    + (lbMode === 'casual' ? `<label class="lbpick">Map <select id="lbmapsel"><option value="all"${lbMap === 'all' ? ' selected' : ''}>All maps</option>${MAPS.map((m) => `<option value="${m.id}"${m.id === lbMap ? ' selected' : ''}>${m.name}</option>`).join('')}</select></label>`
       + `<div class="lbmode lbsub"><button class="${!lbEndless ? 'on' : 'ghost'}" data-endless="0">15:00 runs</button><button class="${lbEndless ? 'on' : 'ghost'}" data-endless="1">Endless</button></div>` : '');
   for (const b of $('lbtabs').querySelectorAll('[data-mode]')) b.onclick = () => showBoard(null, b.dataset.mode);
   if ($('lbmapsel')) $('lbmapsel').onchange = (e) => showBoard(e.target.value, 'casual');
   for (const b of $('lbtabs').querySelectorAll('[data-endless]')) b.onclick = () => { lbEndless = b.dataset.endless === '1'; showBoard(null, 'casual'); };
   $('lblist').innerHTML = '<p class="dim">Loading…</p>';
-  if (lbMode === 'ranked') return showRankedBoard();
-  try {
-    const r = await fetch(`${BASE}api/scores?map=${encodeURIComponent(lbMap)}${lbEndless ? '&endless=1' : ''}`);
-    if (r.status === 503) { $('lblist').innerHTML = '<p class="dim">The shared leaderboard opens soon. Your best run: ' + localBest() + '</p>'; return; }
-    const d = await r.json(); const rows = d.rows || []; const myName = load('sq-name', ''); // your own runs stand out
-    $('lblist').innerHTML = rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Adventurer</th><th>Time</th><th class="opt">Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span>${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td class="opt">${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : (lbEndless ? '<p class="dim">No endless runs on this map yet. Clear the map, then tick Endless on the title screen and see how long you last.</p>' : '<p class="dim">No runs on this map yet. Be the first.</p>');
-  } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach the leaderboard.</p>'; }
+  if (lbMode === 'ranked') return showRankedBoard(request);
+  const endless = lbEndless, all = lbMap === 'all';
+  const maps = all ? MAPS : [{ id: lbMap }];
+  const boards = await Promise.all(maps.map(async (map) => {
+    let body;
+    try {
+      const r = await fetch(`${BASE}api/scores?map=${encodeURIComponent(map.id)}${endless ? '&endless=1' : ''}`);
+      if (r.status === 503) body = '<p class="dim">The shared leaderboard opens soon. Your best run: ' + localBest() + '</p>';
+      else {
+        if (!r.ok) throw Error('leaderboard unavailable');
+        const d = await r.json(), rows = d.rows || [];
+        body = casualBoardRows(all ? rows.slice(0, 5) : rows, endless);
+      }
+    } catch (e) { body = '<p class="dim">Could not reach the leaderboard.</p>'; }
+    return all ? `<section class="lbmapgroup"><h3>${esc(map.name)}</h3>${body}</section>` : body;
+  }));
+  if (request === lbRequest) $('lblist').innerHTML = boards.join('');
+}
+function casualBoardRows(rows, endless) {
+  const myName = load('sq-name', ''); // your own runs stand out
+  return rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Adventurer</th><th>Time</th><th class="opt">Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span>${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td class="opt">${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : (endless ? '<p class="dim">No endless runs on this map yet. Clear the map, then tick Endless on the title screen and see how long you last.</p>' : '<p class="dim">No runs on this map yet. Be the first.</p>');
 }
 // this week's ranked standings: each wallet's best run, and what the top places would win if the week ended now
-async function showRankedBoard() {
+async function showRankedBoard(request = ++lbRequest) {
   try {
     const r = await fetch(`${BASE}api/ranked-week`); if (!r.ok) throw Error('ranked unavailable'); const d = await r.json();
+    if (request !== lbRequest) return;
     const races = raceList(d); if (!races.includes(rankedMode)) rankedMode = 'normal';
     const race = raceOf(d, rankedMode), kp = kpmRules(d), combined = d.rules === 'combined', two = races.length > 1;
     const rows = race.rows || [], pays = d.payouts || [], myName = load('sq-name', '');
@@ -1039,7 +1055,7 @@ async function showRankedBoard() {
       : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span><small class="rankedruns">${esc(completedRunText(x))}</small></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`)
       : `<p class="dim">No ${two ? race.name + ' ' : ''}ranked runs yet this week. Enter from the Ranked button on the title screen.</p>`);
     for (const b of $('lblist').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); showRankedBoard(); };
-  } catch (e) { $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
+  } catch (e) { if (request === lbRequest) $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
 }
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // ---- something to chase every run (owner: "we also want the game to be really addicting"): your best per map and mode,

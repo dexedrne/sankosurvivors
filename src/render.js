@@ -978,7 +978,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const projObjs = new Map(); // proj id -> object
   // SankoQuest's own spell projectile (its client's "magic_sphere"): a bright octahedron head with six trailing pieces in
   // the element's colour, a soft diamond glow that always faces the camera, and a burst of seven pieces on impact.
-  // Both Missile and Blast families retain native tier sizes; MS_K remains1.
+  // Native Missile/Blast proportions are enlarged together for readability at normal camera zoom.
   // SankoQuest's own eight combat spells, ported from its client (native module374567/spawnProjectile, 3-Nov capture): the element
   // colours, the Missile and Blast tiers. The staff casts them in order as it levels (owner 3 Nov: "the earth air water
   // blast strike projectiles still arent the ones from sankoquest"): Air, Water, Earth, Fire Missile, then Air and Water
@@ -990,7 +990,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // Native module374567, 3-Nov capture dc560396: seven pieces follow elapsed50/65ms samples, not fixed distances.
   const SPELL_TIER = { missile: { size: 1, interval: 50, impact: 260, spread: 0.36 }, blast: { size: 1.65, interval: 65, impact: 400, spread: 0.7 } };
   let spellTime = 0; // interpolated run time in ms; spell animation holds with the run
-  const MS_K = 1, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc), MS_Z = new THREE.Vector3(0, 0, 1);
+  const MS_K = 1.5, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc), MS_Z = new THREE.Vector3(0, 0, 1);
   const { head: msMat, glow: msGlowMat, clock: msClock, glows: msGlowMats } = createSpellMaterials();
   const msInstances = new Set(), msLocal = new THREE.Matrix4(), msWorld = new THREE.Matrix4(), msTint = new THREE.Color();
   let msBatch = null, msCapacity = 0;
@@ -1074,7 +1074,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         msTv.copy(P[P.length - 1].p);
         for (const e of P) { if (e.at <= want) { msTv.copy(e.p).lerp(newer, newerAt === e.at ? 0 : (want - e.at) / (newerAt - e.at)); break; } newer = e.p; newerAt = e.at; }
         msTv.sub(msWp); // world offset, then the game's wobble on WORLD x / y, then into the group's frame
-        msTv.x += Math.sin(13 * sec - 1.7 * i) * a * 0.055 * MS_K; msTv.y += Math.cos(11 * sec - 1.7 * i) * a * 0.055 * MS_K;
+        msTv.x += Math.sin(13 * sec - 1.7 * i) * a * 0.055; msTv.y += Math.cos(11 * sec - 1.7 * i) * a * 0.055;
         msObj.position.copy(msTv).applyQuaternion(msQ);
       }
       const sc = (i === 0 ? 0.1125 : 0.075 * (1 - 0.8 * a)) * T.size * MS_K;
@@ -1971,7 +1971,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           if (evo) o.add(glowSprite(0xffd34d, 0.8, 0.5));
           o.add(ball); Object.assign(o.userData, { spinner: ball, trail: evo ? 0xffd34d : 0xfff6dc, every: 0.45 });
         } else if (art === 'axe') {
-          item(weaponModelPath('axe', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) { const m = orientedItem(p, 1.0); o.userData.spinner2 = m; o.add(m); } });
+          item(weaponModelPath('axe', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) { const m = orientedItem(p, 1.25); o.userData.spinner2 = m; o.add(m); } });
 
         }
       }

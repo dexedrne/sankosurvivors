@@ -1,5 +1,12 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Casual leaderboards have an All maps view with the top five on each map.": "May Lahat ng mapa na view ang casual leaderboard na nagpapakita ng nangungunang lima sa bawat mapa.",
+  "All maps": "Lahat ng mapa",
+  "Clearer spells and safer ground": "Mas malinaw na mga spell at mas ligtas na daan",
+  "Spell shards and their original TSL glows are larger for easier reading at normal camera zoom. Thrown axes are slightly larger too; damage and hitboxes stay the same.": "Mas malaki na ang mga piraso ng spell at ang orihinal nilang TSL glow para mas madaling makita sa normal na zoom. Medyo mas malaki rin ang mga inihahagis na palakol; pareho pa rin ang damage at hitbox.",
+  "Walk through the two lower-floor pools in Hidden Oasis. Solid walls, the outer void and factory-floor water stay blocked.": "Maaari nang lakaran ang dalawang pool sa ibabang palapag ng Hidden Oasis. Harang pa rin ang mga solidong pader, ang kawalan sa labas at ang tubig sa palapag ng pabrika.",
+  "Shrines keep their full charging circle clear of map edges and walls, with reachable placement near either co-op player.": "Nananatiling malayo sa gilid ng mapa at mga pader ang buong charging circle ng shrine, at naaabot ito malapit sa alinman sa dalawang co-op player.",
+
   "Submit score & continue as Endless": "Isumite ang score at magpatuloy sa Endless",
   "Continue without confirmed score": "Magpatuloy nang walang kumpirmadong score",
   "Continue as Endless": "Magpatuloy sa Endless",
