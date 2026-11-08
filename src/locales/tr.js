@@ -1,5 +1,15 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "The skill change was not confirmed saved. Your previous progress is kept.": "Beceri değişikliğinin kaydedildiği doğrulanamadı. Önceki ilerlemen korunuyor.",
+  "Skills were saved on this device. Reopen Skills to refresh the display.": "Beceriler bu cihaza kaydedildi. Görünümü yenilemek için Beceriler menüsünü tekrar aç.",
+  "Skill progress could not be read. Keep this device’s progress.": "Beceri ilerlemesi okunamadı. Bu cihazdaki ilerlemeni koru.",
+  "Your skills changed. Review the current ranks and try again.": "Becerilerin değişti. Güncel kademeleri kontrol edip tekrar dene.",
+  "Cloud save paused because skills changed on both devices. Your local progress is safe. Turn cloud save on again and choose which progress to keep.": "İki cihazda da beceriler değiştiği için bulut kaydı duraklatıldı. Yerel ilerlemen güvende. Bulut kaydını tekrar aç ve hangi ilerlemenin kalacağını seç.",
+  "Safer skill upgrades": "Daha güvenli beceri yükseltmeleri",
+  "Skill purchases, Undo and Refund all now save ranks and coins together.": "Beceri alımları, Geri al ve Tümünü iade et artık kademeleri ve altını birlikte kaydeder.",
+  "A changed refund quote needs confirmation again.": "İade tutarı değişirse yeniden onay gerekir.",
+  "Delayed holds cannot change skills after you close the menu or start a run.": "Geciken basılı tutma işlemleri, menüyü kapattıktan veya turu başlattıktan sonra becerileri değiştiremez.",
+  "If skills changed on two devices, cloud saving pauses for an explicit progress choice.": "İki cihazda da beceriler değişirse bulut kaydı, hangi ilerlemenin kalacağı seçilene kadar duraklar.",
   "The gear change was not confirmed saved. Your previous progress is kept.": "Eşya değişikliğinin kaydedildiği doğrulanamadı. Önceki ilerlemen korunuyor.",
   "Gear was saved on this device. Reopen Gear to refresh its display.": "Eşya bu cihaza kaydedildi. Görünümü yenilemek için Eşya menüsünü tekrar aç.",
   "Gear payment history could not be read. Keep this device’s progress.": "Eşya ödeme geçmişi okunamadı. Bu cihazdaki ilerlemeni koru.",

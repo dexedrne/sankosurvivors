@@ -1,5 +1,15 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "The skill change was not confirmed saved. Your previous progress is kept.": "Hindi nakumpirmang na-save ang pagbabago sa kasanayan. Nananatili ang dati mong progreso.",
+  "Skills were saved on this device. Reopen Skills to refresh the display.": "Na-save ang mga kasanayan sa device na ito. Buksan muli ang Mga kasanayan para ma-refresh ang itsura nito.",
+  "Skill progress could not be read. Keep this device’s progress.": "Hindi mabasa ang progreso ng mga kasanayan. Itabi ang progreso sa device na ito.",
+  "Your skills changed. Review the current ranks and try again.": "Nagbago ang mga kasanayan mo. Suriin ang kasalukuyang mga antas at subukan muli.",
+  "Cloud save paused because skills changed on both devices. Your local progress is safe. Turn cloud save on again and choose which progress to keep.": "Naka-pause ang cloud save dahil nagbago ang mga kasanayan sa dalawang device. Ligtas ang lokal mong progreso. I-on muli ang cloud save at piliin kung aling progreso ang itatabi.",
+  "Safer skill upgrades": "Mas ligtas na pag-upgrade ng mga kasanayan",
+  "Skill purchases, Undo and Refund all now save ranks and coins together.": "Sabay nang sine-save ang mga antas at barya kapag bumili ng kasanayan, nag-Undo, o nagsauli ng lahat.",
+  "A changed refund quote needs confirmation again.": "Kailangan ng panibagong kumpirmasyon kapag nagbago ang halaga ng ibabalik na barya.",
+  "Delayed holds cannot change skills after you close the menu or start a run.": "Hindi na mababago ng naantalang pagpindot nang matagal ang mga kasanayan matapos isara ang menu o simulan ang laro.",
+  "If skills changed on two devices, cloud saving pauses for an explicit progress choice.": "Kapag nagbago ang mga kasanayan sa dalawang device, hihinto ang cloud save para mapili kung aling progreso ang itatabi.",
   "The gear change was not confirmed saved. Your previous progress is kept.": "Hindi nakumpirmang na-save ang pagbabago sa gamit. Nananatili ang dati mong progreso.",
   "Gear was saved on this device. Reopen Gear to refresh its display.": "Na-save ang gamit sa device na ito. Buksan muli ang Gamit para ma-refresh ang itsura nito.",
   "Gear payment history could not be read. Keep this device’s progress.": "Hindi mabasa ang tala ng pagbili ng gamit. Panatilihin ang progreso sa device na ito.",

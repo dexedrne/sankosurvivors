@@ -199,7 +199,7 @@ button.ghost { border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch;
 .btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; } .btnrow button { margin: 4px 0 0; }
 .lurow { display: flex; gap: 8px; justify-content: center; margin-top: 10px; } .lurow button { margin: 0; padding: 2px 14px; }
 .lurow button:disabled { opacity: .45; }
-#gear .lurow button { min-height: 44px; }
+#gear .lurow button, #skills .lurow button { min-height: 44px; }
 #gearwrap { display: grid; grid-template-columns: 170px 1fr; gap: 14px; text-align: left; min-height: 300px; }
 #gearslots { display: grid; grid-template-columns: repeat(2, 76px); gap: 6px; align-content: start; }
 .gslot { position: relative; width: 76px; height: 76px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch; display: grid; place-items: center; cursor: url(../assets/ui/sq/cursors/customcursor_hand.png), pointer; }
@@ -238,6 +238,9 @@ button.ghost { border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch;
 #skillgrid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; }
 .skill { padding: 6px 8px; gap: 2px 8px; } .skill p { line-height: 1.05; } .skill img { width: 32px; height: 32px; }
 #skills .panel, #gear .panel, #quests .panel { width: min(860px, 96vw); max-width: min(860px, 96vw); }
+#skills .panel { display: flex; flex-direction: column; overflow: hidden; }
+#skillsbody { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+#skillstatus, #skills .lurow { flex-shrink: 0; }
 
 /* ---- touch: thumb stick, pause button ---- */
 html, body, #c, #hud { touch-action: none; }
@@ -574,7 +577,7 @@ body.touch .ckbtns .kb { display: none; }
   #skills .panel { padding: 12px 18px; } #skills h2 { margin: 0 0 4px; } #skills .coinline { margin: 0 0 6px; }
   #skillgrid .skill { padding: 4px 8px; } #skillgrid .skill p { font-size: 15px; line-height: 1.05; } #skillgrid .skill button { margin-top: 2px; }
 }
-#skills .lurow { position: sticky; bottom: 0; z-index: 2; margin-top: 6px; justify-content: center; gap: 10px; } .skillhint { margin: 6px 0 0; font-size: 15px; }
+#skills .lurow { position: static; bottom: 0; z-index: 2; margin-top: 6px; justify-content: center; gap: 10px; } .skillhint { margin: 6px 0 0; font-size: 15px; }
 /* buy DMT in the wallet panel */
 .wlbuy { margin: 10px 0; padding: 8px 10px; border: 2px solid var(--line); background: #241d15; text-align: left; }
 .wlbuy p { margin: 4px 0; } .wlbuy .lurow { flex-wrap: wrap; gap: 6px; justify-content: flex-start; }

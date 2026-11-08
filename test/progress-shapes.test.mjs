@@ -91,7 +91,10 @@ test('cloud summary and coin merge avoid coercing malformed numeric JSON',()=>{
  const merged=mergeSaves({'sq-coins':'0'},{'sq-coins':J(bad)},{'sq-coins':'2'});assert.equal(merged['sq-coins'],'2');
 });
 test('cloud metadata and level merges preserve valid math without numeric object exceptions',()=>{
- const merged=mergeSaves({'sq-stats':J({other:2}),'sq-skills':'{}'},{'sq-stats':J({other:3,kills:bad}),'sq-skills':J({combat:bad,mining:'2'})},{'sq-stats':J({other:4,kills:6}),'sq-skills':J({combat:2,mining:1})});assert.equal(JSON.parse(merged['sq-stats']).other,5);assert.equal(JSON.parse(merged['sq-skills']).combat,2);assert.equal(JSON.parse(merged['sq-skills']).mining,2);
+ const base={'sq-stats':J({other:2}),'sq-skills':'{}'},mine={'sq-stats':J({other:3,kills:bad}),'sq-skills':J({combat:bad,mining:'2'})},theirs={'sq-stats':J({other:4,kills:6}),'sq-skills':J({combat:2,mining:1})};
+ assert.throws(()=>mergeSaves(base,mine,theirs),e=>e.skillsConflict===true,'different shop histories now require a choice');
+ const stats=mergeSaves({'sq-stats':base['sq-stats']},{'sq-stats':mine['sq-stats']},{'sq-stats':theirs['sq-stats']});assert.equal(JSON.parse(stats['sq-stats']).other,5);
+ const ranks=mergeSaves(null,{'sq-skills':J({combat:bad,mining:0})},{'sq-skills':J({combat:2,mining:'2'})});assert.equal(JSON.parse(ranks['sq-skills']).combat,2);assert.equal(JSON.parse(ranks['sq-skills']).mining,2);
 });
 test('export UI contains export errors and retains manual clipboard fallback',async()=>{
  const nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{textContent:'',value:'',selected:false,select(){this.selected=true;}});return nodes.get(id);};let copies=0;

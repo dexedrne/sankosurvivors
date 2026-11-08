@@ -1,3 +1,4 @@
+import { skillQuote, prepareSkills } from './skill-purchases.js';
 import { armouryQuote, prepareArmoury } from './armoury.js';
 import { createCoopClient } from './coop-client.js';
 import { groundHash } from './ground-pack.js';
@@ -70,13 +71,13 @@ const slayName = (map, type) => titled(map, type) || `the ${ENEMIES[type].name}`
 
 // A previous import or completed run must settle before startup can change or upload progress.
 let pendingRunSave = false;
-try { pendingRunSave = localStorage.getItem(RUN_SAVE_KEY) !== null; } catch { /* existing session-only boot when storage is blocked */ }
+try { pendingRunSave = localStorage.getItem(RUN_SAVE_KEY) !== null; } catch { pendingRunSave = true; } // Unreadable journals cannot authorize play.
 if (pendingRunSave) {
   try { recoverRunProgress(localStorage); }
   catch { showProgressRecovery(() => true, false, { retry: () => recoverRunProgress(localStorage), reload: true }); throw Error('Run rewards must finish saving before playing.'); }
 }
 let pendingImport = false;
-try { pendingImport = localStorage.getItem(IMPORT_BACKUP_KEY) !== null; } catch { /* storage blocked */ }
+try { pendingImport = localStorage.getItem(IMPORT_BACKUP_KEY) !== null; } catch { pendingImport = true; }
 if (pendingImport) { showProgressRecovery(); throw Error('Progress recovery is required before playing.'); }
 
 // ---- saved progress ------------------------------------------------------------------------------
@@ -467,40 +468,72 @@ function progressionText(meta, gear) {
   const spawns = Math.round(strength * 0.55 * 1000) / 1000;
   return `Casual scaling: enemy HP/contact damage +${strength}%; base spawn pressure +${spawns}%.`;
 }
+function changeSkills(action) {
+  if (!canManuallyReload() || !progressCanLoad() || $('skills').classList.contains('hidden')) return false;
+  try {
+    const next = prepareSkills(localStorage, action);
+    importProgress(localStorage, next.data);
+  } catch (error) {
+    if (error.recovery) { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen() && !rankedBusy, false, error.runRecovery ? { retry: () => recoverRunProgress(localStorage), reload: true } : null); }
+    else { try { buildSkills(); navFocus($('skillsclose')); } catch { /* keep the previous progress if its display also fails */ } }
+    $('skillstatus').textContent = 'The skill change was not confirmed saved. Your previous progress is kept.';
+    return false;
+  }
+  try {
+    if (onSaved) onSaved('sq-skills');
+    showBest(); buildSkills();
+    navFocus(action.id && $('skillgrid').querySelector('button[data-id="' + action.id + '"]:not(:disabled)') || $('skillsclose'));
+  } catch { $('skillstatus').textContent = 'Skills were saved on this device. Reopen Skills to refresh the display.'; navFocus($('skillsclose')); }
+  return true;
+}
 function buildSkills() {
-  const lv = getSkills(), coins = getCoins();
+  const lv = getSkills(), coins = getCoins(), status = $('skillstatus'); let quote;
+  try { quote = skillQuote(localStorage); status.textContent = ''; }
+  catch { status.textContent = 'Skill progress could not be read. Keep this device’s progress.'; }
   $('coins2').textContent = coins;
   $('skillpressure').textContent = progressionText(lv, getGear());
   $('skillgrid').innerHTML = SKILL_IDS.map((id) => {
     const s = SKILLS[id], l = lv[id] || 0, max = l >= s.max, cost = skillCost(id, l);
-    return `<div class="skill"><img src="${asset('')}${s.icon}" alt=""><h4>${s.name}</h4><div class="pips">${'■'.repeat(l)}${'□'.repeat(s.max - l)}</div><p style="grid-column:1/-1">${s.blurb}</p><button data-id="${id}" ${max || coins < cost ? 'disabled' : ''}>${max ? 'Maxed' : `Train · ${cost} coins`}</button></div>`;
+    return `<div class="skill"><img src="${asset('')}${s.icon}" alt=""><h4>${s.name}</h4><div class="pips">${'■'.repeat(l)}${'□'.repeat(s.max - l)}</div><p style="grid-column:1/-1">${s.blurb}</p><button data-id="${id}" ${!quote || max || coins < cost ? 'disabled' : ''}>${max ? 'Maxed' : `Train · ${cost} coins`}</button></div>`;
   }).join('');
-  for (const b of $('skillgrid').querySelectorAll('button')) b.onclick = () => {
-    const id = b.dataset.id, l = getSkills()[id] || 0, cost = skillCost(id, l);
-    if (l >= SKILLS[id].max || getCoins() < cost) return;
-    const sk = getSkills(); sk[id] = l + 1; save('sq-skills', sk); save('sq-coins', getCoins() - cost); showBest(); buildSkills();
+  const current = () => {
+    if (!canManuallyReload() || !progressCanLoad() || $('skills').classList.contains('hidden')) return false;
+    let latest; try { latest = skillQuote(localStorage); }
+    catch { status.textContent = 'Skill progress could not be read. Keep this device’s progress.'; return false; }
+    if (latest.identity !== quote?.identity) {
+      buildSkills(); status.textContent = 'Your skills changed. Review the current ranks and try again.'; navFocus($('skillsclose')); return false;
+    }
+    return true;
   };
-  // refunds (owner 3 Nov): right-click a skill (or hold it on a phone) to undo its last rank, full price back
-  const undo = (id) => { const sk = getSkills(), l = sk[id] || 0; if (!l) return; sk[id] = l - 1; save('sq-skills', sk); save('sq-coins', getCoins() + skillCost(id, l - 1)); showBest(); buildSkills(); };
+  for (const b of $('skillgrid').querySelectorAll('button')) b.onclick = () => {
+    if ($('skillgrid').contains(b) && current()) changeSkills({kind:'train',id:b.dataset.id});
+  };
+  // A detached card or a closed menu cannot complete a delayed hold.
   $('skillgrid').querySelectorAll('.skill').forEach((el, i) => {
-    const id = SKILL_IDS[i]; let hold = 0;
+    const id = SKILL_IDS[i]; let hold = 0, held = false;
+    const undo = () => { if ((lv[id] || 0) > 0 && $('skillgrid').contains(el) && current()) changeSkills({kind:'undo',id}); };
     el.title = (lv[id] || 0) ? 'Right-click to undo a rank (full refund)' : '';
-    el.addEventListener('contextmenu', (e) => { e.preventDefault(); undo(id); });
-    el.addEventListener('touchstart', () => { clearTimeout(hold); hold = setTimeout(() => undo(id), 600); }, { passive: true });
-    for (const ev of ['touchend', 'touchmove', 'touchcancel']) el.addEventListener(ev, () => clearTimeout(hold), { passive: true });
+    el.addEventListener('contextmenu', (e) => { e.preventDefault(); clearTimeout(hold); held = true; undo(); });
+    el.addEventListener('touchstart', () => { clearTimeout(hold); held = false; hold = setTimeout(() => { held = true; undo(); }, 600); }, { passive: true });
+    // A completed hold must not click the newly rendered Train button when the finger lifts.
+    el.addEventListener('touchend', (e) => { clearTimeout(hold); if ((held || !$('skillgrid').contains(el) || $('skills').classList.contains('hidden')) && e.cancelable) e.preventDefault(); }, { passive: false });
+    for (const ev of ['touchmove', 'touchcancel']) el.addEventListener(ev, () => clearTimeout(hold), { passive: true });
   });
-  const spent = SKILL_IDS.reduce((a, id) => { let c = 0; for (let k = 0; k < (lv[id] || 0); k++) c += skillCost(id, k); return a + c; }, 0);
-  const all = $('skillrefund'); all.disabled = !spent; all.dataset.sure = ''; all.textContent = spent ? `Refund all · ${spent.toLocaleString()} coins back` : 'Refund all';
+  const all = $('skillrefund'); all.disabled = !quote?.amount; all.dataset.sure = '';
+  all.textContent = quote?.amount ? `Refund all · ${quote.amount.toLocaleString()} coins back` : 'Refund all';
   all.onclick = () => {
-    if (!spent) return;
-    if (all.dataset.sure !== '1') { all.dataset.sure = '1'; all.textContent = `Click again to refund every skill (${spent.toLocaleString()} coins)`; return; }
-    save('sq-skills', {}); save('sq-coins', getCoins() + spent); showBest(); buildSkills();
+    if (!canManuallyReload() || !progressCanLoad() || $('skills').classList.contains('hidden')) return;
+    let latest; try { latest = skillQuote(localStorage); }
+    catch { status.textContent = 'Skill progress could not be read. Keep this device’s progress.'; return; }
+    if (!latest.amount) return;
+    if (all.dataset.sure !== latest.identity) { all.dataset.sure = latest.identity; all.textContent = `Click again to refund every skill (${latest.amount.toLocaleString()} coins)`; return; }
+    changeSkills({kind:'refund'});
   };
 }
-$('skillsbtn').onclick = () => { buildSkills(); $('skills').classList.remove('hidden'); };
+$('skillsbtn').onclick = () => { buildSkills(); $('skills').classList.remove('hidden'); navFocus($('skillgrid').querySelector('button:not(:disabled)') || ($('skillrefund').disabled ? $('skillsclose') : $('skillrefund'))); };
 // tapping outside a menu panel closes it
-for (const id of ['skills', 'gear', 'quests']) $(id).addEventListener('click', (e) => { if (e.target.id === id) $(id).classList.add('hidden'); });
-$('skillsclose').onclick = () => $('skills').classList.add('hidden');
+for (const id of ['skills', 'gear', 'quests']) $(id).addEventListener('click', (e) => { if (e.target.id === id) { if (id === 'skills') $('skillsclose').click(); else $(id).classList.add('hidden'); } });
+$('skillsclose').onclick = () => { $('skillrefund').dataset.sure = ''; $('skills').classList.add('hidden'); navFocus($('skillsbtn')); };
 
 // ---- loading ------------------------------------------------------------------------------------------------------------
 const labels = { map: 'Drawing the map…', props: 'Raising Greentown…', monsters: 'Waking the monsters…', ready: 'Ready' };
@@ -760,7 +793,7 @@ function containMenuTab(e) {
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 }
-for (const id of ['guide', 'pets', 'more', 'quests', 'gear']) $(id).addEventListener('keydown', containMenuTab);
+for (const id of ['guide', 'pets', 'more', 'quests', 'gear', 'skills']) $(id).addEventListener('keydown', containMenuTab);
 
 // ---- updates log -------------------------------------------------------------------------------------------------------
 $('updnew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
@@ -2096,6 +2129,7 @@ function navBack() {
   if (walletModalOpen()) return true;
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
+    if (id === 'skills') { $('skillsclose').click(); return true; }
     if (id === 'quests') { $('questclose').click(); return true; }
     if (id === 'guide' || id === 'pets' || id === 'more' || id === 'coop') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');

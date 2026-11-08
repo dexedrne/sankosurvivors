@@ -4,7 +4,8 @@
 //
 // Two devices playing at the same time: a save made on top of an older one is refused with the newer one, and the two are
 // merged against the last save both had seen (`base`): coins and run counters add up what each device earned or spent,
-// cleared maps, finished quests and found gear are joined, skill ranks keep the higher, the best run keeps the better;
+// cleared maps, finished quests and found gear are joined, the best run keeps the better; conflicting shop histories
+// require an explicit save choice so refunded ranks cannot be silently restored;
 // for anything else this device wins. Nothing one device earned is lost.
 import { current, walletRevision } from './wallet.js';
 import { numberValue, finiteNumber } from './progress-values.js';
@@ -18,13 +19,14 @@ const parse = (v, d) => { try { const x = JSON.parse(v); return x ?? d; } catch 
 const num = (v) => finiteNumber(parse(v, 0));
 const obj = (v) => { const o = parse(v, {}); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; };
 const arr = (v) => { const a = parse(v, []); return Array.isArray(a) ? a : []; };
+const skillState = raw => JSON.stringify(Object.entries(obj(raw)).sort(([a],[b]) => a.localeCompare(b)));
 import { betterRun } from './personal-record.js';
 export { betterRun } from './personal-record.js';
 
 // the merge of one key: base is what both devices last agreed on (undefined: never synced)
-function mergeKey(k, base, mine, theirs, sharedQuestCoins = 0) {
-  // A new claim on both devices pays once, even if one device spent back to its base balance.
-  if (k === 'sq-coins' && sharedQuestCoins > 0 && mine !== undefined && theirs !== undefined && mine !== theirs)
+function mergeKey(k, base, mine, theirs, sharedQuestCoins, identical) {
+  // Equal balances can hide independent purchases or earnings; only complete copied saves are idempotent.
+  if (k === 'sq-coins' && mine !== undefined && theirs !== undefined && !identical && (sharedQuestCoins > 0 || mine !== base && theirs !== base))
     return JSON.stringify(Math.max(0, Math.round(num(theirs) + num(mine) - num(base) - sharedQuestCoins)));
   // Personal records only improve, including when an older client makes a one-sided weaker edit.
   if ((k === 'sq-best' || k === 'sq-bests') && (base !== undefined || mine !== undefined || theirs !== undefined)) {
@@ -36,13 +38,16 @@ function mergeKey(k, base, mine, theirs, sharedQuestCoins = 0) {
   if (mine === undefined || mine === base) return theirs;
   if (theirs === base) return mine;
   switch (k) { // both changed it
-    case 'sq-coins': return JSON.stringify(Math.max(0, Math.round(num(theirs) + num(mine) - num(base))));
     case 'sq-stats': { // run counters: each device's own additions
       const b = obj(base), m = obj(mine), t = obj(theirs), out = { ...t };
       for (const [s, v] of Object.entries(m)) if (Number.isFinite(numberValue(v))) out[s] = finiteNumber(t[s]) + numberValue(v) - finiteNumber(b[s]); else out[s] = v;
       return JSON.stringify(out);
     }
-    case 'sq-skills': case 'sq-gearlv': { const m = obj(mine), t = obj(theirs), out = { ...t }; for (const [s, v] of Object.entries(m)) out[s] = Math.max(finiteNumber(v), finiteNumber(t[s])); return JSON.stringify(out); }
+    case 'sq-skills': case 'sq-gearlv': {
+      // Text formatting alone must not turn a one-sided skill refund into a max-rank merge.
+      if (k === 'sq-skills') { if (skillState(mine) === skillState(base)) return theirs; if (skillState(theirs) === skillState(base)) return mine; }
+      const m = obj(mine), t = obj(theirs), out = { ...t }; for (const [s, v] of Object.entries(m)) out[s] = Math.max(finiteNumber(v), finiteNumber(t[s])); return JSON.stringify(out);
+    }
     case 'sq-cleared': case 'sq-quests': case 'sq-bank': return JSON.stringify([...new Set([...arr(theirs), ...arr(mine)])]);
     default: return mine;
   }
@@ -53,10 +58,14 @@ export function mergeSaves(base, mine, theirs) {
   const changed = d => JSON.stringify(armoury(d)) !== JSON.stringify(armoury(base));
   if ([base,mine,theirs].some(history) && changed(mine) && changed(theirs) && !same(mine,theirs))
     throw Object.assign(Error('Gear upgrades changed on both devices.'), {armouryConflict:true});
+  const skillChanged = d => skillState(d?.['sq-skills']) !== skillState(base?.['sq-skills']);
+  const skillHistory = d => Object.values(obj(d?.['sq-skills'])).some(v => finiteNumber(v) > 0);
+  if ((base ? skillChanged(mine) && skillChanged(theirs) : skillHistory(mine) && skillHistory(theirs)) && !same(mine,theirs))
+    throw Object.assign(Error('Skills changed on both devices.'), {skillsConflict:true});
   const before = new Set(arr(base?.['sq-quests'])), a = new Set(arr(mine['sq-quests'])), b = new Set(arr(theirs['sq-quests'])), bank = new Set(arr(base?.['sq-bank']));
   const sharedQuestCoins = base ? MILESTONES.reduce((sum, q) => sum + (!before.has(q.id) && a.has(q.id) && b.has(q.id) ? q.coins + (q.item && bank.has(q.item) ? DUPLICATE_GEAR_COINS : 0) : 0), 0) : 0;
-  const out = {};
-  for (const k of SAVE_KEYS) { const v = mergeKey(k, base ? base[k] : undefined, mine[k], theirs[k], sharedQuestCoins); if (v !== undefined) out[k] = v; }
+  const out = {}, identical = same(mine, theirs);
+  for (const k of SAVE_KEYS) { const v = mergeKey(k, base ? base[k] : undefined, mine[k], theirs[k], sharedQuestCoins, identical); if (v !== undefined) out[k] = v; }
   // Longest runs and distinct map clears are records, not additive run counters.
   if (out['sq-stats'] !== undefined) {
     const times = [base, mine, theirs].map(d => obj(d?.['sq-stats']).bestTime), hasTime = times.some(v => v !== undefined), hasMaps = out['sq-cleared'] !== undefined;
@@ -77,7 +86,7 @@ export function summary(d) {
 // a device that has not really played yet (its progress can be replaced without asking)
 export const isFresh = (d) => {
   const s = summary(d);
-  const history = ['sq-stats', 'sq-gearlv', 'sq-armoury', 'sq-best', 'sq-bests'].some(k => Object.keys(obj(d[k])).length);
+  const history = ['sq-stats', 'sq-skills', 'sq-gearlv', 'sq-armoury', 'sq-best', 'sq-bests'].some(k => Object.keys(obj(d[k])).length);
   return !s.coins && !s.maps && !s.ranks && !s.gear && !history && !arr(d['sq-quests']).length;
 };
 
@@ -112,6 +121,9 @@ export function createCloud(baseUrl, ui) {
   const storageNote = error => {
     if (error.armouryConflict) {
       signOut(); ui.note('Cloud save paused because gear upgrades changed on both devices. Your local progress is safe. Turn cloud save on again and choose which progress to keep.'); return;
+    }
+    if (error.skillsConflict) {
+      signOut(); ui.note('Cloud save paused because skills changed on both devices. Your local progress is safe. Turn cloud save on again and choose which progress to keep.'); return;
     }
     if (!error.storage && !error.recovery) return;
     if (error.recovery) { ui.recover?.(error); ui.note('Progress recovery is required before playing.'); }
@@ -240,7 +252,7 @@ export function createCloud(baseUrl, ui) {
       });
     } catch (error) {
       storageNote(error);
-      if (error.armouryConflict) return false;
+      if (error.armouryConflict || error.skillsConflict) return false;
       if (!error.recovery && upload) {
         try { await progressLock(() => {
           if (!live(s) || !canSave()) return;

@@ -1,5 +1,15 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "The skill change was not confirmed saved. Your previous progress is kept.": "No se confirmó el guardado del cambio de habilidad. Se conserva tu progreso anterior.",
+  "Skills were saved on this device. Reopen Skills to refresh the display.": "Las habilidades se guardaron en este dispositivo. Vuelve a abrir Habilidades para actualizar la vista.",
+  "Skill progress could not be read. Keep this device’s progress.": "No se pudo leer el progreso de habilidades. Conserva el progreso de este dispositivo.",
+  "Your skills changed. Review the current ranks and try again.": "Tus habilidades cambiaron. Revisa los rangos actuales e inténtalo de nuevo.",
+  "Cloud save paused because skills changed on both devices. Your local progress is safe. Turn cloud save on again and choose which progress to keep.": "El guardado en la nube se pausó porque las habilidades cambiaron en ambos dispositivos. Tu progreso local está a salvo. Activa la nube de nuevo y elige qué progreso conservar.",
+  "Safer skill upgrades": "Mejoras de habilidades más seguras",
+  "Skill purchases, Undo and Refund all now save ranks and coins together.": "Las compras de habilidades, Deshacer y Reembolsar todo ahora guardan rangos y monedas juntos.",
+  "A changed refund quote needs confirmation again.": "Si cambia el importe del reembolso, debes confirmarlo otra vez.",
+  "Delayed holds cannot change skills after you close the menu or start a run.": "Mantener pulsado ya no puede cambiar habilidades después de cerrar el menú o iniciar una partida.",
+  "If skills changed on two devices, cloud saving pauses for an explicit progress choice.": "Si las habilidades cambian en dos dispositivos, el guardado en la nube se pausa para que elijas qué progreso conservar.",
   "The gear change was not confirmed saved. Your previous progress is kept.": "No se confirmó el guardado del cambio de equipo. Se conserva tu progreso anterior.",
   "Gear was saved on this device. Reopen Gear to refresh its display.": "El equipo se guardó en este dispositivo. Vuelve a abrir Equipo para actualizar la vista.",
   "Gear payment history could not be read. Keep this device’s progress.": "No se pudo leer el historial de pagos del equipo. Conserva el progreso de este dispositivo.",
