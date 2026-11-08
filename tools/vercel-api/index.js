@@ -126,6 +126,13 @@ module.exports = async function handler(req, res) {
     }
     if (req.method === 'GET' && path === 'run') {
       if (!TICKET_KEY) return send(res, 503, { error: 'leaderboard not set up yet' });
+      if (u.searchParams.has('map')) {
+        const m = u.searchParams.get('map'), a = u.searchParams.get('adv'), hard = u.searchParams.get('hard'), endless = u.searchParams.get('endless');
+        if (!MAPS.has(m) || !/^[a-z]{2,16}$/.test(a || '') || !['0','1'].includes(hard) || !['0','1'].includes(endless)) return send(res, 400, { error: 'bad run' });
+        const s = Date.now(), n = crypto.randomBytes(9).toString('base64url'), h = hard === '1';
+        const child = signed({ s, n: sign('casual-endless-v1|' + n).slice(0, 12), k: 'ce', m, a, h });
+        return send(res, 200, endless === '1' ? { ticket: child } : { ticket: signed({ s, n, k: 'cn', m, a, h }), endlessTicket: child });
+      }
       return send(res, 200, { ticket: makeTicket() });
     }
     if (req.method === 'POST' && path === 'score') {
@@ -135,6 +142,7 @@ module.exports = async function handler(req, res) {
       if (!MAPS.has(map)) return send(res, 400, { error: 'bad map' });
       if ([b.name, b.adv].some(v => v != null && typeof v !== 'string') || [b.t, b.kills, b.level].some(v => v != null && (!['number', 'string'].includes(typeof v) || !Number.isFinite(Number(v))))) return send(res, 400, { error: 'bad score' });
       const endless = b.endless === true, won = b.won === true && !endless, t = int(b.t);
+      if (tk.k && (!['cn','ce'].includes(tk.k) || endless !== (tk.k === 'ce') || tk.m !== map || tk.a !== b.adv || tk.h !== (b.hard === true) || tk.k === 'ce' && b.won === true)) return send(res, 400, { error: 'bad ticket' });
       if (won && (t < WIN[map][0] || t > WIN[map][1] + 10)) return send(res, 400, { error: 'bad score' });
       const real = (Date.now() - tk.s) / 1000, claimed = Number(b.t) || 0;
       if (real < claimed * 0.97 - 5 || real > 4 * 3600) return send(res, 400, { error: 'bad ticket' });
@@ -143,6 +151,7 @@ module.exports = async function handler(req, res) {
       let out;
       try { out = await rpc('sqs_submit_score', { ...args, p_holder: !!holderFromPass(b.pass) }); }
       catch (e) { // an older database: no endless boards yet (update3.sql), or no holder badges (update2.sql)
+        if (tk.k === 'ce') throw e; // Never put a scoped Endless result on a normal-only board.
         if (!/ 404 /.test(String(e.message))) throw e;
         const { p_endless, ...older } = args;
         try { out = await rpc('sqs_submit_score', { ...older, p_holder: !!holderFromPass(b.pass) }); }

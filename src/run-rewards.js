@@ -5,7 +5,8 @@ import { profileValue, profileBest, finiteNumber } from './progress-values.js';
 import { betterRun } from './personal-record.js';
 import { RUN_REWARD_KEYS } from './progress-import.js';
 
-export function prepareRunRewards(storage, sim, { earned, ranked = false, coop = false, playerId, result }) {
+export function prepareRunRewards(storage, sim, { earned, ranked = false, coop = false, playerId, result, baseline = null }) {
+  if (baseline && (baseline.sim !== sim || ranked || coop || !sim.endless)) throw Error('Wrong continuation rewards');
   const p = coop ? sim.players.find(p => p.id === playerId) : sim.players[0], owned = coop ? p : sim;
   if (coop !== (sim.coop === true) || coop && (!p || ranked || result !== 'complete' || !sim.over || !Number.isFinite(earned) || earned < 0)) throw Error('Co-op rewards require a verified completed run and its local player.');
   // A failed read must not become an empty profile that overwrites existing progress.
@@ -24,16 +25,20 @@ export function prepareRunRewards(storage, sim, { earned, ranked = false, coop =
     bank.push(name); bankChanged = true; return true;
   };
   const alched = [...(owned.alched || [])], worn = p.gear || {};
-  const loot = owned.loot.map(name => {
-    const ai = alched.indexOf(name), wasAlched = ai >= 0; if (wasAlched) alched.splice(ai, 1);
-    const fresh = !isWeaponItem(name) && bankItem(name, !wasAlched);
-    return { name, wasAlched, fresh, on: Object.values(worn).includes(name) };
-  });
+  const indexed = !coop && Array.isArray(sim.alchedLootIndices) && sim.alchedLootIndices.length === alched.length && sim.alchedLootIndices.every(i => Number.isSafeInteger(i) && i >= 0 && i < owned.loot.length);
+  const alchedIds = indexed ? new Set(sim.alchedLootIndices) : null;
+  const loot = owned.loot.map((name, id) => {
+    const ai = alched.indexOf(name), wasAlched = indexed ? alchedIds.has(id) : ai >= 0; if (!indexed && wasAlched) alched.splice(ai, 1);
+    if (baseline && id < baseline.caskets) return null;
+    const before = coins, fresh = !isWeaponItem(name) && bankItem(name, !wasAlched);
+    return { name, wasAlched, fresh, soldCoins: coins - before, on: Object.values(worn).includes(name) };
+  }).filter(Boolean);
   const stats = load('sq-stats', {}), add = (key, value) => { stats[key] = finiteNumber(stats[key]) + value; };
-  add('kills', owned.kills); add('bosses', owned.bossKills); add('evolves', owned.evolves); add('caskets', owned.loot.length);
-  for (const [type, count] of Object.entries(owned.killsByType)) add('kills.' + type, count);
-  add('kills.spiders', (owned.killsByType.spider || 0) + (owned.killsByType.jspider || 0) + (owned.killsByType.pspider || 0));
-  add('dragons', owned.killsByType.dragon || 0);
+  add('kills', owned.kills - (baseline?.kills || 0)); add('bosses', owned.bossKills - (baseline?.bossKills || 0)); add('evolves', owned.evolves - (baseline?.evolves || 0)); add('caskets', owned.loot.length - (baseline?.caskets || 0));
+  const deltaKills = Object.fromEntries(Object.entries(owned.killsByType).map(([type, count]) => [type, count - (baseline?.killsByType[type] || 0)]));
+  for (const [type, count] of Object.entries(deltaKills)) add('kills.' + type, count);
+  add('kills.spiders', (deltaKills.spider || 0) + (deltaKills.jspider || 0) + (deltaKills.pspider || 0));
+  add('dragons', deltaKills.dragon || 0);
   stats.bestTime = Math.max(finiteNumber(stats.bestTime), Math.floor(sim.t)); stats.cleared = cleared.size;
   save('sq-stats', stats);
   const done = new Set(load('sq-quests', [])), quests = [];

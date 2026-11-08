@@ -21,6 +21,7 @@ const afterBoot=main.slice(main.indexOf('boot().then('),main.indexOf('// QA hook
 const choices=main.slice(main.indexOf('function savedChoice('),main.indexOf('let selMap ='));
 const mapPicker=main.slice(main.indexOf('async function pickMap('),main.indexOf("$('hard').onchange"));
 const mapBuilder=main.slice(main.indexOf('function buildMaps('),main.indexOf('async function pickMap('));
+const tickets=main.slice(main.indexOf('function loadCasualTickets('),main.indexOf('function runGround()'));
 const start=main.slice(main.indexOf('async function startRun('),main.indexOf('let bannerT ='));
 const action=main.slice(main.indexOf('async function rankedAction('),main.indexOf('// the wallet the entry'));
 const rankedStart=main.slice(main.indexOf('async function startRankedEntry('),main.indexOf('async function submitRanked()'));
@@ -50,7 +51,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
   await W.connect(w);traceConnect=true;
   const other={p:{on(){},request:async args=>{if(args.method==='eth_requestAccounts')await stage('holder-connect');else if(args.method==='personal_sign')await stage('holder-signature');return args.method==='personal_sign'?'fixture-signature':[A];}}};
   t.mock.method(globalThis,'fetch',async(url,options={})=>{
-    const route=url.split('/').pop();calls.push(route);
+    const route=url.split('/').pop().split('?')[0];calls.push(route);
     if(route==='nonce')return reply({nonce:'fixture-holder-nonce',message:'fixture holder only'});
     if(route==='holder'){await stage('holder-response');const body=JSON.parse(options.body);return reply({address:body.address,holder:holderReply,pass:holderReply?'fixture-holder-pass':undefined,balance:'10'});}
     if(route==='save-nonce'){await stage('nonce');return reply({nonce:'fixture-nonce',message:'fixture sign-in'});}
@@ -67,7 +68,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
   };
   const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings','recoverRunProgress','document','petChoice','createBunCompanions',`
     let buyBusy=null,walletConnecting=null,walletRequests=0,walletUi=false,walletBal=null,recoveryCanRestart=null,recoveryOptions=null;const walletModalOpen=()=>walletUi;
-    let coop=null,coopResult=null,coopHomeMap=null,coopLoading=false;let mode='title',sim=null,rankedRun=null,rankedRec=null,rankedBusy=false,storedLive=null,runTicket=null,mapLoading=false,loadedMapId='greentown',selMap='greentown',selAdv='adventurer',acc=0,selCard=0,shownPending=false,waitingForMove=false,rewardWasShown=false,pendingUse=null,slowmo=0,runBest=null,passedBest=false,chase=null;
+    let coop=null,coopResult=null,coopHomeMap=null,coopLoading=false;let mode='title',sim=null,rankedRun=null,rankedRec=null,rankedBusy=false,storedLive=null,runTicket=null,casualRun=null,mapLoading=false,loadedMapId='greentown',selMap='greentown',selAdv='adventurer',acc=0,selCard=0,shownPending=false,waitingForMove=false,rewardWasShown=false,pendingUse=null,slowmo=0,runBest=null,passedBest=false,chase=null;
     const audioApplied=[];const walletHandoff=null;let PLAYER='p';const BASE='./',SIM_ID='fixture-sim',params=new URLSearchParams(),keys=new Set(),slotCache={},WEAPONS={},PASSIVES={};
     const map={id:'greentown',name:'Greentown',length:900,finalBoss:'dragon',music:'fixture'},tutorial={...map,id:'tutorial',name:'Tutorial Island',special:true,forceAdv:'alex'},MAPS=[map,tutorial],MAP_BY_ID={greentown:map,tutorial};
     const ADVENTURER_BY_ID={adventurer:{id:'adventurer',weapon:'Sword'},wizard:{id:'wizard',weapon:'Staff'},alex:{id:'alex',weapon:'Sword'}},mapRequests=[];
@@ -83,7 +84,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     const audio={init:async()=>{},music(){},applyPreferences:data=>audioApplied.push(data)};
     const getCoins=()=>Number(JSON.parse(localStorage.getItem('sq-coins')||'0')),xferRead=code=>code==='fixture-code'?{data:importData}:{error:'fixture invalid code'};
     const getGear=()=>({}),getGearLv=()=>({}),getSkills=()=>({}),getBests=()=>({}),runGround=()=>null,runAdv=()=>ADVENTURER_BY_ID[MAP_BY_ID[selMap].forceAdv||selAdv],bestKey=()=>'';
-    const makeSim=()=>({map,players:[{}],pending:{},over:null,t:0}),createSim=options=>({...makeSim(),map:options.map,players:[{adv:options.players[0].adv}]}),resumeRankedAsync=async(log,options,progress)=>{await resumeStage();progress?.(1,1);return{sim:makeSim(),rec:{log:()=>({runs:[]})}};};
+    const makeSim=()=>({map,players:[{}],pending:{},over:null,t:0}),createSim=options=>({...makeSim(),map:options.map,hard:options.hard,endless:options.endless,players:[{adv:options.players[0].adv}]}),resumeRankedAsync=async(log,options,progress)=>{await resumeStage();progress?.(1,1);return{sim:makeSim(),rec:{log:()=>({runs:[]})}};};
     const banner=()=>{},preloadIcons=()=>{},weaponItem=()=>'',passiveItem=()=>'',clearTouch=()=>{},showLevelUp=()=>{},persistRanked=()=>{},fmtT=s=>String(s),slayName=()=> 'Dragon',kpmWeek=()=>false,liveRace=live=>live;
     const renderWallet=()=>{},renderDmt=()=>{},refreshBalances=()=>{},wallets=()=>[],short=a=>a,renderRanked=()=>{},rankedMessage=()=>{},openRanked=()=>{},why=e=>e.message,plain=s=>Error(s),applyDmt=()=>{},buildAdventurers=()=>{},showBest=()=>{},buildSettings=()=>{},submitRanked=async()=>{};
     const readRanked=(key,fallback=null)=>key==='sq-ranked-live'?storedLive:fallback,writeRanked=(key,value)=>{if(key==='sq-ranked-live')storedLive=value;};
@@ -106,6 +107,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     ${pull}
     ${action}
     ${rankedStart}
+    ${tickets}
     ${start}
     ${menu}
     const pickAssetHost=async()=>{},createRenderer=async()=>renderer,requestAnimationFrame=()=>{},loop=()=>{};

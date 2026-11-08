@@ -7,6 +7,7 @@ import {createCloud,betterRun,SAVE_KEYS} from '../src/cloud.js';
 import {profileValue,profileBest,finiteNumber} from '../src/progress-values.js';
 import {writeRanked} from '../src/ranked-client.js';
 import {current} from '../src/wallet.js';
+import * as continuation from '../src/casual-continuation.js';
 import {prepareRunRewards} from '../src/run-rewards.js';
 import {saveRunProgress,recoverRunProgress,recoverProgressImport} from '../src/progress-import.js';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),J=JSON.stringify;
@@ -15,7 +16,7 @@ const best=main.slice(main.indexOf('const bestKey = '),main.indexOf('function sh
 const finish=main.slice(main.indexOf('function runCoins('),main.indexOf('function toMenu()'));
 const persist=main.slice(main.indexOf('function persistRanked()'),main.indexOf('setInterval(() => { if (rankedPlaying())'));
 const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
-function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',responses=[],storageFault=null}={}){
+function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',responses=[],storageFault=null,continuePlay=false}={}){
  const previous=globalThis.localStorage,store=new Map(Object.entries({'sq-coins':'100','sq-bank':J(['Bronze Helmet']),'sq-stats':J({kills:299,'kills.goblin':299}),'sq-gear-reset1':'1'})),calls=[],notes=[],nodes=new Map();let submissions=0;
  if(cloudOn){store.set('sq-cloud',J({a:'0x'+'1'.repeat(40),key:'fixture-session',rev:1}));store.set('sq-cloud-base',J(Object.fromEntries(SAVE_KEYS.filter(k=>store.has(k)).map(k=>[k,store.get(k)]))));}
  let armed=false;const denied=(action,k)=>armed&&storageFault?.(action,k);
@@ -28,15 +29,18 @@ function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',respo
  });
  const $=id=>{if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{textContent:'',innerHTML:'',disabled:false,focus(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);};
  const sim=createSim({seed:7,map:content.MAP_BY_ID.greentown,...(coopPlay?{coop:true,players:[{id:'p1'},{id:'p2'}]}:{})});Object.assign(sim,{over:outcome,t:600,kills:6,bossKills:0,evolves:0,loot:['Bronze Helmet','Iron Helmet'],alched:[],killsByType:{goblin:6}});Object.assign(sim.players[0],{coins:2,alch:7});if(coopPlay)Object.assign(sim.players[1],{kills:3,killsByType:{goblin:3},loot:['Iron Helmet'],alched:[],coins:4,alch:9});
- const app=Function('content','sim','$','createCloud','betterRun','profileValue','profileBest','finiteNumber','playerStats','writeRanked','SAVE_KEYS','note','submit','prepareRunRewards','saveRunProgress','recoverRunProgress','recoverProgressImport',`
+ const app=Function('content','sim','$','createCloud','betterRun','profileValue','profileBest','finiteNumber','playerStats','writeRanked','SAVE_KEYS','note','submit','prepareRunRewards','saveRunProgress','recoverRunProgress','recoverProgressImport','continuation',`
   const {MAPS,MAP_BY_ID,ADVENTURER_BY_ID,GEAR,GEAR_SLOTS,GEAR_MAX_LV,clampSkills,ADVENTURERS,QUESTS,WEAPONS,isWeaponItem}=content,params=new URLSearchParams();
   ${profile}
   ${best}
   const PLAYER='${coopPlay?'p2':'p1'}',coopResult=${coopPlay?"'complete'":'null'},coop=${coopPlay?'{}':'null'},coopLoading=false;let runStarting=false,mode='play',waitingForMove=false,rewardWasShown=false,lastRun=null;
   let rankedRun=${ranked?"{week:0,mode:'normal',run:'fixture-run'}":'null'},rankedRec=${ranked?"{log:()=>({runs:[]})}":'null'};
-  const LATEST='fixture-version',runTicket='fixture-ticket',savedPass=()=>null,DMT_COIN_BONUS=.25;
+  const {canContinueCasual,captureRewardBaseline,continueCasual,phaseCoins,phaseAlch}=continuation;
+  let casualRun=${continuePlay?"{sim,normalCommitted:false,baseline:null,endlessTicket:'child',phase:'playing'}":'null'};
+  const LATEST='fixture-version',savedPass=()=>null,DMT_COIN_BONUS=.25;let runTicket='fixture-ticket';
+  const keys=new Set(),clearTouch=()=>{},audio={duck(){}},showLevelUp=()=>{},resumeAfterReward=()=>{};let pendingUse=null,slowmo=0,acc=0,shownPending=false,runBest=null,passedBest=false;
   const fmtT=t=>String(t),imgTag=()=>'',buildMaps=()=>{},buildAdventurers=()=>{},showBest=()=>{},stepOf=()=>null,iconHTML=()=>'',weaponDisplay=()=>({name:'Sword'});
-  const alchValue=()=>0,submitScore=()=>{},liveRace=s=>s,kpmWeek=()=>false,submitRanked=submit,banner=note;
+  const alchValue=()=>0,submitScore=async()=>({ok:true}),liveRace=s=>s,kpmWeek=()=>false,submitRanked=submit,banner=note;
   const walletModalOpen=()=>walletOpen,cancelPendingLoads=()=>{},location={reload(){throw Error('in-memory run must not reload');}};
   const navigator={},buyBusy=null,walletConnecting=null,holderChecking=null,walletRequests=0;let rankedBusy=false,walletOpen=false;
   ${main.slice(main.indexOf('function withImportLock('),main.indexOf("$('xferload').onclick"))}
@@ -45,8 +49,8 @@ function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',respo
   onSaved=k=>{if(SAVE_KEYS.includes(k))cloud.changed();};
   ${finish}
   ${main.slice(main.indexOf('async function startRun('),main.indexOf('let bannerT ='))}
-  return{startRun,endRun,cloud,save,setBusy(v){rankedBusy=v;},lock(fn){navigator.locks={request:fn};},wallet(v){walletOpen=v;},forgetRanked(){rankedRun=rankedRec=null;},state:()=>({mode,lastRun}),mode:v=>mode=v};
- `)(content,sim,$,createCloud,betterRun,profileValue,profileBest,finiteNumber,playerStats,writeRanked,SAVE_KEYS,text=>notes.push(text),()=>submissions++,prepareRunRewards,saveRunProgress,recoverRunProgress,recoverProgressImport);
+  return{startRun,endRun,continueAfterScore,cloud,save,setBusy(v){rankedBusy=v;},lock(fn){navigator.locks={request:fn};},wallet(v){walletOpen=v;},forgetRanked(){rankedRun=rankedRec=null;},state:()=>({mode,lastRun,casualRun}),mode:v=>mode=v};
+ `)(content,sim,$,createCloud,betterRun,profileValue,profileBest,finiteNumber,playerStats,writeRanked,SAVE_KEYS,text=>notes.push(text),()=>submissions++,prepareRunRewards,saveRunProgress,recoverRunProgress,recoverProgressImport,continuation);
  return{app,store,sim,$,calls,notes,submissions:()=>submissions,flush,arm:()=>armed=true,restore:()=>armed=false,end:()=>app.endRun()};
 }
 for(const key of ['sq-coins','sq-bank','sq-stats','sq-quests'])test(`failed completed-run ${key} write cannot silently upload partial rewards`,async t=>{
@@ -111,4 +115,12 @@ test('actual guest end saves only its reward receipt, leaves both solo bests and
 });
 test('actual guest end keeps its local ownership and absolute receipt through a denied save Retry',async t=>{
  const f=fixture(t,{coopPlay:true,cloudOn:false,storageFault:(action,k)=>action==='write'&&k==='sq-coins'});f.arm();f.end();assert.equal(f.app.state().mode,'recovery');f.restore();await f.$('progressretry').onclick();await f.flush();assert.equal(f.app.state().mode,'end');assert.equal(f.store.get('sq-coins'),'591');assert.equal(JSON.parse(f.store.get('sq-stats')).kills,302);assert.equal(f.store.has('sq-run-save-v1'),false);assert.equal(f.app.state().lastRun.coop,true);
+});
+
+test('actual normal finish and continued Endless finish bank only new progress through cloud/journal retries',async t=>{
+ const f=fixture(t,{continuePlay:true,storageFault:(action,key)=>action==='remove'&&key==='sq-run-save-v1'});f.end();await f.flush();const initial=Number(f.store.get('sq-coins'));assert.equal(f.app.state().casualRun.normalCommitted,true);const s=f.sim,p=s.players[0];p.hp=17;
+ await f.app.continueAfterScore();assert.equal(f.sim,s);assert.equal(p.hp,17);assert.equal(s.endless,true);s.over='dead';s.t=920;s.kills=12;s.killsByType.goblin=12;p.coins=3;
+ f.arm();f.end();assert.equal(f.app.state().mode,'recovery');f.restore();await f.$('progressretry').onclick();await f.flush();
+ assert.equal(f.app.state().mode,'end');assert.equal(Number(f.store.get('sq-coins'))-initial,6);assert.equal(JSON.parse(f.store.get('sq-stats')).kills,311);assert.equal(f.app.state().lastRun.ticket,'child');assert.equal(f.app.state().lastRun.t,920);assert.equal(f.app.state().lastRun.kills,12);
+ const best=JSON.parse(f.store.get('sq-bests'));assert.equal(best['greentown:n:r'].t,600);assert.equal(best['greentown:n:e'].t,920);
 });

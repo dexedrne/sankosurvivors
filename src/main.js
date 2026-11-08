@@ -34,6 +34,7 @@ import { wallets, watchWallets, takeWalletHandoff, savedPass, forget, prove, sho
 import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
 import { TRANSFER_KEYS as XFER_KEYS, IMPORT_BACKUP_KEY, RUN_SAVE_KEY, importProgress, recoverProgressImport, saveRunProgress, recoverRunProgress } from './progress-import.js';
 import { prepareRunRewards } from './run-rewards.js';
+import { canContinueCasual, captureRewardBaseline, continueCasual, phaseCoins, phaseAlch, submitCasualResult } from './casual-continuation.js';
 import { quoteDmt, buyDmt, MIN_BUY_DMT, MAX_BUY_DMT } from './swap.js';
 import { walletConnectLinks } from './wallet-connect.js';
 import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
@@ -1082,17 +1083,34 @@ $('lbclose').onclick = () => $('board').classList.add('hidden');
 $('board').addEventListener('click', (e) => { if (e.target.id === 'board') $('board').classList.add('hidden'); });
 let lastRun = null;
 $('lbname').value = load('sq-name', '');
-async function submitScore() {
-  const name = $('lbname').value.trim().slice(0, 16);
-  if (!name) { $('lbmsg').textContent = 'Type a name first.'; return; }
-  if (!lastRun || lastRun.sent || lastRun.coop) return;
-  save('sq-name', name); $('lbsubmit').disabled = true; $('lbmsg').textContent = 'Sending…';
+async function submitScore(target = lastRun) {
+  // DOM click events are not result objects; every request owns its captured result.
+  if (!target || target.type === 'click') target = lastRun;
+  if (!target || target.coop) return { ok: false };
+  if (target.sent) return { ok: true };
+  const name = target.name || $('lbname').value.trim().slice(0, 16);
+  if (!name) { $('lbmsg').textContent = 'Type a name first.'; return { ok: false }; }
+  const session = casualRun?.sim === sim ? casualRun : null;
+  if (session?.tickets) await session.tickets;
+  if (session && session !== casualRun) return { ok: false };
+  if (session && (target === session.normalResult || target === session.result)) target.ticket = target.endless && session.normalResult ? session.endlessTicket : session.ticket;
+  if (!target.ticket) { if (target === lastRun) $('lbmsg').textContent = 'Could not send.'; return { ok: false }; }
+  target.name = name;
+  if (target === lastRun) { $('lbname').value = name; $('lbname').disabled = true; }
+  save('sq-name', name);
+  if (target === lastRun) { $('lbsubmit').disabled = true; $('lbmsg').textContent = 'Sending…'; }
+  let out;
   try {
-    const r = await fetch(`${BASE}api/score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...lastRun, name, pass: (savedPass() || {}).pass }) });
-    const d = await r.json().catch(() => ({}));
-    if (r.ok) { lastRun.sent = true; $('lbmsg').textContent = d.rank ? `You are #${d.rank} on ${MAP_BY_ID[lastRun.map].name}!` : 'Sent!'; }
-    else { $('lbmsg').textContent = r.status === 503 ? 'The shared leaderboard opens soon.' : r.status === 429 ? 'Wait a moment and try again.' : 'Could not send.'; $('lbsubmit').disabled = false; }
-  } catch (e) { $('lbmsg').textContent = 'Could not send.'; $('lbsubmit').disabled = false; }
+    out = await submitCasualResult(target, { ...target, name, pass: (savedPass() || {}).pass }, async payload => {
+      const r = await fetch(`${BASE}api/score`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const d = await r.json().catch(() => ({})); return { ...d, ok: r.ok, status: r.status };
+    });
+  } catch { out = { ok: false }; }
+  if (target === lastRun && (!session || session === casualRun)) {
+    $('lbmsg').textContent = out.ok ? out.rank ? `You are #${out.rank} on ${MAP_BY_ID[target.map].name}!` : 'Sent!' : out.status === 503 ? 'The shared leaderboard opens soon.' : out.status === 429 ? 'Wait a moment and try again.' : 'Could not send.';
+    $('lbsubmit').disabled = !!out.ok;
+  }
+  return out;
 }
 $('lbsubmit').onclick = submitScore;
 // the shared leaderboard only shows once it is switched on (until then, nothing on screen points at it)
@@ -1479,6 +1497,16 @@ function toast(html) { const el = document.createElement('div'); el.className = 
 
 // ---- run lifecycle ----------------------------------------------------------------------------------------------------
 let runTicket = null;
+let casualRun = null;
+function loadCasualTickets(session) {
+  const s = session.sim, query = new URLSearchParams({ map: s.map.id, adv: s.players[0].adv, hard: s.hard ? '1' : '0', endless: s.endless ? '1' : '0' });
+  session.tickets = fetch(`${BASE}api/run?${query}`).then(r => r.ok ? r.json() : null).then(d => {
+    if (casualRun !== session || sim !== s) return;
+    session.ticket = d?.ticket || null; session.endlessTicket = d?.endlessTicket || null;
+    runTicket = session.phase === 'endless' ? session.endlessTicket : session.ticket;
+  }).catch(() => {});
+}
+
 function runGround() {
   const T = renderer.terrain;
   return T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null, fences: T.fences || null } : null;
@@ -1601,7 +1629,7 @@ async function startRun(live = null) {
     if (isRanked && loadedMapId !== live.map) await pickMap(live.map);
     if (mode === 'recovery') return;
     rankedRun = isRanked ? live : null; rankedRec = null;
-    runTicket = null; if (!isRanked) fetch(`${BASE}api/run`).then((r) => (r.ok ? r.json() : null)).then((d) => { runTicket = d && d.ticket; }).catch(() => {});
+    runTicket = null; casualRun = null;
     preloadIcons([...Object.keys(WEAPONS).map((w) => weaponItem(w, 1)), ...Object.keys(PASSIVES).map((k) => passiveItem(k, 1))]);
     if (mapLoading) return;
     const map = MAP_BY_ID[isRanked ? live.map : selMap];
@@ -1622,6 +1650,7 @@ async function startRun(live = null) {
       persistRanked();
       $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
     } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
+    if (!isRanked) { casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' }; loadCasualTickets(casualRun); }
     renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
     for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'pets', 'more']) $(id).classList.add('hidden');
     $('cooppause').classList.add('hidden'); $('coopwait').classList.add('hidden');
@@ -1646,6 +1675,7 @@ function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; 
 // the coins (GP) a run has earned so far; the HUD shows it live and the end screen adds the 120 for holding the map
 function runCoins(s, won = false) {
   const p = s.coop ? s.players.find(p => p.id === PLAYER) : s.players[0], endlessBonus = s.endless ? Math.floor(Math.max(0, s.t - s.map.length) / 10) : 0, dmtOn = !!savedPass();
+  if (s.endless && casualRun?.sim === s && casualRun.baseline) return phaseCoins(s, { baseline: casualRun.baseline, player: p, multiplier: playerStats(p).coinBonus * (s.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1) });
   return Math.round((Math.floor((s.coop ? p.kills : s.kills) / 6) + p.coins * 3 + (won ? 120 : 0) + endlessBonus) * playerStats(p).coinBonus * (s.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1)) + Math.max(0, Math.floor(p.alch || 0));
 }
 function endRun() {
@@ -1657,13 +1687,18 @@ function endRun() {
   const won = sim.over === 'win';
   const p = sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0];
   lastRun = { map: sim.map.id, t: Math.floor(sim.t), kills: sim.kills, level: sim.level, adv: p.adv, won, hard: !!sim.hard, endless: !!sim.endless, v: LATEST, sent: !!sim.coop, ticket: sim.coop ? null : runTicket, coop: !!sim.coop };
+  const result = lastRun, session = casualRun?.sim === sim ? casualRun : null;
+  if (session) session.result = result;
+  if (session && canContinueCasual(sim)) { session.normalResult = result; session.phase = 'normal-end'; }
+  $('continueendless').classList.add('hidden'); $('continueunconfirmed').classList.add('hidden'); $('continuemsg').textContent = '';
   $('lbsubmit').disabled = wasRanked || !!sim.coop; $('lbmsg').textContent = '';
+  $('lbname').disabled = false;
   $('endlb').classList.toggle('hidden', wasRanked || !!sim.coop || $('lbbtn').classList.contains('hidden'));
   $('rankedresult').textContent = ''; $('rankedretry').classList.add('hidden');
   if (wasRanked) { lastRun.sent = true; lastRun.ranked = true; lastRun.race = sim.hard ? 'hard' : 'normal'; if (sim.endless && kpmWeek(liveRace(rankedRun).week)) { lastRun.kpm = kpm(sim.kills, Math.floor(sim.t)); lastRun.points = rankedPoints(sim.kills, sim.t); } } // week 0 ranks by time
   $('again').textContent = sim.coop ? 'Co-op lobby' : wasRanked ? 'Next ranked run' : 'Run it back'; // after ranked, play again goes back to Ranked (a free casual run was mistaken for ranked)
-  if (!wasRanked && !sim.coop && load('sq-name', '') && sim.t >= 30) setTimeout(submitScore, 300); // named players send runs of 30 s or more automatically
-  const dmtOn = !!savedPass(), alchCoins = Math.max(0, Math.floor(p.alch || 0)), earned = runCoins(sim, won);
+  if (!wasRanked && !sim.coop && load('sq-name', '') && sim.t >= 30) setTimeout(() => { if (lastRun === result && mode === 'end') submitScore(result); }, 300); // named players send runs of 30 s or more automatically
+  const dmtOn = !!savedPass(), alchCoins = phaseAlch(sim, sim.endless ? session?.baseline : null, p), earned = runCoins(sim, won);
   let receipt = null, rankedSaved = !wasRanked, submitted = false;
   const finish = () => {
     if (!rankedSaved) {
@@ -1671,8 +1706,13 @@ function endRun() {
       if (!rankedSaved) throw Error('Run could not be saved. Keep this page open.');
     }
     if (wasRanked && !submitted) { submitted = true; submitRanked(); }
-    receipt ||= prepareRunRewards(localStorage, sim, { earned, ranked: wasRanked, coop: !!sim.coop, playerId: PLAYER, result: coopResult });
+    receipt ||= prepareRunRewards(localStorage, sim, { earned, ranked: wasRanked, coop: !!sim.coop, playerId: PLAYER, result: coopResult, baseline: sim.endless ? session?.baseline : null });
     saveRunProgress(localStorage, receipt.data);
+    if (session && canContinueCasual(sim)) {
+      session.baseline ||= captureRewardBaseline(sim, receipt); session.normalCommitted = true;
+      $('continueendless').disabled = false; $('continueendless').classList.remove('hidden');
+      $('continuemsg').textContent = 'Normal rewards are saved. Continue in this tab with the same health and build. Reloading ends the live run.';
+    }
     mode = 'end';
     let unlockNote = '';
     if (won && receipt.cleared.length > receipt.clearedBefore) {
@@ -1708,12 +1748,45 @@ function endRun() {
   try { finish(); }
   catch { cancelPendingLoads(); showProgressRecovery(() => !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen(), false, { retry: finish, reload: false }); }
 }
+async function continueAfterScore(unconfirmed = false) {
+  const session = casualRun, current = sim;
+  if (!session || session.sim !== current || !session.normalCommitted || session.busy || !canContinueCasual(current) || mode !== 'end' || unconfirmed && !session.unconfirmed) return;
+  session.busy = true; $('continueendless').disabled = true; $('continueunconfirmed').disabled = true;
+  try {
+    // Website submission; the wallet-free edition continues its local record directly.
+    if (!unconfirmed) {
+      const out = await submitScore(session.normalResult);
+      if (casualRun !== session || sim !== current || mode !== 'end') return;
+      if (!out.ok) {
+        session.unconfirmed = true;
+        $('continuemsg').textContent = 'Normal score could not be confirmed. Retry, or continue without a confirmed leaderboard score.';
+        $('continueunconfirmed').classList.remove('hidden'); return;
+      }
+    }
+    // End website submission.
+    if (casualRun !== session || sim !== current || !canContinueCasual(current)) return;
+    continueCasual(current, session.baseline); session.phase = 'endless';
+    runTicket = session.endlessTicket || null;
+    keys.clear(); clearTouch(); pendingUse = null; slowmo = 0; acc = 0;
+    shownPending = false; rewardWasShown = true; waitingForMove = false;
+    for (const id of ['end', 'pause', 'levelup', 'casket']) $(id).classList.add('hidden');
+    runBest = profileBest(getBests()[bestKey(sim)]); passedBest = false;
+    audio.duck(false); mode = 'play';
+    if (sim.pending[PLAYER]) showLevelUp(); else resumeAfterReward();
+  } finally {
+    session.busy = false;
+    if (casualRun === session) { $('continueendless').disabled = false; $('continueunconfirmed').disabled = false; }
+  }
+}
+$('continueendless').onclick = () => continueAfterScore();
+$('continueunconfirmed').onclick = () => continueAfterScore(true);
 function toMenu() {
   if (rankedPlaying()) return;
   if (coop) { const c = coop; coop = null; c.close(); selMap = coopHomeMap || selMap; coopResult = null; }
   PLAYER = 'p1'; $('coop').classList.add('hidden'); $('coopwait').classList.add('hidden');
   rankedRun = null; rankedRec = null; applyDmt();
   rankedClock = null;
+  casualRun = null;
   sim = null; mode = 'title'; window.__idleSim = null;
   playTitleMusic();
   waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
@@ -2405,7 +2478,7 @@ const qaHooks = {
   drop(kind) { if (rankedRun || coop) return; const p = sim.players[0]; sim.pickups.push({ id: sim.nextId++, x: p.x + 1.5, z: p.z, kind }); },
   // reward caskets: drop n at your feet (rolled by the sim), or queue given items as if a casket held them
   caskets(n = 1) { if (rankedRun || coop) return; const p = sim.players[0]; for (let i = 0; i < n; i++) sim.pickups.push({ id: sim.nextId++, x: p.x, z: p.z, kind: 'casket' }); },
-  casketOf(...names) { if (rankedRun || coop) return; const p = sim.players[0]; for (const n of names) if (isWeaponItem(n) || GEAR[n]) { if (!isWeaponItem(n) && !p.gear[GEAR[n].slot]) continue; sim.loot.push(n); p.casketQ.push(n); } openCasket(sim, p); }, // as if caskets held them
+  casketOf(...names) { if (rankedRun || coop) return; const p = sim.players[0]; for (const n of names) if (isWeaponItem(n) || GEAR[n]) { if (!isWeaponItem(n) && !p.gear[GEAR[n].slot]) continue; sim.loot.push(n); if (p.casketLootIndices) p.casketLootIndices.push(sim.loot.length - 1); p.casketQ.push(n); } openCasket(sim, p); }, // as if caskets held them
   wearNow(gear) { if (rankedRun || coop) return; const p = sim.players[0]; p.gear = { ...p.gear, ...gear }; p.gb = gearBonus(p.gear, p.gearLv || {}, sim.pace); },
 };
 

@@ -29,10 +29,10 @@ test('schedule never loads configuration before reset or outside the approved wi
  for(const now of [Date.UTC(2026,10,8,23,59),Date.UTC(2026,10,11)])await scheduled.runApprovedWeek({week:0,now:()=>now,load,log:()=>{}});
  assert.equal(loads,0);await assert.rejects(scheduled.runApprovedWeek({week:1,load,log:()=>{}}),/approved/);assert.equal(loads,0);
 });
-test('schedule performs a dry preview before the same scoped live rows',async()=>{
+test('schedule freezes its dry preview before review and then sends only the same scoped live rows',async()=>{
  const f=fixture(3),phases=[];
- await scheduled.runApprovedWeek({week:0,now:()=>f.db.now,load:async()=>f.config,log:()=>{},review:async()=>{},ports:f.ports,execute:async(config,ports)=>{phases.push(config.live);assert.equal(ports.approvedWeek,0);return config.live?undefined:{rows:[{id:'preview'}]};}});
- assert.deepEqual(phases,[false,true]);
+ await scheduled.runApprovedWeek({week:0,now:()=>f.db.now,load:async()=>f.config,log:()=>{},review:async()=>{phases.push('review');return [];},ports:f.ports,execute:async(config,ports)=>{phases.push(config.live?'live':'dry');assert.equal(ports.approvedWeek,0);if(config.live)assert.deepEqual(ports.expectedRows,[{id:'preview'}]);return config.live?undefined:{rows:[{id:'preview'}]};}});
+ assert.deepEqual(phases,['dry','review','live']);
 });
 test('accepted replay grace waits without signing in reset mode',async()=>{
  const f=fixture(3);f.db.now=Date.UTC(2026,10,9,0,1);let keys=0;
@@ -51,8 +51,25 @@ test('all confirmed scoped rows are detected despite an unpaid refund',async()=>
 test('missing SQL16 stops the schedule before review, ledger mutation or key loading',async()=>{
  let reviewed=0,executed=0;const calls=[];
  for(const response of [null,{ok:true},new Error('missing function')]){
-  await assert.rejects(scheduled.runApprovedWeek({week:0,now:()=>Date.UTC(2026,10,9,0,1),load:async()=>({}),log:()=>{},ports:{rpc:async(name,args)=>{calls.push({name,args});if(response instanceof Error)throw response;return response;}},review:async()=>{reviewed++;},execute:async()=>{executed++;}}));
+  await assert.rejects(scheduled.runApprovedWeek({week:0,now:()=>Date.UTC(2026,10,9,0,1),load:async()=>({}),log:()=>{},ports:{rpc:async(name,args)=>{calls.push({name,args});if(response instanceof Error)throw response;return response;}},review:async()=>{reviewed++;return [];},execute:async()=>{executed++;}}));
  }
  assert.equal(reviewed,0);assert.equal(executed,0);assert.equal(calls.length,3);
  assert(calls.every(c=>c.name==='sqs_ranked_clock'&&c.args.p_server_key===null&&c.args.p_action==='state'));
+});
+
+for(const [label,reviewResult] of [
+ ['flagged candidate',['normal #1 id 7: input statistics  << REVIEW']],
+ ['missing replay log',['normal #1 id 7: no log  << REVIEW']],
+ ['missing result',undefined],['null result',null],['object result',{}],['string result','clear'],
+ ['null line',[null]],['numeric line',[1]],['empty line',['']],['blank line',['  ']],['sparse array',Array(1)],
+])test(`schedule pauses for owner review before any live or key phase: ${label}`,async()=>{
+ const f=fixture(3),phases=[],logs=[];let keys=0,completed=0;
+ await scheduled.runApprovedWeek({week:0,now:()=>f.db.now,load:async()=>f.config,log:text=>logs.push(text),ports:{...f.ports,key:async()=>{keys++;return null;}},markComplete:async()=>{completed++;},
+  review:async()=>{phases.push('review');return reviewResult;},execute:async(config,ports)=>{phases.push(config.live?'live':'dry');if(config.live)await ports.key();return {rows:[{id:'frozen-prize'}]};}});
+ assert.deepEqual(phases,['dry','review']);assert.equal(keys,0);assert.equal(completed,0);assert.equal(f.chain.broadcasts.length,0);assert(logs.some(line=>/owner review/i.test(line)));
+});
+for(const [label,preview,complete]of[['waiting',undefined,false],['empty',{rows:[]},false],['already complete',{complete:true},true]])test(`schedule does not review or enter live phase after ${label} preview`,async()=>{
+ const f=fixture(3);let reviews=0,executions=0,completed=0;
+ await scheduled.runApprovedWeek({week:0,now:()=>f.db.now,load:async()=>f.config,ports:f.ports,log:()=>{},review:async()=>{reviews++;return [];},execute:async config=>{assert.equal(config.live,false);executions++;return preview;},markComplete:async()=>{completed++;}});
+ assert.equal(reviews,0);assert.equal(executions,1);assert.equal(completed,Number(complete));
 });

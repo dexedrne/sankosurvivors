@@ -23,12 +23,15 @@ export async function runApprovedWeek({week,now=Date.now,load=loadConfig,ports,e
   // A null server key checks migration availability before any ledger mutation.
   const ready=await io.rpc('sqs_ranked_clock',{p_server_key:null,p_id:0,p_wallet:'',p_started:0,p_action:'state',p_seq:0,p_frame:0});
   if(ready?.error!=='forbidden')throw Error('SQL16 is required before the approved payout');
-  await review([String(week)],{config,db:io.rpc});
   const scoped={...io,approvedWeek:week,atReset:true,now};
   log('Approved week0: dry preview; sending disabled.');
   const preview=await execute({...config,live:false},scoped);
   if(preview?.complete){await markComplete();return preview;}
   if(!preview?.rows?.length)return;
+  const reviewed=await review([String(week)],{config,db:io.rpc});
+  if(!Array.isArray(reviewed)||Array.from(reviewed).some(line=>typeof line!=='string'||!line.trim()||line.includes('<< REVIEW'))){
+    log('STOP: candidate review requires owner review. No payouts sent.');return;
+  }
   log('Approved week0: sending only the exact previewed prize/house rows.');
   const result=await execute({...config,live:true},{...scoped,expectedRows:preview.rows});
   if(result?.complete)await markComplete();

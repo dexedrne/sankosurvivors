@@ -20,11 +20,11 @@ run: plans and previews, no key loading, signing or sending.
 
 `scheduled.mjs --week 0` runs only from9November00:00UTC until11November00:00UTC.
 It checks SQL16 availability without a valid server key before any ledger changes,
-reviews candidates, previews scoped rows, then sends only those exact approved
+freezes a dry preview, reviews the resulting candidates, then sends only those exact approved
 week-0 prize/house rows. It reserves refunds but never sends them. An unrelated
 in-flight transfer pauses the schedule. Confirmed completion writes a device-local
 marker; uncertain/finality-pending work retries the same ledger and signed bytes.
-Local journal messages are used; this scheduler does not send Telegram messages.
+A flagged or missing replay review stops the whole automatic batch for owner review; it never automatically disqualifies a player. Local journal messages are used; this scheduler does not send Telegram messages.
 
 The checked service/timer templates live beside this README. Install them on the
 owner laptop only, after SQL16 and release verification. Keep the frozen source

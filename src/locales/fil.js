@@ -1,5 +1,15 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Submit score & continue as Endless": "Isumite ang score at magpatuloy sa Endless",
+  "Continue without confirmed score": "Magpatuloy nang walang kumpirmadong score",
+  "Continue as Endless": "Magpatuloy sa Endless",
+  "Normal rewards are saved. Continue in this tab with the same health and build. Reloading ends the live run.": "Naka-save na ang normal na gantimpala. Magpatuloy sa tab na ito gamit ang parehong buhay at build. Matatapos ang kasalukuyang laro kapag ni-reload.",
+  "Normal score could not be confirmed. Retry, or continue without a confirmed leaderboard score.": "Hindi makumpirma ang normal na score. Subukan ulit, o magpatuloy nang walang kumpirmadong score sa leaderboard.",
+  "Keep your victory going": "Ipagpatuloy ang tagumpay",
+  "After a solo casual victory, submit your normal score and continue as Endless with the same health, build and world.": "Pagkatapos manalo sa solo casual, isumite ang normal na score at magpatuloy sa Endless na may parehong buhay, build at mundo.",
+  "After a solo casual victory, continue as Endless with the same health, build and world.": "Pagkatapos manalo sa solo casual, magpatuloy sa Endless na may parehong buhay, build at mundo.",
+  "Normal rewards stay saved. Endless adds only new rewards; reloading ends the live run.": "Mananatiling naka-save ang normal na gantimpala. Mga bagong gantimpala lang ang idinadagdag ng Endless; matatapos ang kasalukuyang laro kapag ni-reload.",
+  "If the normal leaderboard score cannot be confirmed, retry or explicitly continue without a confirmed score.": "Kung hindi makumpirma ang normal na score sa leaderboard, subukan ulit o piliing magpatuloy nang walang kumpirmadong score.",
   "Upgrade weapon": "I-upgrade ang armas",
   "Recommended: upgrade weapon": "Inirerekomenda: i-upgrade ang armas",
   "Release Tab to close": "Bitawan ang Tab para isara",

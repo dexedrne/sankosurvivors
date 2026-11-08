@@ -217,3 +217,34 @@ test('cloud authentication preserves omitted/null addresses and case-insensitive
     assert.equal(calls.at(-1).body.p_wallet, fixtureAddress);
   }
 });
+
+test('typed casual start binds normal and Endless to one original time and distinct board tickets',async()=>{
+ const r=await call('GET','run&map=greentown&adv=adventurer&hard=0&endless=0');assert.equal(r.code,200);assert.equal(typeof r.json.endlessTicket,'string');
+ const decode=t=>JSON.parse(Buffer.from(t.split('.')[0],'base64url'));
+ const n=decode(r.json.ticket),e=decode(r.json.endlessTicket);assert.equal(n.s,e.s);assert.notEqual(n.n,e.n);assert.equal(n.k,'cn');assert.equal(e.k,'ce');assert.ok(r.json.ticket.length<=200&&r.json.endlessTicket.length<=200);
+ const score={name:'Test',map:'greentown',adv:'adventurer',hard:false,t:1,kills:0,level:1};
+ assert.equal((await call('POST','score',{...score,ticket:r.json.endlessTicket,endless:true})).code,200);assert.equal(calls.at(-1).body.p_endless,true);
+ for(const patch of [{endless:false},{endless:true,map:'apache'},{endless:true,adv:'mage'},{endless:true,hard:true},{endless:true,won:true}])assert.equal((await call('POST','score',{...score,ticket:r.json.endlessTicket,...patch})).code,400);
+ assert.equal((await call('POST','score',{...score,ticket:r.json.ticket,endless:true})).code,400);
+ assert.equal((await call('POST','score',{...score,ticket:r.json.ticket})).code,200);
+ assert.equal((await call('POST','score',{...score,ticket:r.json.endlessTicket,endless:true,t:300})).code,400);
+});
+test('typed Endless ticket never falls back to a normal-only database RPC',async()=>{
+ const original=globalThis.fetch;try{
+  const r=await call('GET','run&map=greentown&adv=adventurer&hard=0&endless=0');assert.equal(typeof r.json.endlessTicket,'string');let count=0;
+  globalThis.fetch=async()=>{count++;return new Response('not found',{status:404});};
+  const out=await call('POST','score',{name:'Test',map:'greentown',adv:'adventurer',t:1,kills:0,level:1,endless:true,ticket:r.json.endlessTicket});assert.ok(out.code>=400);assert.equal(count,1);
+ }finally{globalThis.fetch=original;}
+});
+
+test('typed tickets preserve original elapsed and expiry checks at maximum scope size',async t=>{
+ let now=1800000000000;t.mock.method(Date,'now',()=>now);
+ const r=await call('GET','run&map=greentown&adv=abcdefghijklmnop&hard=1&endless=0');assert.equal(r.code,200);assert.ok(r.json.endlessTicket.length<=200);assert.ok(r.json.ticket.length<=200);
+ const score={name:'Test',map:'greentown',adv:'abcdefghijklmnop',hard:true,t:900,kills:100,level:20,endless:true,ticket:r.json.endlessTicket};
+ now+=900000;assert.equal((await call('POST','score',score)).code,200);
+ assert.equal((await call('POST','score',{...score,t:1900})).code,400);
+ assert.equal((await call('POST','score',{...score,ticket:score.ticket.slice(0,-1)+(score.ticket.endsWith('a')?'b':'a')})).code,400);
+ now+=4*3600*1000;assert.equal((await call('POST','score',score)).code,400);
+ const direct=await call('GET','run&map=greentown&adv=adventurer&hard=0&endless=1');assert.equal(direct.code,200);assert.equal(direct.json.endlessTicket,undefined);
+ assert.equal((await call('GET','run&map=invalid&adv=adventurer&hard=0&endless=0')).code,400);
+});

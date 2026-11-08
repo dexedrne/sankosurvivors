@@ -47,7 +47,8 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
     // and harder-hitting, to +60% at 40 ranks, with a few more of them. A new player is untouched; ranked has no skills.
     vet: 1, // set below once the players (and the gear they wear) are in // pace: 2 the denser crowd of 3 Nov, 1 the 2 Nov one (ranked week 0)
     mapIndex: Math.max(0, MAPS.findIndex((m) => m.id === map.id)), casketRank: casketRank(map),
-    killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], endlessBossT: 0, endlessCycle: 0,
+    killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [],
+    ...(pace >= 2 && !ranked && !coop ? { alchedLootIndices: [] } : {}), endlessBossT: 0, endlessCycle: 0,
     players: [], enemies: [], proj: [], gems: [], pickups: [], fx: [],
     hazards: [],          // telegraphed boss attacks on the ground: { x, z, r, t, max, dmg }
     shrines: [],          // shrines to charge (pace 2): { id, x, z, kind, charge, life }
@@ -69,7 +70,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       face: 0, moving: false, hp: PLAYER_BASE.hp, maxHp: PLAYER_BASE.hp, alive: true, inv: 0,
       meta: coop ? clampSkills(p.meta) : meta, adv: p.adv || 'adventurer', weapons: { [p.weapon || (ADVENTURER_BY_ID[p.adv] ? ADVENTURER_BY_ID[p.adv].weapon : startWeapon)]: 1 }, passives: { ...((ADVENTURER_BY_ID[p.adv] || {}).startPassives || {}) }, evo: {}, buffs: {}, cd: {}, orbit: 0, kills: 0, coins: 0, regen: 0, hurt: 0,
       gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}, pace), rerolls: REROLLS_PER_RUN, belt: [],
-      casketQ: [], alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
+      casketQ: [], ...(pace >= 2 && !ranked && !coop ? { casketLootIndices: [] } : {}), alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
       wm: {}, // weapon metals from caskets (pace 2): { katana: 0..5, bow: 0..3, arrow: 0..4, ... } (missing = Bronze / plain Bow)
       ...(pace >= 2 ? { pace, quality: { weapons: {}, passives: {} }, banished: [] } : {}),
       ...(coop ? { killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], dmgBy: {} } : {}),
@@ -630,16 +631,17 @@ function gotCasket(sim, p, item) {
   sim.loot.push(item);
   const owner = sim.coop ? { player: p.id } : {};
   if (sim.coop) p.loot.push(item);
-  if (isWeaponItem(item)) { p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1, ...owner }); return; } // a weapon always holds a metal: always a card
+  if (isWeaponItem(item)) { if (p.casketLootIndices) p.casketLootIndices.push(sim.loot.length - 1); p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1, ...owner }); return; } // a weapon always holds a metal: always a card
   if (!p.gear[GEAR[item].slot]) { wearItem(sim, p, item); sim.fx.push({ k: 'casket', item, worn: 1, ...owner }); return; }
+  if (p.casketLootIndices) p.casketLootIndices.push(sim.loot.length - 1);
   p.casketQ.push(item); sim.fx.push({ k: 'casket', item, worn: 0, queued: 1, ...owner });
 }
 export function openCasket(sim, p) {
   if (!p || !p.alive || sim.pending[p.id] || !p.casketQ.length || sim.over) return false;
-  const item = p.casketQ.shift();
+  const item = p.casketQ.shift(), lootIndex = p.casketLootIndices?.shift();
   const card = isWeaponItem(item) ? compareWeaponItem(p.wm, item) : compareGear(p.gear, p.gearLv || {}, item, sim.pace);
   const rec = card.better ? 0 : 1;
-  sim.pending[p.id] = { casket: card, choices: [{ kind: 'wear', id: item, level: 1 }, { kind: 'alch', id: item, level: card.alch }], rec, more: p.casketQ.length, left: 30 };
+  sim.pending[p.id] = { ...(Number.isSafeInteger(lootIndex) ? { lootIndex } : {}), casket: card, choices: [{ kind: 'wear', id: item, level: 1 }, { kind: 'alch', id: item, level: card.alch }], rec, more: p.casketQ.length, left: 30 };
   return true;
 }
 function applyCasket(sim, p, c) {
@@ -654,6 +656,7 @@ function applyCasket(sim, p, c) {
     sim.fx.push({ k: 'casket', item: c.id, worn: 1, old, ...owner });
   } else {
     p.alch += c.level; sim.alched.push(c.id);
+    if (sim.alchedLootIndices) sim.alchedLootIndices.push(sim.pending[p.id]?.lootIndex);
     if (sim.coop) p.alched.push(c.id);
     sim.fx.push({ k: 'alch', item: c.id, coins: c.level, ...owner });
   }

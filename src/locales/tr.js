@@ -1,5 +1,15 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Submit score & continue as Endless": "Skoru gönder ve Endless olarak devam et",
+  "Continue without confirmed score": "Skor doğrulanmadan devam et",
+  "Continue as Endless": "Endless olarak devam et",
+  "Normal rewards are saved. Continue in this tab with the same health and build. Reloading ends the live run.": "Normal ödüller kaydedildi. Aynı can ve donanımla bu sekmede devam et. Sayfayı yenilemek devam eden oyunu bitirir.",
+  "Normal score could not be confirmed. Retry, or continue without a confirmed leaderboard score.": "Normal skor doğrulanamadı. Yeniden dene veya doğrulanmış sıralama skoru olmadan devam et.",
+  "Keep your victory going": "Zaferine devam et",
+  "After a solo casual victory, submit your normal score and continue as Endless with the same health, build and world.": "Tek oyunculu normal zaferden sonra normal skorunu gönder ve aynı can, donanım ve dünyayla Endless olarak devam et.",
+  "After a solo casual victory, continue as Endless with the same health, build and world.": "Tek oyunculu normal zaferden sonra aynı can, donanım ve dünyayla Endless olarak devam et.",
+  "Normal rewards stay saved. Endless adds only new rewards; reloading ends the live run.": "Normal ödüller kayıtlı kalır. Endless yalnızca yeni ödüller ekler; sayfayı yenilemek devam eden oyunu bitirir.",
+  "If the normal leaderboard score cannot be confirmed, retry or explicitly continue without a confirmed score.": "Normal sıralama skoru doğrulanamazsa yeniden dene veya skor doğrulanmadan devam etmeyi seç.",
   "Upgrade weapon": "Silahı geliştir",
   "Recommended: upgrade weapon": "Önerilen: silahı geliştir",
   "Release Tab to close": "Kapatmak için Tab tuşunu bırak",

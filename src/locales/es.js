@@ -1,5 +1,15 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Submit score & continue as Endless": "Enviar puntuación y continuar en Endless",
+  "Continue without confirmed score": "Continuar sin puntuación confirmada",
+  "Continue as Endless": "Continuar en Endless",
+  "Normal rewards are saved. Continue in this tab with the same health and build. Reloading ends the live run.": "Las recompensas normales están guardadas. Continúa en esta pestaña con la misma salud y equipo. Recargar termina la partida en curso.",
+  "Normal score could not be confirmed. Retry, or continue without a confirmed leaderboard score.": "No se pudo confirmar la puntuación normal. Reintenta o continúa sin una puntuación confirmada en la clasificación.",
+  "Keep your victory going": "Que siga tu victoria",
+  "After a solo casual victory, submit your normal score and continue as Endless with the same health, build and world.": "Tras una victoria casual en solitario, envía tu puntuación normal y continúa en Endless con la misma salud, equipo y mundo.",
+  "After a solo casual victory, continue as Endless with the same health, build and world.": "Tras una victoria casual en solitario, continúa en Endless con la misma salud, equipo y mundo.",
+  "Normal rewards stay saved. Endless adds only new rewards; reloading ends the live run.": "Las recompensas normales siguen guardadas. Endless solo añade recompensas nuevas; recargar termina la partida en curso.",
+  "If the normal leaderboard score cannot be confirmed, retry or explicitly continue without a confirmed score.": "Si no se puede confirmar la puntuación normal en la clasificación, reintenta o elige continuar sin una puntuación confirmada.",
   "Upgrade weapon": "Mejorar arma",
   "Recommended: upgrade weapon": "Recomendado: mejorar el arma",
   "Release Tab to close": "Suelta Tab para cerrar",
