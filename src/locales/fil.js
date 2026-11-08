@@ -2,6 +2,10 @@
 export const text = {
   "Equipment": "Kagamitan",
   "No gear equipped.": "Walang suot na kagamitan.",
+  "Finer melee effects": "Mas pinong mga epekto sa labanan",
+  "Swords, spinning axes and pickaxe impacts have finer trails, glints and dust.": "Mas pino ang mga bakas, kislap at alikabok ng espada, umiikot na palakol at hampas ng piko.",
+  "Attack effects pause with combat and upgrades. Pickaxe swings animate the attacking adventurer in co-op.": "Humihinto ang mga epekto ng pag-atake kapag nakahinto ang labanan at habang pumipili ng upgrade. Sa co-op, gumagalaw ang manlalakbay na umaatake gamit ang piko.",
+  "Attack effects pause with combat and upgrades. Reduced effects keep the attack shapes visible.": "Humihinto ang mga epekto ng pag-atake kapag nakahinto ang labanan at habang pumipili ng upgrade. Sa reduced effects, nakikita pa rin ang hugis ng mga pag-atake.",
   "Gear at a glance": "Kagamitan sa isang tingin",
   "Desktop runs show your worn gear below weapons and passives. Hover or focus an item to inspect it, or collapse Equipment for more room.": "Sa desktop, makikita ang suot mong kagamitan sa ilalim ng mga armas at passive. Itapat ang cursor o ituon ang focus sa item para siyasatin ito, o isara ang Kagamitan para lumuwag ang tanaw.",
 

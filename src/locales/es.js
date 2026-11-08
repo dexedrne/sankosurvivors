@@ -2,6 +2,10 @@
 export const text = {
   "Equipment": "Equipo",
   "No gear equipped.": "No llevas equipo.",
+  "Finer melee effects": "Efectos de combate más finos",
+  "Swords, spinning axes and pickaxe impacts have finer trails, glints and dust.": "Las espadas, las hachas giratorias y los impactos de pico tienen estelas, destellos y polvo más sutiles.",
+  "Attack effects pause with combat and upgrades. Pickaxe swings animate the attacking adventurer in co-op.": "Los efectos de ataque se pausan con el combate y las mejoras. En cooperativo, el aventurero que usa el pico muestra su animación de ataque.",
+  "Attack effects pause with combat and upgrades. Reduced effects keep the attack shapes visible.": "Los efectos de ataque se pausan con el combate y las mejoras. Los efectos reducidos mantienen visibles las formas de los ataques.",
   "Gear at a glance": "Equipo de un vistazo",
   "Desktop runs show your worn gear below weapons and passives. Hover or focus an item to inspect it, or collapse Equipment for more room.": "Las partidas de escritorio muestran tu equipo debajo de las armas y los pasivos. Pasa el cursor o enfoca un objeto para inspeccionarlo, o contrae Equipo para tener más espacio.",
 

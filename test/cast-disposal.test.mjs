@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { ownActorResource, disposeActor } from '../src/character.js';
 import { createPetRenderer } from '../src/pet-renderer.js';
+import { createMeleeVfx } from '../src/melee-vfx.js';
 
 const source = readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
 function between(start, end) {
@@ -12,10 +13,11 @@ function between(start, end) {
   return source.slice(a, b);
 }
 function harness() {
-  return Function('THREE', 'ownActorResource', 'disposeActor', 'createPetRenderer', `
+  return Function('THREE', 'ownActorResource', 'disposeActor', 'createPetRenderer', 'createMeleeVfx', `
     const dyn = new THREE.Group(), entGroup = new THREE.Group(), camera = new THREE.PerspectiveCamera();
     const projObjs = new Map(), eprojObjs = new Map(), shrineObjs = new Map(), shieldObjs = new Map();
     const groundAt = () => 0, fxOnly = o => o, colorOut = s => s, emit = () => {}, A = s => s;
+    const meleeFx = createMeleeVfx({group:dyn,camera,groundAt,fxOnly,colorOut});
     const petRenderer = createPetRenderer({group:dyn,groundAt,load:async()=>null,spawn:()=>{throw Error('No companion selected in this cast fixture');}});
     const glowTex = new THREE.Texture(), streakTex = new THREE.Texture();
     const modelGeo = new THREE.BoxGeometry(), modelMap = new THREE.Texture(), modelMat = new THREE.MeshBasicMaterial({ map: modelMap });
@@ -26,7 +28,7 @@ function harness() {
     ${between('  const SPELL_ELEMENT =', '  const msQ =')}
     ${between('  const softRing =', '  const glowTex =')}
     ${between('  const glowSprite =', '  // the Lighter')}
-    ${between('  const streakMat =', '  // a charge')}
+    ${between('  function meleeTrail(', '  // the ground cracks')}
     const msObj = new THREE.Object3D();
     ${between('  const msBursts =', '  // ---- spell flight')}
     const spFx = { burst: [], volley: [] }, spellStray = () => {}, spellDraw = () => {}, stepMagicSphere = () => {};
@@ -34,7 +36,8 @@ function harness() {
     let landing = false;
     const spellLand = () => landing;
     function frame(state = {}) {
-      const view = { players: [], proj: [], eproj: [], shrines: [], ...state }, dt = 0.1, time = 0, vt = 0;
+      const view = { t:0, players: [], proj: [], eproj: [], shrines: [], ...state }, dt = 0.1, time = 0, vt = 0;
+      meleeFx.begin(view.t,false);
       ${between('    // monster projectiles (fire and ice)', '    // pickups\n')}
     }
     const slimeFlecks = [], effects = [], pickupSprites = new Map(), numbers = [], parts = [], gemSets = [], partMesh = {};
@@ -42,13 +45,13 @@ function harness() {
     let folkT = 0, spTick = 0; const removePickup = () => {};
     ${between('  function reset() {', '  return { hop:')}
     function shared() {
-      const resources = new Set([modelGeo, modelMat, modelMap, spriteGeometry, glowTex, streakTex, msGeo, msMat, msGlowGeo, ...msGlowMats.values()]);
+      const resources = new Set([meleeFx.mesh, meleeFx.mesh.geometry, meleeFx.mesh.material, modelGeo, modelMat, modelMap, spriteGeometry, glowTex, streakTex, msGeo, msMat, msGlowGeo, ...msGlowMats.values()]);
       for (const root of [ARROW, ...arrowCache]) if (root) root.traverse(o => { if (o.geometry) resources.add(o.geometry); for (const m of [].concat(o.material || [])) resources.add(m); });
       return resources;
     }
-    return { frame, reset, shared, dyn, projObjs, eprojObjs, shrineObjs, msBursts,
+    return { frame, reset, shared, dyn, meleeFx, projObjs, eprojObjs, shrineObjs, msBursts,
       landing: value => { landing = value; }, burst: () => magicBurst(0, 1, 0, SPELL_ELEMENT.fire, 'blast'), expire: () => stepMagicBursts(performance.now() + 1000) };
-  `)(THREE, ownActorResource, disposeActor, createPetRenderer);
+  `)(THREE, ownActorResource, disposeActor, createPetRenderer, createMeleeVfx);
 }
 const projectile = (id, art, evo = false) => [id, art, 0, 0, 0, 6, 0, evo, -1];
 const enemyShot = id => [id, 0, 0, 'ice'];
@@ -63,14 +66,14 @@ function watch(resources) {
 function uniqueResources(root, shared) {
   const resources = new Set();
   root.traverse(o => {
-    if (o.isInstancedMesh) resources.add(o);
+    if (o.isInstancedMesh && !shared.has(o)) resources.add(o);
     if (o.geometry && !o.isSprite && !shared.has(o.geometry)) resources.add(o.geometry);
     for (const material of [].concat(o.material || [])) if (!shared.has(material)) resources.add(material);
   });
   return resources;
 }
 
-for (const [art, evo, count] of [['sword', false, 2], ['ball', false, 4], ['ball', true, 5], ['axe', false, 2], ['bolt', false, 1], ['bolt', true, 1]]) {
+for (const [art, evo, count] of [['sword', false, 0], ['ball', false, 4], ['ball', true, 5], ['axe', false, 0], ['bolt', false, 1], ['bolt', true, 1]]) {
   test(`${evo ? 'evolved ' : ''}${art} expiry releases its own resources and preserves a live cast and shared cache`, async () => {
     const h = harness(), first = projectile(1, art, evo), second = projectile(2, art, evo);
     h.frame({ proj: [first, second] }); await settleModels();
@@ -110,6 +113,6 @@ test('reset purges active casts, enemy shots, bursts and shrines with disposal e
   const h = harness(); h.frame({ proj: [projectile(1, 'ball', true)], eproj: [enemyShot(2)], shrines: [shrine(3)] }); h.burst(); await settleModels();
   const own = watch(uniqueResources(h.dyn, h.shared())), cached = watch(h.shared());
   assert.equal(own.length, 13); h.reset(); h.reset();
-  assert.equal(h.dyn.children.length, 0); assert.equal(h.shrineObjs.size, 0);
+  assert.deepEqual(h.dyn.children, [h.meleeFx.mesh]); assert.equal(h.meleeFx.mesh.count,0); assert.equal(h.shrineObjs.size, 0);
   assert.ok(own.every(x => x.disposals === 1)); assert.ok(cached.every(x => x.disposals === 0));
 });

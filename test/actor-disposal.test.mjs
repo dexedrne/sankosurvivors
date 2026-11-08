@@ -99,7 +99,7 @@ test('renderer reset releases enemy, corpse, player, NPC and companion actors', 
   Function('actors', 'corpses', 'playerActors', 'folkActors', 'dyn', 'entGroup', 'disposeActor', 'petRenderer', `
     const slimeFlecks=[],effects=[],pickupSprites=new Map(),numbers=[],parts=[],gemSets=[],partMesh={};
     const projObjs=new Map(),shieldObjs=new Map(),eprojObjs=new Map(),shrineObjs=new Map(),msBursts=[],hazardPool=[],curMap={cx:0,cz:0},cam={};
-    let folkT=0,spTick=0; const removePickup=()=>{};
+    let folkT=0,spTick=0; const removePickup=()=>{},meleeFx={reset(){}};
     ${resetCode}; reset();
   `)(new Map([[1, a]]), [{ a: corpse }], new Map([[1, player]]), new Map([[1, npc]]), dyn, entGroup, character.disposeActor, petRenderer);
   assert.ok(boneTextures.every(x => x.disposed === 1));

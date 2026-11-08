@@ -1,4 +1,5 @@
 import { frameTitleCamera } from './title-framing.js';
+import { createMeleeVfx } from './melee-vfx.js';
 import { cleanSettings } from './settings.js';
 // Three.js renderer. Reads snapshots from sim.js, owns every GPU object.
 import * as THREE from 'three';
@@ -1166,6 +1167,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   const shieldObjs = new Map(); // `${playerId}:${i}` -> object
   const dyn = new THREE.Group(); dyn.name = 'dyn'; scene.add(dyn);
+  const meleeFx = createMeleeVfx({ group: dyn, camera, groundAt, colorOut, fxOnly });
   const bunModels = createBunModels(loadGLB, A);
   const petRenderer = createPetRenderer({
     choice: id => petChoice(id) || bunModels.choice(id),
@@ -1279,7 +1281,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     emit(x, y, z, n, speed, { s: big ? 2.4 : 1.3, life: 0.55, color: 0xd9d2c0 });
     emit(x, y + 0.3, z, Math.ceil(n * 0.6), speed * 1.5, { s: big ? 1.4 : 0.7, life: 0.4, color: 0xffd36a, up: 4 });
   }
-  function spark(x, z, crit) { emit(x, groundAt(x, z) + 1.0, z, crit ? 7 : 3, crit ? 6 : 4, { s: crit ? 0.9 : 0.55, life: 0.25, color: crit ? 0xffcf4a : 0xfff4dc, up: 2, g: 4 }); }
+  function spark(x, z, crit) { meleeFx.hit(x, z, crit); }
 
   // native Slime Blob flecks share one cached icon/material and reuse at most 32 sprites.
   const slimeFlecks = [];
@@ -1371,31 +1373,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     Object.assign(mesh.userData, { life, max: life, grow, base: mesh.scale.x }); fxOnly(mesh); dyn.add(mesh); effects.push(mesh);
   }
   // a sword swing: a crescent that sweeps across the arc, brightest at its leading edge and the blade's tip
-  const slashMat = (color) => new THREE.ShaderMaterial({
-    uniforms: { uProg: { value: 0 }, uColor: { value: new THREE.Color(color).multiplyScalar(1.6) }, uArc: { value: 1 }, uIn: { value: 0.25 } },
-    vertexShader: 'varying vec2 vP; void main(){ vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: colorOut(`uniform float uProg, uArc, uIn; uniform vec3 uColor; varying vec2 vP;
-      void main(){
-        float r = length(vP); float ang = atan(-vP.y, vP.x + 1e-5); // ring angle 0 is +X
-        float t = (ang + uArc * 0.5) / uArc;            // 0..1 across the swing
-        float lead = uProg * 1.25;                        // the sweep front
-        float trail = smoothstep(lead - 0.55, lead, t) * (1.0 - smoothstep(lead, lead + 0.04, t));
-        float radial = smoothstep(uIn, 1.0, r) * (1.0 - smoothstep(0.96, 1.0, r));
-        float edge = smoothstep(0.86, 0.97, r) * (1.0 - smoothstep(0.97, 1.0, r));
-        float a = (trail * radial * 0.75 + edge * trail * 1.2) * (1.0 - uProg * 0.6);
-        gl_FragColor = vec4(uColor * (1.0 + edge), a);
-      }`),
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-  });
   function slashFx(x, z, a, range, arcDeg, lvl) {
-    const arc = Math.min(Math.PI * 2, arcDeg * Math.PI / 180);
-    const g = new THREE.RingGeometry(0.25, 1, 40, 1, -arc / 2, arc).rotateX(-Math.PI / 2);
-    const m = new THREE.Mesh(g, slashMat(lvl >= 6 ? 0xc89bff : 0xfff0b8));
-    m.material.uniforms.uArc.value = arc; m.scale.setScalar(range);
-    m.position.set(x, groundAt(x, z) + 0.9, z);
-    m.rotation.y = a - Math.PI / 2; // the ring's zero angle points along +X
-    m.userData.shader = true; addEffect(m, 0.24, 0.06);
-    emit(x + Math.sin(a) * range * 0.8, groundAt(x, z) + 1, z + Math.cos(a) * range * 0.8, 3, 2.5, { s: 0.5, life: 0.25, color: 0xfff4dc, up: 1, g: 2 });
+    meleeFx.sweep(x, z, a, range, arcDeg, lvl >= 6 ? 0xc7b9e4 : 0xe9e7d9);
+  }
+  function meleeTrail(o, art, x, z, angle, spin, evolved, clock) {
+    if (art !== 'axe' && art !== 'sword' || !Number.isFinite(clock)) return;
+    const last = o.userData.meleeAt;
+    if (last !== undefined && clock >= last && clock - last < 0.06) return;
+    o.userData.meleeAt = clock;
+    if (art === 'axe') meleeFx.axe(x, z, spin, evolved); else meleeFx.sword(x, z, angle, evolved);
   }
   // the ground cracks under a quake: dark radial cracks that fade, and a ring of dust
   const crackTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.strokeStyle = 'rgba(30,20,10,0.95)'; g.lineCap = 'round';
@@ -1446,9 +1432,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     m.position.set(x, groundAt(x, z) + 0.05, z); m.rotation.y = Math.random() * 6.28; addEffect(m, 1.4, 0);
   }
   const SHARD_COLORS = [0xb8e4ff, 0x4aa8ff, 0x7bd04f, 0xff7a30, 0xffe066, 0xb25cff]; // Air, Water, Earth, Fire, Spirit, Void
-  // a soft streak that fades toward its tail (for bolts and arrows)
+  // a soft vertical gradient for the level-up light column
   const streakTex = (() => { const c = document.createElement('canvas'); c.width = 8; c.height = 64; const g = c.getContext('2d'); const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,255,255,1)'); g.fillStyle = gr; g.fillRect(0, 0, 8, 64); return new THREE.CanvasTexture(c); })();
-  const streakMat = (c, op = 0.7) => new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(1.5), map: streakTex, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   // a charge's telegraph: a red lane in front of the boss
   function aimFx(x, z, a, len, t) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, len).rotateX(-Math.PI / 2).translate(0, 0, len / 2), ringMat(0xff3b2f, false));
@@ -1701,6 +1686,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     time += dt; if (waterMat.userData.sh) waterMat.userData.sh.uniforms.uTime.value = time;
     const me = view.players.find((p) => p.id === localId) || view.players[0];
     petRenderer.update(view, dt, localId);
+    meleeFx.begin(view.t, settings.fx === 'reduced');
     spFx.dmg.length = spFx.hurt.length = spFx.burst.length = spFx.volley.length = 0;
     const vt = spellClock(view, dt, !!view.over || (!!view.pending && Object.keys(view.pending).length > 0)); // the sim holds still while a card is up
     if (me) { cam.x += (me.x - cam.x) * Math.min(1, dt * 10); cam.z += (me.z - cam.z) * Math.min(1, dt * 10); }
@@ -1722,11 +1708,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'rise') { crackFx(f.x, f.z, 1.1); emit(f.x, groundAt(f.x, f.z) + 0.3, f.z, 14, 2, { s: 1.3, life: 0.9, color: 0x8f7a5c, up: 3 }); }
       else if (f.k === 'escape') emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 3, { s: 1.2, life: 0.8, color: 0xd9d2c0, up: 3 });
       else if (f.k === 'use') { ringFx(f.x, f.z, f.kind === 'pumpkin' ? 20 : 3, f.kind === 'pumpkin' ? 0xff9a3c : f.kind === 'warp' ? 0xb25cff : 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 16, 3, { s: 0.8, life: 0.6, color: f.kind === 'warp' ? 0xb25cff : 0xffd34d, up: 4 }); }
-      else if (f.k === 'spin') { slashFx(f.x, f.z, 0, f.range, 360, f.evo ? 6 : f.lvl); ringFx(f.x, f.z, f.range, f.evo ? 0xff5a4a : 0xfff0b8); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
+      else if (f.k === 'spin') { slashFx(f.x, f.z, 0, f.range, 360, f.evo ? 6 : f.lvl); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'slam') { ringFx(f.x, f.z, f.r, f.meteor ? 0xff9a3c : 0xff6a3a, 1, 0.5); ringFx(f.x, f.z, f.r * 0.6, 0xffc06a, 0, 0.35); scorchFx(f.x, f.z, f.r); emit(f.x, groundAt(f.x, f.z) + 0.3, f.z, 40, 7, { s: 1.4, life: 0.7, color: 0xb8a58a, up: 3 }); cam.shake = Math.max(cam.shake, 0.45); }
       else if (f.k === 'aim') aimFx(f.x, f.z, f.a, f.len, f.t);
       else if (f.k === 'volley') spFx.volley.push(f); // where the boss stood: its shots start there (the game shows no cast puff; the cast sound stays in audio.js)
-      else if (f.k === 'quake') { ringFx(f.x, f.z, f.r, 0xd9b36a); crackFx(f.x, f.z, f.r); cam.shake = Math.max(cam.shake, 0.18); }
+      else if (f.k === 'quake') { meleeFx.quake(f.x, f.z, f.r); cam.shake = Math.max(cam.shake, 0.18); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'burst') spFx.burst.push(f); // the staff's splash: a thin ring in the spell's colour when the bolt lands (spellLand)
       else if (f.k === 'boss') cam.shake = 0.5;
       else if (f.k === 'nuke') { ringFx(f.x, f.z, f.r, 0xff9a3c, 1, 0.7); ringFx(f.x, f.z, f.r * 0.55, 0xfff2a8, 0, 0.45); scorchFx(f.x, f.z, f.r * 0.8); cam.shake = 0.4; }
@@ -1942,8 +1928,6 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           Object.assign(o.userData, evo ? { trail: 0x9fe6ff, every: 0.5 } : { trail: 0xb89a6a, every: 0.7 }); // the glacial bow's frost, or a little dust
         } else if (art === 'sword') { // a thrown short sword, point first, with a bright streak
           item(weaponModelPath('shortsword', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) o.add(orientedItem(p, 1.1)); });
-          o.add(new THREE.Mesh(ownActorResource(new THREE.PlaneGeometry(0.14, 2.0).rotateX(-Math.PI / 2).translate(0, 0, -1.2)), ownActorResource(streakMat(evo ? 0x7fe0ff : 0xfff6dc, 0.55))));
-          if (evo) Object.assign(o.userData, { trail: 0x7fe0ff, every: 0.4 });
         } else if (art === 'ball') { // a baseball, stitches and all, spinning as it flies
           // owner 3 Nov: "baseball projectile is pretty huge": 0.64 across was 40% of a person; now 0.3 (its hit size is unchanged)
           const ball = new THREE.Mesh(ownActorResource(new THREE.SphereGeometry(0.15, 14, 10)), ownActorResource(new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.7 })));
@@ -1952,8 +1936,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           o.add(ball); Object.assign(o.userData, { spinner: ball, trail: evo ? 0xffd34d : 0xfff6dc, every: 0.45 });
         } else if (art === 'axe') {
           item(weaponModelPath('axe', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) { const m = orientedItem(p, 1.0); o.userData.spinner2 = m; o.add(m); } });
-          const blur = softRing(evo ? 0x7fe0ff : 0xffe2a0, 0.35, 0.65, { opacity: 0.32, arcs: 2 }); o.add(blur); o.userData.blur = blur; // a soft swoosh that turns with the axe
-          Object.assign(o.userData, { trail: evo ? 0x7fe0ff : 0xffd38a, every: 0.35 });
+
         }
       }
       if (o.userData.spell) { // spells fly about 1.3 up, as the game's, slide between sim ticks, and are never turned (only the head aims)
@@ -1961,14 +1944,16 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         spellDraw(o); stepMagicSphere(o.children[0], performance.now());
       } else {
         o.position.set(x, groundAt(x, z) + 1.0, z);
-        if (art === 'axe') { if (o.userData.spinner2) o.userData.spinner2.rotation.y = spin; if (o.userData.blur) o.userData.blur.rotation.y = spin; o.rotation.y = 0; } else o.rotation.y = ang;
+        if (art === 'axe') { if (o.userData.spinner2) o.userData.spinner2.rotation.y = spin; o.rotation.y = 0; } else o.rotation.y = ang;
       }
+      meleeTrail(o, art, x, z, ang, spin, evo, view.t);
       if (o.userData.spinner) o.userData.spinner.rotation.z += dt * 12;
       if (o.userData.trail && Math.random() < o.userData.every) emit(x, o.position.y, z, 1, 0.3, { s: art === 'bolt' ? 0.7 : 0.45, life: 0.35, color: o.userData.trail, up: 0.25, g: 0 });
     }
     for (const [id, o] of projObjs) if (!seenPr.has(id) && !(o.userData.spell && spellLand(o, vt, true))) { disposeActor(o); projObjs.delete(id); }
     for (const f of spFx.burst) if (!f.used) spellStray(f, view.players); // a bolt that hit in the tick it was cast was never drawn
     stepMagicBursts(performance.now());
+    meleeFx.flush();
 
     // shrines: SankoQuest's altar, a pillar of light in the shrine's colour, and a circle that fills as you charge it
     const seenS = new Set();
@@ -2082,6 +2067,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const seenShield = new Set();
 
   function reset() {
+    meleeFx.reset();
     petRenderer.reset();
     for (const sp of slimeFlecks) { sp.visible = false; sp.userData.life = 0; }
     for (const m of effects) { dyn.remove(m); m.geometry.dispose(); m.material.dispose(); } effects.length = 0;

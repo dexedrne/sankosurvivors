@@ -2,6 +2,10 @@
 export const text = {
   "Equipment": "Ekipman",
   "No gear equipped.": "Kuşanılmış ekipman yok.",
+  "Finer melee effects": "Daha ince yakın dövüş efektleri",
+  "Swords, spinning axes and pickaxe impacts have finer trails, glints and dust.": "Kılıçlar, dönen baltalar ve kazma darbeleri daha ince izler, parıltılar ve toz efektleri kullanır.",
+  "Attack effects pause with combat and upgrades. Pickaxe swings animate the attacking adventurer in co-op.": "Saldırı efektleri savaş ve yükseltmelerle birlikte duraklar. Eşli oyunda kazmayı kullanan maceracının savuruşu canlandırılır.",
+  "Attack effects pause with combat and upgrades. Reduced effects keep the attack shapes visible.": "Saldırı efektleri savaş ve yükseltmelerle birlikte duraklar. Azaltılmış efektlerde saldırı şekilleri görünür kalır.",
   "Gear at a glance": "Bir bakışta ekipman",
   "Desktop runs show your worn gear below weapons and passives. Hover or focus an item to inspect it, or collapse Equipment for more room.": "Masaüstü koşularında kuşandığın ekipman silah ve pasiflerin altında görünür. İncelemek için bir eşyanın üzerine gel veya odağı ona taşı; daha fazla alan için Ekipman bölümünü daralt.",
 

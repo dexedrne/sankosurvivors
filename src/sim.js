@@ -761,7 +761,7 @@ function fireWeapons(sim, p, dt, st) {
       }
     } else if (id === 'pickaxe') {
       if (!sim.enemies.some((e) => sim.pace >= 2 ? hyp(e.x - p.x, e.z - p.z) <= s.radius + ENEMIES[e.type].r : hyp(e.x - p.x, e.z - p.z) < s.radius + 2)) { p.cd[id] = 0.3; continue; }
-      sim.fx.push({ k: 'quake', x: p.x, z: p.z, r: s.radius, lvl });
+      sim.fx.push({ k: 'quake', x: p.x, z: p.z, r: s.radius, lvl, ...(sim.coop ? { player: p.id } : {}) });
       for (const e of sim.enemies) if (hyp(e.x - p.x, e.z - p.z) <= s.radius + ENEMIES[e.type].r) damageEnemy(sim, e, dmg, p.id, s.kb, p.x, p.z);
     }
   }
