@@ -86,3 +86,11 @@ test('Endless growth remains deterministic across peers and enters the canonical
  p.tick(30);assert.equal(p.host.hash(),p.guest.hash());assert.deepEqual(p.ended,[]);
  p.guest.sim.players[1].endlessGrowth.might++;p.tick(30);assert.deepEqual(p.ended,[['guest','desync']]);
 });
+
+test('storms retain canonical time across hold and retained-frame recovery',()=>{
+ const p=pair();for(const d of[p.host,p.guest])d.sim.event={kind:'rainstorm',t:20};p.tick(60);
+ const before=snapshot(p.host.sim);assert(before.storm,'storm snapshot missing');assert.equal(before.storm.left,18);
+ p.host.hold();p.guest.hold();p.deliver();for(let i=0;i<30;i++)assert.equal(p.host.advance(),false);assert.deepEqual(snapshot(p.host.sim).storm,before.storm);assert.deepEqual(snapshot(p.guest.sim).storm,before.storm);
+ const frame=p.host.frame;p.host.begin(frame);p.guest.begin(frame);for(let i=0;i<60;i++)p.host.advance();assert(p.guest.recover(p.host.frame));p.deliver();assert.equal(p.guest.frame,p.host.frame);assert.equal(p.host.hash(),p.guest.hash());
+ p.host.hold();p.deliver();p.host.begin(p.host.frame);p.guest.begin(p.guest.frame);p.tick(30);assert.equal(p.host.hash(),p.guest.hash());assert.deepEqual(snapshot(p.host.sim).storm,snapshot(p.guest.sim).storm);assert.equal(snapshot(p.host.sim).storm.left,15);assert.deepEqual(p.ended,[]);
+});

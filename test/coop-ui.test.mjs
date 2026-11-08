@@ -1,3 +1,4 @@
+import{drawStormMinimap}from'../src/storm-effects.js';
 import test from'node:test';import assert from'node:assert/strict';import{readFileSync}from'node:fs';import{createSim,playerStats}from'../src/sim.js';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 function source(a,b){const i=main.indexOf(a),j=main.indexOf(b,i+1);assert(i>=0&&j>i,a);return main.slice(i,j);}
@@ -42,7 +43,7 @@ test('guest upgrade previews use the guest weapon metal by default',async()=>{
 });
 test('guest minimap keeps itself centred and marks the other adventurer',()=>{
  const arcs=[],ctx=new Proxy({fillStyle:'',arc(x,z,r){arcs.push({x,z,r,color:this.fillStyle});}},{get:(o,k)=>k in o?o[k]:()=>{}}),view={players:[{id:'p1',x:10,z:10,f:0,al:1},{id:'p2',x:20,z:20,f:0,al:1}],pickups:[],enemies:[]};
- const draw=Function('mmx',`const PLAYER='p2',sim={coop:true,map:{r:1000}},mmImg={src:'fixture'},mm={width:100},renderer={getYaw:()=>0},ENEMIES={};${source('function drawMinimap(', '// ---- main loop')};return drawMinimap;`)(ctx);draw(view);assert(arcs.some(a=>a.x===-24&&a.z===-24&&a.color==='#69c8ff'));
+ const draw=Function('mmx','drawStormMinimap',`const PLAYER='p2',sim={coop:true,map:{r:1000}},mmImg={src:'fixture'},mm={width:100},renderer={getYaw:()=>0},ENEMIES={};${source('function drawMinimap(', '// ---- main loop')};return drawMinimap;`)(ctx,drawStormMinimap);draw(view);assert(arcs.some(a=>a.x===-24&&a.z===-24&&a.color==='#69c8ff'));
 });
 test('joining another map keeps the selected ordinary adventurer until the room applies its own forced rules',()=>{
  const make=Function('MAP_BY_ID',`const selAdv='wizard',runAdv=()=>({id:'alex'}),getGear=()=>({head:'Bronze Helmet'}),getGearLv=()=>({'Bronze Helmet':1}),getSkills=()=>({}),clearedMaps=()=>new Set(),$=()=>({value:'Guest'});${source('function coopLoadout()', 'function openCoop()')};return coopLoadout;`)({greentown:{}});const me=make();assert.equal(me.adv,'wizard');assert.deepEqual(me.gear,{head:'Bronze Helmet'});

@@ -42,7 +42,7 @@ function harness() {
     }
     const slimeFlecks = [], effects = [], pickupSprites = new Map(), numbers = [], parts = [], gemSets = [], partMesh = {};
     const actors = new Map(), playerActors = new Map(), folkActors = new Map(), corpses = [], hazardPool = [], curMap = { cx: 0, cz: 0 }, cam = {};
-    let folkT = 0, spTick = 0; const removePickup = () => {};
+    let folkT = 0, spTick = 0; const removePickup = () => {}, resetWeather = () => {};
     ${between('  function reset() {', '  return { hop:')}
     function shared() {
       const resources = new Set([meleeFx.mesh, meleeFx.mesh.geometry, meleeFx.mesh.material, modelGeo, modelMat, modelMap, spriteGeometry, glowTex, streakTex, msGeo, msMat, msGlowGeo, ...msGlowMats.values()]);

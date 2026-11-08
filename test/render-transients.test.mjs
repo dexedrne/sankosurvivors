@@ -22,14 +22,14 @@ test('new runs remove transient effects, pickup materials and damage labels',()=
   let disposed=0,removed=0;
   const obj=()=>({geometry:{dispose(){disposed++;}},material:{dispose(){disposed++;}}});
   const effects=[obj(),obj()],pickupSprites=new Map([[1,obj()]]),numbers=[{el:{remove(){removed++;}}}],parts=[{life:1}],gemSets=[{geometry:{setDrawRange(){}}}],partMesh={count:700};
-  Function('effects','pickupSprites','numbers','parts','gemSets','partMesh','THREE','createPetRenderer','createMeleeVfx',`
+  const weatherResets=Function('effects','pickupSprites','numbers','parts','gemSets','partMesh','THREE','createPetRenderer','createMeleeVfx',`
     const actors=new Map(),playerActors=new Map(),projObjs=new Map(),shieldObjs=new Map(),folkActors=new Map(),eprojObjs=new Map(),shrineObjs=new Map();
-    const slimeFlecks=[],corpses=[],msBursts=[],hazardPool=[],dyn=new THREE.Group(),entGroup={remove(){}},curMap={cx:0,cz:0},cam={};let folkT=0,spTick=0;
+    const slimeFlecks=[],corpses=[],msBursts=[],hazardPool=[],dyn=new THREE.Group(),entGroup={remove(){}},curMap={cx:0,cz:0},cam={};let folkT=0,spTick=0,weatherResets=0;const resetWeather=()=>weatherResets++;
     const petRenderer=createPetRenderer({group:dyn,groundAt:()=>0,load:async()=>null,spawn:()=>{throw Error('No companion selected in this transient fixture');}});
     const meleeFx=createMeleeVfx({group:dyn,camera:new THREE.PerspectiveCamera(),groundAt:()=>0,colorOut:s=>s,fxOnly:o=>o});
-    ${cleanup}${code};reset();
+    ${cleanup}${code};reset();return weatherResets;
   `)(effects,pickupSprites,numbers,parts,gemSets,partMesh,THREE,createPetRenderer,createMeleeVfx);
-  assert.equal(effects.length,0);assert.equal(pickupSprites.size,0);assert.equal(numbers.length,0);
+  assert.equal(weatherResets,1);assert.equal(effects.length,0);assert.equal(pickupSprites.size,0);assert.equal(numbers.length,0);
   assert.equal(removed,1);assert.ok(disposed>=5);assert.equal(partMesh.count,0);
 });
 test('decorative pressure never evicts an active boss charge warning',()=>{

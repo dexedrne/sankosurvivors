@@ -4,6 +4,7 @@ import { RunRecorder, RANKED, pauseRemaining, kpm, kpmMicro, kpmWeek, prizePlace
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, requireRankedBuild, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
+import { drawStormMinimap } from './storm-effects.js';
 import { cleanSettings } from './settings.js';
 import { createScreenLayout } from './screen-layout.js';
 import { setupFullscreen } from './fullscreen.js';
@@ -2015,7 +2016,7 @@ function updateHud(view) {
     else if (f.k === 'use' && f.kind === 'warp') banner('Warp Shard: everything comes to you', 1600);
     else if (f.k === 'revive') banner('Revived!', 1600);
     else if (f.k === 'get' && f.kind === 'chest') banner('Chest!', 1000);
-    else if (f.k === 'event') banner(f.kind === 'treasure' ? 'A treasure goblin! Catch it before it gets away' : f.kind === 'swarm' ? 'Swarm!' : f.kind === 'warband' ? `A goblin warband charges from the ${f.dir}!` : f.kind === 'rising' ? 'The dead rise around you!' : f.kind === 'blizzard' ? 'Blizzard! The snow slows you down' : f.kind === 'duel' ? 'A champion of the Fighting Forum challenges you!' : f.kind === 'stampede' ? `Chicken stampede from the ${f.dir}!` : f.kind === 'sandstorm' ? 'Sandstorm! Scorpions in the dust' : f.kind === 'ambush' ? 'Ambush! Things are crawling out of the water' : 'Meteor shower! Watch the ground', 2600);
+    else if (f.k === 'event') banner(f.kind === 'treasure' ? 'A treasure goblin! Catch it before it gets away' : f.kind === 'swarm' ? 'Swarm!' : f.kind === 'warband' ? `A goblin warband charges from the ${f.dir}!` : f.kind === 'rising' ? 'The dead rise around you!' : f.kind === 'rainstorm' ? 'Rainstorm! Distant views and the minimap are clouded' : f.kind === 'snowstorm' ? 'Snowstorm! Distant views and the minimap are clouded' : f.kind === 'blizzard' ? 'Blizzard! The snow slows you down' : f.kind === 'duel' ? 'A champion of the Fighting Forum challenges you!' : f.kind === 'stampede' ? `Chicken stampede from the ${f.dir}!` : f.kind === 'sandstorm' ? 'Sandstorm! Scorpions in the dust' : f.kind === 'ambush' ? 'Ambush! Things are crawling out of the water' : 'Meteor shower! Watch the ground', 2600);
     else if (f.k === 'treasure') banner('Treasure goblin caught!', 1800);
     else if (f.k === 'shrine' && SHRINES[f.kind]) banner(`A ${SHRINES[f.kind].name} rose nearby: stand in its circle to charge it`, 3200);
     else if (f.k === 'shrine-done' && SHRINES[f.kind] && f.id === PLAYER) banner(`${SHRINES[f.kind].name}: ${SHRINES[f.kind].text}`, 3200);
@@ -2111,6 +2112,7 @@ function drawMinimap(view) {
   for (const k of view.pickups) if (k[1] === 'casket' || k[1] === 'chest') dot(k[2], k[3], 3.5, '#ffd34d');
   for (const e of view.enemies) { const def = ENEMIES[e[1]]; dot(e[2], e[3], def.boss ? 5 : e[7] ? 3.5 : 1.8, def.boss ? '#ff3b2f' : e[7] ? '#ffd34d' : '#ff7b6b'); }
   mmx.restore();
+  drawStormMinimap(mmx, W, PX, view.storm, view.t);
   // you: an arrow pointing where you face (relative to the camera)
   mmx.save(); mmx.translate(R, R); mmx.rotate(-(me.f - Math.PI) + yaw);
   mmx.fillStyle = '#ffffff'; mmx.strokeStyle = '#000'; mmx.lineWidth = 1.5;

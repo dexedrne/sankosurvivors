@@ -5,7 +5,7 @@ import {MAP_BY_ID,MAPS,ENEMIES} from '../src/content.js';
 const snow=type=>['wolf','snowman','dwarf','wight','yeti','ogre','colossus'].includes(type);
 function scene({pace=2,time=359,kind=null}={}){
  const map={...MAP_BY_ID.greentown,pool:[{t:0,type:'chicken',w:1},{t:0,type:'snowman',w:10000}],bosses:[],retire:{},events:kind?[kind]:['swarm']};
- const s=createSim({seed:1106,pace,map});s.t=time;s.players[0].weapons={};s.players[0].godMode=true;s.eventT=kind?0:1e9;s.shrineT=1e9;s.spawnAcc=kind?-100:5;
+ const s=createSim({seed:1106,pace,map});s.t=time;s.players[0].weapons={};s.players[0].godMode=true;s.eventT=kind?0:1e9;s.shrineT=1e9;s.spawnAcc=5;if(kind)s.rng=()=>0;
  return s;
 }
 for(const kind of[null,'swarm','blizzard'])test(`pace2 ${kind||'ordinary'} spawning cannot introduce winter enemies before6:00`,()=>{

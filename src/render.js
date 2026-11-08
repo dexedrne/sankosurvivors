@@ -1,5 +1,6 @@
 import { frameTitleCamera } from './title-framing.js';
 import { createMeleeVfx } from './melee-vfx.js';
+import { createStormEffects } from './storm-effects.js';
 import { cleanSettings } from './settings.js';
 // Three.js renderer. Reads snapshots from sim.js, owns every GPU object.
 import * as THREE from 'three';
@@ -1547,6 +1548,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   composer = new EffectComposer(renderer);
   const renderPass = new RenderPass(scene, camera); composer.addPass(renderPass);
+  const stormFx = createStormEffects(composer); composer.addPass(stormFx.capture);
   // soft contact shadows where things meet (ambient occlusion)
   const gtao = new GTAOPass(scene, camera, 256, 256); gtao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.6, thickness: 1, scale: 1 }); gtao.blendIntensity = 0.85; gtao.enabled = false; composer.addPass(gtao);
   const bokeh = new BokehPass(scene, camera, { focus: 30, aperture: 0.0005, maxblur: 0.004 }); composer.addPass(bokeh);
@@ -1580,6 +1582,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   });
   composer.addPass(grade);
   fxaa = new ShaderPass(FXAAShader); fxaa.enabled = false; composer.addPass(fxaa); resize();
+  composer.addPass(stormFx.pass);
   const PR = { low: 0.6, medium: 1, high: Math.min(window.devicePixelRatio || 1, 2), auto: Math.min(window.devicePixelRatio || 1, 1.25) };
   // Auto quality: the resolution drops a step when frames run slow and climbs back when there is room
   let autoPR = PR.auto, fpsAcc = 0, fpsN = 0, fpsT = 0;
@@ -1621,13 +1624,16 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   splashes.frustumCulled = false; rainGroup.add(splashes);
   const splashLife = new Float32Array(90), splashXZ = new Float32Array(180);
   let wet = 0;
-  const rainOn = () => !!settings.rain && !(curMap && curMap.under); // never rains underground
+  const rainOn = () => (!!settings.rain || modernWeather && weatherNow === 'rainstorm') && !(curMap && curMap.under);
   function rainStep(dt) {
-    const target = rainOn() ? 1 : 0; wet += (target - wet) * Math.min(1, dt * 0.6);
+    const forced = modernWeather && weatherNow === 'rainstorm', target = rainOn() ? settings.rain ? 1 : forced ? weatherIntensity : 1 : 0;
+    if (forced) wet = target; else wet += (target - wet) * Math.min(1, dt * 0.6);
+    rainGroup.visible = rainOn() && target > 0;
+    rainLines.material.opacity = 0.45 * (forced ? target : 1); splashes.material.opacity = 0.5 * (forced ? target : 1);
     if (groundMat.userData.sh) groundMat.userData.sh.uniforms.uWet.value = wet;
     if (waterMat.userData.sh) waterMat.userData.sh.uniforms.uRain.value = wet;
-    scene.fog.near = Math.max(18, scene.fog.near * (1 - wet * 0.35));
-    if (!rainOn()) return;
+    if (!modernWeather || !weatherNow) scene.fog.near = Math.max(18, scene.fog.near * (1 - wet * 0.35));
+    if (!rainGroup.visible) return;
     const cx = cam.x, cz = cam.z, gy = groundAt(cx, cz);
     for (let i = 0; i < RAIN_N; i++) {
       const o = i * 6;
@@ -1649,7 +1655,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
 
   // ---- ambient life: leaves in Greentown, dust in the desert, snow at Payasan Village, fireflies in the swamp and at night ---
-  let weatherNow = null, blizzardK = 0, stormKind = null; const fogBase = new THREE.Color(), SAND_HAZE = new THREE.Color(0xd8b07a), SNOW_HAZE = new THREE.Color(0xe8eef4); // a map event's weather (Payasan's blizzard)
+  let weatherNow = null, blizzardK = 0, stormKind = null, modernWeather = false, weatherIntensity = 0, weatherClock = null;
+  const fogBase = new THREE.Color(), SAND_HAZE = new THREE.Color(0xd8b07a), SNOW_HAZE = new THREE.Color(0xe8eef4);
   const AMB_N = 420, ambPos = new Float32Array(AMB_N * 3), ambSeed = new Float32Array(AMB_N);
   for (let i = 0; i < AMB_N; i++) { ambSeed[i] = Math.random() * 100; ambPos[i * 3] = (Math.random() - 0.5) * 64; ambPos[i * 3 + 1] = Math.random() * 14; ambPos[i * 3 + 2] = (Math.random() - 0.5) * 64; }
   const ambGeo = new THREE.BufferGeometry(); ambGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(AMB_N * 3), 3));
@@ -1659,24 +1666,34 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const AMB = { leaves: { color: 0xc8b04a, size: 0.32, fall: 0.6, sway: 1.2, glow: false }, dust: { color: 0xf0d8a0, size: 0.18, fall: -0.05, sway: 1.8, glow: false },
     snow: { color: 0xffffff, size: 0.3, fall: 1.4, sway: 0.6, glow: false }, blizzard: { color: 0xffffff, size: 0.42, fall: 4.2, sway: 3.2, glow: false }, sandstorm: { color: 0xe0b878, size: 0.3, fall: 0.6, sway: 4.5, glow: false }, fireflies: { color: 0xd8ff7a, size: 0.42, fall: 0, sway: 0.8, glow: true } };
   const AMB_BY_MAP = { greentown: 'leaves', tutorial: 'leaves', apache: 'dust', duel: 'dust', paya: 'snow', swamp: 'fireflies', graves: 'fireflies', goblins: 'leaves', world: 'leaves', oasis: 'dust' };
-  function ambientStep(dt) {
-    const kind = weatherNow ? weatherNow : settings.time === 'night' && !curMap.under ? 'fireflies' : AMB_BY_MAP[curMap.id] || 'leaves', a = AMB[kind];
+  function ambientStep(dt, clock = time) {
+    const kind = weatherNow === 'snowstorm' ? 'blizzard' : weatherNow === 'rainstorm' ? 'leaves' : weatherNow ? weatherNow : settings.time === 'night' && !curMap.under ? 'fireflies' : AMB_BY_MAP[curMap.id] || 'leaves', a = AMB[kind];
     if (amb.userData.kind !== kind) { amb.userData.kind = kind; ambMat.color.set(a.color); if (a.glow) ambMat.color.multiplyScalar(2); ambMat.size = a.size; ambMat.blending = a.glow ? THREE.AdditiveBlending : THREE.NormalBlending; ambMat.toneMapped = !a.glow; ambMat.needsUpdate = true; }
-    amb.visible = (settings.foliage !== false && !rainOn()) || !!weatherNow;
+    amb.visible = weatherNow !== 'rainstorm' && ((settings.foliage !== false && !rainOn()) || !!weatherNow);
     if (!amb.visible) return;
     const out = ambGeo.attributes.position.array, cx = cam.x, cz = cam.z, gy = groundAt(cx, cz);
     for (let i = 0; i < AMB_N; i++) {
       const o = i * 3, sd = ambSeed[i];
       ambPos[o + 1] -= a.fall * dt * (0.6 + (sd % 1));
       if (ambPos[o + 1] < 0) ambPos[o + 1] += 14; if (ambPos[o + 1] > 14) ambPos[o + 1] -= 14;
-      let x = ambPos[o] + Math.sin(time * 0.7 + sd) * a.sway, z = ambPos[o + 2] + Math.cos(time * 0.5 + sd * 1.3) * a.sway;
+      let x = ambPos[o] + Math.sin(clock * 0.7 + sd) * a.sway, z = ambPos[o + 2] + Math.cos(clock * 0.5 + sd * 1.3) * a.sway;
       // wrap the field around the camera so it never runs out
       x = ((x - cx) % 64 + 96) % 64 - 32 + cx; z = ((z - cz) % 64 + 96) % 64 - 32 + cz;
-      out[o] = x; out[o + 1] = (a.glow ? groundAt(x, z) + 0.6 + (ambPos[o + 1] % 3) + Math.sin(time * 2 + sd) * 0.3 : gy + ambPos[o + 1]); out[o + 2] = z;
+      out[o] = x; out[o + 1] = (a.glow ? groundAt(x, z) + 0.6 + (ambPos[o + 1] % 3) + Math.sin(clock * 2 + sd) * 0.3 : gy + ambPos[o + 1]); out[o + 2] = z;
     }
     ambGeo.attributes.position.needsUpdate = true;
-    if (a.glow) ambMat.opacity = 0.65 + 0.35 * Math.sin(time * 3);
+    if (a.glow) ambMat.opacity = 0.65 + 0.35 * Math.sin(clock * 3);
     else ambMat.opacity = 0.85;
+    if (modernWeather && weatherNow) ambMat.opacity *= weatherIntensity;
+  }
+
+  function resetWeather() {
+    stormFx.reset();
+    if (blizzardK > 0) scene.fog.color.copy(fogBase);
+    weatherNow = stormKind = weatherClock = null; blizzardK = weatherIntensity = wet = 0; modernWeather = false;
+    rainGroup.visible = amb.visible = false;
+    if (groundMat.userData.sh) groundMat.userData.sh.uniforms.uWet.value = 0;
+    if (waterMat.userData.sh) waterMat.userData.sh.uniforms.uRain.value = 0;
   }
 
   // ---- per-frame update -----------------------------------------------------------
@@ -2029,10 +2046,16 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const shk = settings.shake ? cam.shake : 0, sx = (Math.random() - 0.5) * shk * 0.8, sz = (Math.random() - 0.5) * shk * 0.8;
     const gy = groundAt(cam.x, cam.z);
     cam.zoom += (cam.zoomT - cam.zoom) * Math.min(1, dt * 8 + 0.02);
-    weatherNow = view.weather || null; blizzardK += ((weatherNow ? 1 : 0) - blizzardK) * Math.min(1, dt * 1.5);
-    if (weatherNow) stormKind = weatherNow;
-    if (blizzardK < 0.002) fogBase.copy(scene.fog.color); // remember the map's own haze while the sky is clear
-    else scene.fog.color.copy(fogBase).lerp(stormKind === 'sandstorm' ? SAND_HAZE : SNOW_HAZE, blizzardK * 0.85);
+    const weatherDt = weatherClock === null ? 0 : Math.max(0, Math.min(0.1, view.t - weatherClock)); weatherClock = view.t;
+    weatherNow = view.weather || null; modernWeather = Object.hasOwn(view, 'storm');
+    weatherIntensity = Number.isFinite(view.storm?.intensity) ? Math.max(0, Math.min(1, view.storm.intensity)) : 0;
+    if (modernWeather) { if (blizzardK > 0) scene.fog.color.copy(fogBase); blizzardK = 0; }
+    else {
+      blizzardK += ((weatherNow ? 1 : 0) - blizzardK) * Math.min(1, dt * 1.5);
+      if (weatherNow) stormKind = weatherNow;
+      if (blizzardK < 0.002) fogBase.copy(scene.fog.color);
+      else scene.fog.color.copy(fogBase).lerp(stormKind === 'sandstorm' ? SAND_HAZE : SNOW_HAZE, blizzardK * 0.85);
+    }
     const vd = VIEW[settings.view] || 1;
     // the fog never closes in when you zoom in (the title screen's close camera fogged out 20 units away)
     const fz = Math.max(1, cam.zoom);
@@ -2053,12 +2076,14 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       n.el.style.transform = `translate(${(tmpV.x * 0.5 + 0.5) * canvas.clientWidth}px, ${(-tmpV.y * 0.5 + 0.5) * canvas.clientHeight}px) translate(-50%,-50%)`;
       n.el.style.opacity = Math.min(1, n.life * 2.5);
     }
-    rainStep(dt); ambientStep(dt); autoQuality(dt);
+    const weatherHeld = modernWeather && !!weatherNow;
+    rainStep(weatherHeld ? weatherDt : dt); ambientStep(weatherHeld ? weatherDt : dt, weatherHeld ? view.t : time); autoQuality(dt);
+    stormFx.update(view.storm, view.t, camera, me ? tmpV.set(me.x, groundAt(me.x, me.z), me.z) : null);
     renderer.info.autoReset = false; renderer.info.reset(); // count every pass of the frame (shadows, scene, effects)
     if (torch.intensity > 0) torch.position.set(cam.x, gy + 3.2, cam.z);
     grade.uniforms.uTime.value = time; grade.uniforms.uHurt.value = Math.min(1, cam.flash * 3); grade.uniforms.uFlash.value = Math.max(0, cam.white || 0); cam.white = Math.max(0, (cam.white || 0) - dt * 2.5);
     if (me) grade.uniforms.uLow.value = me.al && me.hp / me.mhp < 0.3 ? 1 : 0;
-    if (settings.bloom || settings.dof || settings.ao || settings.grade !== false || settings.aa) {
+    if (settings.bloom || settings.dof || settings.ao || settings.grade !== false || settings.aa || stormFx.pass.enabled) {
       if (settings.dof) bokeh.uniforms.focus.value = camera.position.distanceTo(tmpV.set(cam.x, gy + 1, cam.z));
       composer.render(dt);
     } else renderer.render(scene, camera);
@@ -2067,6 +2092,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const seenShield = new Set();
 
   function reset() {
+    resetWeather();
     meleeFx.reset();
     petRenderer.reset();
     for (const sp of slimeFlecks) { sp.visible = false; sp.userData.life = 0; }

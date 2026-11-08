@@ -7,6 +7,7 @@ import {
   weaponSlotItem, TUMBLE, PASTURE_NAV, SNOW_WAVE_AT, isSnowEnemy,
 } from './content.js';
 import { groundHash } from './ground-pack.js';
+import { extraStorms, stormView } from './weather.js';
 
 export const TICK = 1 / 30;
 export const WORLD = { cx: 365, cz: 300, radius: 70 }; // default (Greentown); each map in content.js has its own centre/radius
@@ -950,7 +951,9 @@ function eventTick(sim, dt) {
   const here = sim.map.world ? regionOf(sim, p) : sim.map; // on the whole-world map, the region you stand in picks the event
   const grow = Math.max(0.5, Math.min(1, sim.t / 420)); // events start gentler and reach full strength by 7:00
   const N = (n) => Math.max(3, Math.round(n * grow));
-  const kinds = (here.events || sim.map.events || ['treasure', 'swarm', 'meteors']).filter(kind => kind !== 'blizzard' || sim.pace < 2 || sim.t >= SNOW_WAVE_AT);
+  const storms = sim.pace >= 2 ? extraStorms(here, sim.t >= SNOW_WAVE_AT) : [];
+  const kinds = (here.events || sim.map.events || ['treasure', 'swarm', 'meteors']).filter(kind => (kind !== 'blizzard' || sim.pace < 2 || sim.t >= SNOW_WAVE_AT) && (sim.pace < 2 || !['rainstorm', 'snowstorm'].includes(kind) || storms.includes(kind)));
+  for (const kind of storms) if (!kinds.includes(kind)) kinds.push(kind);
   const kind = kinds.length ? kinds[Math.floor(sim.rng() * kinds.length)] : 'swarm';
   let dir = null;
   if (kind === 'treasure') {
@@ -962,6 +965,8 @@ function eventTick(sim, dt) {
     const pool = here.pool.filter((s) => spawnReady(sim, s)), type = (pool[pool.length - 1] || pool[0]).type; // the region's own monsters on The Whole World
     for (let i = 0, n = N(20); i < n; i++) { const a = (i / n) * 6.283, w = findWalkable(sim, p.x + dcos(a) * 16, p.z + dsin(a) * 16); spawnEnemy(sim, type, w[0], w[1], 0.5); }
     sim.event = { kind, t: 1 };
+  } else if (sim.pace >= 2 && (kind === 'rainstorm' || kind === 'snowstorm')) {
+    sim.event = { kind, t: 20 };
   } else if (kind === 'blizzard') {
     // a blizzard rolls in: the snow closes in, you wade a little slower, and snowmen come with it
     for (const q of sim.players) if (q.alive) q.buffs.chill = 14;
@@ -1284,9 +1289,10 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
     }).slice(0, maxEnemies);
   }
   const fx = sim.fx; sim.fx = [];
+  const storm = sim.pace >= 2 ? stormView(sim.event) : null;
   return {
-    ...(sim.pace >= 2 ? { snowWave: !!sim.snowWave } : {}),
-    t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
+    ...(sim.pace >= 2 ? { snowWave: !!sim.snowWave, storm } : {}),
+    t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.pace >= 2 ? storm?.kind || null : sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
     players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),
     hazards: sim.hazards.map((h) => [r1(h.x), r1(h.z), h.r, Math.round((1 - h.t / h.max) * 100) / 100, h.meteor ? 1 : 0]),
