@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Beer boost and original spell shaders": "Bira hız artışı ve orijinal büyü gölgelendiricileri",
+  "Tin of Beer shows the remaining speed boost time beside your health.": "Kutu Bira, kalan hız artışı süresini canınızın yanında gösterir.",
+  "Spell projectiles now run SankoQuest’s original TSL materials, including Missile and Blast glows.": "Büyü mermileri artık Missile ve Blast parıltıları dahil SankoQuest’in orijinal TSL materyallerini kullanır.",
+
+  "Speed boost": "Hız artışı",
   "Native spell colours": "Doğal büyü renkleri",
   "Spell shards use SankoQuest’s original elemental tints.": "Büyü parçaları SankoQuest’in özgün element renklerini kullanır.",
   "Spell glow now uses the same base colour output at every graphics setting. Optional screen effects still apply.": "Büyü parıltısı artık tüm grafik ayarlarında aynı temel renk çıkışını kullanır. İsteğe bağlı ekran efektleri uygulanmaya devam eder.",

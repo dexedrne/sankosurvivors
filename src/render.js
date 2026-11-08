@@ -1,9 +1,11 @@
 import { frameTitleCamera } from './title-framing.js';
 import { createMeleeVfx } from './melee-vfx.js';
 import { createStormEffects } from './storm-effects.js';
+import { createSpellMaterials } from './spell-materials.js';
 import { cleanSettings } from './settings.js';
 // Three.js renderer. Reads snapshots from sim.js, owns every GPU object.
 import * as THREE from 'three';
+import { WebGLNodesHandler } from 'three/addons/tsl/WebGLNodesHandler.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -53,6 +55,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const touchDevice = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
   const low = QS.has('low') || (touchDevice && !QS.has('high'));
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'default' });
+  const nodes = new WebGLNodesHandler();
+  // Node materials blend in linear space; the shared OutputPass owns the display transform.
+  nodes.getOutputCallback = output => output;
+  renderer.setNodesHandler(nodes);
   renderer.setPixelRatio(low ? 0.75 : Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   // Native gameplay base output; optional bloom and grading still apply afterward.
@@ -985,35 +991,50 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const SPELL_TIER = { missile: { size: 1, interval: 50, impact: 260, spread: 0.36 }, blast: { size: 1.65, interval: 65, impact: 400, spread: 0.7 } };
   let spellTime = 0; // interpolated run time in ms; spell animation holds with the run
   const MS_K = 1, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc), MS_Z = new THREE.Vector3(0, 0, 1);
-  const msMat = new THREE.MeshBasicMaterial({ toneMapped: false });
-  // the game's pieces are lit from above: colour x (0.82 + 0.18 * normal.y)
-  msMat.onBeforeCompile = (sh) => {
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vNy;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvNy = normal.y;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vNy;').replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= 0.82 + 0.18 * vNy;');
-  };
-  const msGlowMats = new Map();
-  function msGlowMat(col, tier) {
-    const key = col + ':' + tier; if (msGlowMats.has(key)) return msGlowMats.get(key);
-    const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
-      uniforms: { uCol: { value: new THREE.Color(col) }, uWhite: { value: MS_WHITE }, uBlast: { value: tier === 'blast' ? 1 : 0 }, uTime: { value: 0 } },
-      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: colorOut(`uniform vec3 uCol, uWhite; uniform float uBlast, uTime; varying vec2 vUv;
-        void main(){
-          if (uBlast < 0.5) { vec2 r = abs(vUv - 0.5) * 2.0; gl_FragColor = vec4(uCol, pow(max(0.0, 1.0 - (r.x + r.y)), 2.0) * 0.45); return; } // Missile: a diamond
-          float t = length(vUv - 0.5) * 2.0, a = pow(max(0.0, 1.0 - t), 2.0); // Blast: round, white-hot in the middle, with a ring that pulses
-          float ring = max(0.0, 1.0 - abs(t - (sin(uTime * 6.0) * 0.035 + 0.58)) * 16.0);
-          gl_FragColor = vec4(mix(uCol, uWhite, pow(a, 3.0) * 0.55), a * 0.6 + ring * 0.3); // exact native warm-white linear input
-        }`) });
-    msGlowMats.set(key, m); return m;
+  const { head: msMat, glow: msGlowMat, clock: msClock, glows: msGlowMats } = createSpellMaterials();
+  const msInstances = new Set(), msLocal = new THREE.Matrix4(), msWorld = new THREE.Matrix4(), msTint = new THREE.Color();
+  let msBatch = null, msCapacity = 0;
+  function syncSpellHeads() {
+    const live = [];
+    for (const o of msInstances) {
+      let parent = o, visible = true;
+      while (parent && parent !== dyn) { visible = visible && parent.visible; parent = parent.parent; }
+      if (!parent) { msInstances.delete(o); continue; }
+      if (visible) live.push(o);
+    }
+    const count = live.length * 7;
+    if (count > msCapacity) {
+      if (msBatch) disposeActor(msBatch);
+      msCapacity = Math.max(256, 2 ** Math.ceil(Math.log2(count)));
+      // One node material/buffer set for the crowd avoids exhausting WebGL's global UBO binding slots.
+      msBatch = ownActorResource(new THREE.InstancedMesh(ownActorResource(msGeo.clone()), ownActorResource(msMat.clone()), msCapacity));
+      msBatch.name = 'spell-heads'; msBatch.frustumCulled = false; msBatch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      dyn.add(fxOnly(msBatch));
+    }
+    if (!msBatch) return;
+    msBatch.count = count;
+    let at = 0;
+    for (const o of live) {
+      o.updateWorldMatrix(true, false);
+      const parts = o.userData.ms.parts;
+      for (let i = 0; i < 7; i++, at++) {
+        parts.getMatrixAt(i, msLocal); msWorld.multiplyMatrices(o.matrixWorld, msLocal); msBatch.setMatrixAt(at, msWorld);
+        parts.getColorAt(i, msTint); msBatch.setColorAt(at, msTint);
+      }
+    }
+    msBatch.instanceMatrix.needsUpdate = true;
+    if (msBatch.instanceColor) msBatch.instanceColor.needsUpdate = true;
   }
   function magicSphere(col, tier) {
     const o = new THREE.Group(), T = SPELL_TIER[tier];
-    const parts = ownActorResource(new THREE.InstancedMesh(msGeo, msMat, 7)); parts.frustumCulled = false; parts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    // Per-cast transforms stay local; the shared GPU mesh draws all native shards together.
+    const parts = ownActorResource(new THREE.InstancedMesh(msGeo, msMat, 7)); parts.visible = false;
     const c = new THREE.Color(col), tmp = new THREE.Color();
     for (let i = 0; i < 7; i++) parts.setColorAt(i, tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.7 : 0.12));
     const glow = new THREE.Mesh(msGlowGeo, msGlowMat(col, tier)); glow.scale.setScalar(0.54 * T.size * MS_K);
     o.add(parts, glow);
-    o.userData.ms = { parts, glow, T, path: Array.from({ length: 8 }, () => ({ p: new THREE.Vector3(), at: 0 })), pathN: 0, born: spellTime, lastNow: spellTime, dir: new THREE.Vector3(0, 0, 1) };
+    o.userData.ms = { parts, glow, T, clock: msClock, path: Array.from({ length: 8 }, () => ({ p: new THREE.Vector3(), at: 0 })), pathN: 0, born: spellTime, lastNow: spellTime, dir: new THREE.Vector3(0, 0, 1) };
+    msInstances.add(o);
     return fxOnly(o); // additive and tiny: kept out of the AO and depth-of-field passes (the game has neither)
   }
   const lin = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace);
@@ -1063,7 +1084,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       msObj.rotateZ(4 * sec + i); msObj.updateMatrix(); d.parts.setMatrixAt(i, msObj.matrix);
     }
     d.parts.instanceMatrix.needsUpdate = true;
-    d.glow.material.uniforms.uTime.value = now / 1000;
+    msClock.value = now / 1000;
   }
   // the burst where a spell lands: seven pieces fly apart in a ring and shrink, the glow swells (blast) or fades (missile)
   const msBursts = [];
@@ -1076,7 +1097,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const b = msBursts[i], t = (now - b.born) / b.T.impact, d = b.o.userData.ms;
       if (t < 0 || t >= 1) { disposeActor(b.o); msBursts.splice(i, 1); continue; }
       d.glow.quaternion.copy(camera.quaternion);
-      d.glow.scale.setScalar((b.tier === 'blast' ? 1.35 * Math.sin(Math.PI * Math.sqrt(t)) : 0.82 * (1 - t)) * MS_K); d.glow.material.uniforms.uTime.value = now / 1000; // the game's impact
+      d.glow.scale.setScalar((b.tier === 'blast' ? 1.35 * Math.sin(Math.PI * Math.sqrt(t)) : 0.82 * (1 - t)) * MS_K); msClock.value = now / 1000; // the game's impact
       for (let k = 0; k < 7; k++) {
         const ang = k * Math.PI * 2 / 7, r = b.T.spread * t * MS_K;
         msObj.position.set(Math.cos(ang) * r, Math.sin(2 * ang) * r * 0.65 - t * t * 0.15 * MS_K, Math.sin(ang) * r);
@@ -1968,6 +1989,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const [id, o] of projObjs) if (!seenPr.has(id) && !(o.userData.spell && spellLand(o, vt, true))) { disposeActor(o); projObjs.delete(id); }
     for (const f of spFx.burst) if (!f.used) spellStray(f, view.players); // a bolt that hit in the tick it was cast was never drawn
     stepMagicBursts(spellTime);
+    syncSpellHeads();
     meleeFx.flush();
 
     // shrines: SankoQuest's altar, a pillar of light in the shrine's colour, and a circle that fills as you charge it
@@ -2089,6 +2111,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const seenShield = new Set();
 
   function reset() {
+    msInstances.clear(); if (msBatch) msBatch.count = 0;
     resetWeather();
     meleeFx.reset();
     petRenderer.reset();

@@ -176,6 +176,9 @@ button:hover:not(:disabled) { filter: brightness(1.18); }
 #hp .bar { height: 16px; background: #000; border: 2px solid #3d2f20; }
 #hpfill { background: linear-gradient(#32d14a, #0f8a1f); }
 #hptext { font-size: 16px; color: var(--cream); }
+#beerboost { position:absolute; left:calc(100% + 8px); bottom:0; display:flex; align-items:center; gap:4px; padding:3px 6px; background:#21180ee8; border:1px solid var(--gold); color:var(--gold); font:16px RSPlain,sans-serif; white-space:nowrap; }
+#beerboost[hidden] { display:none; }
+#beericon, #beericon img { width:20px; height:20px; object-fit:contain; }
 #bossbar { color: var(--cream); font-family: RSQuill8, sans-serif; font-weight: 400; font-size: 16px; } #bossbar div { background: #000; border: 2px solid #3d2f20; height: 14px; }
 #bossfill { background: linear-gradient(#ff3b2f, #9a0f08); }
 #banner { color: var(--gold); font-size: 32px; text-shadow: 2px 2px 0 #000; font-weight: 400; }
@@ -730,6 +733,10 @@ body.ds-layout #minimap { width:108px; height:108px; }
 body.ds-layout #pausebtn { display:block; position:fixed; top:auto; bottom:calc(8px + env(safe-area-inset-bottom,0px)); right:max(12px,env(safe-area-inset-right,0px)); min-height:44px; }
 body.ds-layout #hp { position:fixed; left:max(12px,env(safe-area-inset-left,0px)); bottom:calc(8px + env(safe-area-inset-bottom,0px)); }
 body.ds-layout #belt { position:fixed; left:max(12px,env(safe-area-inset-left,0px)); bottom:calc(54px + env(safe-area-inset-bottom,0px)); }
+@media (max-width:560px) {
+  /* Keep the named beer timer clear of Pause in the narrow lower pane. */
+  body.ds-layout #beerlabel { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+}
 body.ds-layout #movehint { position:fixed; top:calc((var(--ds-control-top) + 100dvh) / 2); bottom:auto; transform:translate(-50%,-50%); }
 body.ds-layout #levelup, body.ds-layout #casket, body.ds-layout #pause, body.ds-layout #end { top:var(--ds-control-top); bottom:auto; height:calc(100dvh - var(--ds-control-top)); padding:8px max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px)); }
 body.ds-layout #levelup .panel, body.ds-layout #casket .panel, body.ds-layout #pause .panel, body.ds-layout #end .panel { max-height:calc(100dvh - var(--ds-control-top) - 16px - env(safe-area-inset-bottom,0px)); }

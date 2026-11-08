@@ -2023,6 +2023,14 @@ function updateTumbleHud(me) {
   $('tumblebtn').disabled = me.rollCd > 0;
   $('tumblecd').textContent = me.rollCd > 0 ? String(Math.ceil(me.rollCd)) : '';
 }
+function updateBeerHud() {
+  const p = sim.players.find(p => p.id === PLAYER), left = p?.alive ? Math.ceil(p.buffs.speed || 0) : 0;
+  $('beerboost').hidden = left <= 0;
+  if (left <= 0) return;
+  if (!$('beericon').innerHTML) $('beericon').innerHTML = imgTag('Tin of Beer');
+  const label = left + 's';
+  if ($('beerleft').textContent !== label) $('beerleft').textContent = label;
+}
 function updateEquipmentHud(me) {
   const gear = me.gear || {}, key = JSON.stringify(gear);
   if (slotCache.g === key) return;
@@ -2040,6 +2048,7 @@ function updateHud(view) {
   updateEquipmentHud(me);
   updateShrineHud(view);
   updateTumbleHud(me);
+  updateBeerHud();
   updateDamageHud();
   $('hpfill').style.width = Math.min(100, Math.max(0, (me.hp / me.mhp) * 100)) + '%';
   $('hptext').textContent = `${me.hp} / ${me.mhp}`;

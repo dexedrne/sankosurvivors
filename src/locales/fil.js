@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Beer boost and original spell shaders": "Bilis mula sa beer at orihinal na shader",
+  "Tin of Beer shows the remaining speed boost time beside your health.": "Ipinapakita ng Lata ng Beer ang natitirang oras ng dagdag na bilis sa tabi ng iyong buhay.",
+  "Spell projectiles now run SankoQuest’s original TSL materials, including Missile and Blast glows.": "Gumagamit na ang mga projectile ng spell ng orihinal na TSL material ng SankoQuest, kasama ang kinang ng Missile at Blast.",
+
+  "Speed boost": "Mas mabilis",
   "Native spell colours": "Orihinal na kulay ng mga spell",
   "Spell shards use SankoQuest’s original elemental tints.": "Ginagamit ng mga piraso ng spell ang orihinal na kulay ng mga elemento sa SankoQuest.",
   "Spell glow now uses the same base colour output at every graphics setting. Optional screen effects still apply.": "Pareho na ang batayang kulay ng liwanag ng spell sa lahat ng graphics setting. Nalalapat pa rin ang mga opsyonal na screen effect.",

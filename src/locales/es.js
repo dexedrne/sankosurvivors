@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Beer boost and original spell shaders": "Impulso de cerveza y sombreadores originales",
+  "Tin of Beer shows the remaining speed boost time beside your health.": "La Lata de Cerveza muestra el tiempo restante del impulso de velocidad junto a tu salud.",
+  "Spell projectiles now run SankoQuest’s original TSL materials, including Missile and Blast glows.": "Los proyectiles de hechizos ahora usan los materiales TSL originales de SankoQuest, incluidos los brillos de Missile y Blast.",
+
+  "Speed boost": "Más velocidad",
   "Native spell colours": "Colores originales de los hechizos",
   "Spell shards use SankoQuest’s original elemental tints.": "Los fragmentos de hechizo usan los tonos elementales originales de SankoQuest.",
   "Spell glow now uses the same base colour output at every graphics setting. Optional screen effects still apply.": "El resplandor de los hechizos ahora usa la misma base de color en todos los ajustes gráficos. Los efectos de pantalla opcionales siguen aplicándose.",

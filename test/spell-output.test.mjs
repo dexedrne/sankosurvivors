@@ -9,7 +9,7 @@ for(const col of[0x9fe8ff,0x3b82f6,0x6db33f,0xff5a1f,0xc451ff])for(const tier of
  const f=spellFixture(),o=f.sphere(col,tier),parts=o.userData.ms.parts,white=new f.THREE.Color(0xfff4dc),actual=new f.THREE.Color();
  assert.equal(parts.count,7);
  for(let i=0;i<7;i++){const expected=new f.THREE.Color(col).lerp(white,i===0?.7:.12);parts.getColorAt(i,actual);for(const key of['r','g','b'])near(actual[key],expected[key],1e-7);}
- const sibling=f.sphere(col,tier);assert.equal(sibling.userData.ms.parts.material,parts.material);f.dispose(o);assert(sibling.parent);assert.equal(sibling.userData.ms.parts.count,7);
+ const sibling=f.sphere(col,tier);assert.equal(sibling.userData.ms.parts.material.colorNode,parts.material.colorNode);f.dispose(o);assert(sibling.parent);assert.equal(sibling.userData.ms.parts.count,7);
 });
 test('shared scene output config supplies the native ACES exposure to its output pass',()=>{
  const f=spellFixture(),renderer={};

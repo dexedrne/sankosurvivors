@@ -12,7 +12,7 @@
   "dependencies": {
     "@walletconnect/universal-provider": "2.26.0",
     "qrcode": "1.5.4",
-    "three": "^0.170.0",
+    "three": "0.186.0",
     "zod": "4.6.6",
     "ws": "7.5.13"
   },

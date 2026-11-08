@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { ownActorResource, disposeActor } from '../src/character.js';
 import { createPetRenderer } from '../src/pet-renderer.js';
 import { createMeleeVfx } from '../src/melee-vfx.js';
+import { createSpellMaterials } from '../src/spell-materials.js';
 
 const source = readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
 function between(start, end) {
@@ -13,7 +14,7 @@ function between(start, end) {
   return source.slice(a, b);
 }
 function harness() {
-  return Function('THREE', 'ownActorResource', 'disposeActor', 'createPetRenderer', 'createMeleeVfx', `
+  return Function('THREE', 'ownActorResource', 'disposeActor', 'createPetRenderer', 'createMeleeVfx', 'createSpellMaterials', `
     const dyn = new THREE.Group(), entGroup = new THREE.Group(), camera = new THREE.PerspectiveCamera();
     const projObjs = new Map(), eprojObjs = new Map(), shrineObjs = new Map(), shieldObjs = new Map();
     const groundAt = () => 0, fxOnly = o => o, colorOut = s => s, emit = () => {}, A = s => s;
@@ -45,13 +46,13 @@ function harness() {
     let folkT = 0, spTick = 0; const removePickup = () => {}, resetWeather = () => {};
     ${between('  function reset() {', '  return { hop:')}
     function shared() {
-      const resources = new Set([meleeFx.mesh, meleeFx.mesh.geometry, meleeFx.mesh.material, modelGeo, modelMat, modelMap, spriteGeometry, glowTex, streakTex, msGeo, msMat, msGlowGeo, ...msGlowMats.values()]);
+      const resources = new Set([meleeFx.mesh, meleeFx.mesh.geometry, meleeFx.mesh.material, modelGeo, modelMat, modelMap, spriteGeometry, glowTex, streakTex, msGeo, msMat, msGlowGeo, ...msGlowMats.values(), ...(msBatch ? [msBatch, msBatch.geometry, msBatch.material] : [])]);
       for (const root of [ARROW, ...arrowCache]) if (root) root.traverse(o => { if (o.geometry) resources.add(o.geometry); for (const m of [].concat(o.material || [])) resources.add(m); });
       return resources;
     }
     return { frame, reset, shared, dyn, meleeFx, projObjs, eprojObjs, shrineObjs, msBursts,
       landing: value => { landing = value; }, burst: () => magicBurst(0, 1, 0, SPELL_ELEMENT.fire, 'blast'), expire: () => stepMagicBursts(performance.now() + 1000) };
-  `)(THREE, ownActorResource, disposeActor, createPetRenderer, createMeleeVfx);
+  `)(THREE, ownActorResource, disposeActor, createPetRenderer, createMeleeVfx, createSpellMaterials);
 }
 const projectile = (id, art, evo = false) => [id, art, 0, 0, 0, 6, 0, evo, -1];
 const enemyShot = id => [id, 0, 0, 'ice'];
@@ -113,6 +114,6 @@ test('reset purges active casts, enemy shots, bursts and shrines with disposal e
   const h = harness(); h.frame({ proj: [projectile(1, 'ball', true)], eproj: [enemyShot(2)], shrines: [shrine(3)] }); h.burst(); await settleModels();
   const own = watch(uniqueResources(h.dyn, h.shared())), cached = watch(h.shared());
   assert.equal(own.length, 13); h.reset(); h.reset();
-  assert.deepEqual(h.dyn.children, [h.meleeFx.mesh]); assert.equal(h.meleeFx.mesh.count,0); assert.equal(h.shrineObjs.size, 0);
+  assert.deepEqual(h.dyn.children.filter(o=>o.name!=='spell-heads'), [h.meleeFx.mesh]); assert.equal(h.dyn.getObjectByName('spell-heads')?.count,0); assert.equal(h.meleeFx.mesh.count,0); assert.equal(h.shrineObjs.size, 0);
   assert.ok(own.every(x => x.disposals === 1)); assert.ok(cached.every(x => x.disposals === 0));
 });
