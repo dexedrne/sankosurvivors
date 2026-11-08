@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Spell trails in motion": "Mga bakas ng mahika sa paggalaw",
+  "Spell trails now follow where each bolt travelled over time, including turns and stops.": "Sinusundan na ng mga bakas ng mahika ang dinaanan ng bawat tira sa paglipas ng oras, pati ang pagliko at paghinto.",
+  "Player and boss spells pause with the run. Impacts keep the same spinning shards from flight to finish.": "Humihinto kasama ng laro ang mga mahika ng manlalaro at boss. Parehong umiikot na mga piraso ang nananatili mula paglipad hanggang matapos ang pagtama.",
   "This save has unreadable data. Keep a backup before replacing it.": "May datos sa save na ito na hindi mabasa. Gumawa ng backup bago ito palitan.",
   "Finish moving progress": "Tapusin ang paglilipat ng progreso",
   "Could not move progress": "Hindi mailipat ang progreso",

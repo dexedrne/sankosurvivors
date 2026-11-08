@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Spell trails in motion": "Estelas de hechizos en movimiento",
+  "Spell trails now follow where each bolt travelled over time, including turns and stops.": "Las estelas de los hechizos siguen ahora el recorrido de cada proyectil a lo largo del tiempo, incluidos los giros y las paradas.",
+  "Player and boss spells pause with the run. Impacts keep the same spinning shards from flight to finish.": "Los hechizos de jugadores y jefes se pausan con la partida. Los impactos conservan los mismos fragmentos giratorios desde el vuelo hasta el final.",
   "This save has unreadable data. Keep a backup before replacing it.": "Esta partida contiene datos que no se pueden leer. Guarda una copia antes de reemplazarla.",
   "Finish moving progress": "Terminar de transferir el progreso",
   "Could not move progress": "No se pudo transferir el progreso",

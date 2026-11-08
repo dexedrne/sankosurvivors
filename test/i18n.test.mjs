@@ -88,3 +88,4 @@ for(const lang of['tr','es','fil'])test(lang+': legacy migration choices, recove
  for(const label of labels)assert.notEqual(translateText(label,lang),label,lang+': '+label);
  const sample='42 coins · 3 maps cleared · 2 skill ranks · 1 collected pieces',translated=translateText(sample,lang);assert.notEqual(translated,sample);for(const value of['42','3','2','1'])assert(translated.includes(value),value);
 });
+for(const lang of['tr','es','fil'])test(lang+': spell trail and continuous-impact updates translate',()=>{for(const label of['Spell trails in motion','Spell trails now follow where each bolt travelled over time, including turns and stops.','Player and boss spells pause with the run. Impacts keep the same spinning shards from flight to finish.'])assert.notEqual(translateText(label,lang),label)});

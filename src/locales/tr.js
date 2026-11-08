@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Spell trails in motion": "Hareket eden büyü izleri",
+  "Spell trails now follow where each bolt travelled over time, including turns and stops.": "Büyü izleri artık dönüşler ve duruşlar dahil, her atışın zaman içinde geçtiği yolu takip eder.",
+  "Player and boss spells pause with the run. Impacts keep the same spinning shards from flight to finish.": "Oyuncu ve patron büyüleri oyunla birlikte duraklar. Çarpma efektleri, uçuştan sona kadar aynı dönen parçaları korur.",
   "This save has unreadable data. Keep a backup before replacing it.": "Bu kayıttaki bazı veriler okunamıyor. Değiştirmeden önce bir yedek al.",
   "Finish moving progress": "İlerlemeyi taşımayı tamamla",
   "Could not move progress": "İlerleme taşınamadı",

@@ -974,8 +974,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const projObjs = new Map(); // proj id -> object
   // SankoQuest's own spell projectile (its client's "magic_sphere"): a bright octahedron head with six trailing pieces in
   // the element's colour, a soft diamond glow that always faces the camera, and a burst of seven pieces on impact.
-  // Missile tier for the staff, the bigger Blast tier once it evolves. Sizes x MS_K to read at this game's camera.
-  // SankoQuest's own eight combat spells, ported from its client (spawnProjectile, 2026-10-26 capture): the element
+  // Both Missile and Blast families retain native tier sizes; MS_K remains1.
+  // SankoQuest's own eight combat spells, ported from its client (native module374567/spawnProjectile, 3-Nov capture): the element
   // colours, the Missile and Blast tiers. The staff casts them in order as it levels (owner 3 Nov: "the earth air water
   // blast strike projectiles still arent the ones from sankoquest"): Air, Water, Earth, Fire Missile, then Air and Water
   // Blast; the evolved staff casts Fire Blast.
@@ -983,12 +983,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const STAFF_SPELLS = [['air', 'missile'], ['water', 'missile'], ['earth', 'missile'], ['fire', 'missile'], ['air', 'blast'], ['water', 'blast']];
   // levels 5 and 6 cast three bolts at once: one Air, one Water and one Earth Blast (owner: "the earth air water blast")
   const staffSpell = (lvl, evo, id = 0) => { const [el, tier] = evo ? ['fire', 'blast'] : lvl >= 5 ? [['air', 'water', 'earth'][id % 3], 'blast'] : STAFF_SPELLS[Math.min(3, Math.max(0, lvl - 1))]; return { col: SPELL_ELEMENT[el], tier }; };
-  // the game's tiers: impact 260 / 400 ms, burst spread 0.36 / 0.7, Blast 1.65x. gap: the game's trail interval (50 / 65 ms)
-  // at its spells' ~4.5 u/s, so the pieces sit 0.225 / 0.2925 apart along the path at any speed (bolts 14, volleys 8.5)
-  const SPELL_TIER = { missile: { size: 1, gap: 0.225, impact: 260, spread: 0.36 }, blast: { size: 1.65, gap: 0.2925, impact: 400, spread: 0.7 } };
+  // Native module374567, 3-Nov capture dc560396: seven pieces follow elapsed50/65ms samples, not fixed distances.
+  const SPELL_TIER = { missile: { size: 1, interval: 50, impact: 260, spread: 0.36 }, blast: { size: 1.65, interval: 65, impact: 400, spread: 0.7 } };
+  let spellTime = 0; // interpolated run time in ms; spell animation holds with the run
   const MS_K = 1, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc), MS_Z = new THREE.Vector3(0, 0, 1);
-  // the live game tone-maps with ACES (its toneMapped:false does nothing on WebGPU): linear head / trail colours that land on
-  // its pastel look through our Neutral 0.93 + grade (ACES(lerp(col, 0xfff4dc, 0.7 / 0.12)) inverted)
+  // Current-pipeline compensation, not native linear instance tints. Exact final color/compositing remains owner21 work.
   const MS_TONE = { 0x9fe8ff: [[0.806, 0.828, 0.805], [0.642, 0.808, 0.849]], 0x3b82f6: [[0.767, 0.761, 0.791], [0.300, 0.455, 0.828]], 0x6db33f: [[0.782, 0.789, 0.674], [0.434, 0.644, 0.251]], 0xff5a1f: [[0.870, 0.748, 0.665], [1.076, 0.377, 0.191]] };
   const msMat = new THREE.MeshBasicMaterial({ toneMapped: false });
   // the game's pieces are lit from above: colour x (0.82 + 0.18 * normal.y)
@@ -1000,14 +999,14 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   function msGlowMat(col, tier) {
     const key = col + ':' + tier; if (msGlowMats.has(key)) return msGlowMats.get(key);
     const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
-      uniforms: { uCol: { value: new THREE.Color(col) }, uBlast: { value: tier === 'blast' ? 1 : 0 }, uTime: { value: 0 } },
+      uniforms: { uCol: { value: new THREE.Color(col) }, uWhite: { value: MS_WHITE }, uBlast: { value: tier === 'blast' ? 1 : 0 }, uTime: { value: 0 } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: colorOut(`uniform vec3 uCol; uniform float uBlast, uTime; varying vec2 vUv;
+      fragmentShader: colorOut(`uniform vec3 uCol, uWhite; uniform float uBlast, uTime; varying vec2 vUv;
         void main(){
           if (uBlast < 0.5) { vec2 r = abs(vUv - 0.5) * 2.0; gl_FragColor = vec4(uCol, pow(max(0.0, 1.0 - (r.x + r.y)), 2.0) * 0.45); return; } // Missile: a diamond
           float t = length(vUv - 0.5) * 2.0, a = pow(max(0.0, 1.0 - t), 2.0); // Blast: round, white-hot in the middle, with a ring that pulses
           float ring = max(0.0, 1.0 - abs(t - (sin(uTime * 6.0) * 0.035 + 0.58)) * 16.0);
-          gl_FragColor = vec4(mix(uCol, vec3(1.0, 0.905, 0.716), pow(a, 3.0) * 0.55), a * 0.6 + ring * 0.3); // 0xfff4dc in linear, as TSL color() gives it
+          gl_FragColor = vec4(mix(uCol, uWhite, pow(a, 3.0) * 0.55), a * 0.6 + ring * 0.3); // exact native warm-white linear input
         }`) });
     msGlowMats.set(key, m); return m;
   }
@@ -1018,7 +1017,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (let i = 0; i < 7; i++) parts.setColorAt(i, tone ? tmp.setRGB(...tone[i === 0 ? 0 : 1], THREE.LinearSRGBColorSpace) : tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.8 : 0.3));
     const glow = new THREE.Mesh(msGlowGeo, msGlowMat(col, tier)); glow.scale.setScalar(0.54 * T.size * MS_K);
     o.add(parts, glow);
-    o.userData.ms = { parts, glow, T, path: Array.from({ length: 16 }, () => ({ p: new THREE.Vector3(), s: 0 })), pathN: 0, born: performance.now(), dir: new THREE.Vector3(0, 0, 1) };
+    o.userData.ms = { parts, glow, T, path: Array.from({ length: 8 }, () => ({ p: new THREE.Vector3(), at: 0 })), pathN: 0, born: spellTime, lastNow: spellTime, dir: new THREE.Vector3(0, 0, 1) };
     return fxOnly(o); // additive and tiny: kept out of the AO and depth-of-field passes (the game has neither)
   }
   const lin = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace);
@@ -1042,20 +1041,21 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   const msQ = new THREE.Quaternion(), msObj = new THREE.Object3D(), msWp = new THREE.Vector3(), msTv = new THREE.Vector3();
   function stepMagicSphere(o, now) {
-    const d = o.userData.ms, T = d.T, P = d.path, gap = T.gap * MS_K, sec = (now - d.born) / 1000;
-    o.getWorldPosition(msWp); o.getWorldQuaternion(msQ).invert(); // msQ undoes any turn of the parents: the game's group is never turned
-    // the path the head has flown, a point every ~0.4 gap; the tail grows out of the launch spot and keeps its length when the head stops
-    if (d.pathN === 0) { P[0].p.copy(msWp); P[0].s = 0; d.pathN = 1; }
-    else { const st = msWp.distanceTo(P[0].p); if (st >= gap * 0.4) { const e = P.pop(); e.p.copy(msWp); e.s = P[0].s + st; P.unshift(e); d.pathN = Math.min(P.length, d.pathN + 1); } }
-    const S = P[0].s + msWp.distanceTo(P[0].p);
+    const d = o.userData.ms, T = d.T, P = d.path;
+    if (now < d.lastNow) { d.born = now; d.pathN = 0; }
+    d.lastNow = now;
+    const elapsed = Math.max(0, now - d.born), sec = elapsed / 1000;
+    o.getWorldPosition(msWp); o.getWorldQuaternion(msQ).invert();
+    if (!d.pathN) { for (const e of P) { e.p.copy(msWp); e.at = 0; } d.pathN = P.length; }
+    if (elapsed - P[0].at >= T.interval) { const e = P.pop(); e.p.copy(msWp); e.at = elapsed; P.unshift(e); }
     d.glow.quaternion.copy(msQ).multiply(camera.quaternion); // world rotation = the camera's, as the game's q.quaternion.copy(camera.quaternion)
     for (let i = 0; i < 7; i++) {
       const a = i / 6;
       msObj.position.set(0, 0, 0);
-      if (i > 0) { // piece i sits i gaps back along the path (the game: where the head was i trail intervals ago), sliding between points
-        const want = Math.max(0, S - i * gap); let newer = msWp, newerS = S;
-        msTv.copy(P[d.pathN - 1].p);
-        for (let k = 0; k < d.pathN; k++) { const e = P[k]; if (e.s <= want) { msTv.copy(e.p).lerp(newer, newerS === e.s ? 0 : (want - e.s) / (newerS - e.s)); break; } newer = e.p; newerS = e.s; }
+      if (i > 0) { // Native samples where the head was i intervals ago, including turns and a stationary head.
+        const want = Math.max(0, elapsed - i * T.interval); let newer = msWp, newerAt = elapsed;
+        msTv.copy(P[P.length - 1].p);
+        for (const e of P) { if (e.at <= want) { msTv.copy(e.p).lerp(newer, newerAt === e.at ? 0 : (want - e.at) / (newerAt - e.at)); break; } newer = e.p; newerAt = e.at; }
         msTv.sub(msWp); // world offset, then the game's wobble on WORLD x / y, then into the group's frame
         msTv.x += Math.sin(13 * sec - 1.7 * i) * a * 0.055 * MS_K; msTv.y += Math.cos(11 * sec - 1.7 * i) * a * 0.055 * MS_K;
         msObj.position.copy(msTv).applyQuaternion(msQ);
@@ -1071,20 +1071,20 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   // the burst where a spell lands: seven pieces fly apart in a ring and shrink, the glow swells (blast) or fades (missile)
   const msBursts = [];
-  function magicBurst(x, y, z, col, tier) {
-    const T = SPELL_TIER[tier], o = magicSphere(col, tier); o.position.set(x, y, z); dyn.add(o);
-    msBursts.push({ o, T, tier, born: performance.now() });
+  function magicBurst(x, y, z, col, tier, flight = null) {
+    const T = SPELL_TIER[tier], o = flight || magicSphere(col, tier); o.removeFromParent(); o.position.set(x, y, z); o.quaternion.identity(); dyn.add(o);
+    msBursts.push({ o, T, tier, born: spellTime });
   }
   function stepMagicBursts(now) {
     for (let i = msBursts.length - 1; i >= 0; i--) {
       const b = msBursts[i], t = (now - b.born) / b.T.impact, d = b.o.userData.ms;
-      if (t >= 1) { disposeActor(b.o); msBursts.splice(i, 1); continue; }
+      if (t < 0 || t >= 1) { disposeActor(b.o); msBursts.splice(i, 1); continue; }
       d.glow.quaternion.copy(camera.quaternion);
       d.glow.scale.setScalar((b.tier === 'blast' ? 1.35 * Math.sin(Math.PI * Math.sqrt(t)) : 0.82 * (1 - t)) * MS_K); d.glow.material.uniforms.uTime.value = now / 1000; // the game's impact
       for (let k = 0; k < 7; k++) {
         const ang = k * Math.PI * 2 / 7, r = b.T.spread * t * MS_K;
         msObj.position.set(Math.cos(ang) * r, Math.sin(2 * ang) * r * 0.65 - t * t * 0.15 * MS_K, Math.sin(ang) * r);
-        msObj.scale.setScalar(0.0675 * b.T.size * (1 - t) * MS_K); msObj.quaternion.identity(); msObj.rotateZ(now / 250 + k); msObj.updateMatrix(); d.parts.setMatrixAt(k, msObj.matrix);
+        msObj.scale.setScalar(0.0675 * b.T.size * (1 - t) * MS_K); msObj.quaternion.identity(); msObj.rotateZ((now - d.born) / 250 + k); msObj.updateMatrix(); d.parts.setMatrixAt(k, msObj.matrix);
       }
       d.parts.instanceMatrix.needsUpdate = true;
     }
@@ -1093,11 +1093,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // drawn one sim tick behind, sliding between ticks, on a clock that runs with the sim (main.js: acc += dt * (slowmo > 0 ? 0.3 : 1))
   let spTick = -1, spRT = 0, spSlow = 0;
   function spellClock(view, dt, frozen) {
-    const vt = Math.round((view.t || 0) * 30);
+    const vt = Math.round((view.t || 0) * 30), restarted = spTick < 0 || vt < spTick;
     if (spTick < 0 || vt < spTick || vt - spTick > 8) spRT = vt - 1; // first frame, a new run, or a long gap
     else if (!frozen) { spRT += dt * 30 * (spSlow > 0 ? 0.3 : 1); spSlow -= dt; }
     spTick = vt;
     spRT = view.alpha !== undefined ? vt - 1 + view.alpha : Math.min(vt, Math.max(vt - 1, spRT));
+    const presented = Math.max(0, spRT / 30 * 1000);
+    spellTime = restarted ? presented : Math.max(spellTime, presented); // Reward completion can reset alpha without rewinding the run.
     return vt;
   }
   function spellSample(u, g, x, y, z, a) { // a sim position for this spell, once per tick: [g0 -> g1] is the segment being drawn
@@ -1147,9 +1149,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const step = Math.max(0.05, Math.hypot(u.x1 - u.x0, u.z1 - u.z0) / n), far = Math.hypot(L.x - u.x1, L.y - u.y1, L.z - u.z1); // in at its own speed
       spellSample(u, Math.max(vt, u.g1 + Math.min(8, Math.max(1, Math.round(far / step)))), L.x, L.y, L.z, Math.atan2(L.x - u.x1, L.z - u.z1));
     }
-    spellDraw(o); stepMagicSphere(o.children[0], performance.now());
+    spellDraw(o); stepMagicSphere(o.children[0], spellTime);
     if (spRT < u.g1) return true; // still on its way in
-    magicBurst(u.land.x, u.land.y, u.land.z, u.spell.col, u.spell.tier); if (u.land.ring) spellRing(u.land.ring.x, u.land.ring.z, u.land.ring.r, u.spell.col);
+    magicBurst(u.land.x, u.land.y, u.land.z, u.spell.col, u.spell.tier, o.children[0]); if (u.land.ring) spellRing(u.land.ring.x, u.land.ring.z, u.land.ring.r, u.spell.col);
     return false;
   }
   function spellStray(f, players) { // a staff bolt that hit in the tick it was cast (point blank) was never drawn: burst on what it hit
@@ -1921,7 +1923,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       // a straight shot: aim along boss -> now (the rounded per-tick step swung the head up to ~25 degrees)
       const u = o.userData, hx = b[1] - u.ox, hz = b[2] - u.oz;
       spellSample(u, vt, b[1], groundAt(b[1], b[2]) + 1.3, b[2], hx * hx + hz * hz > 1e-4 ? Math.atan2(hx, hz) : (u.a1 ?? 0));
-      spellDraw(o); stepMagicSphere(o.children[0], performance.now());
+      spellDraw(o); stepMagicSphere(o.children[0], spellTime);
     }
     for (const [id, o] of eprojObjs) if (!seenEp.has(id) && !spellLand(o, vt, false)) { disposeActor(o); eprojObjs.delete(id); }
 
@@ -1958,7 +1960,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       }
       if (o.userData.spell) { // spells fly about 1.3 up, as the game's, slide between sim ticks, and are never turned (only the head aims)
         if (o.userData.g1 !== vt) spellSample(o.userData, vt, x, boltY(x, z, ang), z, ang);
-        spellDraw(o); stepMagicSphere(o.children[0], performance.now());
+        spellDraw(o); stepMagicSphere(o.children[0], spellTime);
       } else {
         o.position.set(x, groundAt(x, z) + 1.0, z);
         if (art === 'axe') { if (o.userData.spinner2) o.userData.spinner2.rotation.y = spin; o.rotation.y = 0; } else o.rotation.y = ang;
@@ -1969,7 +1971,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     }
     for (const [id, o] of projObjs) if (!seenPr.has(id) && !(o.userData.spell && spellLand(o, vt, true))) { disposeActor(o); projObjs.delete(id); }
     for (const f of spFx.burst) if (!f.used) spellStray(f, view.players); // a bolt that hit in the tick it was cast was never drawn
-    stepMagicBursts(performance.now());
+    stepMagicBursts(spellTime);
     meleeFx.flush();
 
     // shrines: SankoQuest's altar, a pillar of light in the shrine's colour, and a circle that fills as you charge it
@@ -2109,7 +2111,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const p of parts) p.life = 0;
     for (const a of folkActors.values()) disposeActor(a.root, a.mixer); folkActors.clear(); folkT = 0;
     for (const o of eprojObjs.values()) disposeActor(o); eprojObjs.clear(); for (const h of hazardPool) h.visible = false;
-    spTick = -1;
+    spTick = -1; spellTime = 0;
     cam.x = curMap.cx; cam.z = curMap.cz;
   }
   return { hop: () => { hopReq = true; }, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v, previewY = null) { cam.shift = v; cam.previewY = previewY; if (previewY == null) camera.clearViewOffset(); }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
