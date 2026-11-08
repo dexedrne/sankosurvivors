@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Equipment": "Ekipman",
+  "No gear equipped.": "Kuşanılmış ekipman yok.",
+  "Gear at a glance": "Bir bakışta ekipman",
+  "Desktop runs show your worn gear below weapons and passives. Hover or focus an item to inspect it, or collapse Equipment for more room.": "Masaüstü koşularında kuşandığın ekipman silah ve pasiflerin altında görünür. İncelemek için bir eşyanın üzerine gel veya odağı ona taşı; daha fazla alan için Ekipman bölümünü daralt.",
+
   "Endless growth": "Sonsuz gelişim",
   "Damage bonus +1%": "Hasar bonusu +%1",
   "Maximum health bonus +1%": "Azami can bonusu +%1",

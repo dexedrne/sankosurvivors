@@ -837,3 +837,15 @@ body.ds-layout #shrinecharge { top:auto; bottom:calc(100% - var(--ds-play-height
   #mpick .mopt .thumb { height:20px; }
   #ainfo, #mapinfo { min-height:0; margin-top:4px; padding:0; }
 }
+
+/* Compact desktop inspection; the current run owns the equipment data. */
+#equipmenthud { display:none; align-self:flex-start; max-width:146px; margin:0; padding:4px 7px 7px; box-shadow:none; text-align:left; pointer-events:auto; }
+#equipmenthud summary { min-height:44px; padding:10px 0; color:var(--gold); cursor:pointer; font:16px RSPlain,sans-serif; }
+#equipmentitems { display:grid; grid-template-columns:repeat(3,32px); gap:4px; }
+#equipmentitems > small { grid-column:1/-1; color:var(--cream); font:14px RSPlain,sans-serif; }
+#equipmentitems .slot { width:32px; height:32px; border-width:4px; }
+#equipmentitems .slot img { width:24px; height:24px; }
+#equipmentitems .slot:is(:hover,:focus-visible) { z-index:1; outline:2px solid var(--gold); }
+#equipmentitems .slot:is(:hover,:focus-visible)::after { content:attr(aria-label); position:absolute; top:100%; left:0; z-index:2; width:max-content; max-width:240px; padding:5px; background:var(--deep); border:1px solid var(--line); color:var(--cream); font:16px RSPlain,sans-serif; text-shadow:var(--sh); pointer-events:none; }
+@media(min-width:901px) and (min-height:521px) and (hover:hover) and (pointer:fine) { #equipmenthud { display:block; } }
+body.touch #equipmenthud, body.ds-layout #equipmenthud { display:none; }

@@ -1604,7 +1604,8 @@ function toMenu() {
 const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];
 addEventListener('keydown', (e) => {
   if (mode === 'recovery' || walletModalOpen()) return;
-  if (e.target?.matches?.('input, textarea, select, summary, [contenteditable="true"]')) return;
+  if (mode === 'play' && e.target?.closest?.('#equipmenthud') && ['Tab', 'Enter', ' '].includes(e.key)) return;
+  if (e.target?.matches?.('input, textarea, select, [contenteditable="true"]') || e.target?.matches?.('summary') && !e.target?.closest?.('#equipmenthud')) return;
   if (e.repeat) return;
   const k = e.key.toLowerCase();
   if (mode === 'play' && MENU_SCREENS.every(id => $(id).classList.contains('hidden')) && (k === 'tab' && !e.target?.matches?.('button, a[href]') || k === 'escape' && !$('damagepanel').classList.contains('hidden'))) {
@@ -1835,6 +1836,7 @@ function showLevelUp() {
   $('banishlv').innerHTML = `<span>Banish</span> <span translate="no">(${me?.banished ? 3 - me.banished.length : 0})</span><span class="key"> (B)</span>`;
   $('banishlv').disabled = !pend.choices.some((_, i) => canBanish(sim, PLAYER, i));
   selCard = autoChoice(pend); $('levelup').classList.remove('hidden'); markCard();
+  if ($('equipmenthud').contains(document.activeElement)) wrap.querySelector('.card.sel')?.focus({ preventScroll: true });
 }
 function doReroll() { if (sim?.coop) { coop.run.action({kind:'reroll'},coopDecision); return; } if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 'r') : reroll(sim, PLAYER))) { shownPending = false; showLevelUp(); if (rankedRec) persistRanked(); } }
 function doSkip() { if (sim?.coop) { coop.run.action({kind:'skip'},coopDecision); return; } if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 's') : skipLevel(sim, PLAYER))) { audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward(); if (rankedRec) persistRanked(); } }
@@ -1896,6 +1898,7 @@ function showCasket() {
   $('ckrec').textContent = pend.rec === 0 ? 'Recommended: wear it' : c.anyUp ? 'Recommended: high alch (not better overall)' : 'Recommended: high alch (not better)';
   $('ckmore').textContent = pend.more ? `${pend.more} more casket${pend.more > 1 ? 's' : ''} after this` : '';
   markCasket(); $('casket').classList.remove('hidden');
+  if ($('equipmenthud').contains(document.activeElement)) $(pend.rec === 0 ? 'ckwear' : 'ckalch').focus({ preventScroll: true });
 }
 function markCasket() { $('ckwear').classList.toggle('sel', selCard === 0); $('ckalch').classList.toggle('sel', selCard === 1); }
 // after a casket choice (or the timer): the next casket card, a level-up card, or back to the run
@@ -1957,8 +1960,21 @@ function updateTumbleHud(me) {
   $('tumblebtn').disabled = me.rollCd > 0;
   $('tumblecd').textContent = me.rollCd > 0 ? String(Math.ceil(me.rollCd)) : '';
 }
+function updateEquipmentHud(me) {
+  const gear = me.gear || {}, key = JSON.stringify(gear);
+  if (slotCache.g === key) return;
+  slotCache.g = key;
+  const items = GEAR_SLOTS.flatMap(slot => {
+    const name = gear[slot];
+    if (typeof name !== 'string' || !Object.hasOwn(GEAR, name) || GEAR[name].slot !== slot) return [];
+    const label = esc(`${gearSlotName(slot)} · ${name}`);
+    return `<span class="slot" data-slot="${slot}" tabindex="0" role="img" aria-label="${label}">${imgTag(name)}</span>`;
+  });
+  $('equipmentitems').innerHTML = items.join('') || '<small>No gear equipped.</small>';
+}
 function updateHud(view) {
   const me = sim.coop ? view.players.find(p => p.id === PLAYER) : view.players[0];
+  updateEquipmentHud(me);
   updateShrineHud(view);
   updateTumbleHud(me);
   updateDamageHud();

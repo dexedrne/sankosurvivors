@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Equipment": "Kagamitan",
+  "No gear equipped.": "Walang suot na kagamitan.",
+  "Gear at a glance": "Kagamitan sa isang tingin",
+  "Desktop runs show your worn gear below weapons and passives. Hover or focus an item to inspect it, or collapse Equipment for more room.": "Sa desktop, makikita ang suot mong kagamitan sa ilalim ng mga armas at passive. Itapat ang cursor o ituon ang focus sa item para siyasatin ito, o isara ang Kagamitan para lumuwag ang tanaw.",
+
   "Endless growth": "Paglakas sa Endless",
   "Damage bonus +1%": "Dagdag pinsala +1%",
   "Maximum health bonus +1%": "Dagdag pinakamataas na buhay +1%",

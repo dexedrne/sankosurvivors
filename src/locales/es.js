@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Equipment": "Equipo",
+  "No gear equipped.": "No llevas equipo.",
+  "Gear at a glance": "Equipo de un vistazo",
+  "Desktop runs show your worn gear below weapons and passives. Hover or focus an item to inspect it, or collapse Equipment for more room.": "Las partidas de escritorio muestran tu equipo debajo de las armas y los pasivos. Pasa el cursor o enfoca un objeto para inspeccionarlo, o contrae Equipo para tener más espacio.",
+
   "Endless growth": "Progreso infinito",
   "Damage bonus +1%": "Bonificación de daño +1%",
   "Maximum health bonus +1%": "Bonificación de salud máxima +1%",

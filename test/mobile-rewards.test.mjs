@@ -12,10 +12,10 @@ function section(start,end) {const a=source.indexOf(start),b=source.indexOf(end,
 function setup({phone=true,held=false,ranked=false,natural=null,shown=!natural,choices=[{kind:'weapon',id:'katana',level:2}]}={}) {
   const sim=natural?rankedSim(natural):createSim({seed:1104,pace:2}),p=sim.players[0];
   if(!natural){sim.spawnAcc=-1e9;sim.bossIndex=99;sim.eventT=1e9;sim.shrineT=1e9;p.skips=2;sim.pending.p1={choices,left:20};}
-  const elements=new Map(),el=id=>{if(!elements.has(id)){const classes=new Set(['hidden']);elements.set(id,{setAttribute(){},style:{},innerHTML:'',textContent:'',children:[],dataset:{},appendChild(child){this.children.push(child);},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle(x,on){if(on??!classes.has(x))classes.add(x);else classes.delete(x);}}});}return elements.get(id);};
+  const elements=new Map(),el=id=>{if(!elements.has(id)){const classes=new Set(['hidden']);elements.set(id,{contains(node){return node===this||this.children.includes(node);},querySelector(){return this.children[0];},setAttribute(){},style:{},innerHTML:'',textContent:'',children:[],dataset:{},appendChild(child){this.children.push(child);},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle(x,on){if(on??!classes.has(x))classes.add(x);else classes.delete(x);}}});}return elements.get(id);};
   const touch={id:held?7:null,ox:0,oy:0,x:held?1:0,y:0};
   const events=new Map(),context={...content,sim,phone,touch,events,step,choose,skipLevel,playerStats,previewChoice,autoChoice,canBanish,TICK,rankedStep,rankedChoice,RunRecorder,rankedRun:null,updateRankedPause(){},$:el,
-    addEventListener:(name,fn)=>events.set(name,fn),document:{hidden:false,addEventListener:(name,fn)=>events.set(name,fn),createElement:()=>({dataset:{},classList:{toggle(){}},setAttribute(){}})},
+    addEventListener:(name,fn)=>events.set(name,fn),document:{hidden:false,addEventListener:(name,fn)=>events.set(name,fn),createElement:()=>({dataset:{},classList:{toggle(){}},setAttribute(){},focus(){context.document.activeElement=this;}})},
     preloadNextIcons(){},audio:{duck(){},play(){},init:()=>Promise.resolve()},renderer:{getYaw:()=>0},navigator:{getGamepads:()=>[]},
     iconHTML:()=>'',imgTag:()=>'',stepOf:()=>null,markCard(){},showCasket(){},persistRanked(){},endRun(){},hop(){},console};
   vm.createContext(context);
@@ -46,7 +46,7 @@ function setup({phone=true,held=false,ranked=false,natural=null,shown=!natural,c
       state(){return {mode,shownPending,rewardWasShown,modal:!$('levelup').classList.contains('hidden'),waitingForMove,acc,hint:!$('movehint').classList.contains('hidden'),touchId:touch.id,touchX:touch.x,log:rankedRec?.log()};}
     };
   `,context);
-  return {sim,p,touch,...context.api,showChecked:()=>vm.runInContext('api.showReal()',context,{timeout:200})};
+  return {sim,p,touch,document:context.document,...context.api,showChecked:()=>vm.runInContext('api.showReal()',context,{timeout:200})};
 }
 
 test('a held joystick survives the reward popup like a held keyboard key',()=>{
@@ -173,4 +173,9 @@ test('passive preview shows actual capped cooldown and maximum health/regen, wit
 test('fixed Curse and legacy cards do not promise rolled quality or new stat previews',()=>{
  const h=setup({shown:false,choices:[{kind:'passive',id:'curse',level:1,from:0}]});h.showReal();const card=h.element('cards').children[0];assert.ok(!card.className.includes('rar'));assert.ok(!card.innerHTML.includes('Heals you to full'));assert.ok(!card.innerHTML.includes('upstats'));
  const old=setup({shown:false,choices:[{kind:'weapon',id:'bow',level:2}]});old.sim.pace=1;old.p.weapons={bow:1};old.showReal();assert.ok(!old.element('cards').children[0].innerHTML.includes('upstats'));
+});
+
+test('a visible earned upgrade moves focus from equipment inspection into its card',()=>{
+ const h=setup({phone:false}),prior={};h.element('equipmenthud').children.push(prior);h.document.activeElement=prior;h.showReal();
+ assert.notEqual(h.document.activeElement,prior);assert.equal(h.document.activeElement,h.element('cards').children[0]);
 });
