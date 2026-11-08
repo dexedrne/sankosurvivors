@@ -2005,6 +2005,10 @@ function updateHud(view) {
     else if (f.k === 'shrine-done' && SHRINES[f.kind] && f.id === PLAYER) banner(`${SHRINES[f.kind].name}: ${SHRINES[f.kind].text}`, 3200);
     else if (f.k === 'region' && sim.t > 1) banner(MAP_BY_ID[f.id].name, 1800);
     else if (f.k === 'escape') banner('The treasure goblin got away', 1600);
+    else if (f.k === 'endless-growth') {
+      const text = { might: 'Damage bonus +1%', maxHp: 'Maximum health bonus +1%', area: 'Area bonus +1%' }[f.stat];
+      if (typeof text === 'string') toast(`<span>Endless growth<br><b>${text}</b></span>`);
+    }
     else if (f.k === 'casket' && f.worn && f.weapon) { toast(`${imgTag(f.item)} <span>${WEAPON_ITEMS[f.item] && WEAPON_ITEMS[f.item].kind === 'arrow' ? 'The Bow now shoots' : `${WEAPONS[f.weapon].name}, now`}<br><b>${f.item}</b></span>`); }
     else if (f.k === 'casket' && f.worn) { toast(`${imgTag(f.item)} <span>${f.old ? 'Now wearing' : 'Reward casket, now worn'}<br><b>${f.item}</b></span>`); }
     else if (f.k === 'alch' && !autoAlchOn()) { toast(`${imgTag('Gold')} <span>High alch<br><b>${f.item}</b> +${f.coins} coins</span>`); }

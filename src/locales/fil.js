@@ -1,5 +1,11 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Endless growth": "Paglakas sa Endless",
+  "Damage bonus +1%": "Dagdag pinsala +1%",
+  "Maximum health bonus +1%": "Dagdag pinakamataas na buhay +1%",
+  "Area bonus +1%": "Dagdag lawak +1%",
+  "In casual Endless, once no normal upgrades or evolutions remain, each XP level gives a random 1% damage, maximum health or area bonus. Bonuses add together for this run.": "Sa casual Endless, kapag wala nang normal na upgrade o evolution, bawat level ng XP ay nagbibigay ng random na 1% na dagdag sa pinsala, pinakamataas na buhay o lawak. Nagsasama ang mga dagdag sa run na ito.",
+  "Your usual heal stays. A lone heal continues automatically; optional Curse choices stay manual.": "Nananatili ang karaniwang heal. Awtomatikong nagpapatuloy kung heal lang ang pagpipilian; ikaw pa rin ang pipili ng opsyonal na Curse.",
   "Katana, Two-handed Sword and Pickaxe start attacks when a large enemy’s body is within their existing reach.": "Umaatake ang Katana, Two-handed Sword at Pickaxe kapag nasa kasalukuyang abot ang katawan ng malaking kalaban.",
   "Sharper melee and Endless pressure": "Mas maayos na melee at hamon sa Endless",
   "Stronger connections and melee": "Mas matatag na koneksiyon at melee",

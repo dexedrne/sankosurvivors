@@ -1,8 +1,8 @@
-# Offline Duo screen probe — prepared, not yet built on Xcode
+# Offline Duo screen probe
 
 This separate app tests whether a native UIKit window/current SDK can fill the right-side region that installed Safari reserves. It shows a local checkerboard, yellow boundary/pink right edge and native/window/web geometry. A solid colour behind the clock is not success. No game code, remote URLs, wallet, secrets, save access, uploads or dependencies are included. It neither replaces nor migrates the installed game.
 
-Owner will connect an M2 MacBook Air via Tailscale. Install/open current Xcode first (27.1+ SDK for Duo support). Root still builds/tests the web game on alexbl. The iOS probe alone requires Mac tools; no native build is claimed by Linux/static checks.
+The owner’s M2 MacBook Air is connected over Tailscale. Xcode27.2/27B52 is installed; unsigned simulator and physical-SDK builds succeeded. The iOS27.2 Duo runtime and actual device execution are separate checks; see DUO_COOP_FEEDBACK_RELEASE_2026-11-07.md in the repository root for current evidence. Web game builds/tests stay on alexbl. The iOS probe alone uses Mac tools; Linux/static checks are not native execution proof.
 
 On the Mac, first validate project/plist and build for Simulator without signing:
 

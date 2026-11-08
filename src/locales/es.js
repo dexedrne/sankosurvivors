@@ -1,5 +1,11 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Endless growth": "Progreso infinito",
+  "Damage bonus +1%": "Bonificación de daño +1%",
+  "Maximum health bonus +1%": "Bonificación de salud máxima +1%",
+  "Area bonus +1%": "Bonificación de área +1%",
+  "In casual Endless, once no normal upgrades or evolutions remain, each XP level gives a random 1% damage, maximum health or area bonus. Bonuses add together for this run.": "En Infinito casual, al agotarse las mejoras normales y las evoluciones, cada nivel de XP da al azar un 1% de daño, salud máxima o área. Las bonificaciones se suman durante esta partida.",
+  "Your usual heal stays. A lone heal continues automatically; optional Curse choices stay manual.": "Conservas la curación habitual. Si solo hay curación, continúa automáticamente; la Maldición opcional se sigue eligiendo manualmente.",
   "Katana, Two-handed Sword and Pickaxe start attacks when a large enemy’s body is within their existing reach.": "Katana, Espada a dos manos y Pico atacan cuando el cuerpo de un enemigo grande entra en su alcance actual.",
   "Sharper melee and Endless pressure": "Mejor alcance cuerpo a cuerpo y presión en Infinito",
   "Stronger connections and melee": "Conexiones más estables y combate cuerpo a cuerpo",

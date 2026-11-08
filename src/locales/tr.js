@@ -1,5 +1,11 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Endless growth": "Sonsuz gelişim",
+  "Damage bonus +1%": "Hasar bonusu +%1",
+  "Maximum health bonus +1%": "Azami can bonusu +%1",
+  "Area bonus +1%": "Alan bonusu +%1",
+  "In casual Endless, once no normal upgrades or evolutions remain, each XP level gives a random 1% damage, maximum health or area bonus. Bonuses add together for this run.": "Gündelik Sonsuz modda normal yükseltmeler ve evrimler bitince her XP seviyesi rastgele %1 hasar, azami can veya alan bonusu verir. Bonuslar bu koşu boyunca toplanır.",
+  "Your usual heal stays. A lone heal continues automatically; optional Curse choices stay manual.": "Normal iyileşme korunur. Tek seçenek iyileşmeyse otomatik devam eder; isteğe bağlı Lanet seçimi elle yapılır.",
   "Katana, Two-handed Sword and Pickaxe start attacks when a large enemy’s body is within their existing reach.": "Katana, İki Elli Kılıç ve Kazma, büyük düşmanın gövdesi mevcut menzile girince saldırır.",
   "Sharper melee and Endless pressure": "Daha isabetli yakın dövüş ve Sonsuz baskısı",
   "Stronger connections and melee": "Daha sağlam bağlantılar ve yakın dövüş",

@@ -3,9 +3,9 @@ import {createCoopRun} from '../src/coop-run.js';
 import {snapshot} from '../src/sim.js';
 import{readFileSync}from'node:fs';import{unpackGround,groundHash}from'../src/ground-pack.js';
 const start=()=>({protocol:1,epoch:'00112233445566778899aabbccddeeff',build:'test-local',sim:'e2c1419b0907',ground:'0',seed:711,map:'greentown',hard:false,endless:false,players:['p1','p2'].map(id=>({id,loadout:{name:id,adv:'adventurer',meta:{},gear:{},gearLv:{},cleared:[]}}))});
-function pair(){
- const down=[],up=[],ended=[];const host=createCoopRun({start:start(),localId:'p1',ground:null,send:m=>down.push(m),onEnd:reason=>ended.push(['host',reason])});
- const guest=createCoopRun({start:start(),localId:'p2',ground:null,send:m=>up.push(m),onEnd:reason=>ended.push(['guest',reason])});
+function pair(settings={}){
+ const down=[],up=[],ended=[];const host=createCoopRun({start:{...start(),...settings},localId:'p1',ground:null,send:m=>down.push(m),onEnd:reason=>ended.push(['host',reason])});
+ const guest=createCoopRun({start:{...start(),...settings},localId:'p2',ground:null,send:m=>up.push(m),onEnd:reason=>ended.push(['guest',reason])});
  for(const d of [host,guest]){const s=d.sim;s.spawnAcc=-1e9;s.bossIndex=99;s.eventT=s.shrineT=1e9;}
  host.begin(0);guest.begin(0);
  const deliver=()=>{while(up.length){const message=up.shift();if(message.t==='up')host.accept({hero:1,data:message.data});}while(down.length){const message=down.shift();if(message.t==='down')guest.accept(message.data);}};
@@ -74,4 +74,15 @@ test('odd-frame recovery still transmits every periodic drift checksum',()=>{
  const p=pair();p.tick(105);p.host.hold();p.guest.hold();p.deliver();assert.equal(p.guest.frame,105);p.host.begin(105);p.guest.begin(105);
  for(let i=0;i<15;i++)p.host.advance();assert(p.down.some(m=>m.t==='down'&&m.data.hash?.[0]===120),'frame120 checksum must not be stranded in an odd-ended batch');p.deliver();assert.equal(p.host.hash(),p.guest.hash());
  p.guest.sim.players[1].hp--;p.tick(30);assert.deepEqual(p.ended,[['guest','desync']],'drift after odd-frame recovery must fail closed at the next checksum');
+});
+
+test('Endless growth remains deterministic across peers and enters the canonical drift check',()=>{
+ const p=pair({endless:true,players:start().players.map(hero=>({...hero,loadout:{...hero.loadout,cleared:['greentown']}}))});
+ for(const run of [p.host,p.guest])for(const hero of run.sim.players){hero.weapons={katana:6,bow:6,shield:6,axe:6};hero.passives={might:5,boots:5,area:5,vigor:5};hero.evo={katana:true,bow:true,shield:true,axe:true};hero.hp=hero.maxHp=200;}
+ earn(p);
+ for(let i=0;i<2;i++){const a=p.host.sim.players[i],b=p.guest.sim.players[i];assert(a.endlessGrowth);assert.deepEqual(a.endlessGrowth,b.endlessGrowth);assert.equal(Object.values(a.endlessGrowth).reduce((n,v)=>n+v,0),1);}
+ snapshot(p.host.sim);assert.equal(p.host.hash(),p.guest.hash());
+ assert(p.host.action({kind:'choose',index:0},p.host.decision('p1')));assert(p.guest.action({kind:'choose',index:0},p.guest.decision('p2')));
+ p.tick(30);assert.equal(p.host.hash(),p.guest.hash());assert.deepEqual(p.ended,[]);
+ p.guest.sim.players[1].endlessGrowth.might++;p.tick(30);assert.deepEqual(p.ended,[['guest','desync']]);
 });

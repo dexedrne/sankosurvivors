@@ -268,7 +268,7 @@ export function playerStats(p, meta = p.meta || {}) {
   const bf = p.buffs || {}; // timed boons: beer, a blizzard's chill, the shrines' Strength, Agility and Magic
   const might = (1 + 0.12 * passiveStrength(p, 'might') + 0.04 * m('combat') + (B.dmg || 0) + (G.dmg || 0)) * (bf.strength > 0 ? 1.3 : 1);
   const haste = Math.max(0.3, 1 - 0.07 * passiveStrength(p, 'haste') - 0.03 * m('fletching') - (B.haste || 0) - (G.haste || 0));
-  return {
+  const stats = {
     might, haste,
     speed: PLAYER_BASE.speed * (1 + 0.08 * passiveStrength(p, 'boots') + 0.03 * m('woodcutting') + (B.speed || 0) + (G.speed || 0)) * ((p.buffs && p.buffs.speed > 0) ? 1.35 : 1) * ((p.buffs && p.buffs.chill > 0) ? 0.9 : 1) * (bf.agility > 0 ? 1.25 : 1), // beer speeds you up, a blizzard slows you
     magnet: (p.pace >= 2 ? 2.5 : PLAYER_BASE.magnet) * (1 + 0.3 * passiveStrength(p, 'magnet') + 0.1 * m('magic') + (B.magnet || 0) + (G.magnet || 0)),
@@ -291,6 +291,11 @@ export function playerStats(p, meta = p.meta || {}) {
     heal: 1 + 0.12 * m('fishing'),
     magic: 1 + (G.magic || 0), // the Minion set: magic weapons (Shard Staff, Lighter) hit harder
   };
+  if (p.pace >= 2 && p.endlessGrowth) {
+    for (const key of ['might', 'maxHp', 'area']) stats[key] *= 1 + 0.01 * p.endlessGrowth[key];
+    stats.maxHp = Math.round(stats.maxHp);
+  }
+  return stats;
 }
 
 function nearestEnemy(sim, x, z, maxD = 1e9, skip, bodyRange = false) {
@@ -525,6 +530,16 @@ function openLevel(sim, p) {
   if (!(sim.pace >= 2) || !p.alive || sim.pending[p.id] || !p.levelQ || sim.over) return false;
   p.levelQ--;
   sim.pending[p.id] = { choices: rollChoices(sim, p), left: 20 };
+  if (sim.endless && !sim.ranked && sim.pending[p.id].choices.every(c => c.kind === 'heal' || c.kind === 'passive' && c.id === 'curse')) {
+    const stat = ['might', 'maxHp', 'area'][Math.floor(sim.rng() * 3)];
+    p.endlessGrowth ||= { might: 0, maxHp: 0, area: 0 };
+    p.endlessGrowth[stat]++;
+    if (stat === 'maxHp' && !p.godMode) {
+      const maxHp = playerStats(p).maxHp;
+      p.hp = Math.min(maxHp, p.hp + Math.max(0, maxHp - p.maxHp)); p.maxHp = maxHp;
+    }
+    sim.fx.push({ k: 'endless-growth', player: p.id, stat });
+  }
   return true;
 }
 
