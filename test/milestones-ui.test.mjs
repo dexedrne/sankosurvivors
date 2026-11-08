@@ -1,0 +1,20 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{readFileSync}from'node:fs';import{QUESTS as legacy}from'../src/content.js';import{finiteNumber}from'../src/progress-values.js';
+let catalogue={QUESTS:legacy,ACHIEVEMENTS:[]};try{catalogue=await import('../src/profile-milestones.js')}catch(e){if(e.code!=='ERR_MODULE_NOT_FOUND'||!e.message.includes('/src/profile-milestones.js'))throw e}
+const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),start=source.indexOf('function buildQuests()'),end=source.indexOf("$('questbtn').onclick",start),code=source.slice(start,end);
+function panel(stats={},ids=[]){const nodes={questlist:{innerHTML:''}},$=id=>nodes[id]??(nodes[id]={});Function('QUESTS','ACHIEVEMENTS','$','getStats','questsDone','statVal','imgTag',code+';buildQuests();')(catalogue.QUESTS,catalogue.ACHIEVEMENTS,$,()=>stats,()=>new Set(ids),(st,k)=>finiteNumber(st[k]),n=>`<img alt="${n}">`);return nodes.questlist.innerHTML;}
+const card=(html,id)=>{const start=html.indexOf(`data-milestone="${id}"`);assert(start>=0,'actual card missing '+id);const end=html.indexOf('data-milestone=',start+20);return html.slice(start,end<0?undefined:end);};
+test('actual quest panel separates native quest and achievement summaries with scoped completion counts',()=>{const html=panel({},['goblins','survivor','achievement-first-clear','future-quest']);assert(html.includes('data-milestone-group="quests"'));assert(html.includes('data-milestone-group="achievements"'));assert.match(html,/2\s*\/\s*16/);assert.match(html,/1\s*\/\s*8/);const a=card(html,'achievement-first-clear');assert(!a.includes('0 coins'));assert(a.includes('Complete'));assert.match(a,/aria-valuenow="1"/);});
+test('qualified unclaimed goals explain the finished-run boundary and remain separate from completion',()=>{const c=card(panel({'kills.scorpion':150}),'desert-watch');assert(c.includes('Ready'));assert(!c.includes('Complete'));assert.match(c,/aria-valuenow="150"/);});
+test('negative and non-finite saved counters cannot escape progress bar bounds',()=>{for(const value of[-100,NaN,Infinity,{toString:null}]){const c=card(panel({'kills.scorpion':value}),'desert-watch');assert.match(c,/aria-valuenow="0"/);assert(!c.includes('NaN'));assert(!c.includes('Infinity'));}});
+test('actual end feedback distinguishes achievements from paid quests',()=>{const a=source.indexOf('    const questNotes = '),b=source.indexOf('\n',a),line=source.slice(a,b);assert(a>=0);const notes=Function('receipt','imgTag',line+';return questNotes;')({quests:[{name:'First Clear',achievement:true,coins:0},{name:'Desert Watch',coins:150}]},()=>'<img>');assert(notes[0].includes('Achievement unlocked'));assert(!notes[0].includes('coins'));assert(notes[1].includes('Quest complete'));assert(notes[1].includes('150 coins'));});
+
+test('every actual milestone card is a native keyboard reading stop',()=>{
+ const html=panel();const cards=[...html.matchAll(/<div class="quest(?: done)?"([^>]+)>/g)];assert.equal(cards.length,24);assert(cards.every(c=>/tabindex="0"/.test(c[1])),'each progress card must be focusable for browsing and scrollIntoView');
+});
+test('actual milestone modal contains both native Tab boundaries without trapping interior stops',()=>{
+ const registration=source.slice(source.indexOf('function containMenuTab('),source.indexOf('// ---- updates log'));
+ const nodes=['first-summary','reading-card','back'].map(id=>({id,offsetParent:{},focus(){active=this;}}));let active=nodes[0],handler;const scr={querySelectorAll:()=>nodes,addEventListener:(type,fn)=>{if(type==='keydown')handler=fn}};
+ Function('$','document',registration)(id=>id==='quests'?scr:{addEventListener(){}},{get activeElement(){return active}});assert.equal(typeof handler,'function','Quests must register its Tab containment');
+ const press=shiftKey=>{let prevented=false;handler({key:'Tab',shiftKey,currentTarget:scr,preventDefault(){prevented=true}});return prevented};
+ assert(press(true));assert.equal(active.id,'back');assert(press(false));assert.equal(active.id,'first-summary');active=nodes[1];assert.equal(press(false),false);assert.equal(active.id,'reading-card');
+});

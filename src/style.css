@@ -211,7 +211,12 @@ button.ghost { border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch;
 .gitem img { width: 36px; height: 36px; image-rendering: pixelated; } .gitem b { display: block; color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; } .gitem span { color: var(--cream); line-height: 1.1; }
 .gempty { color: var(--cream); margin: 6px 0; }
 #gearinfo { margin-top: 10px; text-align: left; color: var(--cream); line-height: 1.2; } #gearinfo b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; } .dim { opacity: .7; }
-#questlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px; text-align: left; max-height: 60vh; overflow: auto; }
+#questlist { text-align: left; max-height: min(60vh, calc(100dvh - 210px)); overflow: auto; }
+.questgroup + .questgroup { margin-top: 8px; }
+.questgroup > summary { min-height: 44px; padding: 6px 10px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 stretch; background: #3a2e22; color: var(--gold); cursor: pointer; }
+.qcount { float: right; color: var(--cream); }
+.questcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 6px; margin-top: 6px; }
+.quest .qready { color: var(--gold); }
 .quest { padding: 6px 10px 8px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 stretch; background: #3a2e22; }
 .quest.done { border-image-source: url(../assets/ui/sq/green_slot.png); background: #2c3a22; }
 .qhead { display: flex; justify-content: space-between; gap: 8px; } .qhead b { color: var(--gold); font-weight: 400; font-family: RSQuill8, sans-serif; } .qhead span { color: var(--cream); }

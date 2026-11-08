@@ -1,5 +1,6 @@
 // Completed-run profile changes only. Ranked scores and wallet credentials stay with their existing owners.
-import { GEAR, QUESTS, isWeaponItem } from './content.js';
+import { GEAR, isWeaponItem } from './content.js';
+import { MILESTONES, DUPLICATE_GEAR_COINS } from './profile-milestones.js';
 import { profileValue, profileBest, finiteNumber } from './progress-values.js';
 import { betterRun } from './personal-record.js';
 import { RUN_REWARD_KEYS } from './progress-import.js';
@@ -19,7 +20,7 @@ export function prepareRunRewards(storage, sim, { earned, ranked = false, coop =
   let coins = finiteNumber(load('sq-coins', 0)) + earned, bank = load('sq-bank', []), bankChanged = false;
   const bankItem = (name, sell = true) => {
     if (!Object.hasOwn(GEAR, name)) return false;
-    if (bank.includes(name)) { if (sell) coins += 25; return false; }
+    if (bank.includes(name)) { if (sell) coins += DUPLICATE_GEAR_COINS; return false; }
     bank.push(name); bankChanged = true; return true;
   };
   const alched = [...(owned.alched || [])], worn = p.gear || {};
@@ -36,7 +37,7 @@ export function prepareRunRewards(storage, sim, { earned, ranked = false, coop =
   stats.bestTime = Math.max(finiteNumber(stats.bestTime), Math.floor(sim.t)); stats.cleared = cleared.size;
   save('sq-stats', stats);
   const done = new Set(load('sq-quests', [])), quests = [];
-  for (const q of QUESTS) {
+  for (const q of MILESTONES) {
     if (done.has(q.id) || finiteNumber(stats[q.stat]) < q.goal) continue;
     done.add(q.id); coins += q.coins; if (q.item) bankItem(q.item); quests.push(q);
   }

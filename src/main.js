@@ -4,6 +4,7 @@ import { RunRecorder, RANKED, pauseRemaining, kpm, kpmMicro, kpmWeek, prizePlace
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { rankedApi, requireRankedBuild, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
+import { QUESTS, ACHIEVEMENTS, DUPLICATE_GEAR_COINS } from './profile-milestones.js';
 import { drawStormMinimap } from './storm-effects.js';
 import { cleanSettings } from './settings.js';
 import { createScreenLayout } from './screen-layout.js';
@@ -34,7 +35,7 @@ import { connect as requestWallet, disconnect as walletDisconnect, restore as wa
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, evolutionPassives, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
-  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, gearPieceBonus, bonusText, QUESTS, deltaText, gearRarity, alchValue, ARMOR_TIERS,
+  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, gearPieceBonus, bonusText, deltaText, gearRarity, alchValue, ARMOR_TIERS,
   gearGroups, isWeaponItem, WEAPON_ITEMS, weaponItemText, weaponItemLabel, weaponStep, CARD_RARITIES, CARD_RARITY_NAMES, CARD_HEAL, weaponStats, passiveStrength, cardLuck,
 } from './content.js';
 
@@ -102,7 +103,7 @@ const getGearLv = () => clampLv(load('sq-gearlv', {}), GEAR_MAX_LV);
 const questsDone = () => new Set(load('sq-quests', []));
 const statVal = (st, key) => finiteNumber(st[key]);
 // a new item goes to the bank; a duplicate is sold for coins (unless it was already high alched in the run: sell = false)
-function bankItem(name, sell = true) { if (!Object.hasOwn(GEAR, name)) return false; const raw = load('sq-bank', []), b = Array.isArray(raw) ? raw : []; if (b.includes(name)) { if (sell) save('sq-coins', getCoins() + 25); return false; } b.push(name); save('sq-bank', b); return true; }
+function bankItem(name, sell = true) { if (!Object.hasOwn(GEAR, name)) return false; const raw = load('sq-bank', []), b = Array.isArray(raw) ? raw : []; if (b.includes(name)) { if (sell) save('sq-coins', getCoins() + DUPLICATE_GEAR_COINS); return false; } b.push(name); save('sq-bank', b); return true; }
 const autoAlchOn = () => load('sq-autoalch', true) !== false; // Settings: auto high alch caskets that are not better (on by default: duplicates kept popping a card)
 const autoEquipOn = () => load('sq-autoequip', false) === true; // Device preference: mobile and desktop can differ.
 // special maps (Tutorial Island) are open from the start and sit outside the campaign chain
@@ -729,12 +730,12 @@ $('guideclose').onclick = () => { $('guide').classList.add('hidden'); navFocus($
 $('guide').addEventListener('click', e => { if (e.target.id === 'guide') $('guideclose').click(); });
 function containMenuTab(e) {
   if (e.key !== 'Tab') return;
-  const nodes = [...e.currentTarget.querySelectorAll('summary, button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]')].filter(n => n.offsetParent !== null);
+  const nodes = [...e.currentTarget.querySelectorAll('summary, [data-milestone][tabindex="0"], button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]')].filter(n => n.offsetParent !== null);
   if (!nodes.length) return;
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 }
-for (const id of ['guide', 'pets', 'more']) $(id).addEventListener('keydown', containMenuTab);
+for (const id of ['guide', 'pets', 'more', 'quests']) $(id).addEventListener('keydown', containMenuTab);
 
 // ---- updates log -------------------------------------------------------------------------------------------------------
 $('updnew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
@@ -1351,10 +1352,11 @@ $('bugsend').onclick = async () => {
 // ---- quests ------------------------------------------------------------------------------------------------------------
 function buildQuests() {
   const st = getStats(), done = questsDone();
-  $('questlist').innerHTML = QUESTS.map((q) => {
-    const v = Math.min(q.goal, statVal(st, q.stat)), ok = done.has(q.id);
-    return `<div class="quest${ok ? ' done' : ''}"><div class="qhead"><b>${q.name}</b><span>${ok ? 'Complete' : `${v.toLocaleString()} / ${q.goal.toLocaleString()}`}</span></div><p>${q.text}</p><div class="qbar"><i style="width:${(v / q.goal) * 100}%"></i></div><div class="qreward">${imgTag('Gold')} ${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}</div></div>`;
-  }).join('');
+  const card = q => {
+    const ok = done.has(q.id), v = ok ? q.goal : Math.max(0, Math.min(q.goal, statVal(st, q.stat))), ready = !ok && v >= q.goal;
+    return `<div class="quest${ok ? ' done' : ''}" tabindex="0" data-milestone="${q.id}"><div class="qhead"><b>${q.name}</b><span>${ok ? 'Complete' : ready ? 'Ready' : `${v.toLocaleString()} / ${q.goal.toLocaleString()}`}</span></div><p>${q.text}</p><div class="qbar" role="progressbar" aria-label="${q.name}" aria-valuemin="0" aria-valuemax="${q.goal}" aria-valuenow="${v}"><i style="width:${(v / q.goal) * 100}%"></i></div>${ready ? '<p class="qready">Finish a run to record this milestone.</p>' : ''}<div class="qreward">${q.achievement ? '<span aria-hidden="true">★</span> <span>Achievement</span>' : `${imgTag('Gold')} ${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}`}</div></div>`;
+  };
+  $('questlist').innerHTML = [['quests','Quests',QUESTS],['achievements','Achievements',ACHIEVEMENTS]].map(([id,title,list]) => `<details class="questgroup" data-milestone-group="${id}"${id === 'quests' ? ' open' : ''}><summary><span>${title}</span><span class="qcount" translate="no">${list.filter(q => done.has(q.id)).length} / ${list.length}</span></summary><div class="questcards">${list.map(card).join('')}</div></details>`).join('');
 }
 $('questbtn').onclick = () => { buildQuests(); $('quests').classList.remove('hidden'); navFocus($('questclose')); };
 $('questclose').onclick = () => { $('quests').classList.add('hidden'); navFocus($('morebtn')); };
@@ -1564,7 +1566,7 @@ function endRun() {
       if (isWeaponItem(n)) return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}` : 'this run only'}</em>`;
       return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}${fresh ? ', new' : ''}` : on ? (fresh ? 'worn this run, new' : 'worn this run') : fresh ? 'new' : 'sold, +25 coins'}</em>`;
     });
-    const questNotes = receipt.quests.map(q => `Quest complete: <b>${q.name}</b> · +${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}`);
+    const questNotes = receipt.quests.map(q => q.achievement ? `Achievement unlocked: <b>${q.name}</b>` : `Quest complete: <b>${q.name}</b> · +${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}`);
     // damage by weapon, Run Escape style
     const dmgRows = Object.entries((sim.coop ? p.dmgBy : sim.dmgBy) || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6), top = dmgRows.length ? dmgRows[0][1] : 1;
     const wname = (id) => (WEAPONS[id] ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other');
@@ -2034,7 +2036,7 @@ function updateHud(view) {
 
 // ---- menus with a controller or the arrow keys: spatial focus, A/Enter picks, B/Esc goes back -----------------------
 const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
-const NAV_ITEMS = '#coop input, summary, .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
+const NAV_ITEMS = '#coop input, summary, [data-milestone][tabindex="0"], .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { if (walletModalOpen()) return null; if (mode === 'recovery') return $('progressrecovery'); return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden') && !el.closest('details:not([open]) > :not(summary)')); }

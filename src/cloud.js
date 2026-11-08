@@ -8,6 +8,7 @@
 // for anything else this device wins. Nothing one device earned is lost.
 import { current, walletRevision } from './wallet.js';
 import { numberValue, finiteNumber } from './progress-values.js';
+import { MILESTONES, DUPLICATE_GEAR_COINS } from './profile-milestones.js';
 import { importProgress, IMPORT_BACKUP_KEY, RUN_SAVE_KEY } from './progress-import.js';
 
 export const SAVE_KEYS = ['sq-coins', 'sq-name', 'sq-gear', 'sq-gearlv', 'sq-bank', 'sq-best', 'sq-bests', 'sq-stats', 'sq-skills', 'sq-quests', 'sq-cleared', 'sq-map', 'sq-adv', 'sq-autoalch'];
@@ -21,7 +22,10 @@ import { betterRun } from './personal-record.js';
 export { betterRun } from './personal-record.js';
 
 // the merge of one key: base is what both devices last agreed on (undefined: never synced)
-function mergeKey(k, base, mine, theirs) {
+function mergeKey(k, base, mine, theirs, sharedQuestCoins = 0) {
+  // A new claim on both devices pays once, even if one device spent back to its base balance.
+  if (k === 'sq-coins' && sharedQuestCoins > 0 && mine !== undefined && theirs !== undefined && mine !== theirs)
+    return JSON.stringify(Math.max(0, Math.round(num(theirs) + num(mine) - num(base) - sharedQuestCoins)));
   // Personal records only improve, including when an older client makes a one-sided weaker edit.
   if ((k === 'sq-best' || k === 'sq-bests') && (base !== undefined || mine !== undefined || theirs !== undefined)) {
     if (k === 'sq-best') return JSON.stringify(betterRun(betterRun(parse(base, null), parse(theirs, null)), parse(mine, null)));
@@ -44,8 +48,20 @@ function mergeKey(k, base, mine, theirs) {
   }
 }
 export function mergeSaves(base, mine, theirs) {
+  const before = new Set(arr(base?.['sq-quests'])), a = new Set(arr(mine['sq-quests'])), b = new Set(arr(theirs['sq-quests'])), bank = new Set(arr(base?.['sq-bank']));
+  const sharedQuestCoins = base ? MILESTONES.reduce((sum, q) => sum + (!before.has(q.id) && a.has(q.id) && b.has(q.id) ? q.coins + (q.item && bank.has(q.item) ? DUPLICATE_GEAR_COINS : 0) : 0), 0) : 0;
   const out = {};
-  for (const k of SAVE_KEYS) { const v = mergeKey(k, base ? base[k] : undefined, mine[k], theirs[k]); if (v !== undefined) out[k] = v; }
+  for (const k of SAVE_KEYS) { const v = mergeKey(k, base ? base[k] : undefined, mine[k], theirs[k], sharedQuestCoins); if (v !== undefined) out[k] = v; }
+  // Longest runs and distinct map clears are records, not additive run counters.
+  if (out['sq-stats'] !== undefined) {
+    const times = [base, mine, theirs].map(d => obj(d?.['sq-stats']).bestTime), hasTime = times.some(v => v !== undefined), hasMaps = out['sq-cleared'] !== undefined;
+    if (hasTime || hasMaps) {
+      const stats = obj(out['sq-stats']);
+      if (hasTime) stats.bestTime = Math.max(...times.map(finiteNumber));
+      if (hasMaps) stats.cleared = new Set(arr(out['sq-cleared']).filter(v => typeof v === 'string')).size;
+      out['sq-stats'] = JSON.stringify(stats);
+    }
+  }
   return out;
 }
 // what a save holds, for the "which progress do you want" choice

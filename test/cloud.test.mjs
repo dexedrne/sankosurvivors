@@ -101,7 +101,7 @@ test('merging two devices keeps what each earned', () => {
   const theirs = { ...base, 'sq-coins': '300', 'sq-stats': J({ kills: 160, runs: 5 }), 'sq-skills': J({ might: 3, luck: 1 }), 'sq-best': J({ t: 900, won: true }), 'sq-bank': J(['Bronze Helmet']) };
   const m = mergeSaves(base, mine, theirs);
   assert.equal(m['sq-coins'], '350', 'their 200 spent and my 50 earned');
-  assert.deepEqual(JSON.parse(m['sq-stats']), { kills: 200, runs: 6 });
+  assert.deepEqual(JSON.parse(m['sq-stats']), { kills: 200, runs: 6, cleared: 2 });
   assert.deepEqual(JSON.parse(m['sq-skills']), { might: 3, luck: 1 });
   assert.deepEqual(JSON.parse(m['sq-cleared']), ['greentown', 'apache']);
   assert.deepEqual(JSON.parse(m['sq-best']), { t: 900, won: true });
