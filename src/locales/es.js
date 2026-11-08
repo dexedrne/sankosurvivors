@@ -1,5 +1,27 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Upgrade weapon": "Mejorar arma",
+  "Recommended: upgrade weapon": "Recomendado: mejorar el arma",
+  "Release Tab to close": "Suelta Tab para cerrar",
+  "Nearby world map": "Mapa de los alrededores",
+  "Weapon values before shared bonuses.": "Valores del arma antes de las bonificaciones compartidas.",
+  "Points": "Puntos",
+  "Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running; the speed bonus stays +35%.": "Recupera 20 de vida, mejorada por las bonificaciones de curación. Añade 8 segundos de velocidad; el aumento se mantiene en +35%.",
+  "Ranked points and field tools": "Puntos clasificatorios y herramientas de campo",
+  "From week 1, ranked score is total kills plus whole seconds survived. Equal points use kills per minute, then kills and the earlier finish. Week 0 keeps its original scoring.": "Desde la semana 1, la puntuación clasificatoria suma las bajas totales y los segundos completos sobrevividos. Los empates se resuelven por bajas por minuto, bajas y finalización más temprana. La semana 0 conserva su puntuación original.",
+  "Casual random casket chances are doubled, including elites. Drinking another Tin of Beer adds 8 seconds at the same speed bonus. Week-0 ranked is unchanged.": "Se duplican las probabilidades de cofres aleatorios en casual, incluidos los élites. Otra Tin of Beer añade 8 segundos con la misma bonificación de velocidad. La semana 0 clasificatoria no cambia.",
+  "Apache camel-pen low fences can be crossed with Tumble when the landing is safe. Buildings and sealed pens stay protected.": "Tumble cruza las vallas bajas del corral de camellos de Apache cuando el aterrizaje es seguro. Los edificios y corrales cerrados siguen protegidos.",
+  "Hover over weapons and equipment to inspect them. On desktop, hold Tab for a larger minimap while moving; release it to close.": "Pasa el cursor sobre armas y equipo para inspeccionarlos. En escritorio, mantén Tab para ampliar el minimapa mientras te mueves; suéltalo para cerrar.",
+
+  "Read and acknowledge the weekly cutoff before paying or starting.": "Lee y acepta el cierre semanal antes de pagar o empezar.",
+  "Ranked starts are closed until the weekly reset. Your saved payments are kept.": "Las nuevas partidas clasificatorias están cerradas hasta el reinicio semanal. Tus pagos guardados se conservan.",
+  "The ranked week has ended. Your earned score is being checked.": "La semana clasificatoria terminó. Se está verificando tu puntuación.",
+  "I understand that my run ends at the weekly reset, even if time remains. I accept the risk of starting close to the cutoff.": "Entiendo que mi partida termina con el reinicio semanal, aunque quede tiempo. Acepto el riesgo de empezar cerca del cierre.",
+  "Ranked is competitive play. Bathroom breaks are fine: you have 30 minutes of total pause allowance per run. Every continuous pause starts with 30 free seconds. Quick upgrade and casket choices do not drain the allowance. Longer time away counts; connection delays may count. Already-started legacy runs keep their original rules. Reloading does not reset it. Exceeding the allowance disqualifies the run.": "El modo clasificatorio es competitivo. Puedes ir al baño: tienes 30 minutos de pausa total por partida. Los primeros 30 segundos de cada pausa continua son gratis. Las elecciones rápidas de mejoras y cofres no gastan el tiempo disponible. Las ausencias largas cuentan; los retrasos de conexión pueden contar. Las partidas antiguas ya iniciadas conservan sus reglas originales. Recargar no reinicia el límite. Superarlo descalifica la partida.",
+  "Weekly cutoff and brief pauses": "Cierre semanal y pausas breves",
+  "New ranked starts close 30 minutes before the weekly reset. Acknowledge the cutoff before paying or starting; new runs end with their earned score at reset.": "Las nuevas partidas clasificatorias cierran 30 minutos antes del reinicio semanal. Acepta el cierre antes de pagar o empezar; las partidas nuevas terminan con su puntuación al reiniciarse la semana.",
+  "Every continuous pause starts with 30 free seconds. Brief upgrade and casket choices keep the shared 30-minute allowance for longer breaks.": "Los primeros 30 segundos de cada pausa continua son gratis. Las elecciones breves de mejoras y cofres conservan los 30 minutos compartidos para pausas largas.",
+
   "Beer boost and original spell shaders": "Impulso de cerveza y sombreadores originales",
   "Tin of Beer shows the remaining speed boost time beside your health.": "La Lata de Cerveza muestra el tiempo restante del impulso de velocidad junto a tu salud.",
   "Spell projectiles now run SankoQuest’s original TSL materials, including Missile and Blast glows.": "Los proyectiles de hechizos ahora usan los materiales TSL originales de SankoQuest, incluidos los brillos de Missile y Blast.",
@@ -1439,6 +1461,27 @@ export const text = {
 };
 
 export const patterns = [
+  ["Hard rules: tougher, faster monsters and harder bosses. Runs are endless: your score is total kills + seconds survived (one point for each), and the hunt is over at {1}. A run under {2} is listed as too short and cannot win. Equal points use kills per minute, then total kills, then the earlier finish. Entry is {3} DMT on Arbitrum: 10% house fee, 90% to the {4} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's {5} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).", "Reglas difíciles: monstruos más resistentes y rápidos, y jefes más difíciles. Las partidas son sin fin: tu puntuación suma las bajas totales y los segundos sobrevividos (un punto por cada uno), y la cacería termina en {1}. Una partida de menos de {2} se marca como demasiado corta y no puede ganar. Los puntos iguales se resuelven por bajas por minuto, bajas totales y finalización más temprana. La participación cuesta {3} DMT en Arbitrum: 10% para la casa y 90% para el fondo de premios {4}, repartido 40/25/15/12/8 entre sus cinco primeras billeteras; los puestos sin ganador pasan al fondo {5} de la semana siguiente. De lunes a lunes UTC, un mapa y tantas participaciones como quieras en cada competición; una billetera por jugador y conexión cada semana. Cualquier aventurero normal, sin habilidades, equipo ni ventajas DMT. El servidor verifica cada acción. Las partidas debe jugarlas una persona en directo: las partidas con bots, scripts o ayuda de herramientas, así como las rebobinadas a un guardado anterior, se descalifican y se retienen sus premios (se permite continuar tras recargar)."],
+  ["Runs are endless: your score is total kills + seconds survived (one point for each), and the hunt is over at {1}. A run under {2} is listed as too short and cannot win. Equal points use kills per minute, then total kills, then the earlier finish. Entry is {3} DMT on Arbitrum: 10% house fee, 90% to the {4} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's {5} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).", "Las partidas son sin fin: tu puntuación suma las bajas totales y los segundos sobrevividos (un punto por cada uno), y la cacería termina en {1}. Una partida de menos de {2} se marca como demasiado corta y no puede ganar. Los puntos iguales se resuelven por bajas por minuto, bajas totales y finalización más temprana. La participación cuesta {3} DMT en Arbitrum: 10% para la casa y 90% para el fondo de premios {4}, repartido 40/25/15/12/8 entre sus cinco primeras billeteras; los puestos sin ganador pasan al fondo {5} de la semana siguiente. De lunes a lunes UTC, un mapa y tantas participaciones como quieras en cada competición; una billetera por jugador y conexión cada semana. Cualquier aventurero normal, sin habilidades, equipo ni ventajas DMT. El servidor verifica cada acción. Las partidas debe jugarlas una persona en directo: las partidas con bots, scripts o ayuda de herramientas, así como las rebobinadas a un guardado anterior, se descalifican y se retienen sus premios (se permite continuar tras recargar)."],
+
+  ["This upgrades your existing {1} for this run. It does not add a weapon or use another slot.", "Esto mejora tu {1} actual durante esta partida. No añade otra arma ni ocupa otra ranura."],
+  ["{1} points", "{1} puntos"],
+  ["Score: total kills + seconds survived. Equal points use KPM. Runs under {1} cannot win.", "Puntuación: bajas totales + segundos sobrevividos. Los empates usan KPM. Las partidas de menos de {1} no pueden ganar."],
+  ["Level: {1}", "Nivel: {1}"],
+  ["Base damage: {1}", "Daño base: {1}"],
+  ["Cooldown: {1}", "Tiempo de reutilización: {1}"],
+  ["Projectiles: {1}", "Proyectiles: {1}"],
+  ["Pierce: {1}", "Perforación: {1}"],
+  ["Range: {1}", "Alcance: {1}"],
+  ["Radius: {1}", "Radio: {1}"],
+  ["Size: {1}", "Tamaño: {1}"],
+  ["Projectile speed: {1}", "Velocidad del proyectil: {1}"],
+  ["Burst radius: {1}", "Radio de explosión: {1}"],
+
+  ["New starts close in {1} · Monday reset, UTC", "Nuevas partidas cierran en {1} · Reinicio el lunes, UTC"],
+  ["New ranked starts are closed. Next board in {1}.", "Nuevas partidas clasificatorias cerradas. Próxima tabla en {1}."],
+  ["Time until the weekly cutoff: {1}. Your run ends at 00:00 UTC on Monday, even if you are still alive. Your earned score will be submitted. Connection and verification delays can affect submission.", "Tiempo hasta el cierre semanal: {1}. Tu partida termina el lunes a las 00:00 UTC, aunque sigas con vida. Se enviará la puntuación obtenida. Los retrasos de conexión y verificación pueden afectar al envío."],
+
   ["{0} coins · {1} maps cleared · {2} skill ranks · {3} collected pieces", "{0} monedas · {1} mapas completados · {2} rangos de habilidad · {3} piezas recogidas"],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours.", "¿Recuperar {1} monedas y reiniciar todos los refuerzos? Conservas las piezas obtenidas y los desbloqueos de forja."],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours. Older metal ranks use one Bronze refund value per Smithing family.", "¿Recuperar {1} monedas y reiniciar todos los refuerzos? Conservas las piezas obtenidas y los desbloqueos de forja. Los rangos de metal antiguos usan un único valor de bronce por familia de forja."],

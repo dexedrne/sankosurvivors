@@ -2,8 +2,11 @@ import { skillQuote, prepareSkills } from './skill-purchases.js';
 import { armouryQuote, prepareArmoury } from './armoury.js';
 import { createCoopClient } from './coop-client.js';
 import { groundHash } from './ground-pack.js';
-import { RunRecorder, RANKED, pauseRemaining, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf } from './ranked.js';
+import { RunRecorder, RANKED, pauseRemaining, rankedPoints, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
+import { clockPolicy } from './ranked-clock.js';
+import { RankedClock } from './ranked-clock-client.js';
+import { itemInspection } from './item-inspection.js';
 import { rankedApi, requireRankedBuild, payEntry, recoverPayment, clearUnsentPayment, readRanked, writeRanked } from './ranked-client.js';
 import { createRenderer } from './render.js';
 import { QUESTS, ACHIEVEMENTS, DUPLICATE_GEAR_COINS } from './profile-milestones.js';
@@ -199,13 +202,14 @@ $('endless').onchange = (e) => { endlessOn = e.target.checked; showBest(); };
 // ---- ranked: paid tickets, recovery and the holder-style panel ----
 const SIM_ID = import.meta.env.VITE_SIM;
 let rankedWeek = null, rankedRun = null, rankedRec = null, rankedBusy = false;
+let rankedClock = null, rankedAckDeadline = null, rankedWeekOffset = 0, rankedRefreshing = false;
 // Standard is the only entry option; saved historical tickets keep their own race.
 let rankedMode = 'normal';
 const RACE = RANKED.races;
 const raceList = (d) => entryRacesOf(d?.week).filter((m) => !d?.races || d.races[m]);
 // one race's numbers from /api/ranked-week (an older server only sends the Normal race, at the top level)
 const raceOf = (d, m) => (d && d.races && d.races[m]) || (m === 'normal' && d ? { ...d, mode: 'normal', name: 'Normal', rows: d.rows || [] } : null);
-const kpmRules = (d) => !!d && d.rules === 'kpm';
+const kpmRules = (d) => !!d && ['kpm','combined'].includes(d.rules);
 const fmtKpm = (r) => kpm(r.kills, r.t).toFixed(2);
 const completedRunText = (r) => Number.isSafeInteger(r.runs) && r.runs > 0 ? `${r.runs.toLocaleString()} completed ${r.runs === 1 ? 'run' : 'runs'} this week` : 'Run count unavailable';
 const setRace = () => { rankedMode = 'normal'; save('sq-ranked-mode', rankedMode); };
@@ -230,7 +234,7 @@ setInterval(() => { if (rankedPlaying()) persistRanked(); }, 3000);
 function updateRankedPause() {
   const active = rankedPlaying(), started = active ? liveRace(rankedRun).started : null;
   const now = Date.now() + (Number.isFinite(rankedRun?.clockOffset) ? rankedRun.clockOffset : 0);
-  const left = active ? pauseRemaining(started, sim.t, now) : null;
+  const left = active ? pauseRemaining(started, sim.t, now, rankedClock?.creditMs(rankedRec?.ticks ?? 0) ?? 0) : null;
   for (const el of document.querySelectorAll('.rankedpause')) {
     el.classList.toggle('hidden', !active);
     el.classList.toggle('pauseexpired', left !== null && left < 0);
@@ -240,17 +244,39 @@ function updateRankedPause() {
   }
 }
 setInterval(updateRankedPause, 1000);
+function syncRankedClock() {
+  if (!rankedPlaying() || !rankedClock || runStarting) return;
+  const paused = mode !== 'play' || waitingForMove || !!sim.pending[PLAYER] || document.hidden;
+  rankedClock.sync(paused, rankedRec?.ticks ?? 0);
+}
+function enforceRankedDeadline() {
+  if (!rankedPlaying() || runStarting || rankedRun.clockVersion !== 1 || !Number.isSafeInteger(rankedRun.deadline)) return false;
+  if (Date.now() + (Number.isFinite(rankedRun.clockOffset) ? rankedRun.clockOffset : 0) < rankedRun.deadline) return false;
+  rankedRun.cutoff = true; sim.over = 'time';
+  for (const id of ['levelup', 'casket', 'pause', 'settings', 'bug']) $(id).classList.add('hidden');
+  endRun();
+  return true;
+}
+setInterval(() => { enforceRankedDeadline(); syncRankedClock(); }, 1000);
+function rankedConsent() {
+  if (!rankedWeek || !rankedWeek.open) throw plain('Refresh ranked details before paying.');
+  const policy = clockPolicy(rankedWeek.week, Date.now() + rankedWeekOffset);
+  if (!policy.admissionOpen) throw plain('Ranked starts are closed until the weekly reset. Your saved payments are kept.');
+  if (!$('rankedack').checked || rankedAckDeadline !== policy.deadline) throw plain('Read and acknowledge the weekly cutoff before paying or starting.');
+  return policy.deadline;
+}
 addEventListener('pagehide', persistRanked);
-document.addEventListener('visibilitychange', () => { if (rankedPlaying()) persistRanked(); });
+document.addEventListener('visibilitychange', () => { if (rankedPlaying()) { enforceRankedDeadline(); syncRankedClock(); persistRanked(); } });
 $('rankedname').value = load('sq-name', '');
 $('rankedadv').innerHTML = ADVENTURERS.filter((a) => !a.special).map((a) => `<option value="${a.id}">${a.name}</option>`).join('');
 for (const id of ['rankedname', 'rankedadv']) $(id).addEventListener('keydown', (e) => e.stopPropagation());
 $('rankedname').oninput = () => save('sq-name', $('rankedname').value.trim().slice(0, 16));
 function renderRanked() {
   const live = rankedLive(), pending = readRanked('sq-ranked-submit');
-  $('rankedenter').disabled = rankedBusy || !rankedWeek?.open || !!live || !!readRanked('sq-ranked-payment');
+  const admission = rankedWeek && clockPolicy(rankedWeek.week, Date.now() + rankedWeekOffset);
+  $('rankedenter').disabled = rankedBusy || !rankedWeek?.open || !!live || !!readRanked('sq-ranked-payment') || !admission?.admissionOpen || !!walletNow() && (!$('rankedack').checked || rankedAckDeadline !== admission.deadline);
   const ready = $('rankedready'); ready.replaceChildren();
-  const button = (text, fn) => { const b = document.createElement('button'); b.textContent = text; b.disabled = rankedBusy; b.onclick = fn; ready.appendChild(b); };
+  const button = (text, fn, start = false) => { const b = document.createElement('button'); b.textContent = text; b.disabled = rankedBusy || start && (!admission?.admissionOpen || !$('rankedack').checked || rankedAckDeadline !== admission.deadline); if (start) b.setAttribute('data-ranked-start', ''); b.onclick = fn; ready.appendChild(b); };
   if (pending || live?.ended) button('Retry ranked submission', () => submitRanked());
   else if (live) button(live.sim === SIM_ID ? 'Resume your ranked run' : 'Game updated: restart your run', () => recoverRankedRun());
   const payment = readRanked('sq-ranked-payment');
@@ -264,10 +290,10 @@ function renderRanked() {
       if (confirm(translateText('Only clear this check if your wallet shows that no payment was sent. A sent payment must be recovered instead.', document.documentElement.lang))) rankedAction(clearUnsentPayment);
     });
   }
-  if (!live && rankedWeek) for (const e of readRanked('sq-ranked-entries', []).filter((e) => e.week === rankedWeek.week)) button(`Entry ${e.id}${raceBadge(e.mode)} ready · Start`, () => startRankedEntry(e));
+  if (!live && rankedWeek) for (const e of readRanked('sq-ranked-entries', []).filter((e) => e.week === rankedWeek.week)) button(`Entry ${e.id}${raceBadge(e.mode)} ready · Start`, () => startRankedEntry(e), true);
   if (rankedWeek) {
     const races = raceList(rankedWeek); if (!races.includes(rankedMode)) rankedMode = 'normal';
-    const race = raceOf(rankedWeek, rankedMode), kp = kpmRules(rankedWeek), two = races.length > 1;
+    const race = raceOf(rankedWeek, rankedMode), kp = kpmRules(rankedWeek), combined = rankedWeek.rules === 'combined', two = races.length > 1;
     // the race switch: each race's own price, pot and standings
     $('rankedraces').innerHTML = two ? races.map((m) => `<button role="tab" data-race="${m}" aria-selected="${m === rankedMode}" class="${m === rankedMode ? 'on' : 'ghost'}">${RACE[m].name} <span>${esc(raceOf(rankedWeek, m).entryDmt)} DMT</span></button>`).join('') : '';
     for (const b of $('rankedraces').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); renderRanked(); };
@@ -286,7 +312,7 @@ function renderRanked() {
     race.rows.forEach((r, i) => {
       const li = document.createElement('li'), short3 = kp && !placeable(rankedWeek.week, r);
       const name = document.createElement('span'); name.translate = false; name.textContent = r.name || 'Adventurer';
-      li.append(name, kp ? ` · ${short(r.wallet)} · ${fmtKpm(r)} kills/min · ${fmtT(r.t)} · ${r.kills} kills${short3 ? ' · too short' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`
+      li.append(name, kp ? ` · ${short(r.wallet)} · ${combined ? `${rankedPoints(r.kills, r.t).toLocaleString()} points · ` : ''}${fmtKpm(r)} kills/min · ${fmtT(r.t)} · ${r.kills} kills${short3 ? ' · too short' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`
         : ` · ${short(r.wallet)} · ${fmtT(r.t)} · ${r.kills} kills${r.won ? ' · ★ Winner' : ''}${noPrize(r.wallet) ? ' · dev, no prize' : ''}`);
       if (place[i] < 0) li.classList.add('noprize');
       const count = document.createElement('small'); count.className = 'rankedruns'; count.textContent = completedRunText(r); li.appendChild(count);
@@ -295,7 +321,7 @@ function renderRanked() {
     $('rankedstandings').replaceChildren(list);
     if (!list.children.length) $('rankedstandings').textContent = `No ${two ? race.name + ' ' : ''}runs yet this week.`;
     $('rankedrules').textContent = kp
-      ? `${rankedMode === 'hard' ? 'Hard rules: tougher, faster monsters and harder bosses. ' : ''}Runs are endless: your score is kills per minute (kills × 60 ÷ seconds survived), and the hunt is over at ${fmtT(rankedWeek.timeLimit || RANKED.timeLimit)}. A run under ${fmtT(rankedWeek.minSeconds || RANKED.minSeconds)} is listed as too short and cannot win. Ties go to more kills, then the earlier finish. Entry is ${race.entryDmt} DMT on Arbitrum: 10% house fee, 90% to the ${race.name} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's ${race.name} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).`
+      ? `${rankedMode === 'hard' ? 'Hard rules: tougher, faster monsters and harder bosses. ' : ''}Runs are endless: ${combined ? 'your score is total kills + seconds survived (one point for each)' : 'your score is kills per minute (kills × 60 ÷ seconds survived)'}, and the hunt is over at ${fmtT(rankedWeek.timeLimit || RANKED.timeLimit)}. A run under ${fmtT(rankedWeek.minSeconds || RANKED.minSeconds)} is listed as too short and cannot win. ${combined ? 'Equal points use kills per minute, then total kills, then the earlier finish.' : 'Ties go to more kills, then the earlier finish.'} Entry is ${race.entryDmt} DMT on Arbitrum: 10% house fee, 90% to the ${race.name} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's ${race.name} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).`
       : rankedWeek.rules === 'time' ? `Runs are endless: your score is how long you survive, then kills, and the hunt is over at ${fmtT(rankedWeek.timeLimit || RANKED.timeLimit)}. Ties go to more kills, then the earlier finish. Entry is ${race.entryDmt} DMT on Arbitrum: 10% house fee, 90% to the ${race.name} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's ${race.name} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).`
       : 'Entry is 0.5 DMT on Arbitrum: 10% house fee, 90% prize pool split 40/25/15/12/8 between the top five wallets. Monday to Monday UTC, one map, as many entries as you like, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).';
     rankedTime();
@@ -304,19 +330,32 @@ function renderRanked() {
 }
 function rankedTime() {
   if (!rankedWeek) return;
-  const h = Math.max(0, Math.floor((rankedWeek.endsAt - Date.now()) / 3600000));
-  const m = Math.max(0, Math.floor((rankedWeek.endsAt - Date.now()) / 60000)) % 60;
-  $('rankedtime').textContent = `${Math.floor(h / 24)}d ${h % 24}h ${m}m left · Monday reset, UTC`;
+  const now = Date.now() + rankedWeekOffset, policy = clockPolicy(rankedWeek.week, now);
+  const left = Math.max(0, Math.ceil(policy.remainingMs / 1000));
+  $('rankedtime').textContent = policy.admissionOpen
+    ? `New starts close in ${fmtT(Math.max(0, Math.ceil((policy.closesAt - now) / 1000)))} · Monday reset, UTC`
+    : `New ranked starts are closed. Next board in ${fmtT(left)}.`;
+  $('rankedcutoff').textContent = `Time until the weekly cutoff: ${fmtT(left)}. Your run ends at 00:00 UTC on Monday, even if you are still alive. Your earned score will be submitted. Connection and verification delays can affect submission.`;
+  if (!policy.admissionOpen) $('rankedenter').disabled = true;
+  for (const button of $('rankedready').querySelectorAll('[data-ranked-start]')) button.disabled = rankedBusy || !policy.admissionOpen || !$('rankedack').checked || rankedAckDeadline !== policy.deadline;
+  if (!left && !rankedRefreshing && !rankedPlaying() && !rankedBusy && !buyBusy && !walletConnecting && !walletRequests && !walletModalOpen()) refreshRanked();
 }
-setInterval(rankedTime, 30000);
+setInterval(rankedTime, 1000);
 async function refreshRanked() {
-  try { rankedWeek = await rankedApi(BASE, 'week'); $('rankedbtn').classList.toggle('hidden', !rankedWeek.open); renderRanked(); }
-  catch {
+  if (rankedRefreshing) return;
+  rankedRefreshing = true;
+  try {
+    const next = await rankedApi(BASE, 'week');
+    if (next.endsAt !== rankedWeek?.endsAt) { rankedAckDeadline = null; $('rankedack').checked = false; }
+    rankedWeek = next; rankedWeekOffset = Number.isFinite(next.serverNow) ? next.serverNow - Date.now() : 0;
+    $('rankedbtn').classList.toggle('hidden', !rankedWeek.open); renderRanked();
+  } catch {
     rankedWeek = null; $('rankedbtn').classList.add('hidden');
     $('rankedpool').textContent = 'Could not refresh ranked standings. Try again shortly.';
     $('rankedstandings').replaceChildren(); renderRanked();
-  }
+  } finally { rankedRefreshing = false; }
 }
+$('rankedack').onchange = () => { rankedAckDeadline = $('rankedack').checked && rankedWeek ? clockPolicy(rankedWeek.week).deadline : null; renderRanked(); };
 async function openRanked() {
   if (coop || mode === 'coop') return;
   $('ranked').classList.remove('hidden'); renderRanked(); $('rankedclose').focus(); refreshBalances(true); await refreshRanked();
@@ -368,18 +407,20 @@ $('rankedenter').onclick = () => {
   const expectedPrice = raceForWeek(week, mode).entryDmt, displayedPrice = raceOf(rankedWeek, mode)?.entryDmt, price = Number(expectedPrice);
   rankedAction(async () => {
     if (!Number.isSafeInteger(week) || week < 0 || displayedPrice !== expectedPrice) throw plain('Refresh ranked details before paying.');
+    const deadline = rankedConsent();
     rankedMessage('Checking your balance on Arbitrum…');
     const b = await refreshBalances(true); // unreadable balances never block: the wallet itself has the last word
     if (b && b.dmt < price) throw plain(`You need ${price} DMT on Arbitrum to enter${mode === 'hard' ? ' the Hard race' : ''}.`);
     if (b && b.eth < ETH_FOR_GAS) throw plain('You need a little ETH on Arbitrum for the network fee.');
     $('rankedtx').replaceChildren();
-    await payEntry(c.w, BASE, rankedMessage, (tx) => { $('rankedtx').innerHTML = `<a href="${arbiscanTx(tx)}" target="_blank" rel="noopener">See your payment on Arbiscan</a>`; }, mode, week, {build:BUILD, sim:SIM_ID});
+    await payEntry(c.w, BASE, rankedMessage, (tx) => { $('rankedtx').innerHTML = `<a href="${arbiscanTx(tx)}" target="_blank" rel="noopener">See your payment on Arbiscan</a>`; }, mode, week, {build:BUILD, sim:SIM_ID, deadline});
     refreshBalances(true);
   });
 };
 async function startRankedEntry(entry) {
   await rankedAction(async () => {
     if (rankedLive()) throw new Error('Resume your saved ranked run first.');
+    const deadline = rankedConsent();
     if (!SIM_ID) throw new Error('This build has no ranked simulation version.');
     await requireRankedBuild(BASE, {build:BUILD, sim:SIM_ID});
     writeRanked('sq-ranked-entries', readRanked('sq-ranked-entries', []));
@@ -388,8 +429,8 @@ async function startRankedEntry(entry) {
     if (mapLoading) throw new Error('The map is still loading. Try again in a moment.');
     await pickMap(rankedWeek.map);
     rankedMessage('Starting your ranked run…');
-    const d = await rankedApi(BASE, 'start', { entry: entry.entry, adv, sim: SIM_ID, build:BUILD });
-    const live = { run: d.run, started: d.started, clockOffset: Number.isFinite(d.serverNow) ? d.serverNow - Date.now() : 0, adv, seed: d.seed, map: d.map, week: d.week, mode: d.mode === 'hard' ? 'hard' : 'normal', sim: SIM_ID, name: $('rankedname').value.trim().slice(0, 16) || 'Adventurer', log: new RunRecorder().log() };
+    const d = await rankedApi(BASE, 'start', { entry: entry.entry, adv, sim: SIM_ID, build:BUILD, deadline });
+    const live = { run: d.run, started: d.started, deadline: d.deadline, clockVersion: d.clockVersion, clockOffset: Number.isFinite(d.serverNow) ? d.serverNow - Date.now() : 0, adv, seed: d.seed, map: d.map, week: d.week, mode: d.mode === 'hard' ? 'hard' : 'normal', sim: SIM_ID, name: $('rankedname').value.trim().slice(0, 16) || 'Adventurer', log: new RunRecorder().log() };
     writeRanked('sq-ranked-live', live);
     writeRanked('sq-ranked-entries', readRanked('sq-ranked-entries', []).filter((e) => e.id !== entry.id));
     await startRun(live);
@@ -982,18 +1023,18 @@ async function showRankedBoard() {
   try {
     const r = await fetch(`${BASE}api/ranked-week`); if (!r.ok) throw Error('ranked unavailable'); const d = await r.json();
     const races = raceList(d); if (!races.includes(rankedMode)) rankedMode = 'normal';
-    const race = raceOf(d, rankedMode), kp = kpmRules(d), two = races.length > 1;
+    const race = raceOf(d, rankedMode), kp = kpmRules(d), combined = d.rules === 'combined', two = races.length > 1;
     const rows = race.rows || [], pays = d.payouts || [], myName = load('sq-name', '');
     const place = prizePlaces(rows, d.week), estimate = prizeEstimate(race, place, pays);
     const left = Math.max(0, (d.endsAt || 0) - Date.now()), dd = Math.floor(left / 86400000), hh = Math.floor((left % 86400000) / 3600000);
     const tabs = two ? `<div class="lbmode lbrace" role="tablist" aria-label="Ranked race">${races.map((m) => `<button role="tab" data-race="${m}" aria-selected="${m === rankedMode}" class="${m === rankedMode ? 'on' : 'ghost'}">${RACE[m].name} <span>${esc(raceOf(d, m).entryDmt)} DMT</span></button>`).join('')}</div>` : '';
     const head = `${tabs}<p class="lbweek">${esc((MAP_BY_ID[d.map] || {}).name || d.map)}${two ? ` · ${race.name}` : ''} · <b>${esc(poolReadout(race))}</b> · resets in ${dd}d ${hh}h</p>`
       + prizeNotes(race, estimate).map(text => `<p class="lbweek dim">${esc(text)}</p>`).join('')
-      + (kp ? `<p class="lbweek dim">Score: kills per minute. Runs under ${fmtT(d.minSeconds || RANKED.minSeconds)} cannot win.</p>` : '');
+      + (kp ? `<p class="lbweek dim">Score: ${combined ? 'total kills + seconds survived. Equal points use KPM' : 'kills per minute'}. Runs under ${fmtT(d.minSeconds || RANKED.minSeconds)} cannot win.</p>` : '');
     const prize = (i) => (place[i] < 0 ? `<span class="dim">${noPrize(rows[i].wallet) ? 'no prize (dev)' : 'too short'}</span>` : estimate?.prizes[place[i]] !== undefined ? `${dmtText(estimate.prizes[place[i]])} DMT` : '—');
     const wal = (x) => esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4));
     $('lblist').innerHTML = head + (rows.length ? (kp
-      ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>KPM</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span><small class="rankedruns">${esc(completedRunText(x))}</small></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`
+      ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>${combined ? 'Points' : 'KPM'}</th><th>Time</th><th>Slain</th>${combined ? '<th class="opt">KPM</th>' : ''}<th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span><small class="rankedruns">${esc(completedRunText(x))}</small></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${combined ? rankedPoints(x.kills, x.t).toLocaleString() : fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td>${combined ? `<td class="opt">${fmtKpm(x)}</td>` : ''}<td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`
       : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span><small class="rankedruns">${esc(completedRunText(x))}</small></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`)
       : `<p class="dim">No ${two ? race.name + ' ' : ''}ranked runs yet this week. Enter from the Ranked button on the title screen.</p>`);
     for (const b of $('lblist').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); showRankedBoard(); };
@@ -1006,6 +1047,17 @@ let runBest = null, passedBest = false, chase = null; // chase: { rows (others' 
 function chaseText(t, kills) {
   if (!chase || !chase.rows.length) return '';
   const min = RANKED.minSeconds, mine = kpm(kills, t);
+  if (chase.combined) {
+    if (t < min) return ` · places from ${fmtT(min)}`;
+    const wins = (n, row) => rankedPoints(n, t) > rankedPoints(row.kills, row.t) || rankedPoints(n, t) === rankedPoints(row.kills, row.t) && (kpmMicro(n, t) > kpmMicro(row.kills, row.t) || kpmMicro(n, t) === kpmMicro(row.kills, row.t) && n > row.kills);
+    const ahead = chase.rows.filter(row => row.t >= min && !wins(kills, row));
+    if (!ahead.length) return ' · #1 vs starting board';
+    const place = ahead.length + 1, next = ahead[ahead.length - 1], to = place > 25 ? 'the top 25' : `#${place - 1}`;
+    let target = Math.max(kills + 1, rankedPoints(next.kills, next.t) - Math.floor(t));
+    if (!wins(target, next)) target++;
+    const n = target - kills, where = place > 25 ? 'outside starting top 25' : `#${place} vs starting board`;
+    return ` · ${where} · ${n} kill${n === 1 ? '' : 's'} to ${to}`;
+  }
   if (chase.kp && t < min) return ` · places from ${fmtT(min)}`;
   // the board's order (one best run per wallet, top 25): time then kills, or in kills-per-minute weeks only runs of 3:00 place
   const ahead = chase.rows.filter((r) => (chase.kp
@@ -1051,7 +1103,8 @@ $('sharex').onclick = () => {
   const m = MAP_BY_ID[lastRun.map].name;
   const stats = `${fmtT(lastRun.t)}, level ${lastRun.level}, ${lastRun.kills} monsters slain`;
   const race = lastRun.race === 'hard' ? 'Hard ' : '';
-  const text = lastRun.ranked && lastRun.rank && lastRun.kpm != null ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ${race}ranked race on ${m}: ${lastRun.kpm.toFixed(2)} kills per minute (${lastRun.kills} slain in ${fmtT(lastRun.t)}). Top 5 split the ${race}$DMT pot. Can you knock me off?`
+  const text = lastRun.ranked && lastRun.rank && lastRun.points != null ? `I'm #${lastRun.rank} in this week's SankoSurvivors ${race}ranked race on ${m}: ${lastRun.points.toLocaleString()} points (${lastRun.kills} slain + ${Math.floor(lastRun.t)} seconds survived). Top 5 split the ${race}$DMT pot. Can you knock me off?`
+    : lastRun.ranked && lastRun.rank && lastRun.kpm != null ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ${race}ranked race on ${m}: ${lastRun.kpm.toFixed(2)} kills per minute (${lastRun.kills} slain in ${fmtT(lastRun.t)}). Top 5 split the ${race}$DMT pot. Can you knock me off?`
     : lastRun.ranked && lastRun.rank ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ranked on ${m} (${stats}). Top 5 split the $DMT pot. Can you knock me off?`
     : lastRun.won ? `I cleared ${m} in SankoQuest Survivors in ${fmtT(lastRun.t)} (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you beat it?`
     : `I survived ${fmtT(lastRun.t)} in ${m} in SankoQuest Survivors (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you last longer?`;
@@ -1564,7 +1617,9 @@ async function startRun(live = null) {
       const restored = await resumeRankedAsync(live.log, { seed: live.seed, mapId: live.map, adv: live.adv, ground: runGround(), ...liveRace(live) },
         (done, all) => rankedMessage(`Restoring your ranked run: ${fmtT(done / 30)} of ${fmtT(all / 30)}…`));
       if (mode === 'recovery') return;
-      sim = restored.sim; rankedRec = restored.rec; persistRanked();
+      sim = restored.sim; rankedRec = restored.rec;
+      rankedClock = live.clockVersion === 1 ? new RankedClock({run:live.run,request:body=>rankedApi(BASE,'clock',body)}) : null;
+      persistRanked();
       $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
     } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
     renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
@@ -1573,13 +1628,15 @@ async function startRun(live = null) {
     $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
     waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
     $('quit').disabled = isRanked; $('quit').textContent = isRanked ? 'Ranked runs can be paused' : 'Quit run'; pendingUse = null; slowmo = 0; if (isRanked) keys.clear();
+    if (isRanked && enforceRankedDeadline()) return;
+    if (isRanked) syncRankedClock();
     if (isRanked && sim.pending[PLAYER]) showLevelUp();
     runBest = isRanked ? null : profileBest(getBests()[bestKey(sim)]); passedBest = false; chase = null;
     if (isRanked && rankedWeek) { // the board as it stood when you entered, without your own wallet's run
       const race = raceOf(rankedWeek, liveRace(live).mode), me = (walletNow() && walletNow().address || '').toLowerCase();
-      chase = { rows: ((race && race.rows) || []).filter((r) => String(r.wallet || '').toLowerCase() !== me).map((r) => ({ t: Number(r.t) || 0, kills: Number(r.kills) || 0 })), kp: kpmWeek(liveRace(live).week) };
+      chase = { combined: kpmWeek(liveRace(live).week), rows: ((race && race.rows) || []).filter((r) => String(r.wallet || '').toLowerCase() !== me).map((r) => ({ t: Number(r.t) || 0, kills: Number(r.kills) || 0 })), kp: kpmWeek(liveRace(live).week) };
     }
-    const goalText = isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills per minute' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
+    const goalText = isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills + seconds survived' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
     banner(`${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'} ${map.name}${!isRanked && hardOn ? ' (hard)' : ''}${goalText}`, 4500);
   } finally { runStarting = false; }
 }
@@ -1596,13 +1653,14 @@ function endRun() {
   mode = 'end';
   waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
   const wasRanked = !!rankedRun;
+  const cutoff = !!rankedRun?.cutoff;
   const won = sim.over === 'win';
   const p = sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0];
   lastRun = { map: sim.map.id, t: Math.floor(sim.t), kills: sim.kills, level: sim.level, adv: p.adv, won, hard: !!sim.hard, endless: !!sim.endless, v: LATEST, sent: !!sim.coop, ticket: sim.coop ? null : runTicket, coop: !!sim.coop };
   $('lbsubmit').disabled = wasRanked || !!sim.coop; $('lbmsg').textContent = '';
   $('endlb').classList.toggle('hidden', wasRanked || !!sim.coop || $('lbbtn').classList.contains('hidden'));
   $('rankedresult').textContent = ''; $('rankedretry').classList.add('hidden');
-  if (wasRanked) { lastRun.sent = true; lastRun.ranked = true; lastRun.race = sim.hard ? 'hard' : 'normal'; if (sim.endless && kpmWeek(liveRace(rankedRun).week)) lastRun.kpm = kpm(sim.kills, Math.floor(sim.t)); } // week 0 ranks by time
+  if (wasRanked) { lastRun.sent = true; lastRun.ranked = true; lastRun.race = sim.hard ? 'hard' : 'normal'; if (sim.endless && kpmWeek(liveRace(rankedRun).week)) { lastRun.kpm = kpm(sim.kills, Math.floor(sim.t)); lastRun.points = rankedPoints(sim.kills, sim.t); } } // week 0 ranks by time
   $('again').textContent = sim.coop ? 'Co-op lobby' : wasRanked ? 'Next ranked run' : 'Run it back'; // after ranked, play again goes back to Ranked (a free casual run was mistaken for ranked)
   if (!wasRanked && !sim.coop && load('sq-name', '') && sim.t >= 30) setTimeout(submitScore, 300); // named players send runs of 30 s or more automatically
   const dmtOn = !!savedPass(), alchCoins = Math.max(0, Math.floor(p.alch || 0)), earned = runCoins(sim, won);
@@ -1634,8 +1692,8 @@ function endRun() {
     $('enddmg').innerHTML = dmgRows.map(([id, v]) => `<div class="drow">${wicon(id)}<span>${wname(id)}</span><div class="dbar"><i style="width:${(v / top) * 100}%"></i></div><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
     $('endloot').innerHTML = (lootNotes.length ? `<details class="lootline" open><summary><b>Caskets</b> (${lootNotes.length})</summary><div>${lootNotes.join(' · ')}</div></details>` : '') + questNotes.map((x) => `<div class="questline">${x}</div>`).join('');
     buildMaps(); buildAdventurers(); showBest();
-    $('endtitle').textContent = won ? `${sim.map.name} holds!` : sim.over === 'time' ? `The hunt is over at ${fmtT(sim.endAt)}` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
-    const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
+    $('endtitle').textContent = cutoff ? 'The ranked week has ended. Your earned score is being checked.' : won ? `${sim.map.name} holds!` : sim.over === 'time' ? `The hunt is over at ${fmtT(sim.endAt)}` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
+    const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.points.toLocaleString()} points · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
     let bestNote = '';
     if (!wasRanked && !sim.coop) {
       const b = receipt.personalBest;
@@ -1655,6 +1713,7 @@ function toMenu() {
   if (coop) { const c = coop; coop = null; c.close(); selMap = coopHomeMap || selMap; coopResult = null; }
   PLAYER = 'p1'; $('coop').classList.add('hidden'); $('coopwait').classList.add('hidden');
   rankedRun = null; rankedRec = null; applyDmt();
+  rankedClock = null;
   sim = null; mode = 'title'; window.__idleSim = null;
   playTitleMusic();
   waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
@@ -1667,13 +1726,14 @@ function toMenu() {
 const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];
 addEventListener('keydown', (e) => {
   if (mode === 'recovery' || walletModalOpen()) return;
-  if (mode === 'play' && e.target?.closest?.('#equipmenthud') && ['Tab', 'Enter', ' '].includes(e.key)) return;
+  if (mode === 'play' && (e.target?.closest?.('#equipmenthud') || e.target?.closest?.('[data-inspect]')) && ['Tab', 'Enter', ' '].includes(e.key)) return;
   if (e.target?.matches?.('input, textarea, select, [contenteditable="true"]') || e.target?.matches?.('summary') && !e.target?.closest?.('#equipmenthud')) return;
   if (e.repeat) return;
   const k = e.key.toLowerCase();
-  if (mode === 'play' && MENU_SCREENS.every(id => $(id).classList.contains('hidden')) && (k === 'tab' && !e.target?.matches?.('button, a[href]') || k === 'escape' && !$('damagepanel').classList.contains('hidden'))) {
-    setDamagePanel(k === 'tab' && $('damagepanel').classList.contains('hidden')); e.preventDefault(); return;
+  if (mode === 'play' && MENU_SCREENS.every(id => $(id).classList.contains('hidden')) && k === 'tab' && !e.shiftKey && !e.target?.matches?.('button, a[href]')) {
+    if (setMapPeek(true)) { e.preventDefault(); return; }
   }
+  if (mode === 'play' && k === 'escape' && !$('damagepanel').classList.contains('hidden')) { setDamagePanel(false); e.preventDefault(); return; }
   if ((k === 'enter' || k === ' ') && e.target?.matches?.('button, a[href]')) return;
   keys.add(k);
   if (mode === 'casket') {
@@ -1952,13 +2012,14 @@ function showCasket() {
   $('cktitle').textContent = 'Reward casket';
   const wpn = isWeaponItem(c.item), onBow = wpn && WEAPON_ITEMS[c.item].kind === 'arrow';
   $('ckitems').innerHTML = casketItemHTML(c.item, 'new', 'New') + `<div class="ckvs">replaces</div>` + casketItemHTML(c.old, 'old', onBow ? 'On the Bow' : wpn ? 'In hand' : 'Worn');
+  $('ckscope').textContent = wpn ? `This upgrades your existing ${WEAPONS[onBow ? 'bow' : WEAPON_ITEMS[c.item].weapon].name} for this run. It does not add a weapon or use another slot.` : '';
   $('ckset').innerHTML = setLine;
   $('ckdelta').innerHTML = `<ul>${rows.join('')}</ul>`;
-  $('ckwear').innerHTML = `<span class="kb">1</span><span class="kb">A</span>Wear`;
+  $('ckwear').innerHTML = `<span class="kb">1</span><span class="kb">A</span>${wpn ? 'Upgrade weapon' : 'Wear'}`;
   $('ckalch').innerHTML = `<span class="kb">2</span><span class="kb">B</span>High alch for ${c.alch} coins`;
   // the recommended choice is the game's green accept button, the other one grey
   $('ckwear').classList.toggle('ghost', pend.rec !== 0); $('ckalch').classList.toggle('ghost', pend.rec !== 1);
-  $('ckrec').textContent = pend.rec === 0 ? 'Recommended: wear it' : c.anyUp ? 'Recommended: high alch (not better overall)' : 'Recommended: high alch (not better)';
+  $('ckrec').textContent = pend.rec === 0 ? wpn ? 'Recommended: upgrade weapon' : 'Recommended: wear it' : c.anyUp ? 'Recommended: high alch (not better overall)' : 'Recommended: high alch (not better)';
   $('ckmore').textContent = pend.more ? `${pend.more} more casket${pend.more > 1 ? 's' : ''} after this` : '';
   markCasket(); $('casket').classList.remove('hidden');
   if ($('equipmenthud').contains(document.activeElement)) $(pend.rec === 0 ? 'ckwear' : 'ckalch').focus({ preventScroll: true });
@@ -2039,7 +2100,7 @@ function updateEquipmentHud(me) {
     const name = gear[slot];
     if (typeof name !== 'string' || !Object.hasOwn(GEAR, name) || GEAR[name].slot !== slot) return [];
     const label = esc(`${gearSlotName(slot)} · ${name}`);
-    return `<span class="slot" data-slot="${slot}" tabindex="0" role="img" aria-label="${label}">${imgTag(name)}</span>`;
+    return `<span class="slot" data-inspect="gear" data-inspect-id="${slot}" data-slot="${slot}" tabindex="0" role="img" aria-label="${label}">${imgTag(name)}</span>`;
   });
   $('equipmentitems').innerHTML = items.join('') || '<small>No gear equipped.</small>';
 }
@@ -2067,7 +2128,7 @@ function updateHud(view) {
   if (bk !== slotCache.b) {
     for (const dispose of beltDisposers) dispose(); beltDisposers = [];
     slotCache.b = bk; const BELT_ICON = { beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard' };
-    const BELT_TIP = { beer: 'Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.', pumpkin: 'Blasts nearby enemies. Damage grows with run time.', warp: 'Pulls all dropped bones and coins to you.' };
+    const BELT_TIP = { beer: sim.pace >= 2 ? 'Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running; the speed bonus stays +35%.' : 'Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.', pumpkin: 'Blasts nearby enemies. Damage grows with run time.', warp: 'Pulls all dropped bones and coins to you.' };
     $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i]; return `<button type="button" class="bslot${k ? '' : ' empty'}" data-i="${i}" data-kind="${k || ''}" ${k ? `aria-label="${BELT_ICON[k]}" aria-describedby="belttip${i}"` : 'disabled aria-label="Empty item slot"'}>${k ? imgTag(BELT_ICON[k]) : ''}<small>${i + 1}</small>${k ? `<span id="belttip${i}" class="belttip" role="tooltip" hidden><b>${BELT_ICON[k]}</b><span>${BELT_TIP[k]}</span><em>Tap to use. Hold to inspect.</em></span>` : ''}</button>`; }).join('');
     for (const el of $('belt').children) if (el.dataset.kind) {
       const i = Number(el.dataset.i), kind = el.dataset.kind;
@@ -2075,7 +2136,7 @@ function updateHud(view) {
     }
   }
   const wk = JSON.stringify([me.w, me.evo, me.wm]), pk = JSON.stringify(me.ps);
-  if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" title="${weaponDisplay(id, l, me.evo[id], weaponStep(id, me.wm)).name}">${iconHTML('weapon', id, l, me.evo[id], weaponStep(id, me.wm))}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
+  if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" data-inspect="weapon" data-inspect-id="${id}" tabindex="0" role="img" aria-label="${esc(weaponDisplay(id, l, me.evo[id], weaponStep(id, me.wm)).name)}">${iconHTML('weapon', id, l, me.evo[id], weaponStep(id, me.wm))}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
   if (pk !== slotCache.p) { slotCache.p = pk; $('prow').innerHTML = Object.entries(me.ps).map(([id, l]) => `<div class="slot" title="${passiveTitle(id, l)}">${iconHTML('passive', id, l)}<small>${l}</small></div>`).join(''); }
   for (const f of view.fx) {
     if (sim.coop && (f.player && f.player !== PLAYER || ['down','revive'].includes(f.k) && f.id !== PLAYER)) continue;
@@ -2166,6 +2227,37 @@ addEventListener('keydown', (e) => {
 // ---- minimap: the game's own map art around you, turned with the camera ---------------------------------------------
 const mmImg = new Image();
 const mm = $('minimap'), mmx = mm.getContext('2d');
+function setMapPeek(on) {
+  const open = !!on && !isTouchUI && matchMedia('(hover:hover) and (pointer:fine)').matches && mode === 'play' && !!sim;
+  $('mmwrap').classList.toggle('mappeek', open);
+  const size = open ? 512 : 168;
+  if (mm.width !== size) { mm.width = mm.height = size; if (sim) drawMinimap(snapshot(sim, {maxEnemies:420})); }
+  return open;
+}
+addEventListener('keyup', e => { if (e.key === 'Tab') setMapPeek(false); });
+addEventListener('blur', () => setMapPeek(false));
+let inspectedElement = null;
+function hideItemInspection() {
+  inspectedElement?.removeAttribute('aria-describedby'); inspectedElement = null; $('itemtip').hidden = true;
+}
+function showItemInspection(event) {
+  if (event.type === 'pointerover' && event.pointerType !== 'mouse') return;
+  const element = event.target.closest('[data-inspect]');
+  if (!element || !sim || !['play','pause','levelup','casket'].includes(mode)) return;
+  const player = sim.players.find(p => p.id === PLAYER), card = itemInspection(player, element.dataset.inspect, element.dataset.inspectId, sim.pace);
+  if (!card) { hideItemInspection(); return; }
+  hideItemInspection(); inspectedElement = element;
+  const tip = $('itemtip'); tip.replaceChildren();
+  const name = document.createElement('b'); name.textContent = card.title; tip.appendChild(name);
+  for (const line of card.details) { const text = document.createElement('span'); text.textContent = line; tip.appendChild(text); }
+  element.setAttribute('aria-describedby', 'itemtip'); tip.hidden = false;
+  const rect = element.getBoundingClientRect(), box = tip.getBoundingClientRect();
+  tip.style.left = Math.max(8, Math.min(rect.right + 8, innerWidth - box.width - 8)) + 'px';
+  tip.style.top = Math.max(8, Math.min(rect.top, innerHeight - box.height - 8)) + 'px';
+}
+for (const event of ['pointerover','focusin']) $('loadout').addEventListener(event, showItemInspection);
+for (const event of ['pointerout','focusout']) $('loadout').addEventListener(event, e => { if (inspectedElement && !inspectedElement.contains(e.relatedTarget)) hideItemInspection(); });
+addEventListener('blur', hideItemInspection);
 function drawMinimap(view) {
   if (!view.players.length) return;
   if (!mmImg.src) mmImg.src = asset('world/world-map-full.webp');
@@ -2196,6 +2288,10 @@ function drawMinimap(view) {
 let lastDrawn = 0, lastMenuDrawn = -Infinity;
 function loop(ts) {
   requestAnimationFrame(loop);
+  enforceRankedDeadline();
+  syncRankedClock();
+  if (mode !== 'play' || document.hidden) setMapPeek(false);
+  if (document.hidden || !['play','pause','levelup','casket'].includes(mode) || inspectedElement && !inspectedElement.isConnected) hideItemInspection();
   if (!document.hidden) bunCompanions.sync(!!bunChoice(selectedPet));
   const cap = renderer && Number(renderer.getSettings().fps); // Frame rate cap setting (saves battery)
   if (cap && ts - lastDrawn < 1000 / cap - 2) return;

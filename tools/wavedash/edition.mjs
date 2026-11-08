@@ -53,7 +53,7 @@ function queuePageReload(text, delay) {
 
 export function transformMain(source) {
   let s = source;
-  for (const file of ['coop-client', 'ranked', 'ranked-play', 'ranked-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'wallet-connect', 'wallet', 'bun-companions']) {
+  for (const file of ['coop-client', 'ranked', 'ranked-play', 'ranked-client', 'ranked-clock', 'ranked-clock-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'wallet-connect', 'wallet', 'bun-companions']) {
     const re = new RegExp(`^import .+ from './${file}\\.js';\\n`, 'm');
     assert.ok(re.test(s), `Expected import ${file}`); s = s.replace(re, '');
   }
@@ -90,12 +90,14 @@ export function transformMain(source) {
   s = between(s, "    $('quit').disabled = isRanked;", '    const goalText', `    $('quit').disabled = false; $('quit').textContent = 'Quit run'; pendingUse = null; slowmo = 0;
     runBest = profileBest(getBests()[bestKey(sim)]); passedBest = false;
 `);
-  s = once(s, "isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills per minute' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? ''", "endlessOn ? ''");
+  s = once(s, "isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills + seconds survived' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? ''", "endlessOn ? ''");
   s = once(s, "${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'}", "${endlessOn ? 'Endless' : 'Survive'}");
   s = once(s, '${!isRanked && hardOn', '${hardOn');
   s = once(s, ', dmtOn = !!savedPass();', ';');
   s = once(s, ' * (dmtOn ? 1 + DMT_COIN_BONUS : 1)');
   s = once(s, '  const wasRanked = !!rankedRun;\n');
+  s = once(s, '  const cutoff = !!rankedRun?.cutoff;\n');
+  s = once(s, "cutoff ? 'The ranked week has ended. Your earned score is being checked.' : ");
   s = once(s, ', sent: !!sim.coop, ticket: sim.coop ? null : runTicket, coop: !!sim.coop', '');
   s = between(s, "  $('lbsubmit').disabled = wasRanked || !!sim.coop;", '  const dmtOn =', "  $('again').textContent = 'Run it back';\n");
   s = once(s, '  const dmtOn = !!savedPass(), alchCoins', '  const alchCoins');
@@ -108,9 +110,12 @@ export function transformMain(source) {
   s = once(s, "${dmtOn ? ' <em class=\"dmtnote\">DMT +25%</em>' : ''}", '');
   s = once(s, '    cloud.push(true);\n');
   s = once(s, '  rankedRun = null; rankedRec = null; applyDmt();\n');
+  s = once(s, '  rankedClock = null;\n');
+  s = once(s, '  enforceRankedDeadline();\n');
+  s = once(s, '  syncRankedClock();\n');
   s = once(s, "const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];", "const MENU_SCREENS = ['board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];");
   s = once(s, "$('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); };", "$('again').onclick = startRun;");
-  s = between(s, "addEventListener('blur',", "$('start').onclick", `let resumeMode = 'play', focusLostWhileStarting = false;
+  s = between(s, "addEventListener('blur', () => { keys.clear(); clearTouch();", "$('start').onclick", `let resumeMode = 'play', focusLostWhileStarting = false;
 function suspendPage() {
   keys.clear(); clearTouch();
   if (runStarting) focusLostWhileStarting = true;

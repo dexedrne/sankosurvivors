@@ -179,7 +179,7 @@ test('week 1 settles the Normal and Hard pots separately (KPM rules, 3:00 minimu
   // one announcement per pot, with kills per minute from week 1
   const hard=f.messages.find(s=>s.includes('Week 1 Hard ranked results')), normal=f.messages.find(s=>s.includes('Week 1 Normal ranked results'));
   assert.ok(hard&&normal&&f.messages.some(s=>s.includes('Week 0 Normal ranked results')));
-  assert.match(normal,/Steady \S+ 30\.00 KPM \(300 kills in 10m 0s\): /);
+  assert.match(normal,/Steady \S+ 900 points · 30\.00 KPM \(300 kills in 10m 0s\): /);
   assert.match(hard,new RegExp('House: '+dmt(e18(0.45)).replace('.','\\.')+' DMT'));
   const sent=f.chain.broadcasts.length; await run(f.config,f.ports); assert.equal(f.chain.broadcasts.length,sent,'repeat-safe');
   assert.equal(f.messages.filter(s=>s.includes('Week 1 Hard ranked results')).length,1);

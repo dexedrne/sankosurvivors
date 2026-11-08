@@ -2,6 +2,7 @@ import { hex } from './dmt.js';
 // where entry fees go, fixed here so a tampered server answer can never redirect a payment (security pass, 3 Nov)
 const ENTRY_WALLET = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', DMT_CONTRACT = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8';
 import { RANKED, raceForWeek } from './ranked.js';
+import { clockPolicy } from './ranked-clock.js';
 const PAYMENT = 'sq-ranked-payment', ENTRIES = 'sq-ranked-entries';
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const pendingMemory = new WeakMap();
@@ -51,7 +52,7 @@ function paymentLock(action) {
 }
 
 export async function rankedApi(base, route, body) {
-  const r = await fetch(`${base}api/ranked-${route}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const r = await fetch(`${base}api/ranked-${route}`, body === undefined ? {cache:'no-store'} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = await r.json();
   if (!r.ok || d.error) throw Object.assign(new Error(d.error || 'The ranked server could not answer.'), { status: r.status, refund: d.refund, retry: d.retry, update: d.update, plain: d.update === true });
   return d;
@@ -121,9 +122,10 @@ export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'no
     const [address] = await p.request({ method:'eth_requestAccounts' });
     if (!/^0x[\da-f]{40}$/i.test(address || '')) throw new Error('No account was shared.');
     onStep('Checking your entries for this week…');
-    const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}&build=${encodeURIComponent(client.build)}&sim=${encodeURIComponent(client.sim)}`);
+    const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}&build=${encodeURIComponent(client.build)}&sim=${encodeURIComponent(client.sim)}${Number.isSafeInteger(client.deadline) ? `&deadline=${client.deadline}` : ''}`);
     const race = raceForWeek(n.week, mode);
     if (!Number.isSafeInteger(n.week) || n.week < 0 || (expectedWeek !== undefined && n.week !== expectedWeek) || !n.message || !n.nonce || n.chainId !== 42161 || String(n.dmt).toLowerCase() !== DMT_CONTRACT || String(n.collect).toLowerCase() !== ENTRY_WALLET || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
+    if (n.clockVersion === 1 && (client.deadline !== n.deadline || !Number.isSafeInteger(n.deadline) || !Number.isFinite(n.serverNow) || clockPolicy(n.week, n.serverNow).deadline !== n.deadline || !clockPolicy(n.week, n.serverNow).admissionOpen)) throw plain('Read and acknowledge the weekly cutoff before paying or starting.');
     onStep('Switch to Arbitrum One in your wallet…');
     const chain = { chainId:'0xa4b1' };
     try { await p.request({ method:'wallet_switchEthereumChain', params:[chain] }); }
@@ -137,6 +139,10 @@ export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'no
     const signature = await p.request({ method:'personal_sign', params:[hex(n.message), address] });
     await requireRankedBuild(base, client);
     if (String(await p.request({ method:'eth_chainId' })).toLowerCase() !== chain.chainId) throw new Error('Switch to Arbitrum One before paying.');
+    if (n.clockVersion === 1) {
+      const current = await rankedApi(base, 'week');
+      if (!current.open || current.week !== n.week || !Number.isFinite(current.serverNow) || current.endsAt !== n.deadline || !clockPolicy(n.week, current.serverNow).admissionOpen) throw plain('Ranked starts are closed until the weekly reset. Your saved payments are kept.');
+    }
     // Reserve more room than the final record in both stores BEFORE asking the wallet to broadcast.
     const reserved = { tx:null, signature, nonce:n.nonce, reserve:'0'.repeat(66) };
     keepPayment(reserved, true);

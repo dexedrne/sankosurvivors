@@ -1,0 +1,11 @@
+[Unit]
+Description=Retry approved SankoSurvivors week 0 prizes during the bounded payout window
+
+[Timer]
+OnCalendar=2026-11-09,10 *:*:00 UTC
+AccuracySec=5s
+Persistent=true
+Unit=sqs-week0-payout.service
+
+[Install]
+WantedBy=timers.target

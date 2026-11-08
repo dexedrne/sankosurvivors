@@ -14,7 +14,7 @@ test('Vercel output preserves the site/API and deploys no payout function or cro
   const config=await json('config.json');assert.equal(config.version,3);
   assert.deepEqual(config.crons,[]);
   assert.equal(config.routes.find(r=>r.src==='^/api/payout-cron$'),undefined);
-  assert.deepEqual(config.routes.filter(r=>r.dest?.startsWith('/api?')), [{src:'^/api/(scores|score|report|run|nonce|holder|ranked-week|ranked-version|ranked-nonce|ranked-enter|ranked-start|ranked-submit|ranked-void|save-nonce|save-login|save-get|save-put)$',dest:'/api?route=$1'}]);
+  assert.deepEqual(config.routes.filter(r=>r.dest?.startsWith('/api?')), [{src:'^/api/(scores|score|report|run|nonce|holder|ranked-week|ranked-version|ranked-nonce|ranked-enter|ranked-start|ranked-clock|ranked-submit|ranked-void|save-nonce|save-login|save-get|save-put)$',dest:'/api?route=$1'}]);
   assert.equal(config.routes.at(-1).handle,'filesystem');
   assert.ok(config.routes.some(r=>r.dest==='/preview'));
   await assert.rejects(readFile(join(out,'functions/payout.func/.vc-config.json')),'no payout function is deployed');

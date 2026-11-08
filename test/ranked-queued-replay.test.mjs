@@ -48,3 +48,12 @@ test('fractional time after hour 24 uses the invalid timestamp fallback', async 
     { id: 1, t: 180, kills: 1, finished_at: 1 }];
   assert.deepEqual(rows.sort(compareRuns(1)).map(r => r.id), [2, 1]);
 });
+
+test('deadline snapshot keeps earned score while a final reward choice is pending',()=>{
+ const params={seed:1104,mapId:'greentown',adv:'adventurer',ground:null,week:1};
+ const sim=fixtureSim(params),rec=new RunRecorder();play.rankedStep(sim,rec,0,0);
+ assert.ok(sim.pending.p1);assert.equal(replay(rec.log(),params).error,'missing a level-up choice');
+ const result=replay(rec.log(),params,{allowPartial:true});
+ assert.deepEqual([result.ticks,result.kills,result.level,result.picksUsed],[sim.tick,sim.kills,sim.level,0]);
+ const malformed={...rec.log(),picks:['bad']};assert.equal(replay(malformed,params,{allowPartial:true}).error,'bad choice');
+});

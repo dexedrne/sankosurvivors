@@ -1,0 +1,17 @@
+[Unit]
+Description=Approved SankoSurvivors week 0 prize payout
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/work/sqs-rollover-clock-1108
+ExecStart=/usr/bin/node %h/work/sqs-rollover-clock-1108/tools/payout/scheduled.mjs --week 0
+TimeoutStartSec=20min
+UMask=0077
+Nice=19
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/sankosurvivors
+

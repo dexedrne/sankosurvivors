@@ -100,7 +100,7 @@ test('replay() answers malformed logs and params with an error instead of throwi
   for (const params of [null, undefined, {}, { ...ok, mapId: 'constructor' }, { ...ok, mapId: '__proto__' }, { ...ok, adv: 'constructor' }, { ...ok, adv: 'alex' }, { ...ok, mapId: 'nope' }, { ...ok, week: undefined }, { ...ok, week: '1' }, { ...ok, mode: 'hard' }, { ...ok, week: 1, mode: 'nightmare' }, { ...ok, week: 1, mode: 'constructor' }]) assert.equal(replay(base, params).error, 'bad ranked run');
 });
 
-// ---- week 1 rules: endless runs scored by kills per minute, and the Hard race ----
+// ---- week 1 rules: endless runs scored by kills plus survival, and the historical Hard race ----
 
 test('every run is endless with the 2:00:00 limit (week 0 too, owner 2 Nov); the Hard race from week 1', () => {
   const base = { seed: 3, mapId: 'apache', adv: 'adventurer', ground: null };
@@ -173,7 +173,7 @@ test('the time limit ends an endless run with its score counted (replays to the 
   } finally { RANKED.timeLimit = saved; }
 });
 
-test('kills per minute is exact integer maths (the same in SQL) and orders week 1 boards', () => {
+test('combined points order week 1 boards with exact integer KPM as the tiebreak', () => {
   assert.equal(kpmMicro(100, 200), 30000000);
   assert.equal(kpmMicro(1, 7), 8571428); // floor(60/7 * 1e6)
   assert.equal(kpmMicro(5, 0), 0); assert.equal(kpmMicro(-3, 100), 0);
@@ -190,12 +190,12 @@ test('kills per minute is exact integer maths (the same in SQL) and orders week 
     { id: 7, wallet: 'g', t: 900, kills: 0, at: 0, won: true }, // a win means nothing from week 1
   ];
   const w1 = [...rows].sort(compareRuns(1)).map((r) => r.wallet);
-  assert.deepEqual(w1, ['e', 'd', 'c', 'f', 'b', 'g', 'a']);
+  assert.deepEqual(w1, ['d', 'e', 'g', 'c', 'f', 'b', 'a']);
   // week 0 (endless now): time survived, then kills; a win from the 15:00 runs counts only as its time
   const w0 = [...rows].sort(compareRuns(0)).map((r) => r.wallet);
   assert.deepEqual(w0, ['d', 'g', 'e', 'c', 'f', 'b', 'a']);
   assert.deepEqual(scoreKey(0, rows[6]), [0, 900, 0]);
-  assert.deepEqual(scoreKey(1, rows[0]), [0, kpmMicro(900, 179), 900]);
+  assert.deepEqual(scoreKey(1, rows[0]), [0, 1079, kpmMicro(900, 179), 900]);
 });
 
 test('the 3:00 minimum: too-short runs and the dev wallet take no prize place (week 1); week 0 had no minimum', () => {

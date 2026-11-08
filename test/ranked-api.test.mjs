@@ -61,7 +61,7 @@ globalThis.fetch = async (url, opts) => {
   } else throw new Error('offline test blocked URL ' + url);
   return new Response(JSON.stringify(result), { status: 200 });
 };
-beforeEach(() => { writeFileSync(path.join(simsDir, 'client.json'), JSON.stringify(CLIENT)); now = epoch + 12 * 3600000; db = new RankedDB(); chain = new Map(); blocks = new Map(); serial = 0; submits = []; });
+beforeEach(() => { writeFileSync(path.join(simsDir, 'client.json'), JSON.stringify(CLIENT)); now = epoch + 12 * 3600000; db = new RankedDB({enforceClock:true}); chain = new Map(); blocks = new Map(); serial = 0; submits = []; });
 after(() => { Date.now = originalNow; globalThis.fetch = originalFetch; sim.ground = originalGround; });
 let slowRefusalOk = false; // a refusal from the database after a full replay is allowed to take the replay's time
 async function call(route, body, { ip = '192.0.2.1', method = body === undefined ? 'GET' : 'POST', headers = {}, responseHeaders = {} } = {}) {
@@ -77,7 +77,7 @@ async function call(route, body, { ip = '192.0.2.1', method = body === undefined
   return out;
 }
 const expectError = (r, code, error) => assert.deepEqual(r, { code, json: { error } });
-const nonceRoute=(w,mode='normal')=>'ranked-nonce?'+new URLSearchParams({wallet:w.address,mode,...CLIENT});
+const nonceRoute=(w,mode='normal')=>'ranked-nonce?'+new URLSearchParams({wallet:w.address,mode,...CLIENT,deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs});
 async function nonce(w, opts = {}) { const r = await call(nonceRoute(w,opts.mode), undefined, opts); assert.equal(r.code, 200, JSON.stringify(r)); return { nonce: r.json.nonce, signature: w.sign(r.json.message), message: r.json.message, amountWei: r.json.amountWei }; }
 // A signed nonce from before the race closed; never requests a new Hard authorization.
 function legacyHardNonce(w) {
@@ -96,8 +96,9 @@ async function enter(w = wallet(), opts = {}) {
   assert.equal(r.code, 200, JSON.stringify(r)); return { ...r.json, auth, tx, w };
 }
 async function start(e, extra = {}) {
-  const r = await call('ranked-start', { entry: e.entry, adv: 'adventurer', sim: cur, build:BUILD_TEST, ...extra }); assert.equal(r.code, 200, JSON.stringify(r)); return r.json;
+  const r = await call('ranked-start', { entry: e.entry, adv: 'adventurer', sim: cur, build:BUILD_TEST, deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs, ...extra }); assert.equal(r.code, 200, JSON.stringify(r)); return r.json;
 }
+async function legacyStart(e) { const row=db.rows.find(x=>x.id===e.id);Object.assign(row,{started_at:now,adv:'adventurer'});return start(e); }
 function play(run) {
   const s = rankedSim({ seed: run.seed, mapId: run.map, adv: run.adv, ground: null, week: run.week, mode: run.mode }), rec = new RunRecorder(), p = s.players[0];
   while (!s.over) {
@@ -395,7 +396,7 @@ test('start rejects forged, wrong-wallet, old-week, stale-version and special ad
   const first = await start(e);
   // the answer got lost: asking again returns the same run (seed, adventurer and clock), whatever adventurer is sent now
   await new Promise((r) => setTimeout(r, 20));
-  const again = await call('ranked-start', { entry: e.entry, adv: 'knight', sim: cur, build:BUILD_TEST });
+  const again = await call('ranked-start', { entry: e.entry, adv: 'knight', sim: cur, build:BUILD_TEST, deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs });
   assert.equal(again.code, 200); assert.equal(again.json.again, true);
   assert.equal(again.json.seed, first.seed); assert.equal(again.json.adv, first.adv);
   assert.equal(decode(again.json.run).s, decode(first.run).s, 'the clock is not restarted');
@@ -429,10 +430,10 @@ test('tampered movement, choices, item uses and seed cannot produce the honest s
 });
 
 test('real-time and late limits are enforced with the server clock', async () => {
-  const e = await enter(), run = await start(e), played = play(run);
+  const e = await enter(), run = await legacyStart(e), played = play(run);
   assert.ok(played.result.t > 10);
   expectError(await submit({ run, ...played }), 400, 'this run did not check out (faster than real time)');
-  const e2 = await enter(e.w), run2 = await start(e2);
+  const e2 = await enter(e.w), run2 = await legacyStart(e2);
   now += (runSeconds(0) + 40 * 60 + 1) * 1000; // past the longest run (2:01:00) plus 40 minutes for pauses and reloads
   expectError(await call('ranked-submit', { run: run2.run, log: played.log }), 400, 'that run was sent too late');
   assert.equal(db.rows[1].claimed_at, undefined);
@@ -508,11 +509,11 @@ test('update 7: a run cut short by a game update starts again on the same entry,
   const out = await call('ranked-void', { run: oldRun(run) });
   assert.equal(out.code, 200); assert.equal(out.json.restart, true); assert.equal(out.json.id, r0.id);
   assert.equal((await db.rpc('sqs_ranked_settle', { p_key: 'reports-key', p_week: 0 })).refunds.length, 0, 'no refund');
-  const again = await call('ranked-start', { entry: out.json.entry, adv: r0.adv, sim: cur, build:BUILD_TEST });
+  const again = await call('ranked-start', { entry: out.json.entry, adv: r0.adv, sim: cur, build:BUILD_TEST, deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs });
   assert.equal(again.code, 200); assert.notEqual(again.json.again, true, 'a fresh start, not the old run');
   // three restarts at most
   let r = again.json;
-  for (let i = 0; i < 2; i++) { const o = await call('ranked-void', { run: oldRun(r) }); assert.equal(o.code, 200); r = (await call('ranked-start', { entry: o.json.entry, adv: r0.adv, sim: cur, build:BUILD_TEST })).json; }
+  for (let i = 0; i < 2; i++) { const o = await call('ranked-void', { run: oldRun(r) }); assert.equal(o.code, 200); r = (await call('ranked-start', { entry: o.json.entry, adv: r0.adv, sim: cur, build:BUILD_TEST, deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs })).json; }
   expectError(await call('ranked-void', { run: oldRun(r) }), 400, 'this entry was restarted 3 times already: tell the dev');
   // not once the week is over
   const e2 = await enter(e.w), run2 = await start(e2);
@@ -544,7 +545,7 @@ test('null bodies and nested unknown log fields never consume an entry', async (
 test('reset retry cannot promise to refund a payment already used last week', async () => {
   const e = await enter();
   now += weekMs;
-  expectError(await call('ranked-enter', { ...e.auth, tx: e.tx }), 400, 'that payment was already used for an entry');
+  const recovered=await call('ranked-enter', { ...e.auth, tx: e.tx });assert.equal(recovered.code,200);assert.equal(recovered.json.id,e.id);assert.equal(recovered.json.week,0);assert.equal(decode(recovered.json.entry).w,0);
   assert.equal(db.rows.length, 1); assert.equal(db.rows[0].refund_reason, null);
 });
 
@@ -588,7 +589,7 @@ test('non-string display name cannot crash an otherwise valid paid submit', asyn
   assert.equal((await call('ranked-week')).json.rows[0].name, 'Adventurer');
 });
 
-// ---- week 1: endless runs scored by kills per minute; the Hard race with its own price, pot and board ----
+// ---- week 1: endless runs scored by kills plus survival; the Hard race with its own price, pot and board ----
 const week1 = () => { now = epoch + weekMs + 12 * 3600000; };
 
 test('week 0 offers only the Normal race; a Hard nonce is refused before any payment', async () => {
@@ -605,7 +606,7 @@ test('week 1: Standard costs 1 DMT and Hard authorization/start are refused', as
  week1();const w=wallet(),n=await nonce(w);assert.equal(n.amountWei,'1000000000000000000');
  expectError(await call(nonceRoute(w,'hard')),400,'that race is not open this week');
  const token=signed({k:'rentry',id:123,a:w.address,w:1,m:'hard'});
- expectError(await call('ranked-start',{entry:token,adv:'adventurer',...CLIENT}),400,'that race is not open this week');
+ expectError(await call('ranked-start',{entry:token,adv:'adventurer',...CLIENT,deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs}),400,'that race is not open this week');
  const h=legacyHardNonce(w),{message,amountWei,...auth}=h;
  for(const amount of[500000000000000000n,1999999999999999999n])expectError(await call('ranked-enter',{...auth,tx:payment(w,{amount})}),400,'that transaction did not send 2 DMT from your wallet to the entry address');
  assert.equal(db.rows.length,0);
@@ -617,7 +618,7 @@ test('week 1: Standard costs 1 DMT and Hard authorization/start are refused', as
 
 test('an entry costs exactly its race price: a Hard-sized payment on a Normal sign-in (or any overpayment) is owed back in full', async () => {
   for (const [week, mode, amount, dmt, name] of [[0, undefined, 1500000000000000000n, '0.5', 'Normal'], [1, undefined, 1500000000000000000n, '1', 'Normal'], [1, 'hard', 2500000000000000000n, '2', 'Hard']]) {
-    db = new RankedDB(); now = epoch + week * weekMs + 12 * 3600000;
+    db = new RankedDB({enforceClock:true}); now = epoch + week * weekMs + 12 * 3600000;
     const w = wallet(), { message, amountWei, ...auth } = mode==='hard'?legacyHardNonce(w):await nonce(w, { mode });
     const tx = payment(w, { amount }), want = { code: 400, json: { error: `That payment sent more than the ${dmt} DMT ${name} entry, so it could not count. All of it will be sent back.`, refund: true } };
     assert.deepEqual(await call('ranked-enter', { ...auth, tx }), want);
@@ -651,7 +652,7 @@ test('an already-started historical Hard run still replays while the public boar
  const res=await submit(hard);assert.equal(res.code,200,JSON.stringify(res));assert.equal(res.json.mode,'hard');assert.equal(res.json.rank,1);
  assert.deepEqual([res.json.t,res.json.kills],[hard.result.t,hard.result.kills]);
  const normal=await ready(b,{ip:'192.0.2.9'});assert.equal((await submit(normal)).code,200);
- const board=(await call('ranked-week')).json;assert.equal(board.rules,'kpm');assert.equal(board.minSeconds,180);
+ const board=(await call('ranked-week')).json;assert.equal(board.rules,'combined');assert.equal(board.minSeconds,180);
  assert.deepEqual(Object.keys(board.races),['normal']);assert.deepEqual([board.races.normal.entries,board.races.normal.poolDmt,board.races.normal.entryDmt],[1,0.9,'1']);
  assert.deepEqual(board.races.normal.rows.map(r=>r.wallet),[b.address]);
  const asNormal=replay(hard.log,{seed:run.seed,mapId:run.map,adv:run.adv,ground:null,week:1,mode:'normal'});
@@ -676,11 +677,11 @@ test('week 1: a Hard payment that lands before the reset is owed back at 2 DMT',
 
 test('week 1: the late limit follows the longer endless runs', async () => {
   week1();
-  const e = await enter(), run = await start(e), log = { v: 1, runs: [[1, 0, 0]], uses: [], picks: [] };
+  const e = await enter(), run = await legacyStart(e), log = { v: 1, runs: [[1, 0, 0]], uses: [], picks: [] };
   now += (runSeconds(1) + 40 * 60 + 1) * 1000;
   expectError(await call('ranked-submit', { run: run.run, log }), 400, 'that run was sent too late');
   assert.equal(db.rows[0].claimed_at, undefined);
-  const e2 = await enter(e.w), run2 = await start(e2);
+  const e2 = await enter(e.w), run2 = await legacyStart(e2);
   now += (runSeconds(1) + 40 * 60 - 60) * 1000; // still in time: replayed (and refused for being unfinished, not late)
   expectError(await call('ranked-submit', { run: run2.run, log }), 400, 'this run did not check out (the run had not ended)');
 });
@@ -710,7 +711,7 @@ test('legacy SQL refund wording still shows the actual new Standard payment amou
 // New admission never gates an already-paid registration or archived submission.
 test('current-build admission is uncached and rejects old UI before eligibility or start RPC', async t => {
   const w=wallet(), token=signed({k:'rentry',id:1,a:w.address,w:0});
-  const calls=[]; t.mock.method(db,'rpc',async(fn)=>{calls.push(fn);return {left:100,seed:1,adv:'adventurer',started:now};});
+  const calls=[]; t.mock.method(db,'rpc',async(fn)=>{calls.push(fn);return {left:100,seed:1,adv:'adventurer',started:now,clockVersion:0,deadline:null,clock:null};});
   const responseHeaders={};const version=await call('ranked-version',undefined,{responseHeaders}); assert.equal(version.code,200);assert.equal(responseHeaders['cache-control'],'no-store'); assert.deepEqual(version.json,CLIENT);
   for(const claim of [{},{build:'old',sim:cur},{build:BUILD_TEST,sim:'123456123456'},{build:{},sim:cur},{build:'dev',sim:cur},{build:'x'.repeat(81),sim:cur}]) {
     const q=new URLSearchParams({wallet:w.address,...claim});
@@ -718,9 +719,9 @@ test('current-build admission is uncached and rejects old UI before eligibility 
     assert.equal((await call('ranked-start',{entry:token,adv:'adventurer',...claim})).code,409);
   }
   assert.deepEqual(calls,[]);
-  assert.equal((await call('ranked-nonce?'+new URLSearchParams({wallet:w.address,...CLIENT}))).code,200);
-  assert.equal((await call('ranked-start',{entry:token,adv:'adventurer',...CLIENT})).code,200);
-  assert.deepEqual(calls,['sqs_ranked_can_enter','sqs_ranked_start']);
+  assert.equal((await call('ranked-nonce?'+new URLSearchParams({wallet:w.address,...CLIENT,deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs}))).code,200);
+  assert.equal((await call('ranked-start',{entry:token,adv:'adventurer',...CLIENT,deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs})).code,200);
+  assert.deepEqual(calls,['sqs_ranked_can_enter','sqs_ranked_clock_start']);
 });
 test('missing or inconsistent admission metadata fails closed before RPC, without changing paid recovery',async t=>{
   const w=wallet(),e=await enter(w),{auth,tx}=e;
@@ -728,7 +729,7 @@ test('missing or inconsistent admission metadata fails closed before RPC, withou
   for(const value of [null,'{',JSON.stringify({build:BUILD_TEST,sim:'123456123456'}),JSON.stringify({build:'dev',sim:cur})]) {
     if(value===null)rmSync(path.join(simsDir,'client.json'));else writeFileSync(path.join(simsDir,'client.json'),value);
     assert.equal((await call('ranked-version')).code,503);
-    assert.equal((await call('ranked-nonce?'+new URLSearchParams({wallet:w.address,...CLIENT}))).code,503);
+    assert.equal((await call('ranked-nonce?'+new URLSearchParams({wallet:w.address,...CLIENT,deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs}))).code,503);
     assert.equal((await call('ranked-start',{entry:e.entry,adv:'adventurer',...CLIENT})).code,503);
   }
   assert.deepEqual(calls,[]);
@@ -741,4 +742,96 @@ for(const extra of [1201,1799,30*60,30*60+.001])test(`ranked total pause boundar
  let out;try{out=await submit(r);}finally{slowRefusalOk=false;}
  assert.equal(out.code,extra<=1800?200:400,JSON.stringify(out));
  if(extra>1800)assert.match(out.json.error,/pause allowance exceeded/);
+});
+
+
+test('deadline consent is required and admission closes at exact boundary',async()=>{
+ const w=wallet(),deadline=epoch+weekMs;
+ const route=nonceRoute(w).replace(/&deadline=\d+/,'');
+ assert.match((await call(route)).json.error,/acknowledge/);
+ now=deadline-1800001; const e=await enter(w);const run=await start(e);
+ assert.equal(run.deadline,deadline);assert.equal(decode(run.run).c,1);
+ assert.match((await nonce(w)).message,/2026-11-09T00:00:00.000Z/);
+ now=deadline-1800000; assert.equal((await call(nonceRoute(w))).json.closed,true);
+ assert.equal((await start(e)).started,run.started);
+});
+test('new starts fail closed without SQL and legacy started retries stay legacy',async()=>{
+ const e=await enter();const row=db.rows[0];row.started_at=now;row.adv='adventurer';
+ const old=await start(e,{deadline:undefined});assert.equal(old.clockVersion,0);assert.equal(decode(old.run).c,undefined);
+ const original=db.rpc.bind(db);db.rpc=(fn,p)=>fn==='sqs_ranked_clock_start'?null:original(fn,p);
+ const r=await call('ranked-start',{entry:e.entry,adv:'adventurer',...CLIENT,deadline:epoch+weekMs});assert.notEqual(r.code,200);
+});
+test('clock pause credit is bounded, idempotent and frozen at the first claim',async()=>{
+ const e=await enter(),run=await start(e),send=p=>call('ranked-clock',{run:run.run,action:'state',seq:0,frame:0,...p});
+ assert.equal((await send({action:'pause',seq:1})).json.seq,1);now+=3000;
+ assert.equal((await send({action:'resume',seq:2})).json.creditMs,3000);
+ assert.equal((await send({action:'resume',seq:2})).json.creditMs,3000);
+ assert.equal((await send({action:'pause',seq:3})).code,400);
+ assert.equal((await send({action:'pause',seq:3,frame:1})).code,200);now+=90000;
+ assert.equal((await send({action:'resume',seq:4,frame:2})).code,400);
+ assert.equal((await send({action:'resume',seq:4,frame:1})).json.creditMs,33000);
+ for(const bad of [{action:'credit'},{seq:-1},{frame:219601},{frame:1.5}])assert.equal((await send(bad)).code,400);
+ const state=(await send({})).json;assert.equal(state.seq,4);assert.equal(state.frame,1);
+});
+test('server deadline alone allows partial replay, bounds wall ticks and accepts five minute transport retry',async()=>{
+ now=epoch+weekMs-1800001;const e=await enter(),run=await start(e);
+ const log={v:1,runs:[[60,0,0]],uses:[],picks:[]};
+ // Fresh separate fixture for the early rejection because its claim consumes the log.
+ const early=await call('ranked-submit',{run:run.run,name:'cutoff',log});assert.match(early.json.error,/not ended|faster/);
+ now=epoch+weekMs-1800001;const e2=await enter(e.w),r2=await start(e2);
+ now=epoch+weekMs+1000;
+ const huge={...log,runs:[[54001,0,0]]};assert.match((await call('ranked-submit',{run:r2.run,log:huge})).json.error,/too long/);
+ assert.equal((await call('ranked-submit',{run:r2.run,log})).code,200);
+ now+=600000;assert.equal((await call('ranked-submit',{run:r2.run,log})).code,200);
+});
+
+test('held signing and late payments are owed while already registered payments recover',async()=>{
+ now=epoch+weekMs-1800001;const e=await enter(),w=e.w,auth=await nonce(w);
+ now+=1;const tx=payment(w);
+ const late=await call('ranked-enter',{...auth,tx});assert.equal(late.json.refund,true);assert.equal(db.rows[1].refund_reason,'ranked admission is closed');
+ assert.equal((await call('ranked-enter',{...e.auth,tx:e.tx})).json.id,e.id);
+ const start=await call('ranked-start',{entry:e.entry,adv:'adventurer',...CLIENT,deadline:epoch+weekMs});assert.match(start.json.error,/closed/);assert.equal(start.json.refund,true);assert.equal(db.rows[0].refund_reason,'ranked admission closed before this entry started');assert.equal(db.rows[0].started_at,undefined);
+});
+
+test('new first submissions close after five minutes but cached claims survive',async()=>{
+ now=epoch+weekMs-1800001;const e=await enter(),run=await start(e);
+ now=epoch+weekMs+300001;
+ const out=await call('ranked-submit',{run:run.run,log:{v:1,runs:[[1,0,0]],uses:[],picks:[]}});
+ assert.equal(out.json.error,'that run was sent too late');assert.equal(db.rows[0].claimed_at,undefined);
+});
+test('public clock metadata is uncached and signed consent uses the exact deadline',async()=>{
+ const headers={},w=wallet(),r=await call('ranked-week',undefined,{responseHeaders:headers});
+ assert.equal(headers['cache-control'],'no-store');assert.equal(r.json.serverNow,now);assert.equal(r.json.closesAt,epoch+weekMs-1800000);
+ const n=(await call(nonceRoute(w))).json;assert.equal(n.clockVersion,1);assert.equal(n.serverNow,now);assert.equal(n.deadline,epoch+weekMs);assert.equal(n.closesAt,r.json.closesAt);
+ const parsed=decode(n.nonce);assert.equal(parsed.d,n.deadline);assert.equal(parsed.c,1);
+});
+
+test('registered historical Hard payments recover even after Hard admission closed',async()=>{
+ week1();const w=wallet(),auth=legacyHardNonce(w),tx=payment(w,{amount:2000000000000000000n});
+ const entry=await db.rpc('sqs_ranked_enter',{p_server_key:'server-key',p_tx:tx,p_wallet:w.address,p_week:1,p_ip_hash:'fixture',p_paid:'2000000000000000000',p_seed:1,p_max:100,p_mode:'hard'});
+ const recovered=await call('ranked-enter',{...auth,tx});assert.equal(recovered.code,200);assert.equal(recovered.json.id,entry.id);assert.equal(recovered.json.mode,'hard');assert.equal(db.rows[0].refund_reason,null);
+});
+
+test('new signed clock run fits the verifier cap with the largest safe entry id',async()=>{
+ const e=await enter(),row=db.rows[0];row.id=Number.MAX_SAFE_INTEGER;row.seed=2147483646;
+ e.entry=signed({...decode(e.entry),id:row.id});
+ const adv=[...sim.game.RANKED.advs].sort((a,b)=>b.length-a.length)[0];
+ const run=await start(e,{adv});assert.ok(run.run.length<=400,run.run.length);
+ const withHistoricalMode=signed({...decode(run.run),m:'hard'});assert.ok(withHistoricalMode.length<=400,withHistoricalMode.length);
+ assert.equal((await call('ranked-clock',{run:withHistoricalMode,action:'state',seq:0,frame:0})).code,200);
+});
+
+test('a prepaid entry blocked at cutoff and retried next week returns its owed refund',async()=>{
+ now=epoch+weekMs-1800001;const e=await enter();now++;
+ const body={entry:e.entry,adv:'adventurer',...CLIENT,deadline:epoch+weekMs};
+ const out=await call('ranked-start',body);assert.equal(out.json.refund,true);
+ now=epoch+weekMs+1;assert.equal((await call('ranked-start',body)).json.refund,true);
+ assert.equal((await call('ranked-enter',{...e.auth,tx:e.tx})).json.refund,true);
+ assert.equal(db.rows[0].started_at,undefined);
+});
+test('credited new-policy interruption older than9660seconds reaches guarded restart',async()=>{
+ const e=await enter(),run=await start(e);now+=9900000;db.rows[0].clock_credit_ms=1800000;
+ const old=signed({...decode(run.run),v:OLD_ID});
+ const out=await call('ranked-void',{run:old});assert.equal(out.code,200,JSON.stringify(out));
+ const fresh=await start({...e,entry:out.json.entry});assert.notEqual(fresh.started,run.started);assert.equal(fresh.clock.creditMs,0);
 });

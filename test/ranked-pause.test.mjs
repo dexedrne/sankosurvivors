@@ -20,7 +20,7 @@ test('actual pause readout shares one elapsed budget across reload, choices and 
  const start=1700000000000,els=Array.from({length:4},()=>({textContent:'',classList:{toggle(){}}}));
  const a=main.indexOf('function updateRankedPause()'),b=main.indexOf('setInterval(updateRankedPause',a);
  assert.ok(a>=0&&b>a,'real UI integration');
- const make=Function('RANKED','pauseRemaining','document','Date',`let rankedRun={started:${start}},sim={t:60,over:null};const rankedPlaying=()=>!!rankedRun&&!sim.over,liveRace=x=>x,fmtT=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');${main.slice(a,b)};return{update:updateRankedPause,end:()=>sim.over='dead'};`);
+ const make=Function('RANKED','pauseRemaining','document','Date',`let rankedRun={started:${start}},rankedClock=null,rankedRec=null,sim={t:60,over:null};const rankedPlaying=()=>!!rankedRun&&!sim.over,liveRace=x=>x,fmtT=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');${main.slice(a,b)};return{update:updateRankedPause,end:()=>sim.over='dead'};`);
  let now=start+60000;const app=make(ranked.RANKED,ranked.pauseRemaining,{querySelectorAll:()=>els},{now:()=>now});
  app.update();assert.match(els[0].textContent,/30:00/);
  now+=29*60000;app.update();assert.match(els[0].textContent,/1:00/);

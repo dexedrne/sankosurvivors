@@ -1,19 +1,38 @@
 # Ranked payouts (the owner's laptop only)
 
-Prizes, the house fee and refunds are paid by `node tools/payout/run.mjs`, run by hand
-on the owner's laptop. It signs with the entry wallet's key, decrypted from an
-encrypted Web3 v3 keystore (`KEYSTORE_PATH` + `KEYSTORE_PASSPHRASE_FILE`); a raw
-wallet key in the env file is refused. Nothing on Vercel holds the wallet key or pays
-anyone: the site has no payout function and no cron (security pass, 3 Nov), and a job
-box never runs payouts.
+Prizes, the house fee and refunds use the owner-local encrypted-keystore runner.
+Manual live operations need owner approval. The owner separately approved the
+bounded **week-0 prize/house schedule** below; refunds and future weeks are outside
+that approval. Nothing on Vercel holds a wallet key or pays anyone, and job boxes
+never run payouts.
 
-Each run announces finished weeks after the 180-minute submission grace (a 2:00:00
-ranked run, plus the API's 40 late minutes, plus its replay), then pays prizes/house
-24 hours after Monday 00:00 UTC. Refunds are eligible as soon as their source
-payment is finalized; batch posting and Ethereum finality can take minutes.
-Each prize pool goes to five wallets: **40% / 25% / 15% / 12% / 8%**. Missing
-places roll over; the last actual winner gets rounding dust. Default is **dry
-run**: plans and Telegram previews, no key loading, signing or sending.
+With owner-applied SQL16, new plans can settle after reset once all applicable
+submission windows and accepted replay claims finish. New-policy runs stop at
+00:00 UTC and have five minutes for transport; already-started legacy runs retain
+their 180-minute grace. Existing plans keep their original pay_at. Finality,
+reserves, caps, holds and nonce checks can delay actual sends. Reset is queue
+eligibility, not a guarantee of immediate confirmation.
+Each prize pool pays **40% / 25% / 15% / 12% / 8%**. Missing places roll over;
+the last actual winner gets rounding dust. A manual invocation defaults to dry
+run: plans and previews, no key loading, signing or sending.
+
+## Approved week-0 schedule
+
+`scheduled.mjs --week 0` runs only from9November00:00UTC until11November00:00UTC.
+It checks SQL16 availability without a valid server key before any ledger changes,
+reviews candidates, previews scoped rows, then sends only those exact approved
+week-0 prize/house rows. It reserves refunds but never sends them. An unrelated
+in-flight transfer pauses the schedule. Confirmed completion writes a device-local
+marker; uncertain/finality-pending work retries the same ledger and signed bytes.
+Local journal messages are used; this scheduler does not send Telegram messages.
+
+The checked service/timer templates live beside this README. Install them on the
+owner laptop only, after SQL16 and release verification. Keep the frozen source
+worktree at `%h/work/sqs-rollover-clock-1108` until the bounded window ends. The
+laptop must stay awake, online and logged in; it cannot pay while offline. Check
+`systemctl --user status sqs-week0-payout.timer` and
+`journalctl --user -u sqs-week0-payout.service` for actual progress. The timer is
+not permission for another week or refunds.
 
 Receipt checks bind counted refund Transfer events to their transaction and block,
 reject removed or repeated log indices, and preserve genuine split transfers.
@@ -58,19 +77,15 @@ Inconsistent claims pause without signing; a key-loading failure leaves the
 unsigned claim recoverable on a later invocation. This uses the existing SQL
 contract and needs no migration.
 
-## Two pots from week 1
+## Current ranked rules
 
-Week 0 (to Mon 9 Nov 00:00 UTC) has one race, Normal, ranked by won, then time,
-then kills. From week 1 every week has **two races with two pots**: **Normal**
-(0.5 DMT a run) and **Hard** (1.5 DMT a run, hard rules on the same map), both
-ranked by kills per minute among runs of 3:00 or more. Each pot is planned on its
-own (`sqs_payout_plan(key, week, plan, mode)`): its own 10% house fee (both to the
-same house wallet), its own top 5, its own rollover into **the same race** next
-week. The Hard chain starts at week 1 from nothing. The developer wallet wins
-nothing in either race. Every payout row has a `mode` (`normal`/`hard`); refunds
-take their entry's race. Holds are per week and wallet and cover both races. The
-`WEEK_DMT_CAP` counts both pots of a week together. Telegram gets one results
-message per pot (`Week N Normal ranked results`, `Week N Hard ranked results`).
+Week0 ends9November00:00UTC and keeps its original survival-time, then kills
+order. Week1 uses Apache Desert, **Standard only at1DMT/run**, ranked by total
+kills + whole seconds survived, one point each. Runs under3:00 cannot place;
+equal points use KPM truncated to millionths, then kills, earlier finish and ID.
+The developer wallet cannot win prizes. The legacy Hard pot schema remains for
+historical recovery; the current game admits Standard only. Each pot's 10% house
+fee, five shares and same-race rollover use exact integer token units.
 
 ### Upgrading the live install (paste order)
 
@@ -86,7 +101,7 @@ In Supabase's SQL editor, paste in this order, each file whole:
 
 3. Then `update4.sql` through `update10.sql`, in order: cloud saves, boards,
    fail-closed guards, bound restarts, payout caps, permissions and recoverable submissions.
-4. Apply `update13.sql` once after update10. It bundles incoming-pool metadata
+4. Apply `update14.sql`, then `update15.sql` and `update16.sql` after update10. It bundles incoming-pool metadata
    (update11), atomic rate admission (update12), and the key-helper path/rotation
    hardening. The owner pastes all SQL; a prepared file is not proof it is live.
    The helper preserves the existing current and `:next` rotation slots. The
@@ -95,11 +110,11 @@ In Supabase's SQL editor, paste in this order, each file whole:
 
 **Re-pasting:** each file is safe to paste again, but an older file brings back older functions. After any re-paste of
 `ranked.sql`, `payouts.sql` or `update6.sql`, paste `update7.sql` through `update10.sql` again,
-plus update13 once installed. Otherwise old permissions/restart/refund functions can return
+plus update14, update15 and update16 once installed. Otherwise old permissions/restart/refund functions can return
 and the recovery APIs can be missing. Reapply update9 after update5 as well.
-Reapply update13 after restoring older schema/security/board files so the current guard, rate admission and pool metadata stay installed. Paste required repairs
+Reapply updates14–16 after restoring older schema/security/board files so the current guard, rate admission and pool metadata stay installed. Paste required repairs
 **before deploying** the new game build: the new API calls the new signatures.
-Do not re-paste the base schema to install update13; use the one update13 file. After a necessary full-schema re-paste, restore updates4 through10 in order, then13, so older overloads and grants are repaired too.
+Do not re-paste the base schema to install these updates; use the current update files. After a necessary full-schema re-paste, restore updates4 through10 in order, then14–16, so older overloads and grants are repaired too.
 Do not reapply the older `schema.sql` placeholders. A fresh install pastes
 `schema.sql`, `ranked.sql`, `payouts.sql`, then the updates in order.
 

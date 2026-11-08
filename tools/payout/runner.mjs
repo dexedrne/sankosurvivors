@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { makePlan, units, dmt, DMT, HOUSE, COLLECT, weekOf, weekEnd, GRACE_MS, racesOf, firstWeek } from './core.mjs';
-import { kpmWeek, kpm } from '../../src/ranked.js';
+import { kpmWeek, kpm, rankedPoints } from '../../src/ranked.js';
 import { address, sign1559, decode1559, transferData } from './crypto.mjs';
 import { quantity, quantityBigInt } from './ports.mjs';
 const TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
@@ -50,7 +50,11 @@ function savedTransaction(row,config) {
 function matches(tx,row,config) {
   return tx?.from?.toLowerCase()===config.wallet&&tx.to?.toLowerCase()===DMT&&quantityBigInt(tx.nonce)===units(row.nonce)&&quantityBigInt(tx.value??'0x0')===0n&&(tx.input??tx.data)?.toLowerCase()===transferData(row.wallet,row.amount);
 }
-export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.now,pause=sleep}) {
+export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.now,pause=sleep,approvedWeek=null,expectedRows=null,atReset=false}) {
+  if(approvedWeek!==null&&(!Number.isSafeInteger(approvedWeek)||approvedWeek<0))throw Error('invalid approved week');
+  if(expectedRows!==null&&!Array.isArray(expectedRows))throw Error('invalid approved preview');
+  const allowed=row=>approvedWeek===null||row.week===approvedWeek&&/^(prize[1-5]|house)$/.test(row.kind);
+  const financial=row=>({id:row.id,week:row.week,mode:modeOf(row),kind:row.kind,wallet:row.wallet,amount:row.amount});
   const owner=randomUUID();
   const call=async(name,args={})=>{
     const result=await rpc('sqs_payout_'+name,{p_key:config.payoutKey,...args});
@@ -69,30 +73,34 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
     let state=await call('read');
     // Each race is its own pot: plan it from its own settlement, carrying its own previous week's rollover.
     for(let w=0;w<weekOf(now());w++) {
-      if(now()<weekEnd(w)+GRACE_MS)break;
+      if(!atReset&&now()<weekEnd(w)+GRACE_MS)break;
+      if(approvedWeek!==null&&w!==approvedWeek)continue;
       for(const mode of racesOf(w)) {
         if(state.weeks.some(p=>p.week===w&&modeOf(p)===mode))continue;
         const report=await rpc('sqs_ranked_settle',{p_key:config.reportsKey,p_week:w,p_mode:mode});
         if(report.error)throw Error('settlement unavailable');
         const incoming=w===firstWeek(mode)?'0':state.weeks.find(p=>p.week===w-1&&modeOf(p)===mode)?.rollover;
         if(incoming==null)throw Error('previous plan missing');
-        await call('plan',{p_week:w,p_mode:mode,p_plan:makePlan(report,incoming,w)});
+        const planned=await rpc('sqs_payout_plan',{p_key:config.payoutKey,p_week:w,p_mode:mode,p_plan:makePlan(report,incoming,w)});
+        if(atReset&&['submission grace','replay in progress'].includes(planned?.error)){log('WAIT: week '+w+' '+mode+' '+planned.error);continue;}
+        if(planned?.error||planned?.ok!==true)throw Error('payout database rejected plan');
         state=await call('read');await renew();
       }
     }
     // The notice claim is durable, so a retry cannot announce the same week twice. (Normal keeps its older notice name.)
     for(const week of state.weeks) {
       const mode=modeOf(week),rows=state.rows.filter(r=>r.week===week.week&&modeOf(r)===mode),refunds=rows.filter(r=>r.kind==='refund');
-      const score=p=>kpmWeek(week.week)?`${kpm(p.kills,p.t).toFixed(2)} KPM (${p.kills} kills in ${Math.floor(p.t/60)}m ${p.t%60}s)`:`${Math.floor(p.t/60)}m ${p.t%60}s`;
+      const score=p=>kpmWeek(week.week)?`${rankedPoints(p.kills,p.t)} points · ${kpm(p.kills,p.t).toFixed(2)} KPM (${p.kills} kills in ${Math.floor(p.t/60)}m ${p.t%60}s)`:`${Math.floor(p.t/60)}m ${p.t%60}s`;
       const winners=week.top.slice(0,5).map((p,i)=>{
         const amount=rows.find(r=>r.kind==='prize'+(i+1))?.amount??'0';
         return `${i+1}. ${clean(p.name)} ${short(p.wallet)} ${score(p)}: ${dmt(amount)} DMT`;
       }).join('\n')||'No ranked finishers.';
-      await notice('week:'+week.week+(mode==='normal'?'':':'+mode),`${config.live?'':'DRY RUN — ' }Week ${week.week} ${RACE[mode]} ranked results\nWinners\n${winners}\nHouse: ${dmt(week.house)} DMT. Rollover: ${dmt(week.rollover)} DMT.\nRefunds: ${refunds.length}, ${dmt(sum(refunds))} DMT; eligible after source finality.\nPrizes/house due ${week.pay_at} (24 hours after week end).${config.live?'':' Sending is disabled.'}\nHold a winner before sending (holds cover both races):\nnode tools/payout/hold.mjs ${week.week} <wallet> "<reason>"\nUse the full wallet from the ledger. A hold after sending does nothing.`);
+      await notice('week:'+week.week+(mode==='normal'?'':':'+mode),`${config.live?'':'DRY RUN — ' }Week ${week.week} ${RACE[mode]} ranked results\nWinners\n${winners}\nHouse: ${dmt(week.house)} DMT. Rollover: ${dmt(week.rollover)} DMT.\nRefunds: ${refunds.length}, ${dmt(sum(refunds))} DMT; eligible after source finality.\nPrizes/house due ${week.pay_at}.${config.live?'':' Sending is disabled.'}\nHold a winner before sending (holds cover both races):\nnode tools/payout/hold.mjs ${week.week} <wallet> "<reason>"\nUse the full wallet from the ledger. A hold after sending does nothing.`);
     }
     try{validateState(state);}catch{await alert('invalid ledger');return;}
     const outstanding=state.rows.filter(r=>r.kind!=='rollover-note'&&r.status!=='confirmed');
     const inFlight=outstanding.filter(r=>['sending','sent'].includes(r.status)).sort((a,b)=>Number(BigInt(a.nonce)-BigInt(b.nonce)));
+    if(inFlight.some(r=>!allowed(r))){log('PAUSED: transfer outside approved scope is in flight.');return;}
     const mark=async(row,status,args={})=>{
       await call('mark',{p_id:row.id,p_status:status,...(row.tx_hash?{p_hash:row.tx_hash}:{}),...args});
       row.status=status;if(args.p_hash)row.tx_hash=args.p_hash;if(args.p_raw)row.raw_tx=args.p_raw;
@@ -166,7 +174,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       }
     }catch{await alert('chain recovery unavailable');return;}
     if(outstanding.some(r=>r.status==='failed')){await alert('failed transfer requires review');return;}
-    const due=outstanding.filter(r=>r.status==='planned'&&(r.kind==='refund'||Date.parse(planOf(state,r)?.pay_at)<=now()));
+    const due=outstanding.filter(r=>allowed(r)&&r.status==='planned'&&(r.kind==='refund'||Date.parse(planOf(state,r)?.pay_at)<=now()));
     // A refund repays a real payment: its entry's transaction must hold DMT Transfer logs of exactly that amount from that
     // wallet to the entry wallet, and no payment is refunded twice. A ledger row alone (a database write, a leaked server key)
     // can never move DMT (security pass, 3 Nov).
@@ -221,7 +229,9 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
         work.push(row);
       }catch{await alert((row.kind==='refund'?'unverified refund row ':'finality unavailable row ')+row.id);return;}
     }
-    if(!work.length){log('No transfers due.');return;}
+    if(!work.length){log('No transfers due.');return approvedWeek===null?undefined:{rows:[],complete:state.weeks.some(w=>w.week===approvedWeek&&modeOf(w)==='normal')&&!outstanding.some(allowed)};}
+    const preview=work.map(financial);
+    if(expectedRows!==null&&preview.some(row=>!expectedRows.some(expected=>JSON.stringify(financial(expected))===JSON.stringify(row)))){await alert('payout differs from approved dry preview');return;}
     let fees,gasById;
     try {
       for(const row of recover)if(units(row.amount)>config.transferCap||(row.kind!=='refund'&&pot(row.week)>config.weekCap))throw Error('DMT cap'); // signed rows keep the old stop
@@ -263,7 +273,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       const reason=['DMT cap','DMT balance','ETH balance','run gas cap','gas price cap','pot reserve unavailable'].includes(error.message)?error.message:'chain unavailable';
       await alert('weeks '+[...new Set(work.map(r=>r.week))].join(',')+': '+reason);return;
     }
-    if(!config.live){for(const row of work)log(`WOULD SEND row ${row.id} ${row.kind} week ${row.week}: ${dmt(row.amount)} DMT to ${row.wallet}`);return;}
+    if(!config.live){for(const row of work)log(`WOULD SEND row ${row.id} ${row.kind} week ${row.week}: ${dmt(row.amount)} DMT to ${row.wallet}`);return {rows:preview};}
     let privateKey;
     for(let row of work) {
       await renew();
@@ -302,5 +312,6 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       catch{await alert('receipt follow-up row '+row.id);return;}
       if(!checked){log(`FOLLOW UP row ${row.id} ${row.tx_hash} next invocation`);return;}
     }
+    return approvedWeek===null?undefined:{complete:!state.rows.some(r=>allowed(r)&&r.status!=='confirmed')};
   }finally {await call('lease',{p_owner:owner,p_release:true});}
 }

@@ -38,8 +38,8 @@ test('new-start preflight and server refusal preserve the paid ready entry',asyn
  for(const at of ['preflight','server']) {
   const paid={id:7,entry:'paid-entry',week:0},saved=new Map([['sq-ranked-entries',[paid]]]),calls=[];
   const update=()=>Object.assign(Error('Update the game'),{status:409,update:true});
-  const start=Function('rankedAction','rankedLive','SIM_ID','BUILD','BASE','requireRankedBuild','writeRanked','readRanked','$','rankedMessage','mapLoading','pickMap','rankedWeek','rankedApi','RunRecorder','startRun',source+';return startRankedEntry;')(
-   fn=>fn(),()=>null,CLIENT.sim,CLIENT.build,'/',async()=>{calls.push('preflight');if(at==='preflight')throw update();},(k,v)=>saved.set(k,v),(k,f)=>saved.get(k)??f,()=>({value:'adventurer'}),()=>{},false,async()=>{calls.push('map');},{map:'greentown'},async(base,route,body)=>{calls.push('start');assert.equal(body.build,CLIENT.build);assert.equal(body.sim,CLIENT.sim);throw update();},class{},()=>{throw Error('must not play');});
+  const start=Function('rankedAction','rankedLive','SIM_ID','BUILD','BASE','requireRankedBuild','writeRanked','readRanked','$','rankedMessage','mapLoading','pickMap','rankedWeek','rankedApi','RunRecorder','startRun','rankedConsent',source+';return startRankedEntry;')(
+   fn=>fn(),()=>null,CLIENT.sim,CLIENT.build,'/',async()=>{calls.push('preflight');if(at==='preflight')throw update();},(k,v)=>saved.set(k,v),(k,f)=>saved.get(k)??f,()=>({value:'adventurer'}),()=>{},false,async()=>{calls.push('map');},{map:'greentown'},async(base,route,body)=>{calls.push('start');assert.equal(body.build,CLIENT.build);assert.equal(body.sim,CLIENT.sim);throw update();},class{},()=>{throw Error('must not play');},()=>1);
   await assert.rejects(start(paid),e=>e.update===true);assert.deepEqual(saved.get('sq-ranked-entries'),[paid]);assert.equal(saved.has('sq-ranked-live'),false);assert.deepEqual(calls,at==='preflight'?['preflight']:['preflight','map','start']);
  }
 });

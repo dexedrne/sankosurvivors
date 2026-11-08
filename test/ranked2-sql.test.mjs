@@ -1,5 +1,5 @@
 // Real PostgreSQL (PGlite) checks for the week 1 rules: the migration from the week 0 install (pasted again and again),
-// week 0 still settling by its old rules, kills-per-minute boards from week 1, and the Hard race's own pot and rollover.
+// week 0 still settling by its old rules, combined-score boards from week 1, and the Hard race's own pot and rollover.
 // Optional like the other SQL tests: SQS_PGLITE=/path/to/@electric-sql/pglite/dist/index.js
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -42,7 +42,7 @@ async function week0DB() {
 }
 const fnCount = async (db, name) => (await db.query(`select count(*)::int as n from pg_proc where proname=$1`, [name])).rows[0].n;
 
-test('ranked2 SQL: migration, week 0 old rules, kills per minute, the Hard pot', { skip: !enabled }, async (t) => {
+test('ranked2 SQL: migration, week 0 old rules, combined points, the Hard pot', { skip: !enabled }, async (t) => {
   const { db, rpc, clock, upgrade, pay, run } = await week0DB();
   try {
     // ---- week 0 is played on the live install: old functions, old signatures ----
@@ -73,7 +73,7 @@ test('ranked2 SQL: migration, week 0 old rules, kills per minute, the Hard pot',
       assert.deepEqual(idx, ['sqs_payout_unique_transfer_mode']);
     });
 
-    await t.test('week 0 boards and settlement rank by time survived, then kills (endless now); the same runs in week 1 rank by kills per minute', async () => {
+    await t.test('week 0 boards and settlement rank by time survived, then kills (endless now); the same runs in week 1 rank by combined points', async () => {
       const board = await rpc('sqs_ranked_board', { p_week: 0 });
       assert.deepEqual(board.rows.map((r) => r.name), ['Dev', 'Winner', 'Almost', 'FastFell']);
       // the site's order (src/ranked.js) is the same
@@ -84,11 +84,11 @@ test('ranked2 SQL: migration, week 0 old rules, kills per minute, the Hard pot',
       // a Hard race does not exist in week 0, before or after paying
       assert.equal((await rpc('sqs_ranked_can_enter', { p_server_key: 'server-key', p_wallet: w(1), p_week: 0, p_ip_hash: 'a', p_max: 20, p_mode: 'hard' })).error, 'no such race this week');
       assert.equal((await rpc('sqs_ranked_enter', { ...old, p_tx: tx(3), p_wallet: w(1), p_ip_hash: 'a', p_mode: 'hard' })).error, 'bad entry');
-      // the very same runs in week 1: kills per minute, so FastFell (90/min) leads
+      // The very same runs in week1: Dev1899points leads FastFell1500 and Winner1400.
       for (const r of board.rows) await run(1, r.wallet, r.t, r.kills, { name: r.name });
       const b1 = await rpc('sqs_ranked_board', { p_week: 1 });
-      assert.deepEqual(b1.rows.map((r) => r.name), ['FastFell', 'Dev', 'Winner', 'Almost']);
-      assert.deepEqual([...b1.rows].reverse().sort(compareRuns(1)).map((r) => r.name), ['FastFell', 'Dev', 'Winner', 'Almost']);
+      assert.deepEqual(b1.rows.map((r) => r.name), ['Dev', 'FastFell', 'Winner', 'Almost']);
+      assert.deepEqual([...b1.rows].reverse().sort(compareRuns(1)).map((r) => r.name), ['Dev', 'FastFell', 'Winner', 'Almost']);
       await db.exec('delete from sqs_ranked_entries where week=1');
     });
 
@@ -142,16 +142,16 @@ test('ranked2 SQL: migration, week 0 old rules, kills per minute, the Hard pot',
     await run(1, w(31), 100, 10, { name: 'BraveAgain', mode: 'hard' }); // a weaker second run: only the best counts
     await db.exec(`insert into sqs_ranked_entries(week,wallet,tx,paid,ip_hash,seed,refund_reason,mode) values (1,'${w(35)}','${tx(9000)}',${e18(1.5)},'',0,'game updated','hard')`);
 
-    await t.test('week 1 boards: kills per minute, too-short runs last, ties to more kills; the same order as the site', async () => {
+    await t.test('week 1 boards: combined points, too-short runs last; the same order as the site', async () => {
       const n = await rpc('sqs_ranked_board', { p_week: 1, p_mode: 'normal' }), h = await rpc('sqs_ranked_board', { p_week: 1, p_mode: 'hard' });
-      assert.deepEqual(n.rows.map((r) => r.name), ['Dev', 'Steady', 'Slow', 'TooShort']);
+      assert.deepEqual(n.rows.map((r) => r.name), ['Dev', 'Slow', 'Steady', 'TooShort']);
       assert.deepEqual(h.rows.map((r) => r.name), ['DevHard', 'Brave', 'Tied', 'JustEnough', 'Blink']);
       assert.deepEqual([n.entries, n.paid, h.entries, h.paid], [4, e18(2), 6, e18(9)]);
       for (const b of [n, h]) assert.deepEqual([...b.rows].reverse().sort(compareRuns(1)).map((r) => r.name), b.rows.map((r) => r.name));
       const noPrize = (x) => x === DEV;
       assert.deepEqual(prizePlaces(h.rows, 1, noPrize), [-1, 0, 1, 2, -1]);
       const s = await rpc('sqs_ranked_settle', { p_key: 'reports-key', p_week: 1, p_mode: 'hard' });
-      assert.deepEqual([s.mode, s.rules, s.entries, s.paid, s.refunds.length], ['hard', 'kpm', 6, e18(9), 1]);
+      assert.deepEqual([s.mode, s.rules, s.entries, s.paid, s.refunds.length], ['hard', 'combined', 6, e18(9), 1]);
     });
 
     await t.test('week 1 settles two pots: Normal carries week 0 rollover, Hard starts from nothing; both house fees to the same wallet', async () => {
@@ -166,7 +166,7 @@ test('ranked2 SQL: migration, week 0 old rules, kills per minute, the Hard pot',
         if (JSON.stringify(wrong) !== JSON.stringify(plans[mode])) assert.equal((await pay('plan', { p_week: 1, p_mode: mode, p_plan: wrong })).error, 'plan differs from settlement');
         assert.deepEqual(await pay('plan', { p_week: 1, p_mode: mode, p_plan: plans[mode] }), { ok: true }, mode);
       }
-      assert.deepEqual(plans.normal.prizes.map((p) => p.wallet), [w(22), w(23)]);
+      assert.deepEqual(plans.normal.prizes.map((p) => p.wallet), [w(23), w(22)]);
       assert.deepEqual(plans.hard.prizes.map((p) => p.wallet), [w(31), w(32), w(33)]);
       const st = await pay('read', { p_week: 1 });
       const wk = (m) => st.weeks.find((x) => x.mode === m), rows = (m) => st.rows.filter((r) => r.mode === m);

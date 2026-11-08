@@ -6,7 +6,7 @@
 //   POST /api/ranked-start {entry, adv}         reveals the run's seed and starts the clock (asking again, before the run
 //                                               is sent, returns the same run: a lost answer never costs the entry)
 //   POST /api/ranked-submit {run, name, log}    replays the run on the server; only what the inputs earned counts
-//   POST /api/ranked-void {run}                 a run cut off by a game update starts again on the same entry (new seed, nothing refunded)
+//   POST /api/ranked-void {run}                 an interrupted run restarts; closed admission records an owed refund
 // The entry fee goes to the ranked entry wallet. Per race: 10% is the house fee (sent on to the dev's wallet); 90% is the
 // race's prize pool for the week, paid to its top 5 wallets (40/25/15/12/8) by the payout bot. The database serializes
 // eligibility and run state changes.
@@ -58,11 +58,12 @@ function raceIn(g, week, mode) {
 }
 const dmtAmount = wei => load().game.dmtText(String(wei));
 // Week0 text stays byte-identical so saved signatures keep checking out.
-const enterMessage = (nonce, week, mode = 'normal') => {
+const enterMessage = (nonce, week, mode = 'normal', deadline) => {
   const price = raceIn(load()?.game, week, mode).dmt;
-  return mode === 'hard'
+  const message = mode === 'hard'
     ? `SankoQuest Survivors ranked\n\nSign to enter this week's Hard ranked race (week ${week}). Signing is free. Your wallet asks separately before sending the ${price} DMT entry.\n\nNonce: ${nonce}`
     : `SankoQuest Survivors ranked\n\nSign to enter this week's ranked runs (week ${week}). Signing is free. Your wallet asks separately before sending the ${price} DMT entry.\n\nNonce: ${nonce}`;
+  return Number.isSafeInteger(deadline) ? message + `\n\nI acknowledge this run stops at ${new Date(deadline).toISOString()} and keeps the score earned by then.` : message;
 };
 const modeOf = (x) => (x && x.m === 'hard' ? 'hard' : 'normal'); // tickets from before the Hard race are Normal
 // the game version's rules for a week (older versions: one 15-minute Normal race)
@@ -148,6 +149,7 @@ async function handle(route, req, res, ctx) {
   const cur = currentSim(), sim = load(cur);
   if (!sim) return send(res, 503, { error: 'ranked runs open soon' });
   const g = sim.game, week = g.weekOf(), mapId = g.weekMap(week);
+  const policy = g.clockPolicy(week), serverNow = Date.now();
   const unavailable = {error:'Could not verify the latest game version. Reconnect and try again before entering ranked.'};
   function admit(claim) {
     const client = currentClient(cur);
@@ -186,8 +188,8 @@ async function handle(route, req, res, ctx) {
     // week 0 on an endless build: runs are endless and rank by time survived ('time'); 'classic' = the old 15:00 runs
     const timed = !kpm && typeof g.runSeconds === 'function' && g.runSeconds(week) > LEGACY_RUN_SECONDS;
     // the top-level fields are the Normal race, as before the Hard race (older pages read them)
-    return send(res, 200, { open: process.env.SQS_RANKED === 'on', sim: cur, week, map: mapId, endsAt: g.weekStart(week + 1), entryDmt: races.normal.entryDmt, entries: races.normal.entries, poolDmt: races.normal.poolDmt, payouts: g.RANKED.payouts, maxEntries: g.RANKED.maxEntriesPerWallet, collect: COLLECT, rows: races.normal.rows,
-      rules: kpm ? 'kpm' : timed ? 'time' : 'classic', minSeconds: kpm ? g.RANKED.minSeconds : 0, timeLimit: kpm || timed ? g.RANKED.timeLimit : 0, races }, 'public, s-maxage=15, stale-while-revalidate=30');
+    return send(res, 200, { open: process.env.SQS_RANKED === 'on' && policy.admissionOpen, serverNow, closesAt: policy.closesAt, deadline: policy.deadline, sim: cur, week, map: mapId, endsAt: g.weekStart(week + 1), entryDmt: races.normal.entryDmt, entries: races.normal.entries, poolDmt: races.normal.poolDmt, payouts: g.RANKED.payouts, maxEntries: g.RANKED.maxEntriesPerWallet, collect: COLLECT, rows: races.normal.rows,
+      rules: kpm ? 'combined' : timed ? 'time' : 'classic', minSeconds: kpm ? g.RANKED.minSeconds : 0, timeLimit: kpm || timed ? g.RANKED.timeLimit : 0, races }, 'no-store');
   }
   if (process.env.SQS_RANKED !== 'on') return send(res, 503, { error: 'ranked runs open soon' });
 
@@ -198,12 +200,14 @@ async function handle(route, req, res, ctx) {
     if (!ADDR.test(wallet)) return send(res, 400, { error: 'connect a wallet first' });
     if (!racesIn(g, week).includes(mode)) return send(res, 400, { error: 'that race is not open this week' });
     if (!admit({build:q.get('build'), sim:q.get('sim')})) return;
+    if (!policy.admissionOpen) return send(res, 400, {error:'ranked admission is closed', closed:true, ...policy});
+    if (q.get('deadline') !== String(policy.deadline)) return send(res, 400, {error:'acknowledge the ranked deadline before entering'});
     const price = raceIn(g, week, mode);
     const can = await rpc('sqs_ranked_can_enter', { p_server_key: SERVER_KEY, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
     if (!can || can.error) return send(res, 400, can || { error: 'could not check your entries' });
     // the race is part of the signed nonce: the payment is checked against that race's price and enters that race
-    const nonce = signed({ k: 'rnonce', w: week, s: Date.now(), n: crypto.randomBytes(9).toString('base64url'), ...(mode === 'normal' ? {} : { m: mode }) });
-    return send(res, 200, { nonce, message: enterMessage(nonce, week, mode), week, mode, left: can.left, collect: COLLECT, dmt: DMT, amountWei: price.wei.toString(), chainId: 42161 });
+    const nonce = signed({ k: 'rnonce', w: week, d: policy.deadline, c: 1, s: Date.now(), n: crypto.randomBytes(9).toString('base64url'), ...(mode === 'normal' ? {} : { m: mode }) });
+    return send(res, 200, { nonce, message: enterMessage(nonce, week, mode, policy.deadline), deadline: policy.deadline, closesAt: policy.closesAt, serverNow: Date.now(), clockVersion: 1, week, mode, left: can.left, collect: COLLECT, dmt: DMT, amountWei: price.wei.toString(), chainId: 42161 });
   }
 
   if (route === 'ranked-enter' && req.method === 'POST') {
@@ -215,7 +219,7 @@ async function handle(route, req, res, ctx) {
     if (!n || n.k !== 'rnonce' || (n.w !== week && n.w !== week - 1) || Date.now() - n.s > 8 * 24 * 3600 * 1000) return send(res, 400, { error: 'that sign-in expired, start again' });
     const mode = modeOf(n);
     const price = raceIn(g, week, mode), signedPrice = raceIn(g, n.w, mode);
-    const wallet = typeof b.signature === 'string' ? recoverSigner(enterMessage(b.nonce, n.w, mode), b.signature) : null;
+    const wallet = typeof b.signature === 'string' ? recoverSigner(enterMessage(b.nonce, n.w, mode, n.c === 1 ? n.d : undefined), b.signature) : null;
     if (!wallet) return send(res, 400, { error: 'the signature did not check out' });
     const tx = typeof b.tx === 'string' ? b.tx.toLowerCase() : ''; if (!TXH.test(tx)) return send(res, 400, { error: 'bad transaction id' });
     const gate = await rpc('sqs_ranked_receipt_gate', { p_server_key: SERVER_KEY, p_ip_hash: ipHash(ip, week, TICKET_KEY) });
@@ -225,8 +229,8 @@ async function handle(route, req, res, ctx) {
     if (pay.at < g.weekStart(week) || (week >= 1 && n.w !== week)) {
       const beforeReset = pay.at < g.weekStart(week);
       const owe = await rpc('sqs_ranked_owe', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: beforeReset ? week - 1 : week, p_paid: pay.paid.toString(), p_reason: beforeReset ? 'paid just before the weekly reset' : 'signed for the previous week', p_mode: mode });
-      if (!owe || owe.error) return send(res, 400, owe || { error: 'could not record that' });
-      return send(res, 400, { error: `${beforeReset ? 'Your payment landed just before the weekly reset' : 'Your sign-in was for the previous week'}, so it could not count. Your ${dmtAmount(pay.paid)} DMT will be sent back.`, refund: true });
+      if (!owe || (owe.error && owe.error !== 'that payment was already used for an entry')) return send(res, 400, owe || { error: 'could not record that' });
+      if (!owe.error) return send(res, 400, { error: `${beforeReset ? 'Your payment landed just before the weekly reset' : 'Your sign-in was for the previous week'}, so it could not count. Your ${dmtAmount(pay.paid)} DMT will be sent back.`, refund: true });
     }
     // an entry costs exactly its race's price: more than that is not an entry, and the whole payment is owed back. (A
     // payment that already became an entry before this rule, answered 'already used', goes on to return that entry.)
@@ -242,8 +246,8 @@ async function handle(route, req, res, ctx) {
     if (!racesIn(g, week).includes(mode)) {
       // a valid payment for a race that is not running (cannot happen with nonces from the game): owed back, never lost
       const owe = await rpc('sqs_ranked_owe', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: week, p_paid: pay.paid.toString(), p_reason: 'that race is not open this week', p_mode: mode });
-      if (!owe || owe.error) return send(res, 400, owe || { error: 'could not record that' });
-      return send(res, 400, { error: `That race is not open this week. Your ${price.dmt} DMT will be sent back.`, refund: true });
+      if (!owe || (owe.error && owe.error !== 'that payment was already used for an entry')) return send(res, 400, owe || { error: 'could not record that' });
+      if (!owe.error) return send(res, 400, { error: `That race is not open this week. Your ${price.dmt} DMT will be sent back.`, refund: true });
     }
     const seed = crypto.randomInt(1, 2 ** 31 - 1);
     const out = await rpc('sqs_ranked_enter', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_paid: pay.paid.toString(), p_seed: seed, p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
@@ -251,23 +255,36 @@ async function handle(route, req, res, ctx) {
     if (!out || out.error) return send(res, 400, out || { error: 'could not save the entry' });
     // a retried payment answers with the race it was first entered in
     const entryMode = out.mode === 'hard' ? 'hard' : out.mode === 'normal' ? 'normal' : mode;
-    return send(res, 200, { entry: signed({ k: 'rentry', id: out.id, a: wallet, w: out.week || week, ...(entryMode === 'normal' ? {} : { m: entryMode }) }), id: out.id, wallet, week: out.week || week, mode: entryMode, left: out.left, again: !!out.again });
+    return send(res, 200, { entry: signed({ k: 'rentry', id: out.id, a: wallet, w: out.week ?? week, ...(entryMode === 'normal' ? {} : { m: entryMode }) }), id: out.id, wallet, week: out.week ?? week, mode: entryMode, left: out.left, again: !!out.again });
   }
 
   if (route === 'ranked-start' && req.method === 'POST') {
     const b = await readBody(req); if (b.tooBig) return send(res, 413, { error: 'too big' });
     const e = unsign(b.entry); if (!e || e.k !== 'rentry') return send(res, 400, { error: 'no entry' });
-    if (e.w !== week) return send(res, 400, { error: 'that entry was for last week' });
+    if (e.w !== week) {
+      const previous = await rpc('sqs_ranked_clock_start', {p_server_key:SERVER_KEY,p_id:e.id,p_wallet:e.a,p_adv:'adventurer',p_deadline:null});
+      return send(res, 400, previous?.refund ? previous : {error:'that entry was for last week'});
+    }
     if (!admit(b)) return;
     const adv = typeof b.adv === 'string' ? b.adv : ''; if (!g.RANKED.advs.includes(adv)) return send(res, 400, { error: 'pick an adventurer' });
     const mode = modeOf(e);
     if (!racesIn(g, week).includes(mode)) return send(res, 400, { error: 'that race is not open this week' });
-    const out = await rpc('sqs_ranked_start', { p_server_key: SERVER_KEY, p_id: e.id, p_wallet: e.a, p_adv: adv });
+    const out = await rpc('sqs_ranked_clock_start', { p_server_key: SERVER_KEY, p_id: e.id, p_wallet: e.a, p_adv: adv, p_deadline: Number.isSafeInteger(b.deadline) ? b.deadline : null });
     if (!out || out.error) return send(res, 400, out || { error: 'could not start' });
     if (out.mode && out.mode !== mode) return send(res, 500, { error: 'server error: that entry is in another race. Your run was not used up; tell the dev' });
+    if (![0, 1].includes(out.clockVersion) || (out.clockVersion === 1 && (out.deadline !== policy.deadline || !out.clock?.ok))) return send(res, 503, {error:'ranked clock is unavailable'});
     const runAdv = typeof out.adv === 'string' ? out.adv : adv, started = Number(out.started) || Date.now(); // a repeat keeps the first start
-    const run = signed({ k: 'rrun', id: e.id, a: e.a, w: week, seed: out.seed, adv: runAdv, v: cur, s: started, ...(mode === 'normal' ? {} : { m: mode }) });
-    return send(res, 200, { run, seed: out.seed, map: mapId, adv: runAdv, week, mode, started, serverNow: Date.now(), again: !!out.again });
+    const run = signed({ k: 'rrun', id: e.id, a: e.a, w: week, seed: out.seed, adv: runAdv, v: cur, s: started, ...(out.clockVersion === 1 ? {d:out.deadline,c:1} : {}), ...(mode === 'normal' ? {} : { m: mode }) });
+    return send(res, 200, { run, seed: out.seed, map: mapId, adv: runAdv, week, mode, started, serverNow: Date.now(), again: !!out.again, deadline: out.deadline, clockVersion: out.clockVersion, clock: out.clock });
+  }
+
+  if (route === 'ranked-clock' && req.method === 'POST') {
+    const b = await readBody(req); if (b.tooBig) return send(res, 413, {error:'too big'});
+    const r = unsign(b.run);
+    if (!r || r.k !== 'rrun' || r.c !== 1 || !Number.isSafeInteger(r.s) || !Number.isSafeInteger(r.id) || !ADDR.test(r.a)) return send(res, 400, {error:'no run'});
+    if (!['state','pause','resume'].includes(b.action) || !Number.isSafeInteger(b.seq) || b.seq < 0 || b.seq > 500000 || !Number.isSafeInteger(b.frame) || b.frame < 0 || b.frame > 219600) return send(res, 400, {error:'bad clock transition'});
+    const out = await rpc('sqs_ranked_clock', {p_server_key:SERVER_KEY,p_id:r.id,p_wallet:r.a,p_started:r.s,p_action:b.action,p_seq:b.seq,p_frame:b.frame});
+    return send(res, out?.ok ? 200 : out?.error ? 400 : 503, out || {error:'ranked clock is unavailable'});
   }
 
   if (route === 'ranked-submit' && req.method === 'POST') {
@@ -277,7 +294,9 @@ async function handle(route, req, res, ctx) {
     // the run's longest length comes from its own version and week: 15 minutes in week 0, the time limit from week 1
     const runMax = played ? runSecondsIn(played.game, r.w) : LEGACY_RUN_SECONDS;
     const sentReal = (Date.now() - r.s) / 1000;
-    const maxTicks = Math.ceil(runMax * 30);
+    const cutoff = r.c === 1;
+    if (cutoff && (!Number.isSafeInteger(r.d) || r.d !== g.weekStart(r.w + 1) || r.d <= r.s)) return send(res, 400, {error:'no run'});
+    const maxTicks = Math.min(Math.ceil(runMax * 30), cutoff ? Math.floor((r.d-r.s)*30/1000) : Infinity);
     const shape = logShape(b.log, maxTicks); if (shape) return send(res, 400, { error: shape });
     if (!played) return send(res, 500, { error: 'server error: that game version is missing. Your run was not used up; tell the dev' });
     const sha = crypto.createHash('sha256').update(JSON.stringify(b.log)).digest('hex');
@@ -289,7 +308,7 @@ async function handle(route, req, res, ctx) {
     };
     let release = true; // a lost claim response may still have acquired our UUID's lease
     try {
-      const claim = await rpc('sqs_ranked_claim_v2', { ...ident, p_allow_claim: sentReal <= runMax + LATE_SECONDS });
+      const claim = await rpc('sqs_ranked_claim_v2', { ...ident, p_allow_claim: cutoff ? Date.now() <= r.d + g.UPLOAD_MS : sentReal <= runMax + LATE_SECONDS });
       if (claim && (claim.error || claim.busy || claim.result)) {
         release = false;
         if (claim.error) return /older submission|already settled/.test(claim.error) ? send(res, 409, { ...claim, retry: true }) : send(res, 400, claim);
@@ -298,14 +317,16 @@ async function handle(route, req, res, ctx) {
       }
       if (!claim || !claim.ok || !Number.isSafeInteger(claim.received)) throw new Error('ranked claim was not acknowledged');
       // Retries use the original receipt time: a recovery wait cannot invalidate an honest run or cure a too-fast log.
-      const real = (claim.received - r.s) / 1000;
+      if (cutoff && (!Number.isSafeInteger(claim.creditMs) || claim.creditMs < 0)) throw new Error('ranked clock credit unavailable');
+      const real = ((cutoff ? Math.min(claim.received, r.d) : claim.received) - r.s) / 1000;
+      const credit = cutoff ? claim.creditMs / 1000 : 0;
       const logTicks = b.log.runs.reduce((n, x) => n + x[0], 0), early = real < (logTicks / 30) * 0.97 - 5;
-      const result = early ? { t: 0, kills: 0, level: 0 } : played.game.replay(b.log, { seed: r.seed, mapId: played.game.weekMap(r.w), adv: r.adv, ground: played.ground, week: r.w, mode: modeOf(r) }, { maxTicks });
+      const result = early ? { t: 0, kills: 0, level: 0 } : played.game.replay(b.log, { seed: r.seed, mapId: played.game.weekMap(r.w), adv: r.adv, ground: played.ground, week: r.w, mode: modeOf(r) }, { maxTicks, allowPartial: cutoff && claim.received >= r.d });
       let verdict = 'ok';
       if (early) verdict = 'rejected: faster than real time';
       else if (result.error) verdict = 'rejected: ' + result.error;
       else if (real < result.t * 0.97 - 5) verdict = 'rejected: faster than real time';
-      else if (real > result.t + (g.RANKED.pauseSeconds ?? 1800)) verdict = 'rejected: 30-minute total pause allowance exceeded';
+      else if (real - credit > result.t + (g.RANKED.pauseSeconds ?? 1800)) verdict = 'rejected: 30-minute total pause allowance exceeded';
       const ok = verdict === 'ok';
       const out = await rpc('sqs_ranked_finish_v2', { ...ident, p_name: (typeof b.name === 'string' && clean(b.name, 16)) || 'Adventurer', p_t: ok ? result.t : 0, p_kills: ok ? result.kills : 0, p_level: ok ? result.level : 0, p_won: ok && result.won, p_verdict: verdict, p_log: ok ? zlib.gzipSync(JSON.stringify(b.log)).toString('base64') : null });
       if (!out || out.error) return send(res, 503, { error: out?.error || 'could not save the run', retry: true });
@@ -320,13 +341,13 @@ async function handle(route, req, res, ctx) {
     const b = await readBody(req); if (b.tooBig) return send(res, 413, { error: 'too big' });
     const r = unsign(b.run); if (!r || r.k !== 'rrun') return send(res, 400, { error: 'no run' });
     if (r.v === cur) return send(res, 400, { error: 'the game has not changed since this run started: resume it instead' });
-    // update 7: nothing is paid back. The same entry starts again, with a new seed, on the new version (an honest player
-    // loses nothing, and a run seen going badly cannot be turned into money). Cheap: no replay, at most 3 times an entry.
+    // The same entry restarts with a new seed, at most3times. SQL16 records an owed refund if admission has
+    // closed and a valid interrupted run can no longer receive a replacement start.
     if (r.w !== week) return send(res, 400, { error: 'that run can no longer be restarted: its week is over' });
     // security pass 3: only a run that could still have been sent (an old unsent run kept back is not a free retry), and
-    // only the entry's current start (update8.sql: an old token cannot restart a newer run of the same entry). The run's
-    // length comes from the live version's rules: no archived bundle is loaded or replayed here, and nothing is refunded.
-    if (!Number.isFinite(r.s) || Date.now() - r.s > (runSecondsIn(g, r.w) + LATE_SECONDS) * 1000) return send(res, 400, { error: 'that run can no longer be restarted: it started too long ago' });
+    // only the entry's current start. SQL16 checks new-policy age with verified pause credit and refunds a valid
+    // interruption when admission has closed; legacy age remains bounded here without loading an archived bundle.
+    if (!Number.isFinite(r.s) || (r.c !== 1 && Date.now() - r.s > (runSecondsIn(g, r.w) + LATE_SECONDS) * 1000)) return send(res, 400, { error: 'that run can no longer be restarted: it started too long ago' });
     const again = await rpc('sqs_ranked_restart', { p_server_key: SERVER_KEY, p_id: r.id, p_wallet: r.a, p_seed: crypto.randomInt(1, 2 ** 31 - 1), p_reason: `game updated during the run (${r.v} -> ${cur})`, p_started: r.s });
     if (!again || again.error) return send(res, 400, again || { error: 'could not restart that run' });
     const mode = again.mode === 'hard' ? 'hard' : 'normal';

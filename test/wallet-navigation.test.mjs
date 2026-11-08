@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
-const input = source.slice(source.indexOf('// ---- input -----'), source.indexOf("addEventListener('keyup'"));
+const input = source.slice(source.indexOf('// ---- input -----'), source.indexOf("addEventListener('keyup'", source.indexOf('// ---- input -----')));
 const navigation = source.slice(source.indexOf('const NAV_SCREENS'), source.indexOf('// ---- minimap:'));
 const walletClose = source.slice(source.indexOf("$('walletclose').onclick ="), source.indexOf("$('wallet').addEventListener"));
 const tabTrap = source.slice(source.indexOf("$('ranked').addEventListener('click'"), source.indexOf('async function rankedAction'));
@@ -17,7 +17,7 @@ const trapStart=source.indexOf('function containMenuTab('),sharedTrap=trapStart<
 const sliderKey = source.slice(source.indexOf("    r.addEventListener('keydown'"), source.indexOf('\n', source.indexOf("    r.addEventListener('keydown'")));
 const choose = source.slice(source.indexOf('choose: (wal, dev)'), source.indexOf('  note: (t) => banner', source.indexOf('choose: (wal, dev)')));
 const loop = source.indexOf('function loop(ts)');
-const menuStart = source.indexOf("  if (mode !== 'play'", loop);
+const menuStart = source.indexOf("  if (mode !== 'play' && mode !== 'levelup'", loop);
 const titleStart = source.indexOf("  if (mode === 'title' || mode === 'end')", menuStart);
 const pad = source.slice(menuStart, source.indexOf('    if (!sim) { // title backdrop:', titleStart)) + '  }';
 

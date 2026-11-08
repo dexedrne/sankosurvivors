@@ -16,18 +16,18 @@ export const RANKED = {
   payouts: [0.40, 0.25, 0.15, 0.12, 0.08], // of a race's prize pool, to its week's top 5 wallets
   maxEntriesPerWallet: 1000000,  // no real cap (owner 3 Nov: "let people play as much as they want, we want volume"); the SQL takes a number
   weekEpoch: Date.UTC(2026, 10, 2), // a Monday, 00:00 UTC: weeks run Monday to Sunday (UTC)
-  // From this week on runs are scored by kills per minute and the Hard race is open. Runs are endless from this build on
+  // From this week on runs are scored by kills plus whole seconds survived; the Hard race exists historically. Runs are endless from this build on
   // (owner 2 Nov: "ranked should be endless mode from now on"), so week 0 ranks by time survived, then kills; its earlier
   // 15:00 runs replay on their own version. tools/supabase/*.sql and the payout bot use the same switch.
   kpmWeek: 1,
-  minSeconds: 180,               // a kills-per-minute run must last 3:00 to place (shorter runs are listed as too short)
+  minSeconds: 180,               // a week1+ run must last 3:00 to place (shorter runs are listed as too short)
   timeLimit: 2 * 3600,           // owner 2 Nov: "no 45 mins cap, can go 2 hours": the run stops here with its score counted
   maps: MAPS.filter((m) => !m.special).map((m) => m.id), // one map per week, in turn
   advs: ADVENTURERS.filter((a) => !a.special).map((a) => a.id), // every regular adventurer is open in ranked
 };
-export function pauseRemaining(started, played, now = Date.now()) {
-  if (!Number.isFinite(started) || started <= 0 || !Number.isFinite(played) || played < 0 || !Number.isFinite(now)) return null;
-  return RANKED.pauseSeconds - Math.max(0, (now - started) / 1000 - Math.floor(played));
+export function pauseRemaining(started, played, now = Date.now(), graceMs = 0) {
+  if (!Number.isFinite(started) || started <= 0 || !Number.isFinite(played) || played < 0 || !Number.isFinite(now) || !Number.isFinite(graceMs) || graceMs < 0) return null;
+  return RANKED.pauseSeconds - Math.max(0, (now - started - graceMs) / 1000 - Math.floor(played));
 }
 export const weekOf = (ms = Date.now()) => Math.floor((ms - RANKED.weekEpoch) / (7 * 24 * 3600 * 1000));
 export const weekStart = (w) => RANKED.weekEpoch + w * 7 * 24 * 3600 * 1000;
@@ -52,12 +52,16 @@ export const kpmMicro = (kills, t) => {
   return s > 0 ? Number((BigInt(k) * 60000000n) / BigInt(s)) : 0;
 };
 export const kpm = (kills, t) => kpmMicro(kills, t) / 1e6;
+export function rankedPoints(kills, t) {
+  const k = Number(kills), s = Number(t);
+  return (Number.isFinite(k) ? Math.max(0, Math.floor(k)) : 0) + (Number.isFinite(s) ? Math.max(0, Math.floor(s)) : 0);
+}
 // can this run place (and win) in its week? Too-short runs stay on the board but never win.
 export const placeable = (w, r) => !kpmWeek(w) || (Number(r.t) || 0) >= RANKED.minSeconds;
-// the ranking key, highest first. Week 0: time, kills (endless runs never "win"). From week 1: long enough, kills per minute, kills.
+// the ranking key, highest first. Week 0: time, kills (endless runs never "win"). From week 1: long enough, combined points, kills per minute, kills.
 // Ties: the earlier finish, then the earlier entry. Same order as sqs_ranked_score() in tools/supabase/ranked.sql.
 export const scoreKey = (w, r) => (kpmWeek(w)
-  ? [placeable(w, r) ? 1 : 0, kpmMicro(r.kills, r.t), Number(r.kills) || 0]
+  ? [placeable(w, r) ? 1 : 0, rankedPoints(r.kills, r.t), kpmMicro(r.kills, r.t), Number(r.kills) || 0]
   : [0, Number(r.t) || 0, Number(r.kills) || 0]);
 function finishMicros(row) {
   const value = row.at ?? row.finished_at, numeric = Number(value);
@@ -128,7 +132,7 @@ export class RunRecorder {
 }
 
 // Replays a recorded run from the same start. Returns what really happened, or { error }.
-export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.week) * 30) } = {}) {
+export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.week) * 30), allowPartial = false } = {}) {
   if (!log || log.v !== 1 || !Array.isArray(log.runs) || !Array.isArray(log.uses) || !Array.isArray(log.picks)) return { error: 'bad log' };
   // cheap checks first: nothing malformed or oversized reaches the simulation (which is the expensive part)
   let total = 0;
@@ -142,10 +146,11 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
   let sim;
   try { sim = rankedSim(params); } catch { return { error: 'bad ranked run' }; }
   let pi = 0, ui = 0, tick = 0;
-  const resolve = () => {
+  const resolve = (partial = false) => {
     let guard = 0;
     while (sim.pending[PID]) {
       if (sim.pace < 2 && guard++ > 60) return 'too many choices'; // pace 2 consumes a finite pick per queued reward
+      if (partial && pi === log.picks.length) return null;
       const a = log.picks[pi++];
       if (a === undefined) return 'missing a level-up choice';
       if (a === 'r') { if (!reroll(sim, PID)) return 'reroll not allowed'; }
@@ -173,8 +178,8 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
       if (tick > maxTicks) return { error: 'run too long' };
     }
   }
-  const err = resolve(); if (err && !sim.over) return { error: err };
+  const err = resolve(allowPartial); if (err && !sim.over) return { error: err };
   if (ui !== log.uses.length) return { error: 'item uses out of order' };
-  if (!sim.over) return { error: 'the run had not ended' };
+  if (!sim.over && !allowPartial) return { error: 'the run had not ended' };
   return { t: Math.floor(sim.t), kills: sim.kills, level: sim.level, won: sim.over === 'win', timeUp: sim.over === 'time', ticks: tick, picksUsed: pi };
 }

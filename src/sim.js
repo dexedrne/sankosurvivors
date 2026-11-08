@@ -190,19 +190,39 @@ function clearPath(sim, x, z, nx, nz, body = false) {
   }
   return true;
 }
-// move, sliding along cliffs, shores and walls instead of stopping dead
-function moveStep(sim, o, nx, nz, tumble) {
-  if (walkableStep(sim, o.x, o.z, nx, nz) && (!tumble || !sim.ground || flowAt(sim, nx, nz) >= 0) && noWall(sim, o.x, o.z, nx, nz, tumble)) { o.x = nx; o.z = nz; return; }
-  if (walkableStep(sim, o.x, o.z, nx, o.z) && (!tumble || !sim.ground || flowAt(sim, nx, o.z) >= 0) && noWall(sim, o.x, o.z, nx, o.z, tumble)) { o.x = nx; return; }
-  if (walkableStep(sim, o.x, o.z, o.x, nz) && (!tumble || !sim.ground || flowAt(sim, o.x, nz) >= 0) && noWall(sim, o.x, o.z, o.x, nz, tumble)) o.z = nz;
+// Only the low fence footprint may be unreachable; the complete roll must land on reachable ground.
+function reachableFencePath(sim, p) {
+  const g = sim.ground; if (!g?.cell || !g.fences) return false;
+  const W = tumbleWalls(sim);
+  const distance = TUMBLE.speed * p.rollT, parts = Math.ceil(distance / 0.5);
+  const dx = dsin(p.rollFace) * distance / parts, dz = dcos(p.rollFace) * distance / parts;
+  let x = p.x, z = p.z;
+  for (let i = 0; i < parts; i++) {
+    const nx = x + dx, nz = z + dz, k = gIdx(g, nz) * g.n + gIdx(g, nx);
+    if (!walkableStep(sim, x, z, nx, nz) || !noWall(sim, x, z, nx, nz, true)) return false;
+    // Sweep the footprint so smaller execution steps cannot discover a corner collision and slide off this path.
+    for (let ox = -1; ox <= 1; ox++) for (let oz = -1; oz <= 1; oz++) {
+      const bx = x + ox * WALL_GAP, bz = z + oz * WALL_GAP;
+      if (!walkableStep(sim, bx, bz, bx + dx, bz + dz) || (W && !marginClear(sim, W, bx, bz, dx, dz))) return false;
+    }
+    if (flowAt(sim, nx, nz) < 0 && (!(g.fences[k] & 15) || (g.fences[k] >>> 4) || g.walls?.[k])) return false;
+    x = nx; z = nz;
+  }
+  return hyp(x - sim.map.cx, z - sim.map.cz) <= sim.map.r && flowAt(sim, x, z) >= 0;
 }
-function moveTo(sim, o, nx, nz, tumble = false) {
-  if (!(sim.pace >= 2) || !sim.ground) return moveStep(sim, o, nx, nz, tumble);
+// move, sliding along cliffs, shores and walls instead of stopping dead
+function moveStep(sim, o, nx, nz, tumble, fencePath) {
+  if (walkableStep(sim, o.x, o.z, nx, nz) && (!tumble || !sim.ground || fencePath || flowAt(sim, nx, nz) >= 0) && noWall(sim, o.x, o.z, nx, nz, tumble)) { o.x = nx; o.z = nz; return; }
+  if (walkableStep(sim, o.x, o.z, nx, o.z) && (!tumble || !sim.ground || fencePath || flowAt(sim, nx, o.z) >= 0) && noWall(sim, o.x, o.z, nx, o.z, tumble)) { o.x = nx; return; }
+  if (walkableStep(sim, o.x, o.z, o.x, nz) && (!tumble || !sim.ground || fencePath || flowAt(sim, o.x, nz) >= 0) && noWall(sim, o.x, o.z, o.x, nz, tumble)) o.z = nz;
+}
+function moveTo(sim, o, nx, nz, tumble = false, fencePath = false) {
+  if (!(sim.pace >= 2) || !sim.ground) return moveStep(sim, o, nx, nz, tumble, fencePath);
   const parts = Math.max(1, Math.ceil(Math.max(Math.abs(nx - o.x), Math.abs(nz - o.z)) / 0.5));
   const dx = (nx - o.x) / parts, dz = (nz - o.z) / parts;
   for (let i = 0; i < parts; i++) {
     const x = o.x, z = o.z;
-    moveStep(sim, o, x + dx, z + dz, tumble);
+    moveStep(sim, o, x + dx, z + dz, tumble, fencePath);
     if (o.x === x && o.z === z) break;
   }
 }
@@ -348,8 +368,8 @@ function killEnemy(sim, e, owner) {
     if (r < 0.010) drop('beer'); else if (r < 0.016) drop('pumpkin'); else if (r < 0.022) drop('warp'); else if (r < 0.034) drop(foodDrop(sim.t, (r - 0.022) / 0.012, e.elite, sim.pace));
     if (sim.rng() < 0.05 * (p ? playerStats(p).coin : 1)) drop('coin');
     // reward caskets (owner 3 Nov: "caskets drop too often tbh"): every elite dropped one, ~60 in a full run. Pace 2: a
-    // rare one from anything and an elite's now and then, ~10 a run with the bosses'. Pace 1 (ranked week 0) unchanged.
-    const cs = (p ? playerStats(p).casket : 1) / (sim.coop ? Math.max(1, sim.players.filter(p => p.alive).length) : 1);
+    // rare one from anything and an elite's now and then. Casual pace2 doubles these odds; pace1/ranked stay unchanged.
+    const cs = (p ? playerStats(p).casket : 1) * (sim.pace >= 2 && !sim.ranked ? 2 : 1) / (sim.coop ? Math.max(1, sim.players.filter(p => p.alive).length) : 1);
     if (sim.pace >= 2 ? (sim.rng() < 0.0006 * cs || (e.elite && sim.rng() < 0.08 * cs)) : (sim.rng() < 0.0015 * cs || e.elite)) drop('casket');
     if (e.elite) { for (let i = 0; i < 3; i++) sim.pickups.push({ id: sim.nextId++, x: e.x + (i - 1) * 0.8, z: e.z + 0.8, kind: 'coin' }); }
     if (e.champion) { for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; sim.pickups.push({ id: sim.nextId++, x: e.x + dcos(a) * 1.4, z: e.z + dsin(a) * 1.4, kind: 'coin' }); } sim.fx.push({ k: 'treasure', x: e.x, z: e.z }); }
@@ -875,7 +895,7 @@ export function foodDrop(t, u, elite = false, pace = 1) {
 function useItem(sim, p, kind) {
   const st = playerStats(p);
   if (FOOD[kind]) p.hp = Math.min(p.maxHp, p.hp + FOOD[kind].heal * st.heal);
-  else if (kind === 'beer') { p.hp = Math.min(p.maxHp, p.hp + 20 * st.heal); p.buffs.speed = 8; }
+  else if (kind === 'beer') { p.hp = Math.min(p.maxHp, p.hp + 20 * st.heal); p.buffs.speed = 8 + (sim.pace >= 2 ? Math.max(0, p.buffs.speed || 0) : 0); }
   else if (kind === 'pumpkin') { sim.src = 'pumpkin'; sim.fx.push({ k: 'nuke', x: p.x, z: p.z, r: 20 }); for (const e of sim.enemies) if (hyp(e.x - p.x, e.z - p.z) < 20) damageEnemy(sim, e, 45 + sim.t * 0.25, p.id, 4, p.x, p.z); }
   else if (kind === 'warp') { for (const g of sim.gems) g.pulled = true; for (const o of sim.pickups) if (o.kind === 'coin') o.pulled = true; }
   sim.fx.push({ k: 'use', kind, x: p.x, z: p.z, ...(sim.coop ? { player: p.id } : {}) });
@@ -1134,10 +1154,12 @@ export function step(sim, inputs = {}, dt = TICK) {
     if (sim.pace >= 2 && p.rollT > 1e-9) {
       // Co-op's shared field may have moved to another player since this roll's last tick.
       if (p.rollT === TUMBLE.duration || sim.players.length > 1) updateFlow(sim, p);
+      // Keep the preflight result when the walking field refreshes inside a low fence.
+      if (p.rollT === TUMBLE.duration) p.rollFencePath = reachableFencePath(sim, p);
       const distance = TUMBLE.speed * Math.min(dt, p.rollT), parts = Math.ceil(distance / 0.5);
       const dx = dsin(p.rollFace) * distance / parts, dz = dcos(p.rollFace) * distance / parts;
       // Small substeps keep blocked terrain solid even when a caller supplies a long frame.
-      for (let i = 0; i < parts; i++) moveTo(sim, p, p.x + dx, p.z + dz, true);
+      for (let i = 0; i < parts; i++) moveTo(sim, p, p.x + dx, p.z + dz, true, p.rollFencePath);
       p.face = p.moveFace = p.rollFace; p.rollT = Math.max(0, p.rollT - dt);
       if (p.rollT < 1e-9) p.rollT = 0;
     } else if (p.moving) {

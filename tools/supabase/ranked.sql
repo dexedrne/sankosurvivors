@@ -38,12 +38,13 @@ drop function if exists public.sqs_ranked_board(int);
 drop function if exists public.sqs_ranked_settle(text, int);
 
 -- The week's ranking, highest first (same as scoreKey() in src/ranked.js). Week 0: time, kills (endless runs never win). From week 1:
--- lasted 3:00 or more, kills per minute (in millionths, floor(kills * 60000000 / seconds)), kills.
+-- lasted 3:00 or more, kills plus whole seconds, kills per minute (in millionths), kills.
 -- Ties then go to the earlier finish, then the earlier entry.
 create or replace function public.sqs_ranked_score(p_week int, p_won boolean, p_t int, p_kills int)
 returns bigint[] language sql immutable set search_path = pg_catalog as $$
   select case when p_week >= 1 then array[
       case when coalesce(p_t, 0) >= 180 then 1 else 0 end::bigint,
+      greatest(coalesce(p_t, 0), 0)::bigint + greatest(coalesce(p_kills, 0), 0)::bigint,
       case when coalesce(p_t, 0) > 0 then (greatest(coalesce(p_kills, 0), 0)::bigint * 60000000) / p_t else 0 end,
       coalesce(p_kills, 0)::bigint]
     else array[0::bigint, coalesce(p_t, 0)::bigint, coalesce(p_kills, 0)::bigint] end
@@ -222,7 +223,7 @@ returns json language plpgsql stable security definer set search_path = public a
 begin
   if sqs_key_ok('reports_key_sha256', p_key) is not true then return json_build_object('error', 'forbidden'); end if;
   return json_build_object(
-    'week', p_week, 'mode', p_mode, 'rules', case when p_week >= 1 then 'kpm' else 'classic' end,
+    'week', p_week, 'mode', p_mode, 'rules', case when p_week >= 1 then 'combined' else 'classic' end,
     'entries', (select count(*) from sqs_ranked_entries where week = p_week and mode = p_mode and refund_reason is null),
     'paid', (select coalesce(sum(paid), 0)::text from sqs_ranked_entries where week = p_week and mode = p_mode and refund_reason is null),
     'top', coalesce((select json_agg(x) from (

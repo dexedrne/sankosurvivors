@@ -11,12 +11,12 @@ function hud(sim,player='p1'){
  const update=Function('sim','PLAYER','$','imgTag',source.slice(start,end+2)+';return updateBeerHud;')(sim,player,$,n=>`<img alt="" data-item="${n}">`);
  return{update,$};
 }
-test('actual beer use displays eight seconds, counts down, refreshes and expires',()=>{
+test('actual beer use displays eight seconds, counts down, stacks and expires',()=>{
  const sim=createSim(),p=sim.players[0],h=hud(sim);h.update();assert.equal(h.$('beerboost').hidden,true);
  p.belt=['beer','beer'];assert(useBelt(sim,'p1',0));h.update();assert.equal(h.$('beerboost').hidden,false);assert.equal(h.$('beerleft').textContent,'8s');
  for(let i=0;i<31;i++)step(sim,{},TICK);h.update();assert.equal(h.$('beerleft').textContent,'7s');
- assert(useBelt(sim,'p1',0));h.update();assert.equal(h.$('beerleft').textContent,'8s');
- for(let i=0;i<242;i++)step(sim,{},TICK);h.update();assert.equal(h.$('beerboost').hidden,true);
+ assert(useBelt(sim,'p1',0));h.update();assert.equal(h.$('beerleft').textContent,'15s');
+ for(let i=0;i<452;i++)step(sim,{},TICK);h.update();assert.equal(h.$('beerboost').hidden,true);
 });
 test('held reward state and resumed buff show actual simulation time, never wall time',()=>{
  const sim=createSim(),p=sim.players[0],h=hud(sim);p.buffs.speed=3.2;h.update();assert.equal(h.$('beerleft').textContent,'4s');

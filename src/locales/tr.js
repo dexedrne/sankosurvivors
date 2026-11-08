@@ -1,5 +1,27 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Upgrade weapon": "Silahı geliştir",
+  "Recommended: upgrade weapon": "Önerilen: silahı geliştir",
+  "Release Tab to close": "Kapatmak için Tab tuşunu bırak",
+  "Nearby world map": "Yakın çevre haritası",
+  "Weapon values before shared bonuses.": "Ortak bonuslar eklenmeden önceki silah değerleri.",
+  "Points": "Puan",
+  "Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running; the speed bonus stays +35%.": "İyileştirme bonuslarıyla artan 20 can yeniler. Hız artışına 8 saniye ekler; hız bonusu +%35 kalır.",
+  "Ranked points and field tools": "Dereceli puanlar ve saha araçları",
+  "From week 1, ranked score is total kills plus whole seconds survived. Equal points use kills per minute, then kills and the earlier finish. Week 0 keeps its original scoring.": "1. haftadan itibaren dereceli puan, toplam öldürme ile hayatta kalınan tam saniyelerin toplamıdır. Eşitlikte dakikadaki öldürme, sonra toplam öldürme ve erken bitiş kullanılır. 0. haftanın puanlaması değişmez.",
+  "Casual random casket chances are doubled, including elites. Drinking another Tin of Beer adds 8 seconds at the same speed bonus. Week-0 ranked is unchanged.": "Casual modda rastgele sandık şansı, elitler dahil iki katına çıkar. Bir Kutu Bira daha içmek aynı hız bonusuna 8 saniye ekler. 0. hafta dereceli modu değişmez.",
+  "Apache camel-pen low fences can be crossed with Tumble when the landing is safe. Buildings and sealed pens stay protected.": "İniş güvenliyse Apache deve ağıllarının alçak çitleri Tumble ile aşılabilir. Binalar ve kapalı ağıllar korunur.",
+  "Hover over weapons and equipment to inspect them. On desktop, hold Tab for a larger minimap while moving; release it to close.": "Silah ve ekipmanların üzerine gelerek inceleyin. Masaüstünde hareket ederken büyük mini harita için Tab tuşunu tutun; kapatmak için bırakın.",
+
+  "Read and acknowledge the weekly cutoff before paying or starting.": "Ödemeden veya başlamadan önce haftalık bitiş saatini okuyup kabul edin.",
+  "Ranked starts are closed until the weekly reset. Your saved payments are kept.": "Haftalık sıfırlamaya kadar yeni dereceli koşular kapalı. Kayıtlı ödemeleriniz korunur.",
+  "The ranked week has ended. Your earned score is being checked.": "Dereceli hafta sona erdi. Kazandığınız skor kontrol ediliyor.",
+  "I understand that my run ends at the weekly reset, even if time remains. I accept the risk of starting close to the cutoff.": "Süre kalsa bile koşumun haftalık sıfırlamada biteceğini anlıyorum. Bitiş saatine yakın başlamanın riskini kabul ediyorum.",
+  "Ranked is competitive play. Bathroom breaks are fine: you have 30 minutes of total pause allowance per run. Every continuous pause starts with 30 free seconds. Quick upgrade and casket choices do not drain the allowance. Longer time away counts; connection delays may count. Already-started legacy runs keep their original rules. Reloading does not reset it. Exceeding the allowance disqualifies the run.": "Dereceli mod rekabetçidir. Tuvalet molaları sorun değil: her koşuda toplam 30 dakika mola hakkınız var. Her kesintisiz molanın ilk 30 saniyesi ücretsizdir. Hızlı geliştirme ve sandık seçimleri hakkınızı azaltmaz. Daha uzun molalar sayılır; bağlantı gecikmeleri de sayılabilir. Önceden başlamış eski koşular kendi kurallarını korur. Sayfayı yenilemek hakkı sıfırlamaz. Süre aşılırsa koşu ödüle katılamaz.",
+  "Weekly cutoff and brief pauses": "Haftalık bitiş ve kısa molalar",
+  "New ranked starts close 30 minutes before the weekly reset. Acknowledge the cutoff before paying or starting; new runs end with their earned score at reset.": "Yeni dereceli koşular haftalık sıfırlamadan 30 dakika önce kapanır. Ödemeden veya başlamadan önce bitişi kabul edin; yeni koşular sıfırlamada kazandıkları skorla biter.",
+  "Every continuous pause starts with 30 free seconds. Brief upgrade and casket choices keep the shared 30-minute allowance for longer breaks.": "Her kesintisiz molanın ilk 30 saniyesi ücretsizdir. Kısa geliştirme ve sandık seçimleri, ortak 30 dakikalık hakkı uzun molalar için korur.",
+
   "Beer boost and original spell shaders": "Bira hız artışı ve orijinal büyü gölgelendiricileri",
   "Tin of Beer shows the remaining speed boost time beside your health.": "Kutu Bira, kalan hız artışı süresini canınızın yanında gösterir.",
   "Spell projectiles now run SankoQuest’s original TSL materials, including Missile and Blast glows.": "Büyü mermileri artık Missile ve Blast parıltıları dahil SankoQuest’in orijinal TSL materyallerini kullanır.",
@@ -1439,6 +1461,27 @@ export const text = {
 };
 
 export const patterns = [
+  ["Hard rules: tougher, faster monsters and harder bosses. Runs are endless: your score is total kills + seconds survived (one point for each), and the hunt is over at {1}. A run under {2} is listed as too short and cannot win. Equal points use kills per minute, then total kills, then the earlier finish. Entry is {3} DMT on Arbitrum: 10% house fee, 90% to the {4} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's {5} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).", "Zor kurallar: daha dayanıklı, daha hızlı canavarlar ve daha zorlu bölüm sonu canavarları. Turlar sonsuzdur: skorun toplam öldürme + hayatta kalınan saniyedir (her biri bir puan); av {1} sonunda biter. {2} altındaki turlar çok kısa olarak listelenir ve ödül kazanamaz. Eşit puanda önce dakikadaki öldürme, sonra toplam öldürme ve erken bitiş kullanılır. Katılım Arbitrum'da {3} DMT: %10 oyun payı, %90 {4} ödül havuzuna gider. Havuz ilk beş cüzdan arasında 40/25/15/12/8 oranında bölünür; kazanılmayan sıraların payı sonraki haftanın {5} havuzuna devreder. UTC'ye göre pazartesiden pazartesiye, tek harita; her yarışa istediğin kadar katılabilirsin. Her hafta bağlantı başına, oyuncu başına tek cüzdan. Standart maceracılardan herhangi biri kullanılabilir; beceri, ekipman veya DMT avantajı yoktur. Sunucu her girdiyi kontrol eder. Turları bir insan canlı olarak oynamalıdır: bot, betik veya araç yardımıyla oynanan ve eski bir kayda geri sarılan turlar elenir, ödülleri bekletilir (sayfa yenilendikten sonra devam etmek serbesttir)."],
+  ["Runs are endless: your score is total kills + seconds survived (one point for each), and the hunt is over at {1}. A run under {2} is listed as too short and cannot win. Equal points use kills per minute, then total kills, then the earlier finish. Entry is {3} DMT on Arbitrum: 10% house fee, 90% to the {4} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's {5} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).", "Turlar sonsuzdur: skorun toplam öldürme + hayatta kalınan saniyedir (her biri bir puan); av {1} sonunda biter. {2} altındaki turlar çok kısa olarak listelenir ve ödül kazanamaz. Eşit puanda önce dakikadaki öldürme, sonra toplam öldürme ve erken bitiş kullanılır. Katılım Arbitrum'da {3} DMT: %10 oyun payı, %90 {4} ödül havuzuna gider. Havuz ilk beş cüzdan arasında 40/25/15/12/8 oranında bölünür; kazanılmayan sıraların payı sonraki haftanın {5} havuzuna devreder. UTC'ye göre pazartesiden pazartesiye, tek harita; her yarışa istediğin kadar katılabilirsin. Her hafta bağlantı başına, oyuncu başına tek cüzdan. Standart maceracılardan herhangi biri kullanılabilir; beceri, ekipman veya DMT avantajı yoktur. Sunucu her girdiyi kontrol eder. Turları bir insan canlı olarak oynamalıdır: bot, betik veya araç yardımıyla oynanan ve eski bir kayda geri sarılan turlar elenir, ödülleri bekletilir (sayfa yenilendikten sonra devam etmek serbesttir)."],
+
+  ["This upgrades your existing {1} for this run. It does not add a weapon or use another slot.", "Bu, bu koşu için mevcut {1} silahınızı geliştirir. Yeni silah eklemez ve başka yuva kullanmaz."],
+  ["{1} points", "{1} puan"],
+  ["Score: total kills + seconds survived. Equal points use KPM. Runs under {1} cannot win.", "Puan: toplam öldürme + hayatta kalınan saniye. Eşit puanda KPM kullanılır. {1} altındaki koşular kazanamaz."],
+  ["Level: {1}", "Seviye: {1}"],
+  ["Base damage: {1}", "Temel hasar: {1}"],
+  ["Cooldown: {1}", "Bekleme süresi: {1}"],
+  ["Projectiles: {1}", "Mermi sayısı: {1}"],
+  ["Pierce: {1}", "Delme: {1}"],
+  ["Range: {1}", "Menzil: {1}"],
+  ["Radius: {1}", "Yarıçap: {1}"],
+  ["Size: {1}", "Boyut: {1}"],
+  ["Projectile speed: {1}", "Mermi hızı: {1}"],
+  ["Burst radius: {1}", "Patlama yarıçapı: {1}"],
+
+  ["New starts close in {1} · Monday reset, UTC", "Yeni başlangıçlar {1} içinde kapanır · Pazartesi sıfırlama, UTC"],
+  ["New ranked starts are closed. Next board in {1}.", "Yeni dereceli koşular kapalı. Sonraki tabloya {1}."],
+  ["Time until the weekly cutoff: {1}. Your run ends at 00:00 UTC on Monday, even if you are still alive. Your earned score will be submitted. Connection and verification delays can affect submission.", "Haftalık bitişe kalan: {1}. Hayatta olsanız bile koşunuz Pazartesi 00:00 UTC’de biter. Kazandığınız skor gönderilir. Bağlantı ve doğrulama gecikmeleri gönderimi etkileyebilir."],
+
   ["{0} coins · {1} maps cleared · {2} skill ranks · {3} collected pieces", "{0} para · {1} harita tamamlandı · {2} beceri kademesi · {3} toplanan parça"],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours.", "{1} altını geri alıp tüm güçlendirmeleri sıfırlamak istiyor musun? Topladığın eşyalar ve Demircilikle açtığın parçalar sende kalır."],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours. Older metal ranks use one Bronze refund value per Smithing family.", "{1} altını geri alıp tüm güçlendirmeleri sıfırlamak istiyor musun? Topladığın eşyalar ve Demircilikle açtığın parçalar sende kalır. Eski metal kademeleri her Demircilik ailesi için tek bir Bronz iade tutarı kullanır."],
