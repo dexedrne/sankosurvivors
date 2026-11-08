@@ -1,5 +1,5 @@
 import { openProfile } from './profile-owner.js';
-import { carryProgress } from './carry-progress.js';
+import { carryGate } from './carry-gate.js';
 import { preferredLanguage, translateText } from './i18n.js';
 
 const $ = id => document.getElementById(id);
@@ -19,7 +19,7 @@ function blocked(reason) {
   $('profiletry').disabled = false; $('profiletry').focus();
 }
 openProfile(async () => {
-  if (!carryProgress()) return;
+  if (!await carryGate()) return;
   $('game').inert = false; $('profilegate').classList.add('hidden');
   await import('./main.js');
 }, blocked);

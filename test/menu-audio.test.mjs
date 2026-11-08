@@ -41,3 +41,8 @@ test('cold Music slider also unlocks audio',async()=>{
 for(const [name,change] of [['newer Music edit',f=>f.m()],['detached range',f=>f.ranges.s.isConnected=false],['closed Settings',f=>f.hide()]])test('pending Sound preview is cancelled by '+name,async()=>{
  const f=sliders();f.s();change(f);await f.finish();assert.equal(f.plays(),0);
 });
+for(const [name,activation,want]of[['a trusted preboot choice',{navigator:{userActivation:{hasBeenActive:true}}},['title','init']],['no prior activation',{navigator:{userActivation:{hasBeenActive:false}}},[]],['unsupported activation API',{navigator:{}},[]]])test('menu audio startup after '+name,()=>{
+ const a=main.indexOf('function unlockAudio('),b=main.indexOf('// ---- version, leaderboard',a),calls=[];
+ const unlock=Function('audio','addEventListener','playTitleMusic','globalThis',`${main.slice(a,b)};return unlockAudio;`)({init(){calls.push('init');return Promise.resolve();}},()=>{},()=>calls.push('title'),activation);
+ assert.deepEqual(calls,want);unlock({isTrusted:false});assert.deepEqual(calls,want,'synthetic events cannot create an audio unlock');
+});

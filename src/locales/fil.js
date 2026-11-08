@@ -1,5 +1,21 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "This save has unreadable data. Keep a backup before replacing it.": "May datos sa save na ito na hindi mabasa. Gumawa ng backup bago ito palitan.",
+  "Finish moving progress": "Tapusin ang paglilipat ng progreso",
+  "Could not move progress": "Hindi mailipat ang progreso",
+  "Saved progress must recover before moving saves.": "Kailangang mabawi ang naka-save na progreso bago maglipat ng mga save.",
+  "The old save is stored on this device. Try again to finish opening it.": "Naka-save na ang lumang save sa device na ito. Subukan muli para matapos itong buksan.",
+  "That old save could not be read. This device’s progress has not changed.": "Hindi mabasa ang lumang save. Hindi nagbago ang progreso sa device na ito.",
+  "This browser could not finish moving progress. Keep this app installed and try again.": "Hindi matapos ng browser na ito ang paglilipat ng progreso. Panatilihing naka-install ang app at subukan muli.",
+  "Choose one whole save. Choosing the old save replaces this device’s progress and settings. Cloud save will need sign-in again. The old address keeps its copy.": "Pumili ng isang buong save. Papalitan ng lumang save ang progreso at settings sa device na ito. Kailangan mong mag-sign in muli para sa cloud save. Mananatili ang kopya sa lumang address.",
+  "Keep this device’s save": "Panatilihin ang save sa device na ito",
+  "Use the old save": "Gamitin ang lumang save",
+  "This device’s progress changed. Review both saves and choose again.": "Nagbago ang progreso sa device na ito. Suriin ang parehong save at pumili muli.",
+  "Release the button to continue.": "Bitawan ang pindutan para magpatuloy.",
+  "Safer moves between game addresses": "Mas ligtas na paglipat sa ibang address ng laro",
+  "Old-address saves are checked as a whole before moving. If this address already has progress, choose which complete save to keep.": "Sinusuri nang buo ang mga save sa lumang address bago ilipat. Kung may progreso na sa address na ito, piliin kung aling buong save ang pananatilihin.",
+  "Gear refund history moves with your profile. Interrupted moves recover before the game opens.": "Kasamang lumilipat sa profile ang refund history ng gear. Binabawi ang naputol na paglilipat bago buksan ang laro.",
+  "Choosing an old save pauses cloud save until you sign in again. Your original copy stays at the old address.": "Kapag pinili ang lumang save, hihinto muna ang cloud save hanggang mag-sign in ka muli. Mananatili ang orihinal na kopya sa lumang address.",
   "The skill change was not confirmed saved. Your previous progress is kept.": "Hindi nakumpirmang na-save ang pagbabago sa kasanayan. Nananatili ang dati mong progreso.",
   "Skills were saved on this device. Reopen Skills to refresh the display.": "Na-save ang mga kasanayan sa device na ito. Buksan muli ang Mga kasanayan para ma-refresh ang itsura nito.",
   "Skill progress could not be read. Keep this device’s progress.": "Hindi mabasa ang progreso ng mga kasanayan. Itabi ang progreso sa device na ito.",
@@ -1412,6 +1428,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["{0} coins · {1} maps cleared · {2} skill ranks · {3} collected pieces", "{0} barya · {1} mapa ang natapos · {2} antas ng kasanayan · {3} pirasong nakolekta"],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours.", "Ibalik ang {1} barya at i-reset ang lahat ng pagpapatibay? Nananatili ang nakolektang gamit at mga na-unlock sa Pagpapanday."],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours. Older metal ranks use one Bronze refund value per Smithing family.", "Ibalik ang {1} barya at i-reset ang lahat ng pagpapatibay? Nananatili ang nakolektang gamit at mga na-unlock sa Pagpapanday. Ang lumang metal na gear ay may iisang halagang refund na batay sa Bronze bawat uring puwedeng pandayin."],
 

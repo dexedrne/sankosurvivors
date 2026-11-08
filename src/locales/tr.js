@@ -1,5 +1,21 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "This save has unreadable data. Keep a backup before replacing it.": "Bu kayıttaki bazı veriler okunamıyor. Değiştirmeden önce bir yedek al.",
+  "Finish moving progress": "İlerlemeyi taşımayı tamamla",
+  "Could not move progress": "İlerleme taşınamadı",
+  "Saved progress must recover before moving saves.": "Kayıtları taşımadan önce ilerleme kurtarılmalı.",
+  "The old save is stored on this device. Try again to finish opening it.": "Eski kayıt bu cihazda saklanıyor. Açmayı tamamlamak için tekrar dene.",
+  "That old save could not be read. This device’s progress has not changed.": "Eski kayıt okunamadı. Bu cihazdaki ilerlemen değişmedi.",
+  "This browser could not finish moving progress. Keep this app installed and try again.": "Bu tarayıcı ilerlemeyi taşımayı tamamlayamadı. Bu uygulamayı yüklü tut ve tekrar dene.",
+  "Choose one whole save. Choosing the old save replaces this device’s progress and settings. Cloud save will need sign-in again. The old address keeps its copy.": "Tam bir kayıt seç. Eski kayıt seçilirse bu cihazdaki ilerleme ve ayarlar değiştirilir. Bulut kaydına yeniden giriş yapman gerekir. Eski adres kendi kopyasını saklar.",
+  "Keep this device’s save": "Bu cihazın kaydını koru",
+  "Use the old save": "Eski kaydı kullan",
+  "This device’s progress changed. Review both saves and choose again.": "Bu cihazdaki ilerleme değişti. İki kaydı da incele ve yeniden seç.",
+  "Release the button to continue.": "Devam etmek için tuşu bırak.",
+  "Safer moves between game addresses": "Oyun adresleri arasında daha güvenli taşıma",
+  "Old-address saves are checked as a whole before moving. If this address already has progress, choose which complete save to keep.": "Eski adresteki kayıtlar taşınmadan önce bütünüyle kontrol edilir. Bu adreste ilerleme varsa hangi tam kaydın korunacağını seç.",
+  "Gear refund history moves with your profile. Interrupted moves recover before the game opens.": "Ekipman iade geçmişi profilinle birlikte taşınır. Kesilen taşıma işlemleri oyun açılmadan önce kurtarılır.",
+  "Choosing an old save pauses cloud save until you sign in again. Your original copy stays at the old address.": "Eski kaydı seçmek, yeniden giriş yapana kadar bulut kaydını duraklatır. Asıl kopyan eski adreste kalır.",
   "The skill change was not confirmed saved. Your previous progress is kept.": "Beceri değişikliğinin kaydedildiği doğrulanamadı. Önceki ilerlemen korunuyor.",
   "Skills were saved on this device. Reopen Skills to refresh the display.": "Beceriler bu cihaza kaydedildi. Görünümü yenilemek için Beceriler menüsünü tekrar aç.",
   "Skill progress could not be read. Keep this device’s progress.": "Beceri ilerlemesi okunamadı. Bu cihazdaki ilerlemeni koru.",
@@ -1412,6 +1428,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["{0} coins · {1} maps cleared · {2} skill ranks · {3} collected pieces", "{0} para · {1} harita tamamlandı · {2} beceri kademesi · {3} toplanan parça"],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours.", "{1} altını geri alıp tüm güçlendirmeleri sıfırlamak istiyor musun? Topladığın eşyalar ve Demircilikle açtığın parçalar sende kalır."],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours. Older metal ranks use one Bronze refund value per Smithing family.", "{1} altını geri alıp tüm güçlendirmeleri sıfırlamak istiyor musun? Topladığın eşyalar ve Demircilikle açtığın parçalar sende kalır. Eski metal kademeleri her Demircilik ailesi için tek bir Bronz iade tutarı kullanır."],
 

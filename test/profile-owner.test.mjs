@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import {carryFixture} from './helpers/carry-fixture.mjs';
+import {TRANSFER_KEYS,IMPORT_BACKUP_KEY,RUN_SAVE_KEY} from '../src/progress-import.js';
 
 const tick=()=>new Promise(r=>setImmediate(r));
 function navigatorFor(t,locks){const old=Object.getOwnPropertyDescriptor(globalThis,'navigator');Object.defineProperty(globalThis,'navigator',{configurable:true,value:{locks}});t.after(()=>old?Object.defineProperty(globalThis,'navigator',old):delete globalThis.navigator);}
@@ -26,24 +28,21 @@ for(const type of ['missing','rejected','throwing'])test(type+' Web Locks never 
  const {openProfile}=await owner();navigatorFor(t,type==='missing'?undefined:{request(){if(type==='throwing')throw Error('denied');return Promise.reject(Error('denied'));}});const reasons=[];await openProfile(()=>assert.fail('unsafe fallback'),r=>reasons.push(r));assert.deepEqual(reasons,[type==='missing'?'unsupported':'unavailable']);
 });
 
-function legacy({data={},from='https://sankoquest.vyvanse.beer/',before={},host='sankosurvivors.quest'}={}){
- const values=new Map(Object.entries(before)),reads=[],writes=[],redirects=[],context={URL,escape,unescape,encodeURIComponent,decodeURIComponent,atob:s=>Buffer.from(s,'base64').toString('binary'),btoa:s=>Buffer.from(s,'binary').toString('base64'),location:{hostname:host,hash:'#carry='+encodeURIComponent(Buffer.from(JSON.stringify(data)).toString('base64')),pathname:'/',search:'?fixture',replace:v=>redirects.push(v)},document:{referrer:from},history:{replaceState(){}},localStorage:{get length(){return values.size;},key:i=>[...values.keys()][i],getItem:k=>{reads.push(k);return values.get(k)??null;},setItem:(k,v)=>{writes.push([k,v]);values.set(k,v);}}};
- vm.createContext(context);const code=readFileSync(new URL('../src/carry-progress.js',import.meta.url),'utf8').replace('export function','function');const result=vm.runInContext(code+'\ncarryProgress();',context);return{result,values,reads,writes,redirects};
-}
-test('legacy redirects carry progress only and never read or encode account/ticket data',()=>{
- const f=legacy({host:'sankoquest.vyvanse.beer',before:{'sq-coins':'42','sq-cloud':'private-fixture','sq-ranked-live':'ticket-fixture','unrelated':'keep'}});assert.equal(f.result,false);assert.equal(f.redirects.length,1);const encoded=new URL(f.redirects[0]).hash.slice('#carry='.length),payload=JSON.parse(Buffer.from(decodeURIComponent(encoded),'base64').toString('utf8'));assert.deepEqual(payload,{'sq-coins':'42'});assert.deepEqual(f.reads,['sq-coins']);assert.deepEqual(f.writes,[]);
+test('legacy redirects carry progress only and never read or encode account/ticket data',async()=>{
+ const f=carryFixture({url:'https://sankoquest.vyvanse.beer/?fixture',before:{'sq-coins':'42','sq-cloud':'private-fixture','sq-ranked-live':'ticket-fixture','unrelated':'keep'}});assert.equal(await f.run(),false);assert.equal(f.redirects.length,1);const encoded=new URL(f.redirects[0]).hash.slice('#carry='.length),payload=JSON.parse(Buffer.from(decodeURIComponent(encoded),'base64').toString('utf8'));assert.deepEqual(payload,{'sq-coins':'42'});assert(f.reads.every(k=>TRANSFER_KEYS.includes(k)||[IMPORT_BACKUP_KEY,RUN_SAVE_KEY].includes(k)));assert.deepEqual(f.enumerations,[]);assert.deepEqual(f.writes,[]);
 });
-test('legacy receiving still requires the old referrer and a known valid progress value',()=>{
- const data={'sq-coins':'42','sq-gear':'{}','sq-ranked-live':'ticket-fixture','sq-cloud':'private-fixture'};const f=legacy({data});assert.deepEqual(f.writes,[['sq-coins','42'],['sq-gear','{}']]);assert.equal(f.result,true);assert.deepEqual(legacy({data,from:'https://not-the-old-game.invalid/'}).writes,[]);
+test('legacy receiving still requires the old referrer and known valid progress values',async()=>{
+ const data={'sq-coins':'42','sq-gear':'{}','sq-ranked-live':'ticket-fixture','sq-cloud':'private-fixture'},f=carryFixture({data});assert.equal(await f.run(),true);assert.deepEqual(f.profile(),{'sq-coins':'42','sq-gear':'{}'});const untrusted=carryFixture({data,from:'https://not-the-old-game.invalid/'});await untrusted.run();assert.deepEqual(untrusted.writes,[]);
 });
-test('legacy carry preserves existing progress and ignores malformed values',()=>{
- const f=legacy({data:{'sq-coins':'42','sq-gear':'{}','sq-muted':'not-json','sq-vol':'x'.repeat(20001)},before:{'sq-coins':'800','sq-stats':'{}'}});assert.deepEqual(f.writes,[['sq-gear','{}']]);assert.equal(f.values.get('sq-coins'),'800');
+test('legacy carry preserves existing progress and rejects a malformed whole payload',async()=>{
+ const before={'sq-coins':'800','sq-stats':'{}'},f=carryFixture({data:{'sq-coins':'42','sq-gear':'{}','sq-muted':'not-json','sq-vol':'x'.repeat(20001)},before});await assert.rejects(f.run(),e=>e.carryInvalid===true);assert.deepEqual(f.profile(),before);assert.deepEqual(f.writes,[]);
+ const valid=carryFixture({data:{'sq-coins':'42','sq-gear':'{}'},before});await valid.run();assert.equal(valid.choices.length,1);assert.deepEqual(valid.profile(),before);assert.deepEqual(valid.writes,[]);
 });
 
-async function entry(t,{busy=false,recovery=false,fail=false,redirect=false,language='en',unreadable=false}={}){
+async function entry(t,{busy=false,recovery=false,fail=false,redirect=false,language='en',unreadable=false,deferred=false}={}){
  const {openProfile}=await owner(),{preferredLanguage,translateText}=await import('../src/i18n.js'),locks=lockManager();navigatorFor(t,locks);if(busy)locks.request('sqs-profile-owner',{ifAvailable:true},()=>new Promise(()=>{}));
- const nodes=new Map(),node=id=>{if(!nodes.has(id)){const classes=new Set(id==='progressrecovery'&&!recovery?['hidden']:[]);nodes.set(id,{inert:id==='game',disabled:id==='profiletry',textContent:'',classList:{contains:n=>classes.has(n),add:n=>classes.add(n),remove:n=>classes.delete(n)},focus(){}});}return nodes.get(id);};const calls=[],context={document:{getElementById:node,documentElement:{}},navigator:{language:'en'},localStorage:{getItem(){if(unreadable)throw Error('storage blocked');return language;}},location:{reload:()=>calls.push('reload')},openProfile,preferredLanguage,translateText,carryProgress:()=>{calls.push('carry');return !redirect;},__loadMain:async()=>{calls.push('main');if(fail)throw Error('controlled startup failure');}};
- let code=readFileSync(new URL('../src/start.js',import.meta.url),'utf8').replace(/^import .+;\n/gm,'').replace("import('./main.js')",'__loadMain()');vm.createContext(context);vm.runInContext(code,context);await tick();return{nodes:node,calls,locks,document:context.document};
+ const nodes=new Map(),node=id=>{if(!nodes.has(id)){const classes=new Set(id==='progressrecovery'&&!recovery?['hidden']:[]);nodes.set(id,{inert:id==='game',disabled:id==='profiletry',textContent:'',classList:{contains:n=>classes.has(n),add:n=>classes.add(n),remove:n=>classes.delete(n)},focus(){}});}return nodes.get(id);};const calls=[];let releaseCarry;const carry=()=>{calls.push('carry');return deferred?new Promise(resolve=>releaseCarry=resolve):!redirect};const context={document:{getElementById:node,documentElement:{}},navigator:{language:'en'},localStorage:{getItem(){if(unreadable)throw Error('storage blocked');return language;}},location:{reload:()=>calls.push('reload')},openProfile,preferredLanguage,translateText,carryProgress:carry,carryGate:carry,__loadMain:async()=>{calls.push('main');if(fail)throw Error('controlled startup failure');}};
+ let code=readFileSync(new URL('../src/start.js',import.meta.url),'utf8').replace(/^import .+;\n/gm,'').replace("import('./main.js')",'__loadMain()');vm.createContext(context);vm.runInContext(code,context);await tick();return{nodes:node,calls,locks,document:context.document,releaseCarry:v=>releaseCarry(v)};
 }
 test('contended entry never migrates, imports game code or activates controls; retry reloads only on demand',async t=>{
  const f=await entry(t,{busy:true,language:'tr'});assert.deepEqual(f.calls,[]);assert(f.nodes('game').inert);assert(!f.nodes('profilegate').classList.contains('hidden'));assert.equal(f.nodes('profiletry').disabled,false);assert.equal(f.document.documentElement.lang,'tr');f.locks.close();await tick();assert.deepEqual(f.calls,[]);f.nodes('profiletry').onclick();assert.deepEqual(f.calls,['reload']);
@@ -63,3 +62,5 @@ test('other startup failure exposes reload without allowing another writer',asyn
 test('unreadable language storage does not stop ownership or normal browser-language startup',async t=>{
  const f=await entry(t,{unreadable:true});assert.deepEqual(f.calls,['carry','main']);assert.equal(f.document.documentElement.lang,'en');
 });
+
+test('startup awaits an unresolved migration gate before importing main or enabling gameplay',async t=>{const f=await entry(t,{deferred:true});assert.deepEqual(f.calls,['carry']);assert(f.nodes('game').inert);assert(f.locks.held);f.releaseCarry(true);await tick();assert.deepEqual(f.calls,['carry','main']);assert.equal(f.nodes('game').inert,false)});

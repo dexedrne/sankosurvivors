@@ -858,3 +858,8 @@ body.ds-layout #shrinecharge { top:auto; bottom:calc(100% - var(--ds-play-height
 #equipmentitems .slot:is(:hover,:focus-visible)::after { content:attr(aria-label); position:absolute; top:100%; left:0; z-index:2; width:max-content; max-width:240px; padding:5px; background:var(--deep); border:1px solid var(--line); color:var(--cream); font:16px RSPlain,sans-serif; text-shadow:var(--sh); pointer-events:none; }
 @media(min-width:901px) and (min-height:521px) and (hover:hover) and (pointer:fine) { #equipmenthud { display:block; } }
 body.touch #equipmenthud, body.ds-layout #equipmenthud { display:none; }
+
+#profilegate button { min-height: 44px; }
+#carrychoice button { min-width: 0; overflow-wrap: anywhere; }
+
+#profilegate [hidden] { display: none; }

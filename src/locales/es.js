@@ -1,5 +1,21 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "This save has unreadable data. Keep a backup before replacing it.": "Esta partida contiene datos que no se pueden leer. Guarda una copia antes de reemplazarla.",
+  "Finish moving progress": "Terminar de transferir el progreso",
+  "Could not move progress": "No se pudo transferir el progreso",
+  "Saved progress must recover before moving saves.": "Hay que recuperar el progreso guardado antes de transferir partidas.",
+  "The old save is stored on this device. Try again to finish opening it.": "La partida anterior está guardada en este dispositivo. Inténtalo de nuevo para terminar de abrirla.",
+  "That old save could not be read. This device’s progress has not changed.": "No se pudo leer la partida anterior. El progreso de este dispositivo no ha cambiado.",
+  "This browser could not finish moving progress. Keep this app installed and try again.": "Este navegador no pudo terminar de transferir el progreso. Conserva esta aplicación instalada e inténtalo de nuevo.",
+  "Choose one whole save. Choosing the old save replaces this device’s progress and settings. Cloud save will need sign-in again. The old address keeps its copy.": "Elige una partida completa. La partida anterior reemplazará el progreso y los ajustes de este dispositivo. Tendrás que volver a iniciar sesión para guardar en la nube. La dirección anterior conserva su copia.",
+  "Keep this device’s save": "Conservar la partida de este dispositivo",
+  "Use the old save": "Usar la partida anterior",
+  "This device’s progress changed. Review both saves and choose again.": "El progreso de este dispositivo cambió. Revisa ambas partidas y vuelve a elegir.",
+  "Release the button to continue.": "Suelta el botón para continuar.",
+  "Safer moves between game addresses": "Transferencias más seguras entre direcciones del juego",
+  "Old-address saves are checked as a whole before moving. If this address already has progress, choose which complete save to keep.": "Las partidas de la dirección anterior se comprueban por completo antes de transferirse. Si esta dirección ya tiene progreso, elige qué partida completa conservar.",
+  "Gear refund history moves with your profile. Interrupted moves recover before the game opens.": "El historial de reembolsos de equipo se transfiere con tu perfil. Las transferencias interrumpidas se recuperan antes de abrir el juego.",
+  "Choosing an old save pauses cloud save until you sign in again. Your original copy stays at the old address.": "Elegir una partida anterior pausa el guardado en la nube hasta que vuelvas a iniciar sesión. La copia original permanece en la dirección anterior.",
   "The skill change was not confirmed saved. Your previous progress is kept.": "No se confirmó el guardado del cambio de habilidad. Se conserva tu progreso anterior.",
   "Skills were saved on this device. Reopen Skills to refresh the display.": "Las habilidades se guardaron en este dispositivo. Vuelve a abrir Habilidades para actualizar la vista.",
   "Skill progress could not be read. Keep this device’s progress.": "No se pudo leer el progreso de habilidades. Conserva el progreso de este dispositivo.",
@@ -1412,6 +1428,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["{0} coins · {1} maps cleared · {2} skill ranks · {3} collected pieces", "{0} monedas · {1} mapas completados · {2} rangos de habilidad · {3} piezas recogidas"],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours.", "¿Recuperar {1} monedas y reiniciar todos los refuerzos? Conservas las piezas obtenidas y los desbloqueos de forja."],
   ["Refund {1} coins and reset all reinforcements? Collected gear and Smithing unlocks stay yours. Older metal ranks use one Bronze refund value per Smithing family.", "¿Recuperar {1} monedas y reiniciar todos los refuerzos? Conservas las piezas obtenidas y los desbloqueos de forja. Los rangos de metal antiguos usan un único valor de bronce por familia de forja."],
 

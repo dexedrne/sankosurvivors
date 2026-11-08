@@ -82,8 +82,6 @@ if (pendingImport) { showProgressRecovery(); throw Error('Progress recovery is r
 
 // ---- saved progress ------------------------------------------------------------------------------
 const load = (k, d) => { try { return profileValue(k, JSON.parse(localStorage.getItem(k) || 'null') ?? d, d); } catch { return d; } };
-// one time: clear the worn loadout that casket gear used to carry over by itself (the collection and levels are kept)
-try { if (!localStorage.getItem('sq-gear-reset1')) { localStorage.setItem('sq-gear', '{}'); localStorage.setItem('sq-gear-reset1', '1'); } } catch { /* storage blocked */ }
 let onSaved = null; // the cloud save hears about every progress change (set up with the wallet below)
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } if (onSaved) onSaved(k); };
 const clearedMaps = () => new Set(load('sq-cleared', []));
@@ -941,11 +939,13 @@ function playTitleMusic() {
   audio.duck(false); audio.music(MAP_BY_ID[selMap].music);
 }
 function unlockAudio(event) {
-  if (!event.isTrusted) return;
+  if (event ? !event.isTrusted : !globalThis.navigator?.userActivation?.hasBeenActive) return;
   playTitleMusic();
   audio.init().catch(() => {});
 }
 for (const type of ['click', 'touchend', 'keydown']) addEventListener(type, unlockAudio, true);
+// The first gesture may have happened in the owned preboot save chooser.
+unlockAudio();
 
 // ---- version, leaderboard and bug reports ------------------------------------------------------------------------------
 $('version').textContent = 'v' + LATEST;
