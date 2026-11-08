@@ -89,3 +89,5 @@ for(const lang of['tr','es','fil'])test(lang+': legacy migration choices, recove
  const sample='42 coins · 3 maps cleared · 2 skill ranks · 1 collected pieces',translated=translateText(sample,lang);assert.notEqual(translated,sample);for(const value of['42','3','2','1'])assert(translated.includes(value),value);
 });
 for(const lang of['tr','es','fil'])test(lang+': spell trail and continuous-impact updates translate',()=>{for(const label of['Spell trails in motion','Spell trails now follow where each bolt travelled over time, including turns and stops.','Player and boss spells pause with the run. Impacts keep the same spinning shards from flight to finish.'])assert.notEqual(translateText(label,lang),label)});
+
+for(const lang of['tr','es','fil'])test(lang+': native spell tints and base-output guidance translate',()=>{for(const label of['Native spell colours','Spell shards use SankoQuest’s original elemental tints.','Spell glow now uses the same base colour output at every graphics setting. Optional screen effects still apply.'])assert.notEqual(translateText(label,lang),label)});

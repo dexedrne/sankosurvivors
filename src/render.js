@@ -55,15 +55,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'default' });
   renderer.setPixelRatio(low ? 0.75 : Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  // a filmic curve that keeps SankoQuest's bright colours, plus real sun shadows (off with ?low)
-  renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 0.93; // a little under neutral: 1.05 felt too bright
+  // Native gameplay base output; optional bloom and grading still apply afterward.
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
   renderer.shadowMap.enabled = !low; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9ac7e8);
   scene.fog = new THREE.Fog(0x9ac7e8, 38, 78);
-  // our own shaders end with three's output step (tone mapping and the sRGB conversion). With effects on, the frame goes
-  // through the composer and both are no-ops; with every effect off (low graphics, phones) the frame is drawn straight to
-  // the screen and, without them, these came out dark and over-saturated next to everything else
+  // Offscreen shaders stay linear; the composer's OutputPass converts the blended frame once.
   const colorOut = (fs) => fs.replace(/void\s+main\s*\(\s*\)/, 'void sqMain()') + '\nvoid main() { sqMain();\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}';
   const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 140);
   // sprites, glows, particles and flashes live on their own layer: the camera draws it, but the passes that redraw the
@@ -987,8 +985,6 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const SPELL_TIER = { missile: { size: 1, interval: 50, impact: 260, spread: 0.36 }, blast: { size: 1.65, interval: 65, impact: 400, spread: 0.7 } };
   let spellTime = 0; // interpolated run time in ms; spell animation holds with the run
   const MS_K = 1, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc), MS_Z = new THREE.Vector3(0, 0, 1);
-  // Current-pipeline compensation, not native linear instance tints. Exact final color/compositing remains owner21 work.
-  const MS_TONE = { 0x9fe8ff: [[0.806, 0.828, 0.805], [0.642, 0.808, 0.849]], 0x3b82f6: [[0.767, 0.761, 0.791], [0.300, 0.455, 0.828]], 0x6db33f: [[0.782, 0.789, 0.674], [0.434, 0.644, 0.251]], 0xff5a1f: [[0.870, 0.748, 0.665], [1.076, 0.377, 0.191]] };
   const msMat = new THREE.MeshBasicMaterial({ toneMapped: false });
   // the game's pieces are lit from above: colour x (0.82 + 0.18 * normal.y)
   msMat.onBeforeCompile = (sh) => {
@@ -1013,8 +1009,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   function magicSphere(col, tier) {
     const o = new THREE.Group(), T = SPELL_TIER[tier];
     const parts = ownActorResource(new THREE.InstancedMesh(msGeo, msMat, 7)); parts.frustumCulled = false; parts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    const c = new THREE.Color(col), tmp = new THREE.Color(), tone = MS_TONE[col];
-    for (let i = 0; i < 7; i++) parts.setColorAt(i, tone ? tmp.setRGB(...tone[i === 0 ? 0 : 1], THREE.LinearSRGBColorSpace) : tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.8 : 0.3));
+    const c = new THREE.Color(col), tmp = new THREE.Color();
+    for (let i = 0; i < 7; i++) parts.setColorAt(i, tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.7 : 0.12));
     const glow = new THREE.Mesh(msGlowGeo, msGlowMat(col, tier)); glow.scale.setScalar(0.54 * T.size * MS_K);
     o.add(parts, glow);
     o.userData.ms = { parts, glow, T, path: Array.from({ length: 8 }, () => ({ p: new THREE.Vector3(), at: 0 })), pathN: 0, born: spellTime, lastNow: spellTime, dir: new THREE.Vector3(0, 0, 1) };
@@ -2085,10 +2081,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     if (torch.intensity > 0) torch.position.set(cam.x, gy + 3.2, cam.z);
     grade.uniforms.uTime.value = time; grade.uniforms.uHurt.value = Math.min(1, cam.flash * 3); grade.uniforms.uFlash.value = Math.max(0, cam.white || 0); cam.white = Math.max(0, (cam.white || 0) - dt * 2.5);
     if (me) grade.uniforms.uLow.value = me.al && me.hp / me.mhp < 0.3 ? 1 : 0;
-    if (settings.bloom || settings.dof || settings.ao || settings.grade !== false || settings.aa || stormFx.pass.enabled) {
-      if (settings.dof) bokeh.uniforms.focus.value = camera.position.distanceTo(tmpV.set(cam.x, gy + 1, cam.z));
-      composer.render(dt);
-    } else renderer.render(scene, camera);
+    if (settings.dof) bokeh.uniforms.focus.value = camera.position.distanceTo(tmpV.set(cam.x, gy + 1, cam.z));
+    // Additive spells need linear blending before ACES/sRGB even with every optional effect off.
+    composer.render(dt);
     return cam.flash;
   }
   const seenShield = new Set();

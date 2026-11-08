@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Native spell colours": "Colores originales de los hechizos",
+  "Spell shards use SankoQuest’s original elemental tints.": "Los fragmentos de hechizo usan los tonos elementales originales de SankoQuest.",
+  "Spell glow now uses the same base colour output at every graphics setting. Optional screen effects still apply.": "El resplandor de los hechizos ahora usa la misma base de color en todos los ajustes gráficos. Los efectos de pantalla opcionales siguen aplicándose.",
   "Spell trails in motion": "Estelas de hechizos en movimiento",
   "Spell trails now follow where each bolt travelled over time, including turns and stops.": "Las estelas de los hechizos siguen ahora el recorrido de cada proyectil a lo largo del tiempo, incluidos los giros y las paradas.",
   "Player and boss spells pause with the run. Impacts keep the same spinning shards from flight to finish.": "Los hechizos de jugadores y jefes se pausan con la partida. Los impactos conservan los mismos fragmentos giratorios desde el vuelo hasta el final.",

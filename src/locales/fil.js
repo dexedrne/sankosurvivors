@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Native spell colours": "Orihinal na kulay ng mga spell",
+  "Spell shards use SankoQuest’s original elemental tints.": "Ginagamit ng mga piraso ng spell ang orihinal na kulay ng mga elemento sa SankoQuest.",
+  "Spell glow now uses the same base colour output at every graphics setting. Optional screen effects still apply.": "Pareho na ang batayang kulay ng liwanag ng spell sa lahat ng graphics setting. Nalalapat pa rin ang mga opsyonal na screen effect.",
   "Spell trails in motion": "Mga bakas ng mahika sa paggalaw",
   "Spell trails now follow where each bolt travelled over time, including turns and stops.": "Sinusundan na ng mga bakas ng mahika ang dinaanan ng bawat tira sa paglipas ng oras, pati ang pagliko at paghinto.",
   "Player and boss spells pause with the run. Impacts keep the same spinning shards from flight to finish.": "Humihinto kasama ng laro ang mga mahika ng manlalaro at boss. Parehong umiikot na mga piraso ang nananatili mula paglipad hanggang matapos ang pagtama.",

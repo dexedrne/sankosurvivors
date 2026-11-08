@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Native spell colours": "Doğal büyü renkleri",
+  "Spell shards use SankoQuest’s original elemental tints.": "Büyü parçaları SankoQuest’in özgün element renklerini kullanır.",
+  "Spell glow now uses the same base colour output at every graphics setting. Optional screen effects still apply.": "Büyü parıltısı artık tüm grafik ayarlarında aynı temel renk çıkışını kullanır. İsteğe bağlı ekran efektleri uygulanmaya devam eder.",
   "Spell trails in motion": "Hareket eden büyü izleri",
   "Spell trails now follow where each bolt travelled over time, including turns and stops.": "Büyü izleri artık dönüşler ve duruşlar dahil, her atışın zaman içinde geçtiği yolu takip eder.",
   "Player and boss spells pause with the run. Impacts keep the same spinning shards from flight to finish.": "Oyuncu ve patron büyüleri oyunla birlikte duraklar. Çarpma efektleri, uçuştan sona kadar aynı dönen parçaları korur.",
