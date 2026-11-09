@@ -8,7 +8,7 @@
 //   POST /api/ranked-submit {run, name, log}    replays the run on the server; only what the inputs earned counts
 //   POST /api/ranked-void {run}                 an interrupted run restarts; closed admission records an owed refund
 // The entry fee goes to the ranked entry wallet. Per race: 10% is the house fee (sent on to the dev's wallet); 90% is the
-// race's prize pool for the week, paid to its top 5 wallets (40/25/15/12/8) by the payout bot. The database serializes
+// race's prize pool. Week0 pays top5; week1+ pays 80% placing, 10% qualifying runs and 10% active seconds. The database serializes
 // eligibility and run state changes.
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -171,6 +171,14 @@ async function handle(route, req, res, ctx) {
         const board = await rpc('sqs_ranked_board', { p_week: week, p_mode: mode });
         const units = value => typeof value === 'string' && /^(0|[1-9]\d{0,77})$/.test(value) && BigInt(value) < 1n << 256n;
         if (!board || board.error || !units(board.paid) || !Number.isSafeInteger(board.entries) || board.entries < 0 || !Array.isArray(board.rows)) throw Error('pool unavailable');
+        const activity=[] , seenActivity=new Set();
+        if (week >= 1) {
+          if (!Array.isArray(board.activity)) throw Error('activity unavailable');
+          for (const row of board.activity) {
+            if (!row || !/^0x[0-9a-f]{40}$/.test(row.wallet) || /^0x0{40}$/.test(row.wallet) || row.wallet==='0x9d506ba29843a232409d85e289edece8d6a7b452' || seenActivity.has(row.wallet) || !units(row.runs) || !units(row.seconds) || BigInt(row.runs)<=0n || BigInt(row.seconds)<180n*BigInt(row.runs)) throw Error('invalid activity');
+            seenActivity.add(row.wallet);activity.push({wallet:row.wallet,runs:row.runs,seconds:row.seconds});
+          }
+        }
         const paid = BigInt(board.paid), house = paid / 10n, entryPool = paid - house;
         const first = week === (mode === 'hard' ? g.RANKED.kpmWeek : 0);
         const rolloverReady = first || board.incoming_ready === true;
@@ -178,7 +186,7 @@ async function handle(route, req, res, ctx) {
         const incoming = first ? 0n : rolloverReady ? BigInt(board.incoming) : null;
         const pool = incoming === null ? null : entryPool + incoming;
         if (pool !== null && pool >= 1n << 256n) throw Error('pool overflow');
-        races[mode] = { mode, name: price.name, entryDmt: price.dmt, entries: board.entries, rows: board.rows,
+        races[mode] = { mode, week, activity, rewards: week>=1?{version:1,placing:80,runs:10,seconds:10,minSeconds:180,capped:false}:{version:0,placing:100,runs:0,seconds:0,minSeconds:0,capped:false}, name: price.name, entryDmt: price.dmt, entries: board.entries, rows: board.rows,
           paidWei: String(paid), houseWei: String(house), entryPoolWei: String(entryPool), incomingWei: incoming === null ? null : String(incoming), poolWei: pool === null ? null : String(pool), rolloverReady,
           // Compatibility estimate for older pages; new displays use the exact base-unit fields above.
           poolDmt: Number(pool ?? entryPool) / 1e18 };
@@ -188,7 +196,7 @@ async function handle(route, req, res, ctx) {
     // week 0 on an endless build: runs are endless and rank by time survived ('time'); 'classic' = the old 15:00 runs
     const timed = !kpm && typeof g.runSeconds === 'function' && g.runSeconds(week) > LEGACY_RUN_SECONDS;
     // the top-level fields are the Normal race, as before the Hard race (older pages read them)
-    return send(res, 200, { open: process.env.SQS_RANKED === 'on' && policy.admissionOpen, serverNow, closesAt: policy.closesAt, deadline: policy.deadline, sim: cur, week, map: mapId, endsAt: g.weekStart(week + 1), entryDmt: races.normal.entryDmt, entries: races.normal.entries, poolDmt: races.normal.poolDmt, payouts: g.RANKED.payouts, maxEntries: g.RANKED.maxEntriesPerWallet, collect: COLLECT, rows: races.normal.rows,
+    return send(res, 200, { open: process.env.SQS_RANKED === 'on' && policy.admissionOpen, serverNow, closesAt: policy.closesAt, deadline: policy.deadline, sim: cur, week, map: mapId, endsAt: g.weekStart(week + 1), entryDmt: races.normal.entryDmt, entries: races.normal.entries, poolDmt: races.normal.poolDmt, payouts: g.RANKED.payouts, rewards: races.normal.rewards, maxEntries: g.RANKED.maxEntriesPerWallet, collect: COLLECT, rows: races.normal.rows,
       rules: kpm ? 'combined' : timed ? 'time' : 'classic', minSeconds: kpm ? g.RANKED.minSeconds : 0, timeLimit: kpm || timed ? g.RANKED.timeLimit : 0, races }, 'no-store');
   }
   if (process.env.SQS_RANKED !== 'on') return send(res, 503, { error: 'ranked runs open soon' });

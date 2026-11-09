@@ -8,7 +8,7 @@ export class FakePayoutDB {
   constructor(){this.weeks=[];this.rows=[];this.holds=[];this.notices=new Set();this.reports=new Map();this.refunds=[];this.owner=null;this.until=0;this.next=1;this.now=Date.UTC(2026,10,10,1);}
   row(week,kind,wallet,amount,extra={}){const r={id:String(this.next++),week,mode:'normal',kind,wallet,amount,status:'planned',nonce:null,tx_hash:null,raw_tx:null,scan_block:null,source_entry_id:null,...extra};this.rows.push(r);return r;}
   // a race's settlement report: reports.get(week) is Normal, reports.get(week+':hard') is Hard
-  report(week,mode){return this.reports.get(mode==='hard'?week+':hard':week);}
+  report(week,mode){const r=this.reports.get(mode==='hard'?week+':hard':week);return week>=1?{...(r??{week,mode,paid:'0',top:[]}),activity:r?.activity??[]} :r;}
   async rpc(fn,p={}) {
     const copy=x=>structuredClone(x),err=error=>({error});
     if(fn==='sqs_ranked_settle'){
@@ -35,8 +35,9 @@ export class FakePayoutDB {
         const report=this.report(week,mode)??{paid:'0',top:[]},incoming=prev?.rollover??'0',plan=makePlan(report,incoming,week);
         if(JSON.stringify(p.p_plan)!==JSON.stringify(plan))return err('plan differs from settlement');
         const winners=new Set(plan.prizes.map(x=>x.wallet));
-        this.weeks.push({week,mode,paid:report.paid,incoming,...plan,top:copy(report.top.filter(x=>winners.has(x.wallet.toLowerCase()))),pay_at:new Date(EPOCH+(week+1)*WEEK+86400000).toISOString()});
+        this.weeks.push({week,mode,paid:report.paid,incoming,...plan,activity:copy(report.activity),top:copy(report.top.filter(x=>winners.has(x.wallet.toLowerCase()))),pay_at:new Date(EPOCH+(week+1)*WEEK+86400000).toISOString()});
         plan.prizes.forEach((prize,i)=>{if(BigInt(prize.amount)>0n)this.row(week,'prize'+(i+1),prize.wallet,prize.amount,{mode,status:this.holds.some(h=>h.week===week&&h.wallet===prize.wallet)?'held':'planned'});});
+        for(const prize of plan.participation??[])if(BigInt(prize.amount)>0n)this.row(week,'participation',prize.wallet,prize.amount,{mode,status:this.holds.some(h=>h.week===week&&h.wallet===prize.wallet)?'held':'planned'});
         if(BigInt(plan.house)>0n)this.row(week,'house',HOUSE,plan.house,{mode});
         this.row(week,'rollover-note',COLLECT,plan.rollover,{mode,status:'confirmed'});return {ok:true};
       }
@@ -44,7 +45,7 @@ export class FakePayoutDB {
       case 'lease':if(p.p_release){if(this.owner===p.p_owner)this.owner=null;return {ok:true};}if(this.owner&&this.owner!==p.p_owner&&this.until>this.now)return {ok:false};this.owner=p.p_owner;this.until=this.now+5*60000;return {ok:true};
       case 'notice':if(this.notices.has(p.p_name))return {ok:false};this.notices.add(p.p_name);return {ok:true};
       case 'hold':{
-        const rs=this.rows.filter(r=>r.week===p.p_week&&r.wallet===p.p_wallet&&r.kind.startsWith('prize'));
+        const rs=this.rows.filter(r=>r.week===p.p_week&&r.wallet===p.p_wallet&&(r.kind.startsWith('prize')||r.kind==='participation'));
         const unchanged=rs.filter(r=>['sending','sent','confirmed','failed'].includes(r.status)).length;
         this.holds=this.holds.filter(h=>h.week!==p.p_week||h.wallet!==p.p_wallet);
         if(p.p_reason!=null)this.holds.push({week:p.p_week,wallet:p.p_wallet,reason:p.p_reason});
@@ -54,7 +55,7 @@ export class FakePayoutDB {
       case 'claim':{
         const r=this.rows.find(r=>r.id===String(p.p_id));if(!r||r.status!=='planned'||r.kind==='rollover-note'||BigInt(r.amount)<=0n)return err('not claimable');
         if(r.kind!=='refund'&&this.now<Date.parse(this.weeks.find(w=>w.week===r.week&&w.mode===r.mode).pay_at))return err('not due');
-        if(r.kind.startsWith('prize')&&this.holds.some(h=>h.week===r.week&&h.wallet===r.wallet))return err('held');
+        if((r.kind.startsWith('prize')||r.kind==='participation')&&this.holds.some(h=>h.week===r.week&&h.wallet===r.wallet))return err('held');
         let nonce=BigInt(p.p_pending);for(const x of this.rows)if(x.nonce!=null&&BigInt(x.nonce)>=nonce)nonce=BigInt(x.nonce)+1n;
         Object.assign(r,{status:'sending',nonce:String(nonce),scan_block:p.p_block});
         if(this.crashClaim)throw Error('simulated crash after claim');

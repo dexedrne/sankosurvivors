@@ -566,7 +566,7 @@ function openLevel(sim, p) {
   if (!(sim.pace >= 2) || !p.alive || sim.pending[p.id] || !p.levelQ || sim.over) return false;
   p.levelQ--;
   sim.pending[p.id] = { choices: rollChoices(sim, p), left: 20 };
-  if (sim.endless && !sim.ranked && sim.pending[p.id].choices.every(c => c.kind === 'heal' || c.kind === 'passive' && c.id === 'curse')) {
+  if (sim.endless && sim.pending[p.id].choices.every(c => c.kind === 'heal' || c.kind === 'passive' && c.id === 'curse')) {
     const stat = ['might', 'maxHp', 'area'][Math.floor(sim.rng() * 3)];
     p.endlessGrowth ||= { might: 0, maxHp: 0, area: 0 };
     p.endlessGrowth[stat]++;
@@ -863,7 +863,7 @@ function stepProjectiles(sim, dt) {
       damageEnemy(sim, e, pr.dmg, pr.owner, pr.kb || 0.8, pr.x - pr.vx, pr.z - pr.vz);
       if (pr.art === 'bolt') {
         if (pr.burst) {
-          sim.fx.push({ k: 'burst', x: pr.x, z: pr.z, r: pr.burst, evo: pr.evo ? 1 : 0 });
+          sim.fx.push({ k: 'burst', x: pr.x, z: pr.z, r: pr.burst, evo: pr.evo ? 1 : 0, ...(sim.pace >= 2 ? { projectile: pr.id, owner: pr.owner, lvl: pr.lvl } : {}) });
           for (const o of sim.enemies) if (o !== e && !o.dead && hyp(o.x - pr.x, o.z - pr.z) < pr.burst) damageEnemy(sim, o, pr.dmg * 0.6, pr.owner, 1, pr.x, pr.z);
         }
         pr.life = 0; break;

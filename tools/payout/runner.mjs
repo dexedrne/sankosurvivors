@@ -15,18 +15,21 @@ const RACE={normal:'Normal',hard:'Hard'};
 
 export function validateState(state) {
   if(!Array.isArray(state.rows)||!Array.isArray(state.weeks))throw Error('invalid payout ledger');
-  const ids=new Set(),nonces=new Set();
+  const ids=new Set(),nonces=new Set(),transfers=new Set();
+  const expectedPlans=new Map();
+  const expectedFor=week=>{if(!expectedPlans.has(week))expectedPlans.set(week,makePlan({paid:week.paid,top:week.top,activity:week.activity},week.incoming,week.week));return expectedPlans.get(week);};
   for(const row of state.rows) {
     if(!/^\d+$/.test(row.id)||ids.has(row.id)||!Number.isInteger(row.week)||row.week< -1)throw Error('invalid payout identity');ids.add(row.id);
     address(row.wallet);units(row.amount);
-    if(!['prize1','prize2','prize3','prize4','prize5','house','refund','rollover-note'].includes(row.kind)||!['planned','held','sending','sent','confirmed','failed'].includes(row.status)||!['normal','hard'].includes(modeOf(row)))throw Error('invalid payout row');
+    if(!['prize1','prize2','prize3','prize4','prize5','participation','house','refund','rollover-note'].includes(row.kind)||!['planned','held','sending','sent','confirmed','failed'].includes(row.status)||!['normal','hard'].includes(modeOf(row)))throw Error('invalid payout row');
     if(row.nonce!=null){units(row.nonce);if(nonces.has(row.nonce))throw Error('duplicate nonce');nonces.add(row.nonce);}
     if(['sending','sent'].includes(row.status)&&row.nonce==null)throw Error('missing nonce');
     if(row.kind==='refund') {if(!/^\d+$/.test(row.source_entry_id))throw Error('invalid refund source');continue;}
     const week=planOf(state,row);if(!week)throw Error('missing weekly plan');
-    const expected=makePlan({paid:week.paid,top:week.top},week.incoming,week.week);
+    const expected=expectedFor(week);
+    const identity=[row.week,modeOf(row),row.kind,row.wallet].join(':');if(transfers.has(identity))throw Error('duplicate payout');transfers.add(identity);
     if(expected.pool!==week.pool||expected.rollover!==week.rollover||expected.house!==week.house)throw Error('invalid weekly totals');
-    const prize=expected.prizes[Number(row.kind.slice(-1))-1];
+    const prize=row.kind==='participation'?expected.participation?.find(p=>p.wallet===row.wallet):expected.prizes[Number(row.kind.slice(-1))-1];
     const amount=row.kind==='house'?week.house:row.kind==='rollover-note'?week.rollover:prize?.amount;
     const destination=row.kind==='house'?HOUSE:row.kind==='rollover-note'?COLLECT:prize?.wallet;
     if(row.amount!==amount||row.wallet!==destination)throw Error('row differs from weekly plan');
@@ -35,6 +38,8 @@ export function validateState(state) {
   for(const week of state.weeks) {
     if(!['normal','hard'].includes(modeOf(week))||week.week<firstWeek(modeOf(week))||plans.has(week.week+':'+modeOf(week)))throw Error('invalid weekly plan');
     plans.add(week.week+':'+modeOf(week));
+    const expected=expectedFor(week);
+    if(expected.pool!==week.pool||expected.rollover!==week.rollover||expected.house!==week.house)throw Error('invalid weekly totals');
     const mine=r=>r.week===week.week&&modeOf(r)===modeOf(week);
     const refund=sum(state.rows.filter(r=>mine(r)&&r.kind==='refund'));
     const budget=units(week.pool)+units(week.house)+refund;
@@ -53,7 +58,7 @@ function matches(tx,row,config) {
 export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.now,pause=sleep,approvedWeek=null,expectedRows=null,atReset=false}) {
   if(approvedWeek!==null&&(!Number.isSafeInteger(approvedWeek)||approvedWeek<0))throw Error('invalid approved week');
   if(expectedRows!==null&&!Array.isArray(expectedRows))throw Error('invalid approved preview');
-  const allowed=row=>approvedWeek===null||row.week===approvedWeek&&/^(prize[1-5]|house)$/.test(row.kind);
+  const allowed=row=>approvedWeek===null||row.week===approvedWeek&&/^(prize[1-5]|participation|house)$/.test(row.kind);
   const financial=row=>({id:row.id,week:row.week,mode:modeOf(row),kind:row.kind,wallet:row.wallet,amount:row.amount});
   const owner=randomUUID();
   const call=async(name,args={})=>{
@@ -91,11 +96,13 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
     for(const week of state.weeks) {
       const mode=modeOf(week),rows=state.rows.filter(r=>r.week===week.week&&modeOf(r)===mode),refunds=rows.filter(r=>r.kind==='refund');
       const score=p=>kpmWeek(week.week)?`${rankedPoints(p.kills,p.t)} points · ${kpm(p.kills,p.t).toFixed(2)} KPM (${p.kills} kills in ${Math.floor(p.t/60)}m ${p.t%60}s)`:`${Math.floor(p.t/60)}m ${p.t%60}s`;
+      const participation=rows.filter(r=>r.kind==='participation');
+      const activityNotice=week.week>=1?`\nParticipation: ${participation.length} wallets, ${dmt(sum(participation))} DMT (10% qualifying runs + 10% active seconds; uncapped).`:'';
       const winners=week.top.slice(0,5).map((p,i)=>{
         const amount=rows.find(r=>r.kind==='prize'+(i+1))?.amount??'0';
         return `${i+1}. ${clean(p.name)} ${short(p.wallet)} ${score(p)}: ${dmt(amount)} DMT`;
       }).join('\n')||'No ranked finishers.';
-      await notice('week:'+week.week+(mode==='normal'?'':':'+mode),`${config.live?'':'DRY RUN — ' }Week ${week.week} ${RACE[mode]} ranked results\nWinners\n${winners}\nHouse: ${dmt(week.house)} DMT. Rollover: ${dmt(week.rollover)} DMT.\nRefunds: ${refunds.length}, ${dmt(sum(refunds))} DMT; eligible after source finality.\nPrizes/house due ${week.pay_at}.${config.live?'':' Sending is disabled.'}\nHold a winner before sending (holds cover both races):\nnode tools/payout/hold.mjs ${week.week} <wallet> "<reason>"\nUse the full wallet from the ledger. A hold after sending does nothing.`);
+      await notice('week:'+week.week+(mode==='normal'?'':':'+mode),`${config.live?'':'DRY RUN — ' }Week ${week.week} ${RACE[mode]} ranked results\nWinners\n${winners}${activityNotice}\nHouse: ${dmt(week.house)} DMT. Rollover: ${dmt(week.rollover)} DMT.\nRefunds: ${refunds.length}, ${dmt(sum(refunds))} DMT; eligible after source finality.\nPrizes/house due ${week.pay_at}.${config.live?'':' Sending is disabled.'}\nHold a winner before sending (holds cover both races):\nnode tools/payout/hold.mjs ${week.week} <wallet> "<reason>"\nUse the full wallet from the ledger. A hold after sending does nothing.`);
     }
     try{validateState(state);}catch{await alert('invalid ledger');return;}
     const outstanding=state.rows.filter(r=>r.kind!=='rollover-note'&&r.status!=='confirmed');

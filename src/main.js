@@ -24,7 +24,7 @@ import { NATIVE_PETS, petChoice } from './pets.js';
 import { createBunCompanions, bunChoice } from './bun-companions.js';
 import { canAutoEquip } from './auto-equip.js';
 import { CHANGELOG, LATEST } from './changelog.js';
-import { dmtText, poolReadout, prizeEstimate, prizeNotes } from './prize-display.js';
+import { dmtText, poolReadout, prizeEstimate, prizeNotes, walletPrize } from './prize-display.js';
 import { initI18n, translateText } from './i18n.js';
 import { CREATOR, TIP_ETH, NO_PRIZE, COOP_RELAY } from './config.js';
 const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
@@ -291,7 +291,7 @@ function renderRanked() {
       if (confirm(translateText('Only clear this check if your wallet shows that no payment was sent. A sent payment must be recovered instead.', document.documentElement.lang))) rankedAction(clearUnsentPayment);
     });
   }
-  if (!live && rankedWeek) for (const e of readRanked('sq-ranked-entries', []).filter((e) => e.week === rankedWeek.week)) button(`Entry ${e.id}${raceBadge(e.mode)} ready · Start`, () => startRankedEntry(e), true);
+  if (!live && rankedWeek) for (const e of readRanked('sq-ranked-entries', []).filter((e) => e.week === rankedWeek.week)) button(`Receipt #${e.id}${raceBadge(e.mode)} ready · Start`, () => startRankedEntry(e), true);
   if (rankedWeek) {
     const races = raceList(rankedWeek); if (!races.includes(rankedMode)) rankedMode = 'normal';
     const race = raceOf(rankedWeek, rankedMode), kp = kpmRules(rankedWeek), combined = rankedWeek.rules === 'combined', two = races.length > 1;
@@ -305,10 +305,11 @@ function renderRanked() {
     pool.replaceChildren(summary, ' ');
     estimate?.prizes.forEach((amount,i) => {
       const prize = document.createElement('span');
-      prize.textContent = `${['1st','2nd','3rd','4th','5th'][i] || `${i+1}th`}: ${dmtText(amount)} DMT`;
+      prize.textContent = `${['1st','2nd','3rd','4th','5th'][i] || `${i+1}th`}: ${dmtText(amount)} DMT${race.week >= 1 ? ' + participation' : ''}`;
       pool.append(i ? ' · ' : '', prize);
     });
     for (const text of prizeNotes(race, estimate)) { const note = document.createElement('small'); note.textContent = text; pool.append(note); }
+    if (rankedWeek.week >= 1) { const note = document.createElement('small'); note.textContent = 'Prize pool: 80% placing, 10% qualifying runs, 10% active playtime. No run or time caps; verified runs must last at least 3:00. Pauses earn no participation. The developer earns no prizes.'; pool.append(note); }
     const list = document.createElement('ol');
     race.rows.forEach((r, i) => {
       const li = document.createElement('li'), short3 = kp && !placeable(rankedWeek.week, r);
@@ -322,7 +323,7 @@ function renderRanked() {
     $('rankedstandings').replaceChildren(list);
     if (!list.children.length) $('rankedstandings').textContent = `No ${two ? race.name + ' ' : ''}runs yet this week.`;
     $('rankedrules').textContent = kp
-      ? `${rankedMode === 'hard' ? 'Hard rules: tougher, faster monsters and harder bosses. ' : ''}Runs are endless: ${combined ? 'your score is total kills + seconds survived (one point for each)' : 'your score is kills per minute (kills × 60 ÷ seconds survived)'}, and the hunt is over at ${fmtT(rankedWeek.timeLimit || RANKED.timeLimit)}. A run under ${fmtT(rankedWeek.minSeconds || RANKED.minSeconds)} is listed as too short and cannot win. ${combined ? 'Equal points use kills per minute, then total kills, then the earlier finish.' : 'Ties go to more kills, then the earlier finish.'} Entry is ${race.entryDmt} DMT on Arbitrum: 10% house fee, 90% to the ${race.name} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's ${race.name} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).`
+      ? `${rankedMode === 'hard' ? 'Hard rules: tougher, faster monsters and harder bosses. ' : ''}Runs are endless: ${combined ? 'your score is total kills + seconds survived (one point for each)' : 'your score is kills per minute (kills × 60 ÷ seconds survived)'}, and the hunt is over at ${fmtT(rankedWeek.timeLimit || RANKED.timeLimit)}. A run under ${fmtT(rankedWeek.minSeconds || RANKED.minSeconds)} is listed as too short and cannot win. ${combined ? 'Equal points use kills per minute, then total kills, then the earlier finish.' : 'Ties go to more kills, then the earlier finish.'} Entry is ${race.entryDmt} DMT on Arbitrum: 10% house fee, 90% to the ${race.name} prize pool: 80% split 40/25/15/12/8 between its top five wallets, 10% by qualifying runs and 10% by active playtime; unfilled rewards roll over to next week's ${race.name} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).`
       : rankedWeek.rules === 'time' ? `Runs are endless: your score is how long you survive, then kills, and the hunt is over at ${fmtT(rankedWeek.timeLimit || RANKED.timeLimit)}. Ties go to more kills, then the earlier finish. Entry is ${race.entryDmt} DMT on Arbitrum: 10% house fee, 90% to the ${race.name} prize pool, split 40/25/15/12/8 between its top five wallets; unclaimed places roll over to next week's ${race.name} pool. Monday to Monday UTC, one map, as many entries as you like in each race, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).`
       : 'Entry is 0.5 DMT on Arbitrum: 10% house fee, 90% prize pool split 40/25/15/12/8 between the top five wallets. Monday to Monday UTC, one map, as many entries as you like, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).';
     rankedTime();
@@ -1037,6 +1038,18 @@ function casualBoardRows(rows, endless) {
   const myName = load('sq-name', ''); // your own runs stand out
   return rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Adventurer</th><th>Time</th><th class="opt">Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span>${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td class="opt">${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : (endless ? '<p class="dim">No endless runs on this map yet. Clear the map, then tick Endless on the title screen and see how long you last.</p>' : '<p class="dim">No runs on this map yet. Be the first.</p>');
 }
+// Immutable week-0 receipts, independently checked against the finalized DMT transfers.
+function rewardTransactions() {
+  const paid = [
+    ['ArkRide', '20.7', '0xe88ddc1b2197b812337e5c088e83db7566fc33e016e983a0a6b36b4e4565b28d'],
+    ['michaelsankson', '12.9375', '0x96a43beee6771909d6b4b0dd62582284d302dbc6639e98678e71cb5710c02bfc'],
+    ['c3nt3no', '7.7625', '0x6b81995683682e9aa82c06d5e56210d88ca3bab21e0e7fec6c2d94d3566cfba0'],
+    ['The Merchant', '6.21', '0xb9c0494c3a34277e8ba985af63bce9903aa405f451647085c6b11418909eb1b1'],
+    ['FUZZY', '4.14', '0xaf14bf819f32a711451db8085e56e8802a3631b78fe425af7427bd6be71dd319'],
+    ['House', '5.75', '0x2d9e8600183ed29d0b6eea736649d658a061c1002d743ae15c054cd6c816759c'],
+  ];
+  return `<details class="rewardreceipts"><summary>Week 0 · confirmed reward transactions</summary><ul>${paid.map(([name, amount, tx]) => `<li><span translate="no">${name}</span> · ${amount} DMT · <a href="https://arbiscan.io/tx/${tx}" target="_blank" rel="noopener">View transaction</a></li>`).join('')}</ul></details>`;
+}
 // this week's ranked standings: each wallet's best run, and what the top places would win if the week ended now
 async function showRankedBoard(request = ++lbRequest) {
   try {
@@ -1051,12 +1064,18 @@ async function showRankedBoard(request = ++lbRequest) {
     const head = `${tabs}<p class="lbweek">${esc((MAP_BY_ID[d.map] || {}).name || d.map)}${two ? ` · ${race.name}` : ''} · <b>${esc(poolReadout(race))}</b> · resets in ${dd}d ${hh}h</p>`
       + prizeNotes(race, estimate).map(text => `<p class="lbweek dim">${esc(text)}</p>`).join('')
       + (kp ? `<p class="lbweek dim">Score: ${combined ? 'total kills + seconds survived. Equal points use KPM' : 'kills per minute'}. Runs under ${fmtT(d.minSeconds || RANKED.minSeconds)} cannot win.</p>` : '');
-    const prize = (i) => (place[i] < 0 ? `<span class="dim">${noPrize(rows[i].wallet) ? 'no prize (dev)' : 'too short'}</span>` : estimate?.prizes[place[i]] !== undefined ? `${dmtText(estimate.prizes[place[i]])} DMT` : '—');
+    const prize = (i) => {
+      const total = walletPrize(estimate, rows[i].wallet, place[i]);
+      return noPrize(rows[i].wallet) ? '<span class="dim">no prize (dev)</span>' : total === null ? '—' : total !== '0' || place[i] >= 0 ? `${dmtText(total)} DMT` : '<span class="dim">too short</span>';
+    };
     const wal = (x) => esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4));
     $('lblist').innerHTML = head + (rows.length ? (kp
       ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>${combined ? 'Points' : 'KPM'}</th><th>Time</th><th>Slain</th>${combined ? '<th class="opt">KPM</th>' : ''}<th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${place[i] < 0 ? 'short' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span><small class="rankedruns">${esc(completedRunText(x))}</small></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${combined ? rankedPoints(x.kills, x.t).toLocaleString() : fmtKpm(x)}</td><td>${fmtT(x.t)}</td><td>${x.kills}</td>${combined ? `<td class="opt">${fmtKpm(x)}</td>` : ''}<td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`
       : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span><small class="rankedruns">${esc(completedRunText(x))}</small></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`)
-      : `<p class="dim">No ${two ? race.name + ' ' : ''}ranked runs yet this week. Enter from the Ranked button on the title screen.</p>`);
+      : `<p class="dim">No ${two ? race.name + ' ' : ''}ranked runs yet this week. Enter from the Ranked button on the title screen.</p>`)
+      + (d.week >= 1 ? `<p class="lbweek dim">Prize pool: 80% placing, 10% qualifying runs, 10% active playtime. No run or time caps; verified runs must last at least 3:00. Pauses earn no participation. The developer earns no prizes.</p>` : '')
+      + (estimate?.participation?.length ? `<details><summary>Participation rewards</summary><ul>${estimate.participation.map(p => { const row = rows.find(r => r.wallet === p.wallet); return `<li><span translate="no">${esc(row?.name || p.wallet)}</span> · ${dmtText(p.amount)} DMT</li>`; }).join('')}</ul></details>` : '')
+      + rewardTransactions();
     for (const b of $('lblist').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); showRankedBoard(); };
   } catch (e) { if (request === lbRequest) $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
 }
@@ -1820,11 +1839,11 @@ addEventListener('keydown', (e) => {
   if (mode === 'recovery' || walletModalOpen()) return;
   if (mode === 'play' && (e.target?.closest?.('#equipmenthud') || e.target?.closest?.('[data-inspect]')) && ['Tab', 'Enter', ' '].includes(e.key)) return;
   if (e.target?.matches?.('input, textarea, select, [contenteditable="true"]') || e.target?.matches?.('summary') && !e.target?.closest?.('#equipmenthud')) return;
-  if (e.repeat) return;
   const k = e.key.toLowerCase();
   if (mode === 'play' && MENU_SCREENS.every(id => $(id).classList.contains('hidden')) && k === 'tab' && !e.shiftKey && !e.target?.matches?.('button, a[href]')) {
     if (setMapPeek(true)) { e.preventDefault(); return; }
   }
+  if (e.repeat) return;
   if (mode === 'play' && k === 'escape' && !$('damagepanel').classList.contains('hidden')) { setDamagePanel(false); e.preventDefault(); return; }
   if ((k === 'enter' || k === ' ') && e.target?.matches?.('button, a[href]')) return;
   keys.add(k);

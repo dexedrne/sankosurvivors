@@ -1,12 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {dmtText,prizeEstimate,poolReadout,prizeNotes} from '../src/prize-display.js';
+import {dmtText,prizeEstimate,poolReadout,prizeNotes,walletPrize} from '../src/prize-display.js';
 import {translateText} from '../src/i18n.js';
 import {makePlan} from '../tools/payout/core.mjs';
 import {RANKED} from '../src/ranked.js';
 test('DMT display preserves all base units, without rounding or scientific notation',()=>{
   for(const [wei,text]of[['0','0'],['1','0.000000000000000001'],['3487500000000000000','3.4875'],['1000000000000000000001','1000.000000000000000001']]) assert.equal(dmtText(wei),text);
   for(const invalid of [null,undefined,1,'01','-1','1e18','0x12','1.2',(1n<<256n).toString()])assert.equal(dmtText(invalid),'—');
+});
+test('wallet estimates combine placing and participation, including wallets beyond the placing list',()=>{
+ const e={prizes:['101'],participation:[{wallet:'first',amount:'9'},{wallet:'outside',amount:'17'}]};
+ assert.equal(walletPrize(e,'first',0),'110');assert.equal(walletPrize(e,'outside',-1),'17');assert.equal(walletPrize(e,'outside',25),'17');assert.equal(walletPrize(e,'missing',-1),'0');assert.equal(walletPrize(null,'first',0),null);
 });
 test('prize estimates match the canonical payout shares/dust/rollover for 0 to 7 eligible winners',()=>{
   for(const paid of ['0','1','10','10001','15500000000000000000'])for(const incoming of ['0','1','1116000000000000001'])for(let n=0;n<=7;n++){
@@ -31,7 +35,7 @@ test('pool descriptions distinguish total, entry contribution and unavailable le
   assert(notes.includes('Includes 1.116 DMT rollover.'));assert(notes[0].includes('before review'));
 });
 for(const language of ['tr','es','fil'])test(`${language}: precise prize copy translates while amounts stay exact`,()=>{
-  for(const source of ['Estimated prize','Estimates at current standings, before review.','Rollover pending settlement; prizes unavailable.','Pool details are updating. Refresh shortly.','Could not refresh ranked standings. Try again shortly.','31 entries · 13.95 DMT pool.','1 entries · 0.45 DMT from entries.','Includes 1.116 DMT rollover.','Unfilled places: 1.116000000000000001 DMT rollover.']) {
+  for(const source of ['Estimated prize','Estimates at current standings, before review.','Rollover pending settlement; prizes unavailable.','Pool details are updating. Refresh shortly.','Could not refresh ranked standings. Try again shortly.','31 entries · 13.95 DMT pool.','1 entries · 0.45 DMT from entries.','Includes 1.116 DMT rollover.','Unfilled places: 1.116000000000000001 DMT rollover.','Unfilled rewards: 1.116000000000000001 DMT rollover.','Participation rewards','1st: 0.32 DMT + participation','5th: 0.064000000000000001 DMT + participation','Prize pool: 80% placing, 10% qualifying runs, 10% active playtime. No run or time caps; verified runs must last at least 3:00. Pauses earn no participation. The developer earns no prizes.']) {
     const translated=translateText(source,language);assert.notEqual(translated,source,source);
     for(const number of source.match(/\d+(?:\.\d+)?/g)||[])assert(translated.includes(number),number);
   }

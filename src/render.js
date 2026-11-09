@@ -1163,8 +1163,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (!L) return false;
       if (bolt) { let bd = 1.2; for (const f of spFx.burst) if (!f.used) { const d = (f.x - px) ** 2 + (f.z - pz) ** 2; if (d < bd) { bd = d; L.ring = f; } } if (L.ring) L.ring.used = true; }
       u.land = L;
-      const step = Math.max(0.05, Math.hypot(u.x1 - u.x0, u.z1 - u.z0) / n), far = Math.hypot(L.x - u.x1, L.y - u.y1, L.z - u.z1); // in at its own speed
-      spellSample(u, Math.max(vt, u.g1 + Math.min(8, Math.max(1, Math.round(far / step)))), L.x, L.y, L.z, Math.atan2(L.x - u.x1, L.z - u.z1));
+      spellSample(u, vt, L.x, L.y, L.z, Math.atan2(L.x - u.x1, L.z - u.z1));
     }
     spellDraw(o); stepMagicSphere(o.children[0], spellTime);
     if (spRT < u.g1) return true; // still on its way in
@@ -1173,11 +1172,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   function spellStray(f, players) { // a staff bolt that hit in the tick it was cast (point blank) was never drawn: burst on what it hit
     let c = null, cd = 1e9; for (const p of players) if (p.al) { const d = (p.x - f.x) ** 2 + (p.z - f.z) ** 2; if (d < cd) { cd = d; c = p; } }
-    const s = staffSpell((c && c.w && c.w.staff) || 1, !!(c && c.evo && c.evo.staff)), L = hitCentre(f.x, f.z, 9) || { x: f.x, y: groundAt(f.x, f.z) + 0.9, z: f.z };
+    const s = Number.isSafeInteger(f.projectile) && f.lvl >= 1 ? staffSpell(f.lvl, !!f.evo, f.projectile) : staffSpell((c && c.w && c.w.staff) || 1, !!(c && c.evo && c.evo.staff)), L = hitCentre(f.x, f.z, 9) || { x: f.x, y: groundAt(f.x, f.z) + 0.9, z: f.z };
     magicBurst(L.x, L.y, L.z, s.col, s.tier); spellRing(f.x, f.z, f.r, s.col);
   }
-  // SankoQuest's spell flies straight at its target's middle; ours flies 1.3 up, so over its last 3 u it eases to the middle
-  // of the monster ahead of it (a chicken's 0.33, a boss's 2-3) and lands without a dive
+  // Native uses a target anchor and an arc; our simulation supplies horizontal flight, eased toward the target's middle.
   function boltY(x, z, ang) {
     const g = groundAt(x, z) + 1.3, sx = Math.sin(ang), sz = Math.cos(ang); let best = null, bd = 1e9;
     for (const a of actors.values()) { const def = ENEMIES[a.type], dx = a.px - x, dz = a.pz - z, along = dx * sx + dz * sz; if (!def || along <= 0 || along > 4 + def.r || along >= bd || Math.abs(dx * sz - dz * sx) > def.r + 0.5) continue; bd = along; best = a; }

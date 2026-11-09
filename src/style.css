@@ -875,7 +875,7 @@ body.touch #equipmenthud, body.ds-layout #equipmenthud { display:none; }
 #profilegate [hidden] { display: none; }
 
 .rankedack { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0; }
-.rankedack input { flex: 0 0 auto; min-width: 24px; min-height: 24px; }
+#ranked .rankedack input { flex: 0 0 24px; width: 24px; height: 24px; min-width: 24px; min-height: 24px; padding: 0; accent-color: var(--gold); }
 
 #mappeekhint { display:none; }
 #mmwrap.mappeek { position:fixed; z-index:45; top:50%; left:50%; right:auto; transform:translate(-50%,-50%); width:min(76dvh,70vw); height:min(76dvh,70vw); background:#1e1710ed; pointer-events:none; }

@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-import { makePlan, HOUSE, COLLECT } from '../tools/payout/core.mjs';
+import { makePlan, HOUSE, COLLECT } from './helpers/legacy-reward-plan.mjs';
 import { compareRuns, prizePlaces } from '../src/ranked.js';
 
 const enabled = !!process.env.SQS_PGLITE;

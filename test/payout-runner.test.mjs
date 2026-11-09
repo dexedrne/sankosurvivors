@@ -71,7 +71,7 @@ test('rollover from an empty week is added exactly once to next week prizes',asy
   f.db.reports.set(1,{week:1,paid:'10000000000000000000',top:[{wallet:wallet(1),name:'Next',t:900},{wallet:wallet(2),t:899},{wallet:wallet(3),t:898}],refunds:[]});
   await run(f.config,f.ports);await run(f.config,f.ports);
   const week=f.db.weeks.find(w=>w.week===1);assert.equal(week.incoming,'9000000000000000000');
-  assert.deepEqual(f.db.rows.filter(r=>r.week===1&&r.kind.startsWith('prize')).map(r=>r.amount),['7200000000000000000','4500000000000000000','2700000000000000000']);
+  assert.deepEqual(f.db.rows.filter(r=>r.week===1&&r.kind.startsWith('prize')).map(r=>r.amount),['5760000000000000000','3600000000000000000','2160000000000000000']);
   assert.equal(f.chain.broadcasts.length,6);
 });
 test('repeated and late refunds to a paid wallet are paid separately once, including the active week',async()=>{
@@ -169,8 +169,8 @@ test('week 1 settles the Normal and Hard pots separately (KPM rules, 3:00 minimu
   const h1=plan(1,'hard');
   assert.deepEqual([h1.house,h1.pool,h1.incoming],[e18(0.45),e18(4.05),'0']);
   const hp=f.db.rows.filter(r=>r.week===1&&r.mode==='hard');
-  assert.deepEqual(hp.filter(r=>r.kind.startsWith('prize')).map(r=>[r.kind,r.wallet,r.amount]),[['prize1',wallet(31),e18(1.62)]]);
-  assert.equal(h1.rollover,e18(2.43));
+  assert.deepEqual(hp.filter(r=>r.kind.startsWith('prize')).map(r=>[r.kind,r.wallet,r.amount]),[['prize1',wallet(31),e18(1.296)]]);
+  assert.equal(h1.rollover,e18(2.754));
   assert.deepEqual(hp.filter(r=>r.kind==='house').map(r=>[r.wallet,r.amount]),[[HOUSE,e18(0.45)]]);
   assert.equal(hp.find(r=>r.kind==='rollover-note').wallet,COLLECT);
   assert.ok(!f.db.rows.some(r=>r.wallet===HOUSE&&r.kind.startsWith('prize')));
@@ -195,8 +195,8 @@ test('the Hard rollover chain is its own: an empty Hard week rolls its whole poo
   assert.equal(plan(2,'hard').pool,(BigInt(e18(1.35))+BigInt(e18(2.7))).toString());
   assert.equal(plan(2,'normal').incoming,plan(1,'normal').rollover);
   // week 2 Hard: 1.35 new + 2.7 rolled = 4.05; its one winner takes 1st place (40%), the rest rolls on into week 3's Hard pot
-  assert.equal(f.db.rows.find(r=>r.week===2&&r.mode==='hard'&&r.kind==='prize1').amount,e18(1.62));
-  assert.equal(plan(2,'hard').rollover,e18(2.43));
+  assert.equal(f.db.rows.find(r=>r.week===2&&r.mode==='hard'&&r.kind==='prize1').amount,e18(1.296));
+  assert.equal(plan(2,'hard').rollover,e18(2.754));
   assert.equal(f.db.weeks.some(x=>x.week===0&&x.mode==='hard'),false,'no Hard race in week 0');
 });
 // security pass, 3 Nov: a refund row in the ledger is not money. Only a real payment on chain is refunded, and only once.

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import {walletPrize,dmtText} from '../src/prize-display.js';
 import { MAPS, MAP_BY_ID, ADVENTURER_BY_ID } from '../src/content.js';
 
 const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
@@ -8,12 +9,20 @@ const source = main.slice(main.indexOf('const ADV_NAME ='), main.indexOf('// ---
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
 const response = (rows = []) => ({ ok: true, status: 200, json: async () => ({ rows }) });
 const rows = (prefix) => Array.from({ length: 7 }, (_, i) => ({ name: `${prefix}${i}`, adv: 'adventurer', t: 900 - i, level: i + 1, kills: 700 - i, hard: i === 0, holder: i === 0, won: i === 0 }));
-function board(fetch) {
+function board(fetch, overrides={}) {
   const nodes = Object.fromEntries(['lbtabs', 'lblist', 'lbmapsel', 'rankedbtn'].map(id => [id, { innerHTML: '', querySelectorAll: () => [], classList: { contains: () => false } }]));
-  const env = { $: id => nodes[id], fetch, MAPS, MAP_BY_ID, ADVENTURER_BY_ID, BASE: '/', selMap: MAPS[0].id, load: () => 'me', fmtT: t => `${t}s`, localBest: () => 'best', rankedMode: 'normal', raceList: () => ['normal'], raceOf: d => ({ rows: d.rows || [] }), kpmRules: () => false, prizePlaces: () => [], prizeEstimate: () => null, poolReadout: () => 'ranked pot', prizeNotes: () => [] };
+  const env = { $: id => nodes[id], fetch, MAPS, MAP_BY_ID, ADVENTURER_BY_ID, BASE: '/', selMap: MAPS[0].id, load: () => 'me', fmtT: t => `${t}s`, localBest: () => 'best', rankedMode: 'normal', raceList: () => ['normal'], raceOf: d => ({ rows: d.rows || [] }), kpmRules: () => false, prizePlaces: () => [], prizeEstimate: () => null, poolReadout: () => 'ranked pot', prizeNotes: () => [],walletPrize,dmtText,noPrize:()=>false,completedRunText:()=> '1 completed run this week',...overrides };
   const api = Function('env', `with (env) { ${source}; return { showBoard, showRankedBoard }; }`)(env);
   return { ...api, nodes, html: () => nodes.lblist.innerHTML };
 }
+
+test('ranked board exposes six immutable week-0 receipts conserving 57.5 DMT',async()=>{
+ const b=board(async()=>response());await b.showRankedBoard();const html=b.html();
+ const hashes=[...html.matchAll(/href="https:\/\/arbiscan\.io\/tx\/(0x[0-9a-f]{64})"/g)].map(m=>m[1]);
+ assert.equal(hashes.length,6);assert.equal(new Set(hashes).size,6);assert.match(html,/Week 0 · confirmed reward transactions/);assert.match(html,/ArkRide/);assert.match(html,/c3nt3no/);
+ const amounts=[...html.matchAll(/<\/span> · (\d+(?:\.\d+)?) DMT/g)].map(m=>{const[a,b='']=m[1].split('.');return BigInt(a)*10n**18n+BigInt(b.padEnd(18,'0'));});
+ assert.equal(amounts.reduce((a,b)=>a+b,0n),575n*10n**17n);
+});
 
 test('All maps fetches every shipped map and renders its first five in server order with existing badges and escaping', async () => {
   const calls = [];
@@ -112,4 +121,10 @@ test('single-map unavailable and current ranked errors preserve their existing f
   const b = board(async url => url.includes('ranked-week') ? { ok: false, status: 500 } : { ok: false, status: 503 });
   await b.showBoard(MAPS[0].id, 'casual'); assert.match(b.html(), /opens soon. Your best run: best/);
   await b.showBoard(null, 'ranked'); assert.match(b.html(), /Could not reach ranked/);
+});
+
+test('ranked totals include participation and disclose rewards outside visible standings',async()=>{
+ const wallet='0x'+ '1'.repeat(40),outside='0x'+'2'.repeat(40),row={wallet,name:'<first>',adv:'adventurer',t:180,kills:1};
+ const b=board(async()=>({ok:true,json:async()=>({week:1,rows:[row]})}),{prizePlaces:()=>[0],prizeEstimate:()=>({prizes:['1000000000000000000'],participation:[{wallet,amount:'2000000000000000000'},{wallet:outside,amount:'3000000000000000000'}],rollover:'0'})});
+ await b.showRankedBoard();assert.match(b.html(),/class="prizeamt">3 DMT/);assert.match(b.html(),/Participation rewards/);assert(b.html().includes(outside));assert.match(b.html(),/80% placing, 10% qualifying runs, 10% active playtime/);assert(!b.html().includes('<first>'));
 });

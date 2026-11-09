@@ -1,3 +1,4 @@
+import { allocateRewards } from '../../src/reward-policy.js';
 import { address } from './crypto.mjs';
 import { RANKED, racesOf, placeable } from '../../src/ranked.js';
 export const DMT = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8';
@@ -32,14 +33,10 @@ export function dmt(n) {
 // who can win: from week 1 a run under 3:00 never wins, and the developer's wallet never wins in any week or race.
 export function makePlan(report, incoming = '0', week = report.week ?? 0) {
   const paid = units(report.paid), house = paid/10n, pool = paid-house+units(incoming);
-  const shares = RANKED.payouts.map(weight=>pool*BigInt(Math.round(weight*100))/100n);
   const top = report.top.filter((winner)=>!NO_PRIZE.has(address(winner.wallet)) && placeable(week, winner));
-  const count = Math.min(top.length,shares.length);
-  if(count) shares[count-1] += pool-shares.reduce((sum,share)=>sum+share,0n);
   const seen = new Set();
-  const prizes = top.slice(0,count).map((winner,i)=>{
-    const wallet = address(winner.wallet); if (seen.has(wallet)) throw new Error('duplicate winner'); seen.add(wallet);
-    return {wallet,amount:shares[i].toString()};
-  });
-  return { house:house.toString(), pool:pool.toString(), prizes, rollover:(pool-prizes.reduce((s,p)=>s+BigInt(p.amount),0n)).toString() };
+  for(const winner of top){const wallet=address(winner.wallet);if(seen.has(wallet))throw Error('duplicate winner');seen.add(wallet);}
+  const allocation=allocateRewards(pool,Math.min(top.length,5),week,report.activity);
+  const prizes=allocation.prizes.map((amount,i)=>({wallet:address(top[i].wallet),amount}));
+  return {house:String(house),pool:String(pool),prizes,rollover:allocation.rollover,...(week>=1?{participation:allocation.participation}:{})};
 }

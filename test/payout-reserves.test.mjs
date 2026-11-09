@@ -48,7 +48,7 @@ test('settlement converts active fees into awards/rollover without counting eith
   f.db.reports.get(1).top=[{wallet:wallet(2),t:900,kills:100}];
   f.db.reports.get('1:hard').top=[{wallet:wallet(3),t:900,kills:100}];
   await run(f.config,f.ports);await run(f.config,f.ports);
-  assert.equal(f.chain.dmt,decimal('5.94'));assert.equal(f.chain.broadcasts.length,6);
+  assert.equal(f.chain.dmt,decimal('6.732'));assert.equal(f.chain.broadcasts.length,6);
 });
 
 for(const [week,mode]of[[0,'normal'],[0,'hard'],[1,'normal'],[1,'hard']])test(`late ${week}/${mode} refund is reserved before its payout row exists`,async()=>{
@@ -132,7 +132,7 @@ test('a registered credit after balance read can defer safely and succeeds on re
 });
 
 test('real SQL reserve reports keep active fees and exclude refunds from gross paid', {skip:!process.env.SQS_PGLITE},async()=>{
-  const f=fixture(5),pg=await sqlDB();f.db.now=Date.UTC(2026,10,17,1);f.config.live=false;f.chain.dmt=decimal('10.5');
+  const f=fixture(5),pg=await sqlDB({current:true});f.db.now=Date.UTC(2026,10,17,1);f.config.live=false;f.chain.dmt=decimal('10.5');
   try{
     for(let n=1;n<=5;n++)await pg.db.exec(`insert into sqs_ranked_entries(week,wallet,tx,paid,ip_hash,seed,verdict,t,kills,won,finished_at,name) values(0,'${wallet(n)}','0x${String(n).repeat(64)}',2000000000000000000,'fixture',1,'ok',${900-n},100,false,now(),'Fixture');`);
     await pg.db.exec(`insert into sqs_ranked_entries(week,wallet,tx,paid,ip_hash,seed) values(2,'${wallet(9)}','0x${'9'.repeat(64)}',5000000000000000000,'fixture',1);`);

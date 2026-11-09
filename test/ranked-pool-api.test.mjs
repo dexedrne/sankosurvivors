@@ -10,7 +10,7 @@ async function week(week,boards) {
   finally {Date.now=originalNow;}
   return result;
 }
-const board=(paid,incoming='0',ready=true)=>({entries:1,paid,incoming,incoming_ready:ready,rows:[]});
+const board=(paid,incoming='0',ready=true)=>({entries:1,paid,incoming,incoming_ready:ready,activity:[],rows:[]});
 test('first race week exposes exact integer fees and pool even with a legacy board RPC',async()=>{
   const r=await week(0,{normal:{entries:1,paid:'10001',rows:[]}});
   assert.equal(r.status,200);
@@ -24,7 +24,7 @@ test('Standard retains its exact rollover while the closed Hard race is omitted'
   assert.equal(r.json.races.hard,undefined);
 });
 test('unsettled or legacy rollover is explicitly unknown after a race starts',async()=>{
-  for(const normal of [board('500000000000000000',null,false),{entries:1,paid:'500000000000000000',rows:[]}]) {
+  for(const normal of [board('500000000000000000',null,false),{entries:1,paid:'500000000000000000',activity:[],rows:[]}]) {
     const r=await week(2,{normal,hard:board('1500000000000000000','7')});
     assert.equal(r.status,200);assert.equal(r.json.races.normal.poolWei,null);
     assert.equal(r.json.races.normal.incomingWei,null);assert.equal(r.json.races.normal.rolloverReady,false);
@@ -38,4 +38,11 @@ test('unreadable or malformed pool data never becomes an empty or invented pot',
   }
   assert.equal((await week(2,{normal:board('5','-1'),hard:board('5')})).status,503);
   for(const entries of [null,false,'',-1,1.5,Number.MAX_SAFE_INTEGER+1])assert.equal((await week(0,{normal:{...board('5'),entries}})).status,503);
+});
+test('week1 publishes only safe complete activity aggregates and fails closed if missing/malformed',async()=>{
+ const wallet='0x'+'1'.repeat(40),normal={...board('1000'),activity:[{wallet,runs:'21',seconds:'18000',log:'private fixture'}]};
+ const r=await week(1,{normal});assert.equal(r.status,200);
+ assert.deepEqual(r.json.races.normal.activity,[{wallet,runs:'21',seconds:'18000'}]);
+ assert.deepEqual(r.json.rewards,{version:1,placing:80,runs:10,seconds:10,minSeconds:180,capped:false});
+ for(const activity of [undefined,[{wallet,runs:'0',seconds:'180'}],[{wallet,runs:'1',seconds:'179'}],[...normal.activity,...normal.activity]])assert.equal((await week(1,{normal:{...normal,activity}})).status,503);
 });

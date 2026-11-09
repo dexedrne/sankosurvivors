@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {scoreKey,compareRuns} from '../src/ranked.js';
-import {makePlan} from '../tools/payout/core.mjs';
+import {makePlan} from './helpers/legacy-reward-plan.mjs';
 const enabled=!!process.env.SQS_PGLITE;
 test('SQL16 upgrades combined board, settle and prize order while preserving week0 and private score helper',{skip:!enabled},async()=>{
  const {PGlite}=await import(pathToFileURL(process.env.SQS_PGLITE)),db=new PGlite(),sql=n=>readFile(new URL('../tools/supabase/'+n+'.sql',import.meta.url),'utf8');

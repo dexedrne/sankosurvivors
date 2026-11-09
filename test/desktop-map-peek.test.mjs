@@ -4,3 +4,10 @@ function fixture(touch=false,fine=true){const source=main.match(/function setMap
 test('holding map expands existing canvas and releasing restores its original resolution',()=>{const f=fixture();assert.equal(f.set(true),true);assert.equal(f.mm.width,512);assert.equal(f.wrap.open,true);assert.equal(f.set(false),false);assert.equal(f.mm.width,168);assert.equal(f.wrap.open,false);});
 for(const[touch,fine]of[[true,true],[false,false]])test(`map peek stays desktop only (${touch},${fine})`,()=>{const f=fixture(touch,fine);assert.equal(f.set(true),false);assert.equal(f.mm.width,168);});
 test('Tab release and lost focus close map, while damage remains available from minimap',()=>{assert.match(main,/keyup[^\n]*Tab[^\n]*setMapPeek\(false\)/);assert.match(main,/blur[^\n]*setMapPeek\(false\)/);assert.match(main,/\$\('damagebtn'\)\.onclick/);});
+function keyboard(f,{form=false,modal=false}={}){
+ const source=main.slice(main.indexOf('const MENU_SCREENS ='),main.indexOf("addEventListener('keyup'",main.indexOf('const MENU_SCREENS =')));let down;
+ Function('addEventListener','mode','walletModalOpen','$','setMapPeek',source)((type,fn)=>{if(type==='keydown')down=fn;},'play',()=>modal,()=>({classList:{contains:()=>true}}),f.set);
+ return repeat=>{let prevented=false;down({key:'Tab',repeat,shiftKey:false,target:{matches:s=>form&&s.includes('input'),closest:()=>null},preventDefault(){prevented=true;}});return prevented;};
+}
+test('every repeated Tab keydown retains map and prevents native focus escape',()=>{const f=fixture(),down=keyboard(f);assert(down(false));for(let i=0;i<50;i++)assert(down(true),'auto-repeat must not tab to browser chrome and pause');assert.equal(f.wrap.open,true);assert.equal(f.mm.width,512);f.set(false);assert.equal(f.mm.width,168);});
+for(const opts of[{form:true},{modal:true}])test(`ordinary Tab remains available in ${JSON.stringify(opts)}`,()=>{const f=fixture(),down=keyboard(f,opts);assert.equal(down(false),false);assert.equal(down(true),false);assert.notEqual(f.wrap.open,true);});

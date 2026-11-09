@@ -27,7 +27,12 @@ export async function main(args = process.argv.slice(2), deps = {}) {
     if (s.error) throw Error('settle refused');
     // the five who would be paid, as makePlan picks them: the developer's wallet and (from week 1) runs under 3:00 never win
     const winners = (s.top || []).filter((w) => !NO_PRIZE.has(address(w.wallet)) && placeable(Number(week), w));
-    for (const [i, row] of winners.slice(0, 5).entries()) {
+    const review=winners.slice(0,5);
+    if(Number(week)>=1){
+      if(!Array.isArray(s.activity_runs))throw Error('participation review unavailable');
+      for(const row of s.activity_runs)if(!review.some(r=>String(r.id)===String(row.id)))review.push(row);
+    }
+    for (const [i, row] of review.entries()) {
       const e = await db('sqs_ranked_log', { p_key: config.reportsKey, p_id: Number(row.id) });
       if (!e || !e.log) { out.push(`${mode} #${i + 1} id ${safe(row.id)} ${safe(row.wallet)}: no log  << REVIEW`); continue; }
       const st = stats(JSON.parse(gunzipSync(Buffer.from(e.log, 'base64'))));

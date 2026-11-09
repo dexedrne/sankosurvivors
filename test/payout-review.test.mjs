@@ -46,7 +46,7 @@ function fakeDb({ normal, hard, logs }) {
   const db = async (fn, p) => {
     calls.push([fn, p]);
     if (p.p_key !== 'reports-key') return { error: 'forbidden' };
-    if (fn === 'sqs_ranked_settle') return { week: p.p_week, mode: p.p_mode, top: p.p_mode === 'hard' ? hard : normal };
+    if (fn === 'sqs_ranked_settle') return { week: p.p_week, mode: p.p_mode, activity_runs:[], top: p.p_mode === 'hard' ? hard : normal };
     if (fn === 'sqs_ranked_log') return { id: p.p_id, log: logs.has(p.p_id) ? logs.get(p.p_id) : packed(keyboard()) };
     throw Error('unexpected rpc ' + fn);
   };
@@ -108,4 +108,13 @@ test('the ranked rules say runs must be played live by a person (all three rules
   }
   const ranked = await readFile(new URL('../src/ranked.js', import.meta.url), 'utf8');
   assert.ok(!ranked.includes('tool-assisted'), 'client text only: the ranked game (sim id) is unchanged');
+});
+test('week1 review includes every qualifying participation run once, including outside the top5',async t=>{
+ t.mock.method(console,'log',()=>{});
+ const first=row(1,1),outside=row(20,20),repeat=row(21,20);
+ const f=fakeDb({normal:[first],hard:[],logs:new Map()});
+ const db=async(fn,p)=>{const r=await f.db(fn,p);return fn==='sqs_ranked_settle'?{...r,activity_runs:p.p_mode==='normal'?[first,outside,repeat]:[]}:r;};
+ const result=await main(['1'],{config:{reportsKey:'reports-key'},db});
+ assert.equal(result.length,3);assert.deepEqual(f.calls.filter(([fn])=>fn==='sqs_ranked_log').map(([,p])=>p.p_id),[1,20,21]);
+ await assert.rejects(main(['1'],{config:{reportsKey:'reports-key'},db:async()=>({top:[]})}),/participation review unavailable/);
 });
