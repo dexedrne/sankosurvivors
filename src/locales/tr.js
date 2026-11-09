@@ -1,5 +1,18 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Sanko Racers has a new in-engine menu image showing its three-car lineup at Greentown castle.": "Sanko Racers menüsünde artık Greentown kalesinin önündeki üç aracı gösteren oyun içi bir görsel var.",
+  "Castle Defence": "Kale Savunması",
+  "Defend the castle": "Kaleyi savun",
+  "Castle health": "Kale sağlığı",
+  "Castle destroyed": "Kale yıkıldı",
+  "Defender fallen": "Savunmacı düştü",
+  "Choose Castle Defence ›": "Kale Savunması seç ›",
+  "Defend Greentown castle against endless waves of human DMT protesters.": "Greentown kalesini insan DMT protestocularının sonsuz dalgalarına karşı savun.",
+  "Castle Defence is solo only. Choose another mode for co-op.": "Kale Savunması yalnızca tek oyuncu içindir. Eşli oyun için başka bir mod seç.",
+  "Solo only. Defend the west gate with your selected adventurer. Castle destruction or defender death ends the run. Earn GP and gear; campaign progress and normal leaderboards stay separate.": "Yalnızca tek oyuncu. Seçtiğin maceracıyla batı kapısını savun. Kale yıkılırsa veya savunmacı ölürse koşu biter. GP ve ekipman kazan; kampanya ilerlemesi ve normal sıralamalar ayrıdır.",
+  "Fun → Castle Defence: hold Greentown’s west gate against endless waves of human DMT protesters.": "Eğlence → Kale Savunması: Greentown’un batı kapısını insan DMT protestocularının sonsuz dalgalarına karşı koru.",
+  "Keep the castle and your adventurer alive. Solo defence earns GP and gear with separate results; normal boards, quests and campaign progress stay separate.": "Kaleyi ve maceracını hayatta tut. Tek kişilik savunma, ayrı sonuçlarla GP ve ekipman kazandırır; normal sıralamalar, görevler ve kampanya ilerlemesi ayrıdır.",
+
   "Spells follow their caster": "Büyüler kendi büyücüsünden çıkar",
   "In co-op, newly cast spells start from the adventurer who cast them, even when teammates stand close together.": "Eşli oyunda takım arkadaşları birbirine yakın dursa bile yeni büyüler onları yapan maceracıdan çıkar.",
   "Fewer crowd draws": "Kalabalıklarda daha az çizim çağrısı",

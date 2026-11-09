@@ -16,7 +16,7 @@ test('special starts validate variant, boss, casual pace, difficulty and native 
 
 test('Boss Trials replace all saved loadout bonuses with a disclosed native kit', async () => {
   const modes = await import('../src/game-modes.js');
-  assert.deepEqual(Object.keys(modes.VARIANTS), ['normal', 'boss', 'raid', 'fun', 'wizard']);
+  assert.deepEqual(Object.keys(modes.VARIANTS), ['normal', 'boss', 'raid', 'fun', 'wizard', 'castle']);
   assert.deepEqual(modes.TRIAL_BOSSES, ['giant', 'sankson', 'ogre', 'colossus', 'reaper', 'dragon']);
   const s = createSim({ variant: 'boss', trialBoss: 'dragon', meta: { smithing: 5 }, players: [{ id: 'local', name: 'Keeper', adv: 'alex', weapon: 'staff', meta: { coins: 5 }, gear: { head: 'Runite Helmet' }, gearLv: { 'Runite Helmet': 5 } }] });
   const p = s.players[0];

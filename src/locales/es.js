@@ -1,5 +1,18 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Sanko Racers has a new in-engine menu image showing its three-car lineup at Greentown castle.": "Sanko Racers tiene una nueva imagen de menú capturada dentro del juego, con sus tres coches frente al castillo de Greentown.",
+  "Castle Defence": "Defensa del castillo",
+  "Defend the castle": "Defiende el castillo",
+  "Castle health": "Salud del castillo",
+  "Castle destroyed": "Castillo destruido",
+  "Defender fallen": "Defensor caído",
+  "Choose Castle Defence ›": "Elegir Defensa del castillo ›",
+  "Defend Greentown castle against endless waves of human DMT protesters.": "Defiende el castillo de Greentown de oleadas interminables de manifestantes humanos de DMT.",
+  "Castle Defence is solo only. Choose another mode for co-op.": "Defensa del castillo es solo individual. Elige otro modo para jugar en cooperativo.",
+  "Solo only. Defend the west gate with your selected adventurer. Castle destruction or defender death ends the run. Earn GP and gear; campaign progress and normal leaderboards stay separate.": "Solo individual. Defiende la puerta oeste con tu aventurero elegido. La destrucción del castillo o la muerte del defensor termina la partida. Gana GP y equipo; la campaña y las clasificaciones normales quedan separadas.",
+  "Fun → Castle Defence: hold Greentown’s west gate against endless waves of human DMT protesters.": "Diversión → Defensa del castillo: protege la puerta oeste de Greentown de oleadas interminables de manifestantes humanos de DMT.",
+  "Keep the castle and your adventurer alive. Solo defence earns GP and gear with separate results; normal boards, quests and campaign progress stay separate.": "Mantén con vida al castillo y a tu aventurero. La defensa individual otorga GP y equipo con resultados separados; las tablas normales, las misiones y la campaña quedan separadas.",
+
   "Spells follow their caster": "Los hechizos salen de quien los lanza",
   "In co-op, newly cast spells start from the adventurer who cast them, even when teammates stand close together.": "En cooperativo, los hechizos nuevos salen del aventurero que los lanza, aunque sus compañeros estén muy cerca.",
   "Fewer crowd draws": "Menos llamadas de dibujo en las multitudes",

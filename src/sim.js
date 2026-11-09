@@ -10,7 +10,7 @@ import { MERCHANT, merchantEligible, merchantStock } from './merchant.js';
 import { phaseCoins, continuationBaseline } from './casual-continuation.js';
 import { groundHash } from './ground-pack.js';
 import { extraStorms, stormView } from './weather.js';
-import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION, RAID_WAVES, WISE_OLD_MAN } from './game-modes.js';
+import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION, RAID_WAVES, WISE_OLD_MAN, CASTLE, CASTLE_WAVE } from './game-modes.js';
 
 export const TICK = 1 / 30;
 export const WORLD = { cx: 365, cz: 300, radius: 70 }; // default (Greentown); each map in content.js has its own centre/radius
@@ -56,12 +56,16 @@ function oasisGround(ground) {
 export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, coop = false, variant = 'normal', trialBoss = 'giant' } = {}) {
   if (!Object.hasOwn(VARIANTS, variant) || !TRIAL_BOSSES.includes(trialBoss)) throw Error('Unknown game mode or trial boss.');
   if (variant !== 'normal') {
-    if (ranked || pace !== 2 || hard || endAt || endless && !['fun', 'wizard'].includes(variant) || !MAPS.some(m => m.id === map.id)
+    if (ranked || pace !== 2 || hard || endAt || endless && !['fun', 'wizard', 'castle'].includes(variant) || !MAPS.some(m => m.id === map.id)
       || !players.length || !coop && players.length !== 1) throw Error('Special modes require a casual pace2 run.');
     if (variant === 'fun') { if (map.id !== 'oasis') throw Error('Slimer Invasion requires Hidden Oasis.'); endless = true; }
     if (variant === 'wizard') {
       if (coop || map.id !== 'greentown') throw Error('Wizard Invasion requires solo Greentown.');
       endless = true; players = players.map(p => ({ ...p, adv: WISE_OLD_MAN.id, weapon: WISE_OLD_MAN.weapon }));
+    }
+    if (variant === 'castle') {
+      if (coop || map.id !== 'greentown') throw Error('Castle Defence requires solo Greentown.');
+      endless = true;
     }
     if (variant === 'boss') { meta = {}; players = players.map(p => ({ id: p.id, name: p.name, adv: BOSS_KIT.adv })); }
   }
@@ -94,8 +98,9 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
   if (variant !== 'normal') {
     sim.variant = variant;
     if (variant === 'boss') sim.trialBoss = trialBoss;
-    else Object.assign(sim, { wave: 0, nextWave: variant === 'wizard' ? null : variant === 'raid' ? RAID_WAVES[0] : 240 });
+    else Object.assign(sim, { wave: 0, nextWave: variant === 'castle' ? 0 : variant === 'wizard' ? null : variant === 'raid' ? RAID_WAVES[0] : 240 });
   }
+  if (variant === 'castle') sim.castle = { ...CASTLE };
   players.forEach((p, i) => {
     const a = (i / Math.max(players.length, 1)) * Math.PI * 2;
     sim.players.push({
@@ -115,6 +120,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
   { const ranks = Object.values(meta).reduce((a, v) => a + (Number(v) || 0), 0) + 2 * Math.max(0, ...sim.players.map((p) => Object.keys(p.gear || {}).length)); sim.vet = 1 + 0.015 * Math.min(50, ranks); }
   if (coop) sim.vet = 1 + 0.015 * Math.min(50, Math.max(...sim.players.map(p => Object.values(p.meta).reduce((a, n) => a + n, 0) + 2 * Object.keys(p.gear).length)));
   for (const p of sim.players) { const st = playerStats(p); p.maxHp = st.maxHp; p.hp = st.maxHp; p.rerolls = st.rerolls; p.revives = st.revives; const w = findWalkable(sim, p.x, p.z); p.x = w[0]; p.z = w[1]; }
+  if (variant === 'castle') { sim.players[0].x = 371.5; sim.players[0].z = 340.5; updateFlow(sim); }
   if (variant === 'boss') { updateFlow(sim); spawnModeBoss(sim, trialBoss); }
   return sim;
 }
@@ -281,7 +287,7 @@ export function boundPlayer(sim, p) {
 const FLOW_R = 60, FLOW_W = FLOW_R * 2 + 1, FLOW_NONE = 65535;
 function updateFlow(sim, anchor = null) {
   const g = sim.ground; if (!g) { sim.flow = null; return; }
-  const alive = sim.players.filter((p) => p.alive); if (!alive.length) return;
+  const alive = sim.variant === 'castle' ? [anchor || sim.castle] : sim.players.filter((p) => p.alive); if (!alive.length) return;
   const W = wallsOf(sim);
   const origin = anchor || alive[0];
   const x0 = gIdx(g, origin.x) - FLOW_R, z0 = gIdx(g, origin.z) - FLOW_R;
@@ -460,7 +466,7 @@ export function spawnEnemy(sim, type, x, z, scaleHp = 1) {
   const t = sim.t;
   const hp = def.hp * (1 + t / (sim.pace >= 2 ? 240 : 300)) * (sim.pace >= 2 ? sim.vet * (1 + CURSE.hp * (sim.curse || 0)) : 1) * (1 + 0.55 * (sim.spawnCount - 1)) * scaleHp * (sim.hard ? 1.7 : 1);
   // now and then a golden elite: much tougher, a little slower, and it always carries a reward casket
-  const elite = !def.boss && scaleHp === 1 && t > 60 && sim.rng() < 0.012;
+  const elite = sim.variant !== 'castle' && !def.boss && scaleHp === 1 && t > 60 && sim.rng() < 0.012;
   sim.enemies.push({
     id: sim.nextId++, type, x, z, hp: hp * (elite ? 7 : 1), maxHp: hp * (elite ? 7 : 1), face: 0, hit: 0, kx: 0, kz: 0, cdHit: {},
     // monsters speed up as the run goes on, but only by a fifth (reached at 5:00): the fastest (fox, dog, wolf) stay just
@@ -496,7 +502,20 @@ function modeWaves(sim) {
     sim.nextWave = sim.variant === 'raid' ? RAID_WAVES[sim.wave] ?? null : sim.nextWave + 180 + sim.rng() * 120;
   }
 }
+function castleWaves(sim) {
+  if (sim.t < sim.nextWave) return;
+  sim.wave++;
+  const living = sim.enemies.filter(e => !e.dead && e.hp > 0).length;
+  const count = Math.min(CASTLE_WAVE.cap - living, 4 + sim.wave * 2);
+  for (let i = 0; i < count; i++) {
+    // Keep the authored body-sized west lane; never clear native obstacles for a spawn.
+    const x = 350.5 + i * 0.35, z = 340.5;
+    if (clearPath(sim, x, z, 367.5, z, true)) spawnEnemy(sim, (i + sim.wave) % 2 ? 'protestm' : 'protestf', x, z);
+  }
+  sim.nextWave = sim.t + CASTLE_WAVE.every; // no catch-up burst after a full arena
+}
 function spawnTick(sim, dt) {
+  if (sim.variant === 'castle') { castleWaves(sim); return; }
   if (sim.variant === 'boss') return;
   const t = sim.t;
   // bosses
@@ -1342,16 +1361,19 @@ export function step(sim, inputs = {}, dt = TICK) {
     if (inp.use != null && !(sim.pace >= 2 && inp.use === 4)) useBelt(sim, p.id, inp.use);
     p.moving = len > 0.01 || (sim.pace >= 2 && p.rollT > 1e-9);
     if (sim.pace >= 2 && p.rollT > 1e-9) {
+      // A distant castle defender needs a local roll field without overwriting enemy navigation.
+      const rollSim = sim.variant === 'castle' ? { ...sim, flow: p.rollFlow || null } : sim;
       // Co-op's shared field may have moved to another player since this roll's last tick.
-      if (p.rollT === TUMBLE.duration || sim.players.length > 1) updateFlow(sim, p);
+      if (p.rollT === TUMBLE.duration || sim.players.length > 1) updateFlow(rollSim, p);
       // Keep the preflight result when the walking field refreshes inside a low fence.
-      if (p.rollT === TUMBLE.duration) p.rollFencePath = reachableFencePath(sim, p);
+      if (p.rollT === TUMBLE.duration) p.rollFencePath = reachableFencePath(rollSim, p);
       const distance = TUMBLE.speed * Math.min(dt, p.rollT), parts = Math.ceil(distance / 0.5);
       const dx = dsin(p.rollFace) * distance / parts, dz = dcos(p.rollFace) * distance / parts;
       // Small substeps keep blocked terrain solid even when a caller supplies a long frame.
-      for (let i = 0; i < parts; i++) moveTo(sim, p, p.x + dx, p.z + dz, true, p.rollFencePath);
+      for (let i = 0; i < parts; i++) moveTo(rollSim, p, p.x + dx, p.z + dz, true, p.rollFencePath);
       p.face = p.moveFace = p.rollFace; p.rollT = Math.max(0, p.rollT - dt);
       if (p.rollT < 1e-9) p.rollT = 0;
+      if (sim.variant === 'castle') { if (p.rollT > 0) p.rollFlow = rollSim.flow; else delete p.rollFlow; }
     } else if (p.moving) {
       walkPlayer(sim, p, inp.mx, inp.mz, st.speed, dt);
     }
@@ -1367,7 +1389,7 @@ export function step(sim, inputs = {}, dt = TICK) {
   sim.flowT -= dt; if (sim.flowT <= 0) { sim.flowT = 0.3; updateFlow(sim); }
   spawnTick(sim, dt);
   if (!sim.variant) eventTick(sim, dt);
-  if (sim.variant !== 'boss') shrineTick(sim, dt);
+  if (sim.variant !== 'boss' && sim.variant !== 'castle') shrineTick(sim, dt);
   merchantTick(sim, dt);
 
   // enemies: chase, separate, hurt
@@ -1375,13 +1397,20 @@ export function step(sim, inputs = {}, dt = TICK) {
   const key = (x, z) => ((Math.floor(x / cell) + 4096) << 13) | (Math.floor(z / cell) + 4096);
   for (const e of sim.enemies) { if (sim.pace >= 2 && e.dead) continue; const k = key(e.x, e.z); (grid.get(k) || grid.set(k, []).get(k)).push(e); }
   for (const e of sim.enemies) {
-    if (sim.pace >= 2 && e.dead) continue;
+    if (sim.pace >= 2 && e.dead || sim.variant === 'castle' && e.hp <= 0) continue;
     const def = ENEMIES[e.type];
-    const tp = nearestPlayer(sim, e.x, e.z);
+    const defender = sim.variant === 'castle' ? nearestPlayer(sim, e.x, e.z) : null;
+    const tp = sim.variant === 'castle' ? sim.castle : nearestPlayer(sim, e.x, e.z);
     e.hit = Math.max(0, e.hit - dt);
     if (e.rise > 0) { e.rise -= dt; if (tp) e.face = datan2(tp.x - e.x, tp.z - e.z); continue; } // still climbing out of the ground
     if (tp) {
       const dx = tp.x - e.x, dz = tp.z - e.z, rawD = hyp(dx, dz), d = rawD || 1;
+      if (sim.variant === 'castle') {
+        e.atkCd = Math.max(0, e.atkCd - dt);
+        if (rawD < def.r + 0.9 && e.atkCd === 0 && clearPath(sim, e.x, e.z, tp.x, tp.z)) {
+          tp.hp = Math.max(0, tp.hp - CASTLE_WAVE.damage); e.atkCd = CASTLE_WAVE.contact;
+        }
+      }
       const blockedApproach = sim.pace >= 2 && d <= Math.max(2.5, def.r + PLAYER_BASE.radius) && !clearPath(sim, e.x, e.z, tp.x, tp.z);
       const blockedSteering = blockedApproach || (sim.pace >= 2 && d <= 2.5 && !clearPath(sim, e.x, e.z, tp.x, tp.z, true));
       let mx = (dx / d) * e.speed, mz = (dz / d) * e.speed;
@@ -1435,11 +1464,13 @@ export function step(sim, inputs = {}, dt = TICK) {
       }
       e.kx *= 0.86; e.kz *= 0.86;
       e.face = datan2(dx, dz);
-      if ((sim.pace >= 2 ? rawD : d) < def.r + PLAYER_BASE.radius && tp.inv <= 0 && !e.treasure && !blockedApproach) {
-        const st = playerStats(tp);
+      const contact = sim.variant === 'castle' ? defender : tp;
+      const touches = sim.variant === 'castle' ? contact && hyp(contact.x - e.x, contact.z - e.z) < def.r + PLAYER_BASE.radius && clearPath(sim, e.x, e.z, contact.x, contact.z) : (sim.pace >= 2 ? rawD : d) < def.r + PLAYER_BASE.radius && !blockedApproach;
+      if (touches && contact.inv <= 0 && !e.treasure) {
+        const st = playerStats(contact);
         const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? (sim.pace >= 2 ? 0.8 : 0.7) : 1) * (1 + sim.t / (sim.pace >= 2 ? 750 : 1200)) * (sim.pace >= 2 ? sim.vet * (1 + CURSE.dmg * (sim.curse || 0)) : 1) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
-        hurtPlayer(sim, tp, dmg, def.boss ? 'boss-contact' : 'contact');
-        if (st.thorns > 0) { sim.src = 'thorns'; damageEnemy(sim, e, st.thorns * (1 + sim.t / 600), tp.id, 2.2, tp.x, tp.z); } // Scorpion Carapace
+        hurtPlayer(sim, contact, dmg, def.boss ? 'boss-contact' : 'contact');
+        if (st.thorns > 0) { sim.src = 'thorns'; damageEnemy(sim, e, st.thorns * (1 + sim.t / 600), contact.id, 2.2, contact.x, contact.z); } // Scorpion Carapace
       }
     }
   }
@@ -1447,7 +1478,7 @@ export function step(sim, inputs = {}, dt = TICK) {
   stepProjectiles(sim, dt);
   stepBossAttacks(sim, dt);
   sim.enemies = sim.enemies.filter((e) => !e.dead);
-  recycleStrays(sim, dt);
+  if (sim.variant !== 'castle') recycleStrays(sim, dt);
 
   // gems and pickups
   for (const g of sim.gems) {
@@ -1487,7 +1518,7 @@ export function step(sim, inputs = {}, dt = TICK) {
   }
   sim.pickups = sim.pickups.filter((k) => !k.taken);
 
-  if (sim.players.every((p) => !p.alive)) sim.over = 'dead';
+  if (sim.players.every((p) => !p.alive) || sim.variant === 'castle' && sim.castle.hp <= 0) sim.over = 'dead';
   else if (sim.variant === 'raid' && sim.t >= RAID_DURATION) sim.over = 'win';
   else if (!sim.variant && sim.t >= sim.map.length && !sim.endless) sim.over = 'win';
   else if (sim.endAt && sim.t >= sim.endAt) sim.over = 'time';
@@ -1509,6 +1540,7 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
   const fx = sim.fx; sim.fx = [];
   const storm = sim.pace >= 2 ? stormView(sim.event) : null;
   return {
+    ...(sim.variant === 'castle' ? { castle: { ...sim.castle } } : {}),
     ...(sim.variant ? { variant: sim.variant, ...(sim.variant === 'boss' ? { trialBoss: sim.trialBoss } : { wave: sim.wave, nextWave: sim.nextWave }) } : {}),
     ...(sim.pace >= 2 ? { snowWave: !!sim.snowWave, storm } : {}),
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.pace >= 2 ? storm?.kind || null : sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,

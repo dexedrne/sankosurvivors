@@ -321,6 +321,11 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     // hair
     // a hair style file is the whole head (skin, eyes and hair), so it replaces the bald head
     if (spec.hair && ready.get(`Head/Styles/${spec.hair}`)) { extra.hair = add(bindParts(rest, bones, ready.get(`Head/Styles/${spec.hair}`), { skin, hair: hairC, cloth: shirt }, skeletons)); for (const m of base.head) m.visible = false; }
+    // Morph cloned base and hair only; cached meshes and armor keep their authored shape.
+    if (spec.body === 'B') for (const sm of [...Object.values(base).flat(), ...extra.hair]) {
+      const index = sm.morphTargetDictionary?.['Key 1'];
+      if (index !== undefined && sm.morphTargetInfluences) sm.morphTargetInfluences[index] = 1;
+    }
     inst.setArmor(spec.armor || {});
     // Items held in the hands. Each item is aimed in the character's own terms (forward / up / outward) from how the
     // hands sit in the idle pose, so a blade points ahead, a staff stands up and a shield faces out, whatever the bone axes are.

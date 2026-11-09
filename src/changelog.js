@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.44.77',date:'9 Nov 2026',title:'Castle Defence',items:['Fun → Castle Defence: hold Greentown’s west gate against endless waves of human DMT protesters.','Keep the castle and your adventurer alive. Solo defence earns GP and gear with separate results; normal boards, quests and campaign progress stay separate.',"Sanko Racers has a new in-engine menu image showing its three-car lineup at Greentown castle."]},
   {version:'0.44.76',date:'9 Nov 2026',title:'Spells follow their caster',items:["In co-op, newly cast spells start from the adventurer who cast them, even when teammates stand close together."]},
   {version:'0.44.75',date:'9 Nov 2026',title:'Fewer crowd draws',items:['Compatible enemy model parts now share a draw call, keeping their original shapes, colours and animations.']},
   {version:'0.44.74',date:'9 Nov 2026',title:'Wizard Invasion',items:['Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.','Enemy wizards aim before firing. Dodge single bolts and later spread shots; your skills and gear bonuses still apply.','Wizard Invasion is solo and has separate results. Earn GP and gear without normal leaderboard entries or campaign clears.']},

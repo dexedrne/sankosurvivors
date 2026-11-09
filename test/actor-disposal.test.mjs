@@ -97,10 +97,10 @@ test('renderer reset releases enemy, corpse, player, NPC, merchant and companion
   await petRenderer.set('chicken'); petRenderer.update({ players: [{ id: 'p1', x: 0, z: 0, al: true }], petActive: false }, 0, 'p1');
   const resetCode = renderer.slice(renderer.indexOf('  function reset() {'), renderer.indexOf('  return { hop:', renderer.indexOf('  function reset() {')));
   Function('actors', 'corpses', 'playerActors', 'folkActors', 'merchantActor', 'dyn', 'entGroup', 'disposeActor', 'petRenderer', `
-    const slimeFlecks=[],effects=[],pickupSprites=new Map(),numbers=[],parts=[],gemSets=[],partMesh={};
+    const castleMarker={visible:true}; const slimeFlecks=[],effects=[],pickupSprites=new Map(),numbers=[],parts=[],gemSets=[],partMesh={};
     const msInstances=new Set(),msBatch=null; const projObjs=new Map(),shieldObjs=new Map(),eprojObjs=new Map(),shrineObjs=new Map(),msBursts=[],hazardPool=[],curMap={cx:0,cz:0},cam={};
     let folkT=0,spTick=0; const removePickup=()=>{},meleeFx={reset(){}},resetWeather=()=>{};
-    ${resetCode}; reset();
+    ${resetCode}; reset(); if(castleMarker.visible)throw Error('castle marker survives reset');
   `)(new Map([[1, a]]), [{ a: corpse }], new Map([[1, player]]), new Map([[1, npc]]), merchant, dyn, entGroup, character.disposeActor, petRenderer);
   assert.ok(boneTextures.every(x => x.disposed === 1));
   assert.equal(dyn.children.length, 0); assert.equal(entGroup.children.length, 0);
@@ -134,4 +134,20 @@ test('modular body and replacement armor share exact palettes while live binding
  const kit=await character.createCharacterKit(async()=>p.gltf,x=>x,['Chest/Clothing/Iron Chestplate','Chest/Clothing/Steel Chestplate']);const a=kit.build({armor:{chest:'Iron Chestplate'}}),b=kit.build();
  const before=meshList(a.root);assert.equal(new Set(before.map(m=>m.skeleton)).size,1);assert.notEqual(before[0].skeleton,meshList(b.root)[0].skeleton);
  before[0].skeleton.computeBoneTexture();const texture=watch(before[0].skeleton.boneTexture);a.setArmor({chest:'Steel Chestplate'});assert.equal(texture.disposed,0);assert.equal(new Set(meshList(a.root).map(m=>m.skeleton)).size,1);character.disposeActor(a.root,a.mixer);assert.equal(texture.disposed,1);character.disposeActor(b.root,b.mixer);
+});
+
+test('female body morph belongs to each cloned base and replacement hair, never armor or cache',async t=>{
+ const proto=prototype(),armor=prototype();
+ for(const p of [proto,armor]){p.geometry.morphAttributes.position=[p.geometry.attributes.position.clone()];p.mesh.updateMorphTargets();p.mesh.morphTargetDictionary={'Key 1':0};}
+ t.mock.method(FBXLoader.prototype,'loadAsync',async()=>({animations:[new THREE.AnimationClip('fixture',1,[])],traverse:fn=>proto.gltf.scene.traverse(fn)}));
+ const kit=await character.createCharacterKit(async url=>url.includes('Iron')?armor.gltf:proto.gltf,x=>x,['Chest/Clothing/Iron Chestplate']);
+ const female=kit.build({body:'B',hair:'Short',armor:{chest:'Iron Chestplate'}}),male=kit.build({hair:'Short'});
+ const meshes=root=>{const out=[];root.traverse(o=>{if(o.isSkinnedMesh)out.push(o);});return out;};
+ try{
+  const fm=meshes(female.root);assert.ok(fm.length>3);
+  for(const mesh of fm)assert.equal(mesh.morphTargetInfluences[0],mesh.material===armor.material?0:1);
+  assert.ok(meshes(male.root).every(m=>m.morphTargetInfluences[0]===0));
+  assert.equal(proto.mesh.morphTargetInfluences[0],0);assert.equal(armor.mesh.morphTargetInfluences[0],0);
+  female.setArmor({});assert.ok(meshes(female.root).every(m=>m.morphTargetInfluences[0]===1));
+ }finally{character.disposeActor(female.root,female.mixer);character.disposeActor(male.root,male.mixer);}
 });

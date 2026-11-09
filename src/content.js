@@ -72,6 +72,8 @@ export const ENEMIES = {
   starwiz:   { name: 'Star Wizard',  model: 'mobs/star/Star_wizard.glb', mixamo: true,         h: 2.0, r: 0.6, hp: 80,  speed: 2.8, dmg: 15, xp: 7 },
   boatman:   { name: 'Spiky Boatman',model: 'mobs/cactus/Spikey_tpose.glb', mixamo: true,      h: 2.1, r: 0.7, hp: 100, speed: 2.7, dmg: 17, xp: 8 },
   lildragon: { name: 'Lil Dragon',   model: 'mobs/Dragon.glb',                   h: 2.6, r: 1.0, hp: 220, speed: 3.3, dmg: 20, xp: 14, walk: 'Walk', idle: 'Idle' },
+  protestm:  { name: 'DMT Protester', rig: { body: 'A', hair: 'Short', shirt: 0xb98a45, pants: 0x4a4f63 }, h: 1.6, r: 0.5, hp: 24, speed: 2.5, dmg: 8, xp: 3 },
+  protestf:  { name: 'DMT Protester', rig: { body: 'B', hair: 'Short', shirt: 0x637e95, pants: 0x6c493c, hairColor: 0x38271c }, h: 1.6, r: 0.5, hp: 24, speed: 2.5, dmg: 8, xp: 3 },
   bandit:    { name: 'Bandit',       rig: { hair: 'Short', head: 'Ranger Helmet', chest: 'Ranger Chestplate', hands: 'Ranger Gauntlets', legs: 'Ranger Leggings', feet: 'Ranger Boots' }, h: 1.6, r: 0.5, hp: 28, speed: 3.6, dmg: 9, xp: 3 },
   shapewiz:  { name: 'Shape Wizard', rig: { hair: 'Long', head: 'Shape Wizard Hat', chest: 'Shape Robe', legs: 'Shape Skirt', shirt: 0x7a4ac8 }, h: 1.6, r: 0.5, hp: 70, speed: 3.0, dmg: 15, xp: 7 },
   mslimer:   { name: 'Mutant Slimer',model: 'mobs/snail/mutant slimer.glb',      h: 1.85, r: 1.5, hp: 260, speed: 2.6, dmg: 22, xp: 15, walk: 'walk', idle: 'walk' },

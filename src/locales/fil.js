@@ -1,5 +1,18 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Sanko Racers has a new in-engine menu image showing its three-car lineup at Greentown castle.": "May bagong larawang kuha sa loob ng laro ang Sanko Racers menu, na nagpapakita ng tatlong kotse sa kastilyo ng Greentown.",
+  "Castle Defence": "Pagtanggol sa Kastilyo",
+  "Defend the castle": "Ipagtanggol ang kastilyo",
+  "Castle health": "Buhay ng kastilyo",
+  "Castle destroyed": "Nawasak ang kastilyo",
+  "Defender fallen": "Bumagsak ang tagapagtanggol",
+  "Choose Castle Defence ›": "Piliin ang Pagtanggol sa Kastilyo ›",
+  "Defend Greentown castle against endless waves of human DMT protesters.": "Ipagtanggol ang kastilyo ng Greentown laban sa walang katapusang alon ng mga taong nagpoprotesta para sa DMT.",
+  "Castle Defence is solo only. Choose another mode for co-op.": "Pang-isahan lang ang Pagtanggol sa Kastilyo. Pumili ng ibang mode para sa co-op.",
+  "Solo only. Defend the west gate with your selected adventurer. Castle destruction or defender death ends the run. Earn GP and gear; campaign progress and normal leaderboards stay separate.": "Pang-isahan lang. Ipagtanggol ang kanlurang tarangkahan gamit ang napiling adventurer. Matatapos ang laro kapag nawasak ang kastilyo o namatay ang tagapagtanggol. Kumita ng GP at kagamitan; hiwalay ang kampanya at karaniwang leaderboard.",
+  "Fun → Castle Defence: hold Greentown’s west gate against endless waves of human DMT protesters.": "Fun → Pagtanggol sa Kastilyo: bantayan ang kanlurang tarangkahan ng Greentown laban sa walang katapusang alon ng mga taong nagpoprotesta para sa DMT.",
+  "Keep the castle and your adventurer alive. Solo defence earns GP and gear with separate results; normal boards, quests and campaign progress stay separate.": "Panatilihing buhay ang kastilyo at ang adventurer. Kumita ng GP at kagamitan sa pang-isahang depensa na may hiwalay na resulta; hiwalay ang karaniwang leaderboard, quest at kampanya.",
+
   "Spells follow their caster": "Ang mahika ay nagmumula sa tamang adventurer",
   "In co-op, newly cast spells start from the adventurer who cast them, even when teammates stand close together.": "Sa co-op, ang mga bagong spell ay nagsisimula sa adventurer na gumawa nito, kahit magkalapit ang magkakampi.",
   "Fewer crowd draws": "Mas kaunting pagguhit sa dagsa ng kalaban",

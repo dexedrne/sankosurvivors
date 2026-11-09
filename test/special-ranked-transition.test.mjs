@@ -20,7 +20,7 @@ function harness(variant,route,{failLoad=false}={}){
  return{c,hit,release,preview:()=>vm.runInContext(idle+';window.__idleSim',c),start:()=>route==='entry'?c.startRankedEntry({id:1,entry:'local-fixture'}):route==='recover'?c.recoverRankedRun():c.startRun(live)};
 }
 
-for(const variant of ['wizard','fun'])for(const route of ['entry','recover','direct'])test(`${variant} → ranked ${route} normalizes before Apache loads and menu/retry stay playable`,async()=>{
+for(const variant of ['wizard','fun','castle'])for(const route of ['entry','recover','direct'])test(`${variant} → ranked ${route} normalizes before Apache loads and menu/retry stay playable`,async()=>{
  const f=harness(variant,route),pending=f.start();await f.hit;
  try{
   assert.equal(f.c.selVariant,'normal');assert.equal(f.c.selMap,'apache');
@@ -30,7 +30,7 @@ for(const variant of ['wizard','fun'])for(const route of ['entry','recover','dir
  f.c.rankedLive=()=>null;await f.c.startRun();assert.equal(f.c.sim.map.id,'apache');assert.equal(f.c.sim.variant,undefined);assert.notEqual(f.c.sim.players[0].adv,'wise-old-man');
 });
 
-for(const variant of ['wizard','fun'])test(`${variant} → failed ranked map load leaves a normal playable menu for retry`,async()=>{
+for(const variant of ['wizard','fun','castle'])test(`${variant} → failed ranked map load leaves a normal playable menu for retry`,async()=>{
  const f=harness(variant,'entry',{failLoad:true}),pending=f.start();await f.hit;f.release();await assert.rejects(pending,/fixture map unavailable/);
  f.c.toMenu();assert.equal(f.c.selVariant,'normal');assert.doesNotThrow(f.preview);
  f.c.renderer.loadMap=async()=>{};f.c.rankedLive=()=>null;await f.c.startRun();assert.equal(f.c.sim.map.id,'apache');assert.equal(f.c.sim.variant,undefined);

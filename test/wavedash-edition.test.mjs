@@ -155,3 +155,27 @@ test('title backdrop can render before the player first focuses the iframe', () 
   const result=Function('document','suspendPage',`let last=0,acc=0;const mode='title',sim=null,inspectedElement=null,petViewer=null,requestAnimationFrame=()=>{},setMapPeek=()=>{},hideItemInspection=()=>{};${code.slice(start,end)}return 'title can render';}return loop(5000);`)({hidden:false,hasFocus:()=>false},()=>assert.fail('no live run to suspend'));
   assert.equal(result,'title can render');
 });
+
+test('wallet-free Castle Defence keeps human invaders and translated copy without DMT',async()=>{
+ const source='Defend Greentown castle against endless waves of human DMT protesters.';
+ const casual='Defend Greentown castle against endless waves of human protesters.';
+ assert.ok(html.includes(source));const page=transformHtml(html);assert.ok(page.includes(casual));assert.doesNotMatch(page,/\bDMT\b/);
+ for(const language of ['tr','es','fil']){
+  const original=await import(`../src/locales/${language}.js`),generated=wavedashEdition().transform('',`/fixture/src/locales/${language}.js`).code;
+  const edition=await import('data:text/javascript,'+encodeURIComponent(generated));
+  assert.ok(original.text[source].includes('DMT'),'default native scenario keeps its copy');
+  assert.ok(edition.text[casual],`${language} keeps the rewritten card translation`);assert.doesNotMatch(edition.text[casual],/\bDMT\b/);
+  assert.equal(edition.text[casual],original.text[source].replace({tr:'DMT ',es:' de DMT',fil:' para sa DMT'}[language],''));
+  const note='Fun → Castle Defence: hold Greentown’s west gate against endless waves of human DMT protesters.';
+  assert.equal(edition.text[note.replace('DMT ','')],original.text[note].replace({tr:'DMT ',es:' de DMT',fil:' para sa DMT'}[language],''));
+  assert.equal(edition.text[source],undefined);assert.doesNotMatch(generated,/\bDMT\b/);
+ }
+});
+
+test('wallet-free native protesters use neutral placards and names while source keeps DMT',()=>{
+ const render=readFileSync(new URL('../src/render.js',import.meta.url),'utf8'),content=readFileSync(new URL('../src/content.js',import.meta.url),'utf8');
+ assert.match(render,/fillText\('DMT'/);assert.match(content,/name: 'DMT Protester'/);
+ const kit=wavedashEdition(),drawing=kit.transform(render,'/fixture/src/render.js').code,definitions=kit.transform(content,'/fixture/src/content.js');
+ assert.match(drawing,/fillText\('HEY!'/);assert.doesNotMatch(drawing,/fillText\('DMT'/);
+ assert.ok(definitions?.code);assert.doesNotMatch(definitions.code,/DMT Protester/);assert.equal(definitions.code.split("name: 'Protester'").length,3);
+});

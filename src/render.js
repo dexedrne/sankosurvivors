@@ -1236,12 +1236,29 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const q = new THREE.Quaternion().setFromAxisAngle(up, Math.PI);
     body.position.applyQuaternion(q); body.quaternion.premultiply(q); body.userData.turned = true;
   }
-  function makeEnemy(type) {
+  // Small fan-authored placards on native townsfolk, shared for the renderer's lifetime.
+  const protestBoard = new THREE.PlaneGeometry(0.9, 0.45), protestPole = new THREE.BoxGeometry(0.045, 1, 0.045);
+  const protestWood = new THREE.MeshLambertMaterial({ color: 0x795735 });
+  const protestInk = (() => {
+    const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 128;
+    const ctx = canvas.getContext('2d'); ctx.fillStyle = '#dfc997'; ctx.fillRect(0, 0, 256, 128);
+    ctx.strokeStyle = '#4d3822'; ctx.lineWidth = 8; ctx.strokeRect(4, 4, 248, 120);
+    ctx.fillStyle = '#4d3822'; ctx.font = 'bold 64px Georgia'; ctx.textAlign = 'center'; ctx.fillText('DMT', 128, 86);
+    const map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace;
+    return new THREE.MeshLambertMaterial({ map, side: THREE.DoubleSide });
+  })();
+  function makeEnemy(type, id = 0) {
     const def = ENEMIES[type];
     if (def.rig && kit) {
       try {
         const armor = {}; for (const k of ['head', 'chest', 'hands', 'legs', 'feet']) if (def.rig[k]) armor[k] = def.rig[k];
-        const inst = kit.build({ hair: def.rig.hair, armor, shirt: def.rig.shirt, h: def.h });
+        const protester = type === 'protestm' || type === 'protestf';
+        const colors = [0xb98a45, 0x637e95, 0x807447, 0x9b6559];
+        const inst = kit.build({ ...def.rig, armor, ...(protester ? { shirt: colors[id % colors.length], skin: [0xdfaa8b, 0xb77e5d, 0x885638][id % 3] } : {}), h: def.h });
+        if (protester) {
+          const pole = new THREE.Mesh(protestPole, protestWood), board = new THREE.Mesh(protestBoard, protestInk);
+          pole.position.set(0.55, 1.3, 0); board.position.set(0.55, 1.95, 0); inst.root.add(pole, board);
+        }
         inst.setMoving(true);
         return { root: inst.root, inner: inst.master, mixer: inst.mixer, kit: inst, crowdClips: inst.crowdClips };
       } catch (e) { console.warn('rig enemy failed', type, e); }
@@ -1278,6 +1295,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const shardTex = new THREE.TextureLoader().load(A('ui/items/item_Bones.png'), (t) => { t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; for (const g of gemSets) { g.material.map = t; g.material.needsUpdate = true; } });
   const pickupSprites = new Map(); const iconCache = new Map();
   let merchantActor = null;
+  const castleMarker = new THREE.Group(); castleMarker.name = 'castle-defence-objective';
+  const castleRing = new THREE.Mesh(new THREE.RingGeometry(0.85, 1.05, 32), new THREE.MeshBasicMaterial({ color: 0x83edbd, side: THREE.DoubleSide, depthWrite: false }));
+  castleRing.rotation.x = -Math.PI / 2; castleRing.position.y = 0.08; castleMarker.add(castleRing);
+  const castleFlag = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.45, 0.05), new THREE.MeshLambertMaterial({ color: 0x83edbd }));
+  castleFlag.position.set(0.3, 2.1, 0); castleMarker.add(castleFlag);
+  const castlePole = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.3, 0.05), protestWood); castlePole.position.y = 1.15; castleMarker.add(castlePole);
+  castleMarker.visible = false; dyn.add(castleMarker);
   const shrineObjs = new Map(), SHRINE_COLORS = { strength: 0xff5a3c, prayer: 0xbfe8ff, magic: 0xb06aff, agility: 0x7be06a, fortune: 0xffd34d, wealth: 0xffb03a }; // as SHRINES in sim.js
   const PICKUP_ICON = { coin: 'Gold', cheese: 'Cheese', crawdad: 'Cooked Crawdad', trout: 'Cooked Brown Trout', catfish: 'Cooked Catfish', bass: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
   const PICKUP_SIZE = { chest: 1.5, coin: 0.855, cheese: 0.8, crawdad: 0.8, trout: 0.95, catfish: 1.0, bass: 1.1 };
@@ -1730,6 +1754,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // ---- per-frame update -----------------------------------------------------------
   let time = 0, frameN = 0;
   function update(view, dt, localId) {
+    castleMarker.visible = !!view.castle;
+    if (view.castle) {
+      castleMarker.position.set(view.castle.x, groundAt(view.castle.x, view.castle.z), view.castle.z);
+      castleRing.material.color.setHex(view.castle.hp <= view.castle.maxHp * 0.25 ? 0xe76552 : 0x83edbd);
+      castleFlag.material.color.copy(castleRing.material.color);
+    }
     if (curMap.world && view.region && (!skyMap || skyMap.id !== view.region)) { skyMap = MAPS.find((mm) => mm.id === view.region) || null; if (settingsReady) applyTime(); }
     time += dt; if (waterMat.userData.sh) waterMat.userData.sh.uniforms.uTime.value = time;
     const me = view.players.find((p) => p.id === localId) || view.players[0];
@@ -1891,7 +1921,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       seenE.add(id);
       let a = actors.get(id);
       if (!a) {
-        a = batchEnemy(makeEnemy(type)); a.type = type; a.px = x; a.pz = z; a.base = 1; dyn.add(a.root); actors.set(id, a);
+        a = batchEnemy(makeEnemy(type, id)); a.type = type; a.px = x; a.pz = z; a.base = 1; dyn.add(a.root); actors.set(id, a);
         if (elite) { // golden elite: bigger, with a gold halo on the ground
           a.base = 1.35; const halo = softRing(0xffd34d, 0.72, 1.02, { opacity: 0.75, fill: 0.1, arcs: 2 }); halo.position.y = 0.06; a.root.add(halo); a.halo = halo;
         }
@@ -2151,6 +2181,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const seenShield = new Set();
 
   function reset() {
+    castleMarker.visible = false;
     if (merchantActor) { disposeActor(merchantActor.root, merchantActor.mixer); merchantActor = null; }
     msInstances.clear(); if (msBatch) msBatch.count = 0;
     resetWeather();

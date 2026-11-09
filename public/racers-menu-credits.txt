@@ -1,0 +1,7 @@
+Sanko Racers menu image: staged in-engine capture from the accepted e527ab4 build.
+SankoQuest world, textures and modular human models: Sanko GameCorp; unofficial fan game.
+Petal 1.6 / Miata model: "low poly mazda mx-5 miata na (UPDATE)" by Speedy-Works, CC BY 4.0.
+https://sketchfab.com/3d-models/low-poly-mazda-mx-5-miata-na-update-819982eac6944241be32c62343c4d530
+https://creativecommons.org/licenses/by/4.0/
+Modified for Shitbox; existing export reused with seated drivers and staged native castle surroundings.
+Full game asset notices: fun/racers/CREDITS.txt
