@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "More countryside for Racers": "Mas malawak na lugar para sa Racers",
+  "Sanko Racers opens the countryside around Greentown, with nearly three times the driving area. Survivors starts south of town.": "Bukas na ang kanayunan sa paligid ng Greentown sa Sanko Racers, na may halos tatlong beses na lugar para magmaneho. Nagsisimula ang Survivors sa timog ng bayan.",
+  "The old invisible map boundaries are removed. The minimap and a ground outline show the expanded driving area; solid walls still stop the car.": "Wala na ang dating hindi nakikitang hangganan. Ipinapakita ng minimap at guhit sa lupa ang mas malawak na lugar; hinaharangan pa rin ng matitibay na pader ang kotse.",
   "Solo": "Mag-isa",
   "More ways to play, more room for pets": "Mas maraming laro at lugar para sa mga kasama",
   "Choose Adventure, Boss & Raid or Fun from the new game mode menu.": "Piliin ang Pakikipagsapalaran, Boss at Raid o Saya sa bagong menu ng laro.",
@@ -2789,4 +2792,5 @@ export const patterns = [
     "Void Shard +{1}",
     "Piraso ng Kawalan +{1}"
   ]
+
 ];

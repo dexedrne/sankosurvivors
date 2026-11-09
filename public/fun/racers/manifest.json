@@ -1,8 +1,8 @@
 {
   "source": {
-    "commit": "922e57a7fcc5642d28b08a67bb95f15c094729b8",
-    "implementation": "a96ffad",
-    "clientSha256": "af3d04ccd9ef3c0e6d928708ea968658f221e09da3fb1cdb46fed9b59165696f"
+    "commit": "a0d5d6a850ed697f5edf25168ac22e505a48c4b4",
+    "implementation": "a0d5d6a850ed697f5edf25168ac22e505a48c4b4",
+    "clientSha256": "752dc557683e4e6cdfb8b6bef4de9a15d017aed3c5376647f0333cfebbea2ae2"
   },
   "adaptations": {
     "client": [
@@ -17,18 +17,18 @@
         "count": 1
       },
       {
-        "before": "vi(\"cars/miata.glb\")",
-        "after": "vi(\"racers/cars/miata.glb\")",
+        "before": "\"cars/miata.glb\"",
+        "after": "\"racers/cars/miata.glb\"",
         "count": 1
       },
       {
-        "before": "a(\"placements.json\")",
-        "after": "a(\"racers/placements.json\")",
+        "before": "\"placements.json\"",
+        "after": "\"racers/placements.json\"",
         "count": 1
       },
       {
-        "before": "a(\"world/tiles/fences.json\")",
-        "after": "a(\"racers/world/tiles/fences.json\")",
+        "before": "\"world/tiles/fences.json\"",
+        "after": "\"racers/world/tiles/fences.json\"",
         "count": 1
       },
       {
@@ -39,8 +39,8 @@
     ],
     "html": [
       {
-        "before": "/assets/index-CRhqyd3V.js",
-        "after": "./racers-d9e53da8ce5d3034.js"
+        "before": "/assets/index-GxjsSMau.js",
+        "after": "./racers-5bf234a6dd604ddc.js"
       },
       {
         "before": "/assets/index-CvBKTRtH.css",
@@ -57,12 +57,12 @@
     {
       "path": "/fun/racers/index.html",
       "bytes": 2619,
-      "sha256": "0a69a5d7ca60a8742bd2104c6d29e8d12bc17faaa0af62d664fa2630970df859"
+      "sha256": "bcc35950ee6b2bd434a988f9cd771fdda3f86b11b2c85f327c945b3791cdb3cf"
     },
     {
-      "path": "/fun/racers/racers-d9e53da8ce5d3034.js",
-      "bytes": 692795,
-      "sha256": "d9e53da8ce5d3034235e8c81c06573f7767e078816b8558f15c93b6c6e02651f"
+      "path": "/fun/racers/racers-5bf234a6dd604ddc.js",
+      "bytes": 693641,
+      "sha256": "5bf234a6dd604ddc8ecfb8883b8505644c8682146690231b4fc532938947caa1"
     },
     {
       "path": "/fun/racers/racers-a49170a32ae24339.css",
@@ -71,13 +71,13 @@
     },
     {
       "path": "/fun/racers/preview.png",
-      "bytes": 1036388,
-      "sha256": "f9dd01c6246e06e136c5b9a839b691eeed061c70a9a8dd26941bfba520f8bf48"
+      "bytes": 277171,
+      "sha256": "78ad81f75554aada8f3dfdbbad891eef8e6e405fd00d08a9d46beb4326ab1807"
     },
     {
       "path": "/fun/racers/INTEGRATION.txt",
-      "bytes": 1858,
-      "sha256": "2f187a69a24231fe54d6a2db2a71bead917636878c2d72c5d52431860a24d947"
+      "bytes": 1883,
+      "sha256": "a20147e3206a930dd43b5c5bf4c38084e912022143fc415b96661920e6cb7444"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -106,13 +106,13 @@
     },
     {
       "path": "/assets/racers/placements.json",
-      "bytes": 441290,
-      "sha256": "14c77a329b339400b7339c50de63aff93ceba7eb4744993fcc13231065035ce2"
+      "bytes": 532403,
+      "sha256": "d2d793ed7782f6994decf17c90ef61e7192badf7eef81c15def732f5af2a5e5b"
     },
     {
       "path": "/assets/racers/world/tiles/fences.json",
-      "bytes": 26970,
-      "sha256": "f0569fabef7c0e2fdb17ffb8a7e721053b66e34d5e182d08fa5426380ae22a1d"
+      "bytes": 28165,
+      "sha256": "1aeeb6234395d68bfafcff691a93a206547cdf56b4ca085818619ce55e45fdb1"
     }
   ],
   "shared": [
@@ -242,6 +242,11 @@
       "sha256": "ba59153a5fbfb393d4c9779002724aab6786464197a5c102c55fb482319ba348"
     },
     {
+      "path": "/assets/world/nodes/oak.glb",
+      "bytes": 75072,
+      "sha256": "a4ae8162ca06f86c6d8077a13007728e6361cf8921d25697250a86c0b6368989"
+    },
+    {
       "path": "/assets/world/nodes/pine.glb",
       "bytes": 254976,
       "sha256": "ebd178129d26cd47b69da7e6b859899df19ae89060190cd3070e838bcb2f902f"
@@ -255,6 +260,16 @@
       "path": "/assets/world/nodes/tree.glb",
       "bytes": 44428,
       "sha256": "598de9382e1d54a55662b642ac053b8306ab24d6d78c960a082a6ab0cd801b7d"
+    },
+    {
+      "path": "/assets/world/nodes/tree5.glb",
+      "bytes": 11296,
+      "sha256": "8b25c6078803690cd4bbfc57d5ef5eaf3919bf0864894b7b425f2ac481e6d229"
+    },
+    {
+      "path": "/assets/world/scene-models/Altar.glb",
+      "bytes": 31252,
+      "sha256": "4ff94e5431bfe831d36bf80e56fa6932dc82d4c776290d6266d4e52ef5484891"
     },
     {
       "path": "/assets/world/scene-models/Arch.glb",
@@ -382,6 +397,16 @@
       "sha256": "a73480be96c09eaf5adb080afa73f616c410fbdda82d906722b9ce4e72b6efe0"
     },
     {
+      "path": "/assets/world/scene-models/Tent.glb",
+      "bytes": 11116,
+      "sha256": "17bbbd0a9affdfaa8dd36fc41d45f7658465a11c5950605c889d17db75d57d81"
+    },
+    {
+      "path": "/assets/world/scene-models/Wood Water Trough.glb",
+      "bytes": 9532,
+      "sha256": "6917d5cbfe283e61e8e7048a0bfc73032c90601ed3092f8c61899b12c9918c73"
+    },
+    {
       "path": "/assets/world/scene-models/Wooden Fence.glb",
       "bytes": 15192,
       "sha256": "d5deb575f6c03bf566dc882000727d187964eb4ce51d98a8e5fe3cf68ed8c524"
@@ -442,6 +467,11 @@
       "sha256": "5213fa74bc0b6904802fc9e0a1b326de612b22dc9e3ee1cd1a4ba74e26bf3559"
     },
     {
+      "path": "/assets/world/scene-models/cemetery.glb",
+      "bytes": 36380,
+      "sha256": "81a6f918c4e3325ec31cebad5278faa7a5ca8fd38cc1fdb5be5ae0d76d73688d"
+    },
+    {
       "path": "/assets/world/scene-models/chest.glb",
       "bytes": 132808,
       "sha256": "9b0fbbb745cf7931dfe481603ff46df498bb984f953f02edcc54c9ccb3e6a347"
@@ -480,6 +510,41 @@
       "path": "/assets/world/scene-models/court_Stone_bench_3x1.glb",
       "bytes": 5852,
       "sha256": "0ab25adb90005571ba3335869ed61f40dcbfc4ded5615aa3d0b522eb88486569"
+    },
+    {
+      "path": "/assets/world/scene-models/exchange/arcades-v1.glb",
+      "bytes": 196044,
+      "sha256": "518699c7a049787e466386566bc93626d7bd518723580fd9e2588b572e00dc57"
+    },
+    {
+      "path": "/assets/world/scene-models/exchange/bank-counter-v1.glb",
+      "bytes": 43668,
+      "sha256": "be8b2b8fba11d55899029230c79e017cce0601214d5ab7a61cf58b72e87f6018"
+    },
+    {
+      "path": "/assets/world/scene-models/exchange/central-post-v1.glb",
+      "bytes": 501716,
+      "sha256": "a89750cb4d9df58fa2f30531e87eb0938439d42272f751f4d57bbde52f1ac248"
+    },
+    {
+      "path": "/assets/world/scene-models/exchange/deposit-box-v1.glb",
+      "bytes": 28260,
+      "sha256": "e2176f16ca123fa3fca45f4c92375054f20bf7508730dd0b5dad74ed33dc0b44"
+    },
+    {
+      "path": "/assets/world/scene-models/exchange/entrance-sign-v1.glb",
+      "bytes": 338740,
+      "sha256": "1692a9dd2c4e62473af3c74898ed1222617de1fa6cdfd0f20e1199f575658d91"
+    },
+    {
+      "path": "/assets/world/scene-models/exchange/floor-v1.glb",
+      "bytes": 32324,
+      "sha256": "ebb54210db3f19d82c45e0ff4b90d9600af1aae4416c3bbadbf0e8f18eda7e44"
+    },
+    {
+      "path": "/assets/world/scene-models/exchange/side-post-v1.glb",
+      "bytes": 104740,
+      "sha256": "cfccd2a78c8ca6bec2fd038dfe50905784323bfabb28d33f7378504ad1b86a5c"
     },
     {
       "path": "/assets/world/scene-models/fancy_carpet.glb",
@@ -650,6 +715,11 @@
       "path": "/assets/world/scene-models/painting_Old Lady Picture.glb",
       "bytes": 16480,
       "sha256": "dc72738e505252e7cf6871c21dc14783f169f7afbba3511faa581f30f2603972"
+    },
+    {
+      "path": "/assets/world/scene-models/parthenon.glb",
+      "bytes": 315428,
+      "sha256": "4ed6fe2cd3121e316058723498b73346a668089aa56367aa93051e35e2380747"
     },
     {
       "path": "/assets/world/scene-models/plantbig.glb",
@@ -852,6 +922,11 @@
       "sha256": "ca89cbe90df30609aa0a527dbb49535cdc3cac3391ba67544d2a808809499c07"
     },
     {
+      "path": "/assets/world/scene-models/town_Roof_guard_1_hip.glb",
+      "bytes": 139800,
+      "sha256": "1bd507f83af20835c0c96116e73638bada8148bb5dfd65c4379aaa57d3377425"
+    },
+    {
       "path": "/assets/world/scene-models/town_Roof_guard_2_gable.glb",
       "bytes": 149308,
       "sha256": "40c1f24327eedd43f46a56d914c685295cbdc54b911c4654c577b73faf31680f"
@@ -895,6 +970,16 @@
       "path": "/assets/world/scene-models/wood_pillar.glb",
       "bytes": 96828,
       "sha256": "7b176c11ab95c1447c4335c00c1cb515384254c459d67ce2466c2c7c86d514a0"
+    },
+    {
+      "path": "/assets/world/scene-models/woodenhut_roof.glb",
+      "bytes": 8680,
+      "sha256": "6424d59ee86043fcab57070b0c55b89c268005964019c406582d4f44fe0acfdb"
+    },
+    {
+      "path": "/assets/world/scene-models/woodenhut_walls.glb",
+      "bytes": 31236,
+      "sha256": "3754bf837315b492eee3252f386ac1479b71c4630404482579906bef42a7a8ec"
     },
     {
       "path": "/assets/world/terrain/cliff-rpg-v3.png",
@@ -1001,7 +1086,7 @@
     {
       "path": "assets/inventory.json",
       "reason": "No runtime reference (asserted before packaging)",
-      "sha256": "756a23224b20b35a4f47b9c73387e6f8dcb48e1cc9a6ddc300dee154a447dca9"
+      "sha256": "d9960e70893a93754a109e091643fd6ef647333a2fcfe968b037d812148ff1d9"
     },
     {
       "path": "assets/world/tiles/nav.bin",

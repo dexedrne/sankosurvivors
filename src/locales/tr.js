@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "More countryside for Racers": "Racers için daha geniş kırsal alan",
+  "Sanko Racers opens the countryside around Greentown, with nearly three times the driving area. Survivors starts south of town.": "Sanko Racers, Greentown çevresindeki kırsal alanı açıyor; sürüş alanı neredeyse üç katına çıktı. Survivors kasabanın güneyinde başlıyor.",
+  "The old invisible map boundaries are removed. The minimap and a ground outline show the expanded driving area; solid walls still stop the car.": "Eski görünmez harita sınırları kaldırıldı. Mini harita ve yerdeki çizgi genişleyen sürüş alanını gösteriyor; sağlam duvarlar arabayı durdurmaya devam ediyor.",
   "Solo": "Tek oyuncu",
   "More ways to play, more room for pets": "Daha çok oyun, yoldaşlara daha çok yer",
   "Choose Adventure, Boss & Raid or Fun from the new game mode menu.": "Yeni oyun modu menüsünden Macera, Patron ve Baskın veya Eğlence seç.",
@@ -2774,4 +2777,5 @@ export const patterns = [
     "Void Shard +{1}",
     "Hiçlik Parçası +{1}"
   ]
+
 ];

@@ -25,9 +25,9 @@ export function verifiedFile(root,entry) {
 const clientChanges=[
  {before:'"./assets/"',after:'"/assets/"',count:4},
  {before:'"./draco/"',after:'"/draco/"',count:1},
- {before:'vi("cars/miata.glb")',after:'vi("racers/cars/miata.glb")',count:1},
- {before:'a("placements.json")',after:'a("racers/placements.json")',count:1},
- {before:'a("world/tiles/fences.json")',after:'a("racers/world/tiles/fences.json")',count:1},
+ {before:'"cars/miata.glb"',after:'"racers/cars/miata.glb"',count:1},
+ {before:'"placements.json"',after:'"racers/placements.json"',count:1},
+ {before:'"world/tiles/fences.json"',after:'"racers/world/tiles/fences.json"',count:1},
  {before:'get("mode")==="survivors"?"survivors":"race"',after:'get("mode")==="race"?"race":"survivors"',count:1}
 ];
 function replaceExact(text,{before,after,count=1}) {
@@ -35,24 +35,25 @@ function replaceExact(text,{before,after,count=1}) {
  return text.split(before).join(after);
 }
 const extraCss='\n.racers-back{display:flex;align-items:center;justify-content:center;min-height:44px;margin:12px 0;font-weight:700}.panel-inner{max-height:calc(100dvh - 40px);overflow-y:auto}\n';
-const notice=`SANKO RACERS — SANKOSURVIVORS FUN INTEGRATION\n\nAccepted original Racers source: 922e57a7fcc5642d28b08a67bb95f15c094729b8 (implementation a96ffad).\nThe existing fan game's owner requested this packaged Fun route on 9 November 2026. That scope does not establish a new licence grant, endorsement, or authorization for unrelated standalone publication.\n\nNative SankoQuest assets and adapted terrain/character code retain their separate ownership and notices in CREDITS.txt. The exact accepted roadster is separately attributed to Speedy-Works under CC BY 4.0, with the Shitbox modifications described in CREDITS.txt; only its URL/location changed. No additional Shitbox game code was imported. LICENSE.shitbox is retained in full, separately from the car licence. Three.js and Draco notices are retained in full. Vite is build tooling, not shipped runtime code.\n\nClient adaptations: exact, hash-pinned asset/decoder URLs; private Racers car, placements and collision fences; Survivors default (explicit ?mode=race remains); Back to SankoSurvivors link and scrollable short-screen panel. No gameplay/physics/storage logic changed. Race best remains guarded under sanko-racers-greentown-v1; SankoSurvivors progress is not read or written.\n\nReproduce: node tools/package-racers.mjs <accepted-dist> <accepted-desktop-survivors.png> [SQS-public-root]. Input hashes are in tools/racers-inputs.json; served hashes and URL adaptations are in manifest.json. Reused shared files must match the accepted inputs byte-for-byte. The accepted inventory and nav.bin are omitted: neither name appears in the runtime client; collision uses the accepted nav.png and Racers fences.\n\nPreview: unedited native-first/desktop-survivors.png from accepted polish evidence, SHA256 f9dd01c6246e06e136c5b9a839b691eeed061c70a9a8dd26941bfba520f8bf48. No generated or redesigned models/art.\n`;
+const notice=`SANKO RACERS — SANKOSURVIVORS FUN INTEGRATION\n\nAccepted original Racers source: ${inputs.commit} (countryside and invisible-boundary repair).\nThe existing fan game's owner requested this packaged Fun route on 9 November 2026. That scope does not establish a new licence grant, endorsement, or authorization for unrelated standalone publication.\n\nNative SankoQuest assets and adapted terrain/character code retain their separate ownership and notices in CREDITS.txt. The exact accepted roadster is separately attributed to Speedy-Works under CC BY 4.0, with the Shitbox modifications described in CREDITS.txt; only its URL/location changed. No additional Shitbox game code was imported. LICENSE.shitbox is retained in full, separately from the car licence. Three.js and Draco notices are retained in full. Vite is build tooling, not shipped runtime code.\n\nClient adaptations: exact, hash-pinned asset/decoder URLs; private Racers car, placements and collision fences; Survivors default (explicit ?mode=race remains); Back to SankoSurvivors link and scrollable short-screen panel. No gameplay/physics/storage logic changed. Race best remains guarded under sanko-racers-greentown-v1; SankoSurvivors progress is not read or written.\n\nReproduce: node tools/package-racers.mjs <accepted-dist> <accepted-desktop-survivors.png> [SQS-public-root]. Input hashes are in tools/racers-inputs.json; served hashes and URL adaptations are in manifest.json. Reused shared files must match the accepted inputs byte-for-byte. The accepted inventory and nav.bin are omitted: neither name appears in the runtime client; collision uses the accepted nav.png and Racers fences.\n\nPreview: unedited ${inputs.preview.path} from the accepted native countryside check, SHA256 ${inputs.preview.sha256}. No generated or redesigned models/art.\n`;
 
 export function packageRacers(dist,preview,publicRoot) {
  const source=new Map(inputs.files.map(entry=>[entry.path,verifiedFile(dist,entry)]));
  const previewBytes=verifiedFile(path.dirname(path.resolve(preview)),{
-  path:path.basename(preview),bytes:1036388,sha256:'f9dd01c6246e06e136c5b9a839b691eeed061c70a9a8dd26941bfba520f8bf48'
+  ...inputs.preview,path:path.basename(preview)
  });
  const shared=inputs.files.filter(e=>e.role==='shared');
  for(const entry of shared)verifiedFile(publicRoot,entry);
- let js=source.get('assets/index-CRhqyd3V.js').toString();
+ const client=inputs.files.find(e=>e.role==='client').path,stylesheet=inputs.files.find(e=>e.role==='stylesheet').path;
+ let js=source.get(client).toString();
  for(const change of clientChanges)js=replaceExact(js,change);
  for(const unused of ['nav.bin','inventory.json'])assert.ok(!js.includes(unused),`Referenced omitted file: ${unused}`);
- const css=source.get('assets/index-CvBKTRtH.css').toString()+extraCss;
+ const css=source.get(stylesheet).toString()+extraCss;
  const jsName=`racers-${sha256(js).slice(0,16)}.js`,cssName=`racers-${sha256(css).slice(0,16)}.css`;
  let html=source.get('index.html').toString();
  const htmlChanges=[
-  {before:'/assets/index-CRhqyd3V.js',after:`./${jsName}`},
-  {before:'/assets/index-CvBKTRtH.css',after:`./${cssName}`},
+  {before:'/'+client,after:`./${jsName}`},
+  {before:'/'+stylesheet,after:`./${cssName}`},
   {before:'<a href="./CREDITS.txt"',after:'<a class="racers-back" href="/?menu=fun">Back to SankoSurvivors</a><a href="./CREDITS.txt"'}
  ];
  for(const change of htmlChanges)html=replaceExact(html,change);
@@ -67,7 +68,7 @@ export function packageRacers(dist,preview,publicRoot) {
  }
  const record=(relative,bytes)=>({path:relative,bytes:bytes.length,sha256:sha256(bytes)});
  const manifest={
-  source:{commit:inputs.commit,implementation:inputs.implementation,clientSha256:inputs.files.find(e=>e.path==='assets/index-CRhqyd3V.js').sha256},
+  source:{commit:inputs.commit,implementation:inputs.implementation,clientSha256:inputs.files.find(e=>e.path===client).sha256},
   adaptations:{client:clientChanges,html:htmlChanges,cssAppend:extraCss},
   files:[...output].map(([relative,bytes])=>record(relative,bytes)),
   shared:shared.map(e=>({path:'/'+e.path,bytes:e.bytes,sha256:e.sha256})),

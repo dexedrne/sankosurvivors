@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "More countryside for Racers": "Más campo para Racers",
+  "Sanko Racers opens the countryside around Greentown, with nearly three times the driving area. Survivors starts south of town.": "Sanko Racers abre el campo alrededor de Greentown, con casi tres veces más espacio para conducir. Survivors empieza al sur del pueblo.",
+  "The old invisible map boundaries are removed. The minimap and a ground outline show the expanded driving area; solid walls still stop the car.": "Se eliminan los antiguos límites invisibles. El minimapa y una línea en el suelo muestran la nueva zona; las paredes sólidas siguen deteniendo el coche.",
   "Solo": "En solitario",
   "More ways to play, more room for pets": "Más formas de jugar y más espacio para mascotas",
   "Choose Adventure, Boss & Raid or Fun from the new game mode menu.": "Elige Aventura, Jefes e incursiones o Diversión en el nuevo menú de modos.",
@@ -2789,4 +2792,5 @@ export const patterns = [
     "Void Shard +{1}",
     "Fragmento de Vacío +{1}"
   ]
+
 ];
