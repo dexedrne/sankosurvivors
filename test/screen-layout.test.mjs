@@ -51,14 +51,14 @@ test('desktop ignores saved DS and fold signals without rewriting the phone pref
 test('desktop Settings does not offer the phone layout controls',t=>{
  const f=fixture(t,{phone:false}),nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{html:'',set innerHTML(v){this.html=v;},querySelectorAll:()=>[]});return nodes.get(id);};
  const ui=main.slice(main.indexOf('const SETTINGS ='),main.indexOf('const openSettings ='));
- const build=Function('$','screenLayout','renderer',`const save=()=>{},audio={muted:false,volume:()=>50},autoAlchOn=()=>true,autoEquipOn=()=>false;${ui};return buildSettings;`)($,f.layout,{getSettings:()=>({}),applySettings(){}});
+ const build=Function('$','screenLayout','renderer',`const save=()=>{},audio={muted:false,volume:()=>50},autoAlchOn=()=>true,autoEquipOn=()=>false,keepPlayingUnfocused=()=>false;${ui};return buildSettings;`)($,f.layout,{getSettings:()=>({}),applySettings(){}});
  build();assert.ok(!$('setlist').html.includes('data-id="layout"'));assert.ok($('setlist').html.includes('data-id="autoequip"'));
 });
 test('actual Settings layout choice updates the selected option without editing graphics metadata',t=>{
  const f=fixture(t),nodes=new Map(),raw='{"v":3,"res":"0.75","future":{"keep":true}}';f.values.set('sq-settings',raw);let graphics=0;
  const $=id=>{if(!nodes.has(id))nodes.set(id,{html:'',buttons:[],set innerHTML(value){this.html=value;this.buttons=[...value.matchAll(/<button class="([^"]*)" data-id="([^"]*)" data-v='([^']*)'>(.*?)<\/button>/g)].map(m=>({className:m[1],dataset:{id:m[2],v:m[3]},textContent:m[4]}));},querySelectorAll:q=>q==='button'?nodes.get(id).buttons:[]});return nodes.get(id);};
  const ui=main.slice(main.indexOf('const SETTINGS ='),main.indexOf('const openSettings ='));
- const build=Function('$','screenLayout','renderer','save',`const audio={muted:false,volume:()=>50},autoAlchOn=()=>true,autoEquipOn=()=>false;${ui};return buildSettings;`)($,f.layout,{getSettings:()=>({res:'0.75'}),applySettings(){graphics++;}},(k,v)=>{f.writes.push(k);f.values.set(k,JSON.stringify(v));});
+ const build=Function('$','screenLayout','renderer','save',`const audio={muted:false,volume:()=>50},autoAlchOn=()=>true,autoEquipOn=()=>false,keepPlayingUnfocused=()=>false;${ui};return buildSettings;`)($,f.layout,{getSettings:()=>({res:'0.75'}),applySettings(){graphics++;}},(k,v)=>{f.writes.push(k);f.values.set(k,JSON.stringify(v));});
  build();const ds=$('setlist').buttons.find(b=>b.dataset.id==='layout'&&b.dataset.v==='"ds"');assert.ok(ds,'DS layout choice is reachable in actual Settings');ds.onclick();assert.equal(f.layout.mode,'ds');assert.equal($('setlist').buttons.find(b=>b.dataset.id==='layout'&&b.className==='on').textContent,'Flex mode');assert.equal(f.values.get('sq-settings'),raw);assert.equal(graphics,0);assert.deepEqual(f.writes,['sq-screen-layout']);
 });
 function pointerFixture(active){

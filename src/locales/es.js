@@ -1,5 +1,21 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Food stacks in matching belt slots. Tap a slot or use 1–4 to eat one. If every slot is full, food without an existing stack is eaten immediately.": "La comida se apila en los espacios correspondientes del cinturón. Toca un espacio o usa 1–4 para comer una unidad. Si todos están llenos, la comida sin una pila existente se come de inmediato.",
+  "Food can be saved and stacked in the belt. Ordinary food drops are half as frequent; boss food rewards stay.": "Puedes guardar y apilar comida en el cinturón. La comida normal cae con la mitad de frecuencia; las recompensas de comida de los jefes se mantienen.",
+  "Enable Keep playing when unfocused in Settings to keep a visible run active while using another window.": "Activa Seguir jugando sin foco en Ajustes para mantener una partida visible en marcha mientras usas otra ventana.",
+
+  "Keep playing when unfocused (this device)": "Seguir jugando sin foco (este dispositivo)",
+  "Visible game windows can keep running while you use another window. Hidden tabs still pause.": "Las ventanas visibles del juego pueden seguir funcionando mientras usas otra ventana. Las pestañas ocultas siguen en pausa.",
+
+  "Touch, revives and safer rewards": "Toques, reanimaciones y recompensas seguras",
+  "Hold a weapon, passive or worn equipment icon to inspect it on touch screens. Passives show their level, rarity-adjusted strength and evolution links.": "Mantén pulsado el icono de un arma, pasivo o equipo puesto para inspeccionarlo en pantallas táctiles. Los pasivos muestran su nivel, fuerza ajustada por rareza y vínculos de evolución.",
+  "Your remaining revive is visible beside health until it is used.": "Tu reanimación restante se muestra junto a la salud hasta que la uses.",
+  "Co-op shows the shared automatic-choice countdown and sends movement and choice events without waiting for the next batch.": "El cooperativo muestra la cuenta atrás compartida de elección automática y envía los eventos de movimiento y elección sin esperar al siguiente lote.",
+  "Boss Gold Bars and reward caskets stay on the reachable side of solid walls.": "Los lingotes de oro y cofres de recompensa de los jefes quedan en el lado accesible de las paredes sólidas.",
+  "Gold Bars grant an upgrade choice without raising your XP level. Bosses drop them, Luck may add an extra, and Fortune shrines can award one. Reward caskets roll gear instead.": "Los lingotes de oro dan una elección de mejora sin subir tu nivel de XP. Los jefes los sueltan, Suerte puede añadir otro y los santuarios de Fortuna pueden otorgarlos. Los cofres de recompensa sortean equipo.",
+  "Wandering merchants in solo casual sell gear for GP earned during that run. Buying reduces the final GP reward; shopping pauses the fight.": "Los mercaderes ambulantes del modo casual individual venden equipo por GP ganados en esa partida. Comprar reduce la recompensa final de GP; las compras pausan la batalla.",
+  "Gold Bar!": "¡Lingote de oro!",
+
   "Spells": "Hechizos",
   "Void Spells": "Hechizos del Vacío",
   "Void Spells!": "¡Hechizos del Vacío!",
@@ -1527,6 +1543,16 @@ export const text = {
 };
 
 export const patterns = [
+  ["Restores {1} health, boosted by healing bonuses.", "Restaura {1} de salud, aumentada por los bonos de curación."],
+  ["{1} ×{2}", "{1} ×{2}"],
+
+  ["Evolves with {1} or {2}.", "Evoluciona con {1} o {2}."],
+  ["Evolves with {1}.", "Evoluciona con {1}."],
+
+  ["Effective level: {1}", "Nivel efectivo: {1}"],
+  ["Evolves {1}.", "Evoluciona {1}."],
+  ["Automatic choice in {1}s", "Elección automática en {1}s"],
+
   ["Void Spells +{1}", "Hechizos del Vacío +{1}"],
   ["Spells +{1}", "Hechizos +{1}"],
   ["1st: {1} DMT + participation", "1.º: {1} DMT + participación"],

@@ -78,15 +78,24 @@ test('earned normal caskets and levels retain precedence, and only merchant loot
  s.over='dead';const next=prepareRunRewards(db(),s,{earned:phaseCoins(s,{baseline:b}),baseline:b});assert.equal(JSON.parse(next.data['sq-stats']).caskets,1);assert.equal(next.loot.length,2);
 });
 
-test('excluded modes retain pre-merchant snapshots and consume no additional RNG through six minutes',()=>{
+test('excluded modes retain pre-merchant snapshot fields and consume no additional RNG through six minutes',()=>{
  const modes=[
   [{ranked:true},'d4e23795a945ba75f506f2771fb8ef53f6f76c1100e5b2bc968d606b9445b6d2'],
   [{pace:1},'aa6851f011cddb424a065640e737b2c0244b192212287b1dd9e340e23a3811a4'],
   [{coop:true,players:[{id:'p1'},{id:'p2'}]},'6c0f16e0de93b0b4fea83e305dfe21b5500d81fd765e0597dc798090f3b30f2e'],
   [{players:[{id:'p1'},{id:'p2'}]},'6c0f16e0de93b0b4fea83e305dfe21b5500d81fd765e0597dc798090f3b30f2e'],
  ];
- // Exact 2dc9e40 snapshots and RNG; other random systems are held idle to expose any merchant draw.
- for(const [opts,hash] of modes){const s=quiet({...opts,seed:99});let calls=0;const rng=s.rng;s.rng=()=>{calls++;return rng();};for(let i=0;i<10801;i++)game.step(s);assert.equal(calls,0);assert.equal(s.rng(),0.2604658124037087);game.snapshot(s);assert.equal(createHash('sha256').update(JSON.stringify(game.snapshot(s))).digest('hex'),hash);}
+ // Keep the exact 2dc9e40 fields and RNG; the new empty food counts are checked separately.
+ for(const [opts,hash] of modes){
+  const s=quiet({...opts,seed:99});let calls=0;const rng=s.rng;s.rng=()=>{calls++;return rng();};
+  for(let i=0;i<10801;i++)game.step(s);assert.equal(calls,0);assert.equal(s.rng(),0.2604658124037087);
+  const snapshot=game.snapshot(s);
+  for(const [i,p] of snapshot.players.entries()){
+   if(s.pace>=2){assert.deepEqual(s.players[i].foodStacks,{});assert.deepEqual(p.beltCounts,[]);delete p.beltCounts;}
+   else {assert.equal(Object.hasOwn(s.players[i],'foodStacks'),false);assert.equal(Object.hasOwn(p,'beltCounts'),false);}
+  }
+  assert.equal(createHash('sha256').update(JSON.stringify(snapshot)).digest('hex'),hash);
+ }
 });
 test('retained native ground places at least one clear reachable merchant on each map',()=>{
  const ground=unpackGround(readFileSync(new URL('../tools/vercel-api/ground.bin',import.meta.url)));

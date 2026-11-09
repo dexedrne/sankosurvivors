@@ -1,5 +1,21 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Food stacks in matching belt slots. Tap a slot or use 1–4 to eat one. If every slot is full, food without an existing stack is eaten immediately.": "Nagsasama-sama sa parehong belt slot ang magkakatulad na pagkain. I-tap ang slot o gamitin ang 1–4 para kumain ng isa. Kapag puno ang lahat ng slot, agad kakainin ang pagkaing wala pang stack.",
+  "Food can be saved and stacked in the belt. Ordinary food drops are half as frequent; boss food rewards stay.": "Maaaring itabi at i-stack ang pagkain sa belt. Kalahati na ang dalas ng karaniwang food drop; nananatili ang pagkain mula sa boss.",
+  "Enable Keep playing when unfocused in Settings to keep a visible run active while using another window.": "I-on ang Ituloy ang laro kahit hindi nakapokus sa Settings para magpatuloy ang nakikitang run habang gumagamit ng ibang window.",
+
+  "Keep playing when unfocused (this device)": "Ituloy ang laro kahit hindi nakapokus (sa device na ito)",
+  "Visible game windows can keep running while you use another window. Hidden tabs still pause.": "Maaaring magpatuloy ang nakikitang laro habang gumagamit ka ng ibang window. Hihinto pa rin ang mga nakatagong tab.",
+
+  "Touch, revives and safer rewards": "Pindot, revive at mas ligtas na gantimpala",
+  "Hold a weapon, passive or worn equipment icon to inspect it on touch screens. Passives show their level, rarity-adjusted strength and evolution links.": "Pindutin nang matagal ang icon ng armas, passive o suot na kagamitan para siyasatin ito sa touch screen. Ipinapakita ng passive ang antas, lakas ayon sa rarity at mga kaugnay na ebolusyon.",
+  "Your remaining revive is visible beside health until it is used.": "Makikita sa tabi ng buhay ang natitira mong revive hanggang magamit ito.",
+  "Co-op shows the shared automatic-choice countdown and sends movement and choice events without waiting for the next batch.": "Ipinapakita sa co-op ang oras bago ang awtomatikong pagpili at ipinapadala agad ang mga galaw at pagpili nang hindi hinihintay ang susunod na batch.",
+  "Boss Gold Bars and reward caskets stay on the reachable side of solid walls.": "Nananatili sa naaabot na panig ng mga solidong pader ang Gold Bar at reward casket mula sa boss.",
+  "Gold Bars grant an upgrade choice without raising your XP level. Bosses drop them, Luck may add an extra, and Fortune shrines can award one. Reward caskets roll gear instead.": "Nagbibigay ang Gold Bar ng pagpipiliang upgrade nang hindi tumataas ang antas ng XP. Inihuhulog ito ng boss, maaaring magdagdag ang Luck, at maaari ring magbigay ang Fortune shrine. Kagamitan naman ang laman ng reward casket.",
+  "Wandering merchants in solo casual sell gear for GP earned during that run. Buying reduces the final GP reward; shopping pauses the fight.": "Nagbebenta ng kagamitan ang mga wandering merchant sa solo casual kapalit ng GP na kinita sa run na iyon. Binabawasan ng pagbili ang huling gantimpalang GP; nakapause ang laban habang namimili.",
+  "Gold Bar!": "Gold Bar!",
+
   "Spells": "Mga Mahika",
   "Void Spells": "Mga Mahika ng Kawalan",
   "Void Spells!": "Mga Mahika ng Kawalan!",
@@ -1527,6 +1543,16 @@ export const text = {
 };
 
 export const patterns = [
+  ["Restores {1} health, boosted by healing bonuses.", "Nagbabalik ng {1} buhay, na nadaragdagan ng healing bonus."],
+  ["{1} ×{2}", "{1} ×{2}"],
+
+  ["Evolves with {1} or {2}.", "Nagbabago gamit ang {1} o {2}."],
+  ["Evolves with {1}.", "Nagbabago gamit ang {1}."],
+
+  ["Effective level: {1}", "Epektibong antas: {1}"],
+  ["Evolves {1}.", "Nagpapabago sa {1}."],
+  ["Automatic choice in {1}s", "Awtomatikong pili sa {1}s"],
+
   ["Void Spells +{1}", "Mga Mahika ng Kawalan +{1}"],
   ["Spells +{1}", "Mga Mahika +{1}"],
   ["1st: {1} DMT + participation", "Ika-1: {1} DMT + pakikilahok"],

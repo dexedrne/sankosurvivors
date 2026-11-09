@@ -108,7 +108,7 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{}}){
   if(!simulate(events)){close('invalidAction');return false;}
   const entry={events};try{if(frame%30===0||sim.over)entry.hash=hash();}catch{close('invalidState');return false;}
   history.set(frame,entry);while(history.size>COOP_HISTORY)history.delete(history.keys().next().value);
-  if(frame-lastSent>=2||entry.hash!==undefined||sim.over)flush();if(sim.over)close('complete');return true;
+  if(events.length||frame-lastSent>=2||entry.hash!==undefined||sim.over)flush();if(sim.over)close('complete');return true;
  }
  return {
   sim,accept,advance,hash,close,flush,

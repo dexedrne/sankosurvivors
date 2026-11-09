@@ -39,24 +39,24 @@ function killDrop(pace, r) {
   return sim.pickups.map(k => k.kind);
 }
 
-test('real enemy drops retain frequency and random-call count on both paces', () => {
+test('real enemy drops halve only pace2 food frequency and retain random-call count', () => {
   for (const r of [.009999, .01, .015999, .016, .021999, .022, .024, .0263, .0304, .033999, .034, .9]) {
     const before = killDrop(1, r), after = killDrop(2, r);
-    const cheese = r >= .022 && r < .022 + .012 * .35;
-    assert.deepEqual(after, cheese ? ['cheese'] : before, `drop roll ${r}`);
-    assert.equal(after.length, before.length, 'no extra pickups');
+    const expected = r >= .022 && r < .028 ? [foodDrop(0, (r - .022) / .006, false, 2)] : r >= .028 && r < .034 ? [] : before;
+    assert.deepEqual(after, expected, `drop roll ${r}`);
+    assert.ok(after.length <= before.length, 'no extra pickups');
   }
 });
 
-test('Cheese is eaten on pickup, honors healing bonuses and HP cap, and never occupies the belt', () => {
+test('Cheese overflow is eaten on pickup and retains healing bonuses, HP cap and exact feedback', () => {
   for (const hp of [20, 99, 100]) {
     const sim = createSim({ seed: 8, pace: 2, meta: { fishing: 2 } }), p = sim.players[0];
     sim.spawnAcc = -1e9; sim.eventT = 1e9; p.weapons = {}; p.hp = hp;
-    p.belt = ['beer', 'warp'];
+    p.belt = ['beer', 'warp', 'pumpkin', 'beer'];
     sim.pickups.push({ id: sim.nextId++, x: p.x, z: p.z, kind: 'cheese' });
     step(sim);
     assert.equal(p.hp, Math.min(p.maxHp, hp + 15 * playerStats(p).heal));
-    assert.deepEqual(p.belt, ['beer', 'warp']);
+    assert.deepEqual(p.belt, ['beer', 'warp', 'pumpkin', 'beer']);
     assert.equal(sim.pickups.length, 0);
     assert.ok(sim.fx.some(f => f.k === 'use' && f.kind === 'cheese'));
     assert.equal(sim.fx.find(f => f.k === 'get' && f.kind === 'cheese').heal, p.hp - hp, 'feedback reports only actual healing');

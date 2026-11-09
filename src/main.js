@@ -16,10 +16,11 @@ import { createScreenLayout } from './screen-layout.js';
 import { setupFullscreen } from './fullscreen.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, merchantNear, buyMerchant, BELT_SIZE, TICK, SHRINE, SHRINES } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, merchantNear, buyMerchant, FOOD, BELT_SIZE, TICK, SHRINE, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { DamageMeter } from './damage-meter.js';
 import { bindBeltItem } from './belt-input.js';
+import { bindItemInspection } from './item-inspection-input.js';
 import { NATIVE_PETS, petChoice } from './pets.js';
 import { createBunCompanions, bunChoice } from './bun-companions.js';
 import { canAutoEquip } from './auto-equip.js';
@@ -109,6 +110,7 @@ const statVal = (st, key) => finiteNumber(st[key]);
 // a new item goes to the bank; a duplicate is sold for coins (unless it was already high alched in the run: sell = false)
 function bankItem(name, sell = true) { if (!Object.hasOwn(GEAR, name)) return false; const raw = load('sq-bank', []), b = Array.isArray(raw) ? raw : []; if (b.includes(name)) { if (sell) save('sq-coins', getCoins() + DUPLICATE_GEAR_COINS); return false; } b.push(name); save('sq-bank', b); return true; }
 const autoAlchOn = () => load('sq-autoalch', true) !== false; // Settings: auto high alch caskets that are not better (on by default: duplicates kept popping a card)
+const keepPlayingUnfocused = () => load('sq-keep-playing-unfocused', false) === true;
 const autoEquipOn = () => load('sq-autoequip', false) === true; // Device preference: mobile and desktop can differ.
 // special maps (Tutorial Island) are open from the start and sit outside the campaign chain
 const unlockedMap = (i) => params.has('unlock') || i === 0 || !!MAPS[i].special || clearedMaps().has(MAPS[i].after || MAPS[i - 1].id);
@@ -779,6 +781,8 @@ const SETTINGS = [
   { vol: 's', name: 'Sound effects' },
   { vol: 'm', name: 'Music' },
   { head: 'Game' },
+  { id: 'keepplaying', name: 'Keep playing when unfocused (this device)', opts: [[false, 'Off'], [true, 'On']] },
+  { note: 'Visible game windows can keep running while you use another window. Hidden tabs still pause.' },
   { id: 'fx', name: 'Effects', opts: [['full', 'Full'], ['reduced', 'Reduced']] },
   { id: 'numbers', name: 'Damage numbers', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'shake', name: 'Screen shake', opts: [[true, 'On'], [false, 'Off']] },
@@ -786,7 +790,7 @@ const SETTINGS = [
   { note: 'Keeps every stat and any set you have started. Weapons stay manual.' },
   { id: 'autoalch', name: 'Auto high alch caskets that are not better', opts: [[true, 'On'], [false, 'Off']] },
 ];function buildSettings() {
-  const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn(), autoequip: autoEquipOn(), layout: screenLayout.mode };
+  const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn(), autoequip: autoEquipOn(), keepplaying: keepPlayingUnfocused(), layout: screenLayout.mode };
   const groups = [...$('setlist').querySelectorAll('details[data-section]')], expanded = new Set(groups.filter(el => el.open).map(el => el.dataset.section));
   let section = 0;
   $('setlist').innerHTML = SETTINGS.filter(o => o.id !== 'layout' || screenLayout.available).map((o) => o.head ? `${section++ ? '</details>' : ''}<details class="setgroup" data-section="${o.head}"${expanded.has(o.head) || !groups.length && o.head === 'Display' ? ' open' : ''}><summary class="sethead">${o.head}</summary>` : o.note ? `<p class="dim setnote">${o.note}</p>` : o.vol ? `<div class="setrow volsetting"><label for="volume-${o.vol}">${o.name}</label><div class="volrow"><input id="volume-${o.vol}" type="range" min="0" max="100" step="5" value="${audio.volume(o.vol)}" data-vol="${o.vol}" aria-label="${o.name} volume"><b>${audio.volume(o.vol)}%</b></div></div>` : `<div class="setrow"><span>${o.name}</span><div class="seg">${o.opts.map(([v, label]) => `<button class="${cur[o.id] === v ? 'on' : 'ghost'}" data-id="${o.id}" data-v='${JSON.stringify(v)}'>${label}</button>`).join('')}</div></div>`).join('') + '</details>';
@@ -808,7 +812,7 @@ const SETTINGS = [
     const id = b.dataset.id, v = JSON.parse(b.dataset.v), focused = document.activeElement === b;
     if (id === 'layout') screenLayout.setMode(v);
     else {
-      if (id === 'sound') audio.setMuted(!v); else if (id === 'autoalch') save('sq-autoalch', v === true); else if (id === 'autoequip') save('sq-autoequip', v === true); else renderer.applySettings({ [id]: v });
+      if (id === 'sound') audio.setMuted(!v); else if (id === 'autoalch') save('sq-autoalch', v === true); else if (id === 'autoequip') save('sq-autoequip', v === true); else if (id === 'keepplaying') save('sq-keep-playing-unfocused', v === true); else renderer.applySettings({ [id]: v });
       save('sq-settings', { ...renderer.getSettings(), v: 2 });
     }
     buildSettings();
@@ -1649,8 +1653,9 @@ function syncCoopRun(inp, edges) {
     else if (!pending && ['levelup','casket'].includes(mode)) { shownPending = rewardWasShown = false; mode = 'play'; $('levelup').classList.add('hidden'); $('casket').classList.add('hidden'); audio.duck(false); }
   }
   const other = sim.players.find(p => p.id !== PLAYER), waiting = other && sim.pending[other.id];
+  for (const id of ['coopleveltimer', 'coopcaskettimer']) { const timer = $(id); timer.hidden = run.held || !pending; if (pending) timer.textContent = `Automatic choice in ${Math.max(0, Math.ceil(pending.left))}s`; }
   if (!run.held) {
-    if (waiting) $('coopwait').innerHTML = `<b translate="no">${esc(other.name)}</b>: <span>Choosing an upgrade…</span>`;
+    if (waiting) $('coopwait').innerHTML = `<b translate="no">${esc(other.name)}</b>: <span>Choosing an upgrade…</span> <b translate="no">${Math.max(0, Math.ceil(waiting.left))}s</b>`;
     else $('coopwait').textContent = !sim.players.find(p => p.id === PLAYER).alive ? 'You fell. Your teammate can still finish the run.' : mode === 'pause' ? 'Your controls are paused. The shared run continues.' : '';
   }
   $('coopwait').classList.toggle('hidden', !run.held && !waiting && mode !== 'pause' && sim.players.find(p => p.id === PLAYER).alive);
@@ -1874,8 +1879,8 @@ addEventListener('keydown', (e) => {
   if ((k === 'enter' || k === ' ') && (mode === 'title' && !$('start').disabled || mode === 'end') && MENU_SCREENS.every((id) => $(id).classList.contains('hidden'))) startRun();
 });
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-addEventListener('blur', () => { keys.clear(); clearTouch(); if (mode === 'play') pause(true); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); if (mode === 'play') pause(true); } });
+addEventListener('blur', () => { keys.clear(); clearTouch(); pendingUse = null; if (mode === 'play' && (document.hidden || !keepPlayingUnfocused())) pause(true); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); pendingUse = null; if (mode === 'play') pause(true); } });
 function pause(on) { clearTouch(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (rankedRun) updateRankedPause(); }
 $('start').onclick = startRun; $('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
 $('quit').onclick = () => { if (rankedPlaying()) return; if (coop) { coop.close(); return; } pause(false); sim.over = 'dead'; };
@@ -1943,7 +1948,7 @@ function clearTouch() { touch.id = null; touch.x = touch.y = 0; stickEl.classLis
 addEventListener('pointerdown', (e) => {
   if (e.pointerType !== 'touch' || mode !== 'play' || touch.id !== null) return;
   if (screenLayout.active && e.clientY < $('dscontrols').getBoundingClientRect().top) return;
-  if (e.target.closest('button, .panel, #menu, #belt')) return;
+  if (e.target.closest('button, .panel, #menu, #belt, [data-inspect]')) return;
   touch.id = e.pointerId; touch.ox = e.clientX; touch.oy = e.clientY; touch.x = 0; touch.y = 0;
   stickEl.style.left = e.clientX + 'px'; stickEl.style.top = e.clientY + 'px'; knob.style.transform = 'translate(-50%,-50%)'; stickEl.classList.remove('hidden');
 });
@@ -2013,6 +2018,7 @@ function resumeAfterReward() {
   acc = 0; audio.duck(waitingForMove);
 }
 function showLevelUp() {
+  $('coopleveltimer').hidden = !sim?.coop;
   banishMode = false; $('banishlv').setAttribute('aria-pressed', 'false'); $('banishhint').classList.add('hidden'); $('cards').classList.remove('banishing');
   if (sim) preloadNextIcons(sim.players.find((q) => q.id === PLAYER));
   let pend = sim.pending[PLAYER];
@@ -2116,6 +2122,7 @@ function showCasket() {
   // Settings: a piece that improves nothing is high alched without stopping the run (still a recorded choice in ranked)
   if (!pend.merchantPurchase && autoAlchOn() && !c.anyUp) { toast(`${imgTag(c.item)} <span>Auto high alch<br><b>${c.item}</b> +${c.alch} coins</span>`); pickCasket(1, true); return; }
   if (!pend.merchantPurchase && autoEquipOn() && canAutoEquip(sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0], c.item, sim.pace)) { pickCasket(0, true); return; }
+  $('coopcaskettimer').hidden = !sim.coop;
   shownPending = rewardWasShown = true; mode = 'casket'; selCard = pend.rec; audio.duck(true);
   waitingForMove = false; $('movehint').classList.add('hidden'); stickEl.classList.add('hidden');
   const rows = Object.entries(c.delta).map(([k, v]) => `<li class="${v > 0 ? 'up' : 'down'}">${deltaText(k, v)}</li>`);
@@ -2248,6 +2255,13 @@ function updateBeerHud() {
   const label = left + 's';
   if ($('beerleft').textContent !== label) $('beerleft').textContent = label;
 }
+function updateReviveHud() {
+  const p = sim.players.find(p => p.id === PLAYER), left = p?.alive && Number.isSafeInteger(p.revives) ? p.revives : 0;
+  $('revivehud').hidden = left <= 0;
+  if (left <= 0) return;
+  if (!$('reviveicon').innerHTML) $('reviveicon').innerHTML = imgTag('Power Amulet');
+  if ($('reviveleft').textContent !== String(left)) $('reviveleft').textContent = String(left);
+}
 function updateEquipmentHud(me) {
   const gear = me.gear || {}, key = JSON.stringify(gear);
   if (slotCache.g === key) return;
@@ -2266,6 +2280,7 @@ function updateHud(view) {
   updateShrineHud(view);
   updateTumbleHud(me);
   updateBeerHud();
+  updateReviveHud();
   updateDamageHud();
   $('hpfill').style.width = Math.min(100, Math.max(0, (me.hp / me.mhp) * 100)) + '%';
   $('hptext').textContent = `${me.hp} / ${me.mhp}`;
@@ -2284,17 +2299,25 @@ function updateHud(view) {
   const bk = JSON.stringify(me.belt || []);
   if (bk !== slotCache.b) {
     for (const dispose of beltDisposers) dispose(); beltDisposers = [];
-    slotCache.b = bk; const BELT_ICON = { beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard' };
+    slotCache.b = bk; const BELT_ICON = { beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', ...Object.fromEntries(Object.entries(FOOD).map(([kind, food]) => [kind, food.item])) };
     const BELT_TIP = { beer: sim.pace >= 2 ? 'Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running, up to 60 seconds remaining; the speed bonus stays +35%.' : 'Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.', pumpkin: 'Blasts nearby enemies. Damage grows with run time.', warp: 'Pulls all dropped bones and coins to you.' };
-    $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i]; return `<button type="button" class="bslot${k ? '' : ' empty'}" data-i="${i}" data-kind="${k || ''}" ${k ? `aria-label="${BELT_ICON[k]}" aria-describedby="belttip${i}"` : 'disabled aria-label="Empty item slot"'}>${k ? imgTag(BELT_ICON[k]) : ''}<small>${i + 1}</small>${k ? `<span id="belttip${i}" class="belttip" role="tooltip" hidden><b>${BELT_ICON[k]}</b><span>${BELT_TIP[k]}</span><em>Tap to use. Hold to inspect.</em></span>` : ''}</button>`; }).join('');
+    $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i], count = me.beltCounts?.[i] || 1; return `<button type="button" class="bslot${k ? '' : ' empty'}" data-i="${i}" data-kind="${k || ''}" data-count="${count}" ${k ? `aria-label="${BELT_ICON[k]}${count > 1 ? ` ×${count}` : ''}" aria-describedby="belttip${i}"` : 'disabled aria-label="Empty item slot"'}>${k ? imgTag(BELT_ICON[k]) : ''}<small>${i + 1}</small>${k ? `<b class="beltcount" translate="no"${count <= 1 ? ' hidden' : ''}>${count > 1 ? `×${count}` : ''}</b>` : ''}${k ? `<span id="belttip${i}" class="belttip" role="tooltip" hidden><b>${BELT_ICON[k]}</b><span>${FOOD[k] ? `Restores ${FOOD[k].heal} health, boosted by healing bonuses.` : BELT_TIP[k]}</span><em>Tap to use. Hold to inspect.</em></span>` : ''}</button>`; }).join('');
     for (const el of $('belt').children) if (el.dataset.kind) {
       const i = Number(el.dataset.i), kind = el.dataset.kind;
       beltDisposers.push(bindBeltItem(el, { use: () => { pendingUse = i; }, canUse: () => mode === 'play' && !waitingForMove && !sim.pending[PLAYER] && !sim.over && (sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0]).belt[i] === kind }));
     }
   }
+  for (const el of $('belt').children) {
+    const kind = el.dataset.kind; if (!FOOD[kind]) continue;
+    const count = me.beltCounts?.[Number(el.dataset.i)] || 1;
+    if (el.dataset.count === String(count)) continue;
+    el.dataset.count = String(count);
+    const badge = el.querySelector('.beltcount'); badge.hidden = count <= 1; badge.textContent = count > 1 ? `×${count}` : '';
+    el.setAttribute('aria-label', `${FOOD[kind].item}${count > 1 ? ` ×${count}` : ''}`);
+  }
   const wk = JSON.stringify([me.w, me.evo, me.wm]), pk = JSON.stringify(me.ps);
   if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" data-inspect="weapon" data-inspect-id="${id}" tabindex="0" role="img" aria-label="${esc(weaponDisplay(id, l, me.evo[id], weaponStep(id, me.wm)).name)}">${iconHTML('weapon', id, l, me.evo[id], weaponStep(id, me.wm))}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
-  if (pk !== slotCache.p) { slotCache.p = pk; $('prow').innerHTML = Object.entries(me.ps).map(([id, l]) => `<div class="slot" title="${passiveTitle(id, l)}">${iconHTML('passive', id, l)}<small>${l}</small></div>`).join(''); }
+  if (pk !== slotCache.p) { slotCache.p = pk; $('prow').innerHTML = Object.entries(me.ps).map(([id, l]) => `<div class="slot" data-inspect="passive" data-inspect-id="${id}" tabindex="0" role="img" aria-label="${esc(passiveTitle(id, l))}">${iconHTML('passive', id, l)}<small>${l}</small></div>`).join(''); }
   for (const f of view.fx) {
     if (sim.coop && (f.player && f.player !== PLAYER || ['down','revive'].includes(f.k) && f.id !== PLAYER)) continue;
     if (f.k === 'boss') banner(sim && !sim.endless && f.type === sim.map.finalBoss && sim.bossIndex >= sim.map.bosses.length ? `${bossName(sim.map, f.type)} approaches! Slay it to win the run.` : `${bossName(sim && sim.map, f.type)} approaches!`, 3500);
@@ -2304,7 +2327,7 @@ function updateHud(view) {
     else if (f.k === 'use' && f.kind === 'pumpkin') banner('Pumpkin bomb!', 1200);
     else if (f.k === 'use' && f.kind === 'warp') banner('Warp Shard: everything comes to you', 1600);
     else if (f.k === 'revive') banner('Revived!', 1600);
-    else if (f.k === 'get' && f.kind === 'chest') banner('Chest!', 1000);
+    else if (f.k === 'get' && f.kind === 'chest') banner('Gold Bar!', 1000);
     else if (f.k === 'event') banner(f.kind === 'treasure' ? 'A treasure goblin! Catch it before it gets away' : f.kind === 'swarm' ? 'Swarm!' : f.kind === 'warband' ? `A goblin warband charges from the ${f.dir}!` : f.kind === 'rising' ? 'The dead rise around you!' : f.kind === 'rainstorm' ? 'Rainstorm! Distant views and the minimap are clouded' : f.kind === 'snowstorm' ? 'Snowstorm! Distant views and the minimap are clouded' : f.kind === 'blizzard' ? 'Blizzard! The snow slows you down' : f.kind === 'duel' ? 'A champion of the Fighting Forum challenges you!' : f.kind === 'stampede' ? `Chicken stampede from the ${f.dir}!` : f.kind === 'sandstorm' ? 'Sandstorm! Scorpions in the dust' : f.kind === 'ambush' ? 'Ambush! Things are crawling out of the water' : 'Meteor shower! Watch the ground', 2600);
     else if (f.k === 'treasure') banner('Treasure goblin caught!', 1800);
     else if (f.k === 'shrine' && SHRINES[f.kind]) banner(`A ${SHRINES[f.kind].name} rose nearby: stand in its circle to charge it`, 3200);
@@ -2410,10 +2433,14 @@ function showItemInspection(event) {
   const name = document.createElement('b'); name.textContent = card.title; tip.appendChild(name);
   for (const line of card.details) { const text = document.createElement('span'); text.textContent = line; tip.appendChild(text); }
   element.setAttribute('aria-describedby', 'itemtip'); tip.hidden = false;
-  const rect = element.getBoundingClientRect(), box = tip.getBoundingClientRect();
+  tip.style.maxHeight = Math.max(0, innerHeight - 16) + 'px'; tip.style.width = '';
+  if (tip.scrollHeight > tip.clientHeight) tip.style.width = Math.min(380, innerWidth - 16) + 'px';
+  const rect = element.getBoundingClientRect(), box = tip.getBoundingClientRect(), pane = screenLayout.active ? $('dscontrols').getBoundingClientRect().top + 8 : 8;
+  const lower = box.height <= innerHeight - pane - 8 ? pane : 8; // Long Flex descriptions may need both panes.
   tip.style.left = Math.max(8, Math.min(rect.right + 8, innerWidth - box.width - 8)) + 'px';
-  tip.style.top = Math.max(8, Math.min(rect.top, innerHeight - box.height - 8)) + 'px';
+  tip.style.top = Math.max(lower, Math.min(rect.top, innerHeight - box.height - 8)) + 'px';
 }
+bindItemInspection($('loadout'), { show: showItemInspection, hide: hideItemInspection, canInspect: () => !!sim && ['play','pause','levelup','casket'].includes(mode) });
 for (const event of ['pointerover','focusin']) $('loadout').addEventListener(event, showItemInspection);
 for (const event of ['pointerout','focusout']) $('loadout').addEventListener(event, e => { if (inspectedElement && !inspectedElement.contains(e.relatedTarget)) hideItemInspection(); });
 addEventListener('blur', hideItemInspection);

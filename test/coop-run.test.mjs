@@ -9,10 +9,25 @@ function pair(settings={}){
  for(const d of [host,guest]){const s=d.sim;s.spawnAcc=-1e9;s.bossIndex=99;s.eventT=s.shrineT=1e9;}
  host.begin(0);guest.begin(0);
  const deliver=()=>{while(up.length){const message=up.shift();if(message.t==='up')host.accept({hero:1,data:message.data});}while(down.length){const message=down.shift();if(message.t==='down')guest.accept(message.data);}};
- const tick=n=>{for(let i=0;i<n;i++){deliver();host.advance();deliver();}};
+ const tick=n=>{for(let i=0;i<n;i++){deliver();host.advance();deliver();}host.flush();deliver();};
  return{host,guest,down,up,ended,deliver,tick};
 }
 function earn(p){for(const d of [p.host,p.guest]){const s=d.sim,a=s.players[0];s.gems.push({id:s.nextId++,x:a.x,z:a.z,v:s.xpNeed,vx:0,vz:0});}p.tick(2);}
+test('movement and actions reach the guest on their frame while quiet frames stay paired',()=>{
+ const p=pair();p.host.input(1,0);p.host.advance();
+ assert.equal(p.down.length,1,'movement must not wait for another host tick');
+ assert.deepEqual([p.down[0].data.from,p.down[0].data.upTo],[1,1]);p.deliver();
+ assert.equal(p.guest.frame,1);assert.equal(p.host.hash(),p.guest.hash());
+ p.host.advance();assert.equal(p.down.length,0,'one quiet frame stays buffered');
+ p.host.advance();assert.equal(p.down.length,1);assert.deepEqual([p.down[0].data.from,p.down[0].data.upTo],[2,3]);p.deliver();
+ assert(p.guest.action({kind:'use',index:4}));p.deliver();p.host.advance();
+ assert.equal(p.down.length,1,'item use must not wait for another host tick');
+ assert.deepEqual([p.down[0].data.from,p.down[0].data.upTo],[4,4]);p.deliver();
+ assert.equal(p.guest.frame,4);assert(p.guest.sim.players[1].rollCd>0);assert.equal(p.host.hash(),p.guest.hash());
+ p.host.advance();assert.equal(p.down.length,0);p.host.advance();
+ assert.deepEqual([p.down[0].data.from,p.down[0].data.upTo],[5,6]);p.deliver();
+ assert.equal(p.host.hash(),p.guest.hash());assert.deepEqual(p.ended,[]);
+});
 test('two independent runs share quantized movement, uses and render-independent hashes',()=>{
  const p=pair();p.host.input(1,0);p.guest.input(0,1);p.tick(120);assert.equal(p.host.frame,120);assert.equal(p.guest.frame,120);
  assert(p.host.sim.players[0].x>p.host.sim.map.cx+10);assert(p.guest.sim.players[1].z>p.guest.sim.map.cz+10);assert.equal(p.host.hash(),p.guest.hash());
@@ -54,6 +69,10 @@ test('unchanged controller input does not flood the relay on high-refresh displa
 
 test('the drift checksum covers RNG consumption, choices, cooldowns and personal loot',()=>{
  for(const mutate of [s=>s.rng(),s=>s.players[1].cd.staff=1,s=>s.players[1].loot.push('Iron Helmet'),s=>s.pending.p2={choices:[{kind:'heal',level:1}],left:20}]){const p=pair();mutate(p.guest.sim);assert.notEqual(p.host.hash(),p.guest.hash());}
+});
+test('the drift checksum catches food quantity divergence with identical belt strings',()=>{
+ const p=pair();for(const run of[p.host,p.guest]){run.sim.players[1].belt=['cheese'];run.sim.players[1].foodStacks.cheese=1;}
+ assert.equal(p.host.hash(),p.guest.hash());p.guest.sim.players[1].foodStacks.cheese=2;assert.notEqual(p.host.hash(),p.guest.hash());
 });
 test('real ground and flow fields agree independently of rendering',()=>{
  const bytes=readFileSync(new URL('../tools/vercel-api/sims/e2c1419b0907/ground.bin',import.meta.url)),game=start();game.ground=groundHash(unpackGround(bytes));

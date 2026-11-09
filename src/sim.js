@@ -89,7 +89,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}, pace), rerolls: REROLLS_PER_RUN, belt: [],
       casketQ: [], ...(pace >= 2 && !ranked && !coop ? { casketLootIndices: [] } : {}), alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
       wm: {}, // weapon metals from caskets (pace 2): { katana: 0..5, bow: 0..3, arrow: 0..4, ... } (missing = Bronze / plain Bow)
-      ...(pace >= 2 ? { pace, quality: { weapons: {}, passives: {} }, banished: [] } : {}),
+      ...(pace >= 2 ? { pace, foodStacks: {}, quality: { weapons: {}, passives: {} }, banished: [] } : {}),
       ...(coop ? { killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], dmgBy: {} } : {}),
     });
   });
@@ -383,7 +383,7 @@ function killEnemy(sim, e, owner) {
   sim.fx.push({ k: 'die', x: e.x, z: e.z, boss: def.boss ? 1 : 0, elite: e.elite ? 1 : 0, ...(sim.pace >= 2 ? { type: e.type } : {}) });
   if (!def.boss) {
     const r = sim.rng(), drop = (kind) => sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z, kind });
-    if (r < 0.010) drop('beer'); else if (r < 0.016) drop('pumpkin'); else if (r < 0.022) drop('warp'); else if (r < 0.034) drop(foodDrop(sim.t, (r - 0.022) / 0.012, e.elite, sim.pace));
+    if (r < 0.010) drop('beer'); else if (r < 0.016) drop('pumpkin'); else if (r < 0.022) drop('warp'); else if (r < (sim.pace >= 2 ? 0.028 : 0.034)) drop(foodDrop(sim.t, (r - 0.022) / (sim.pace >= 2 ? 0.006 : 0.012), e.elite, sim.pace));
     if (sim.rng() < 0.05 * (p ? playerStats(p).coin : 1)) drop('coin');
     // reward caskets (owner 3 Nov: "caskets drop too often tbh"): every elite dropped one, ~60 in a full run. Pace 2: a
     // rare one from anything and an elite's now and then. Casual pace2 doubles these odds; pace1/ranked stay unchanged.
@@ -399,9 +399,15 @@ function killEnemy(sim, e, owner) {
       const a = sim.rng() * 6.283;
       sim.gems.push({ id: sim.nextId++, x: e.x + dcos(a) * 1.5, z: e.z + dsin(a) * 1.5, v: Math.ceil(def.xp / 8), vx: 0, vz: 0 });
     }
-    sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z, kind: 'bass' }, { id: sim.nextId++, x: e.x + 1.2, z: e.z, kind: 'chest' }, { id: sim.nextId++, x: e.x - 1.2, z: e.z, kind: 'casket' });
+    // Offset rewards must stay on the kill side of walls, with room to walk up to them.
+    const drop = (kind, x, z) => {
+      if (sim.pace >= 2 && !clearPath(sim, e.x, e.z, x, z, true)) { x = e.x; z = e.z; }
+      sim.pickups.push({ id: sim.nextId++, x, z, kind });
+    };
+    sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z, kind: 'bass' });
+    drop('chest', e.x + 1.2, e.z); drop('casket', e.x - 1.2, e.z);
     const luck = p ? playerStats(p).luck - 1 : 0;
-    if (luck > 0 && sim.rng() < luck) sim.pickups.push({ id: sim.nextId++, x: e.x, z: e.z + 1.2, kind: 'chest' });
+    if (luck > 0 && sim.rng() < luck) drop('chest', e.x, e.z + 1.2);
     sim.bossKills++;
     if (e.final && e.type === sim.map.finalBoss && !sim.endless) sim.over = 'win';
   }
@@ -898,10 +904,10 @@ export function regionOf(sim, p) {
   return best || REGIONS[0];
 }
 
-// ---- the belt: beer, pumpkins and warp shards can be saved and used when it counts ------------------------------
+// ---- the belt: food and power-ups can be saved and used when it counts -----------------------------------------
 export const BELT_SIZE = 4;
 const BELT_KINDS = ['beer', 'pumpkin', 'warp'];
-// food in SankoQuest's own tiers (owner 3 Nov: "different tiers of food drops, crawdads lowest"): eaten on pickup.
+// Food uses SankoQuest's own tiers; pace2 stores matching portions in one belt slot, pace1 eats on pickup.
 // Pace 2 splits the lowest drops between Cheese and crawdads; elites still drop one tier up and bosses a bass.
 export const FOOD = { cheese: { heal: 15, item: 'Cheese' }, crawdad: { heal: 15, item: 'Cooked Crawdad' }, trout: { heal: 25, item: 'Cooked Brown Trout' }, catfish: { heal: 35, item: 'Cooked Catfish' }, bass: { heal: 50, item: 'Cooked Bubba Bass' } };
 const FOOD_TIERS = ['crawdad', 'trout', 'catfish', 'bass'];
@@ -920,10 +926,18 @@ function useItem(sim, p, kind) {
   else if (kind === 'warp') { for (const g of sim.gems) g.pulled = true; for (const o of sim.pickups) if (o.kind === 'coin') o.pulled = true; }
   sim.fx.push({ k: 'use', kind, x: p.x, z: p.z, ...(sim.coop ? { player: p.id } : {}) });
 }
+export function beltCount(p, slot) {
+  if (!Number.isInteger(slot) || slot < 0 || slot >= p.belt.length || !p.belt[slot]) return 0;
+  const count = p.foodStacks?.[p.belt[slot]];
+  return FOOD[p.belt[slot]] && Number.isSafeInteger(count) && count > 0 ? count : 1;
+}
 export function useBelt(sim, playerId, slot) {
   const p = sim.players.find((q) => q.id === playerId);
-  if (!p || !p.alive || slot < 0 || slot >= p.belt.length) return false;
-  const kind = p.belt.splice(slot, 1)[0]; useItem(sim, p, kind); return true;
+  if (!p || !p.alive || !beltCount(p, slot)) return false;
+  const kind = p.belt[slot], count = beltCount(p, slot);
+  if (sim.pace >= 2 && FOOD[kind] && count > 1) p.foodStacks[kind] = count - 1;
+  else { p.belt.splice(slot, 1); if (sim.pace >= 2 && FOOD[kind] && p.foodStacks) delete p.foodStacks[kind]; }
+  useItem(sim, p, kind); return true;
 }
 
 // Merchant state and RNG exist only in the solo casual simulation.
@@ -1368,7 +1382,14 @@ export function step(sim, inputs = {}, dt = TICK) {
       if (k.kind === 'chest' && sim.pending[p.id]) continue;
       k.taken = true;
       const st = playerStats(p), beforeHp = p.hp;
-      if (BELT_KINDS.includes(k.kind) && p.belt.length < BELT_SIZE) p.belt.push(k.kind); // kept for later (1-4)
+      if (sim.pace >= 2 && FOOD[k.kind]) {
+        const slot = p.belt.indexOf(k.kind), count = beltCount(p, slot);
+        if (count < Number.MAX_SAFE_INTEGER && (slot >= 0 || p.belt.length < BELT_SIZE)) {
+          if (slot < 0) p.belt.push(k.kind);
+          (p.foodStacks ??= {})[k.kind] = count + 1;
+        } else useItem(sim, p, k.kind);
+      }
+      else if (BELT_KINDS.includes(k.kind) && p.belt.length < BELT_SIZE) p.belt.push(k.kind); // kept for later (1-4)
       else if (BELT_KINDS.includes(k.kind) || FOOD[k.kind]) useItem(sim, p, k.kind);
       else if (k.kind === 'chest') { for (const member of sim.coop ? sim.players.filter(p => p.alive) : [p]) if (!sim.pending[member.id]) sim.pending[member.id] = { choices: rollChoices(sim, member), left: 25 }; }
       else if (k.kind === 'casket') { for (const member of sim.coop ? sim.players.filter(p => p.alive) : [p]) gotCasket(sim, member, rollCasket(sim.rng, sim.casketRank, sim.hard, sim.t, { pace: sim.pace, weapons: member.weapons })); }
@@ -1401,7 +1422,7 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
   return {
     ...(sim.pace >= 2 ? { snowWave: !!sim.snowWave, storm } : {}),
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.pace >= 2 ? storm?.kind || null : sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
-    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),
+    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { beltCounts: p.belt.map((_, i) => beltCount(p, i)), rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),
     hazards: sim.hazards.map((h) => [r1(h.x), r1(h.z), h.r, Math.round((1 - h.t / h.max) * 100) / 100, h.meteor ? 1 : 0]),
     eproj: sim.eproj.map((b) => [b.id, r1(b.x), r1(b.z), b.art]),

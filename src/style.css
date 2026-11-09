@@ -899,3 +899,15 @@ body.touch #equipmenthud, body.ds-layout #equipmenthud { display:none; }
 .merchantoffer button { width:100%; min-width:0; margin:0; overflow-wrap:anywhere; font-size:18px; }
 body.ds-layout #tradebtn { position:fixed; bottom:calc(112px + env(safe-area-inset-bottom,0px)); }
 @media(max-width:600px) { #merchantoffers { grid-template-columns:1fr; } .merchantoffer .ckitem { flex-direction:row; text-align:left; } }
+
+/* Read the current loadout by holding its icon; keep the health readout compact. */
+#loadout [data-inspect] { touch-action:none; user-select:none; -webkit-touch-callout:none; }
+.hpreadout { display:flex; align-items:center; gap:8px; min-width:0; }
+#revivehud { display:inline-flex; align-items:center; gap:3px; color:var(--gold); font:14px RSPlain,sans-serif; white-space:nowrap; }
+#revivehud[hidden] { display:none; }
+#reviveicon, #reviveicon img { display:block; width:16px; height:16px; object-fit:contain; }
+@media(max-width:560px) { #revivelabel { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); } }
+.coopchoice { margin:4px 0; }
+.coopchoice[hidden] { display:none; }
+
+.beltcount { position:absolute; top:0; right:2px; font:16px RSPlain,sans-serif; color:var(--gold); text-shadow:1px 1px #000; pointer-events:none; }

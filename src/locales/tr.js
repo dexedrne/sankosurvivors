@@ -1,5 +1,21 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Food stacks in matching belt slots. Tap a slot or use 1–4 to eat one. If every slot is full, food without an existing stack is eaten immediately.": "Yiyecekler aynı türden kemer yuvalarında birikir. Bir tane yemek için yuvaya dokunun veya 1–4 tuşlarını kullanın. Her yuva doluysa mevcut yığını olmayan yiyecek hemen yenir.",
+  "Food can be saved and stacked in the belt. Ordinary food drops are half as frequent; boss food rewards stay.": "Yiyecekler kemerde saklanıp biriktirilebilir. Normal yiyecekler yarı sıklıkta düşer; boss yiyecek ödülleri aynı kalır.",
+  "Enable Keep playing when unfocused in Settings to keep a visible run active while using another window.": "Başka bir pencereyi kullanırken görünür oyunun devam etmesi için Ayarlar’da Odak dışındayken oynamaya devam et seçeneğini açın.",
+
+  "Keep playing when unfocused (this device)": "Odak dışındayken oynamaya devam et (bu cihaz)",
+  "Visible game windows can keep running while you use another window. Hidden tabs still pause.": "Görünür oyun pencereleri başka bir pencereyi kullanırken çalışmaya devam edebilir. Gizli sekmeler yine duraklatılır.",
+
+  "Touch, revives and safer rewards": "Dokunma, canlanma ve güvenli ödüller",
+  "Hold a weapon, passive or worn equipment icon to inspect it on touch screens. Passives show their level, rarity-adjusted strength and evolution links.": "Dokunmatik ekranda bir silah, pasif veya kuşanılmış eşya simgesini basılı tutarak inceleyin. Pasifler seviyelerini, nadirliğe göre güçlerini ve evrim bağlantılarını gösterir.",
+  "Your remaining revive is visible beside health until it is used.": "Kalan canlanma hakkınız kullanılana kadar sağlığın yanında görünür.",
+  "Co-op shows the shared automatic-choice countdown and sends movement and choice events without waiting for the next batch.": "Eşli oyun ortak otomatik seçim sayacını gösterir ve hareket ile seçim olaylarını sonraki paketi beklemeden gönderir.",
+  "Boss Gold Bars and reward caskets stay on the reachable side of solid walls.": "Boss Altın Külçeleri ve ödül sandıkları sağlam duvarların erişilebilir tarafında kalır.",
+  "Gold Bars grant an upgrade choice without raising your XP level. Bosses drop them, Luck may add an extra, and Fortune shrines can award one. Reward caskets roll gear instead.": "Altın Külçeleri XP seviyenizi artırmadan bir yükseltme seçimi verir. Bosslardan düşer, Şans ek bir tane verebilir ve Talih sunakları da verebilir. Ödül sandıkları ise ekipman verir.",
+  "Wandering merchants in solo casual sell gear for GP earned during that run. Buying reduces the final GP reward; shopping pauses the fight.": "Tek kişilik gündelik oyundaki gezgin tüccarlar, o turda kazanılan GP ile ekipman satar. Alışveriş son GP ödülünü azaltır ve savaşı duraklatır.",
+  "Gold Bar!": "Altın Külçesi!",
+
   "Spells": "Büyüler",
   "Void Spells": "Hiçlik Büyüleri",
   "Void Spells!": "Hiçlik Büyüleri!",
@@ -1527,6 +1543,16 @@ export const text = {
 };
 
 export const patterns = [
+  ["Restores {1} health, boosted by healing bonuses.", "İyileştirme bonuslarıyla artan {1} sağlık yeniler."],
+  ["{1} ×{2}", "{1} ×{2}"],
+
+  ["Evolves with {1} or {2}.", "{1} veya {2} ile evrimleşir."],
+  ["Evolves with {1}.", "{1} ile evrimleşir."],
+
+  ["Effective level: {1}", "Etkin seviye: {1}"],
+  ["Evolves {1}.", "{1} evrimine katkı sağlar."],
+  ["Automatic choice in {1}s", "Otomatik seçime {1}sn"],
+
   ["Void Spells +{1}", "Hiçlik Büyüleri +{1}"],
   ["Spells +{1}", "Büyüler +{1}"],
   ["1st: {1} DMT + participation", "1.: {1} DMT + katılım"],

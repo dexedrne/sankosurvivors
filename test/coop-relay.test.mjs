@@ -115,7 +115,7 @@ test('two actual socket clients keep shared simulations equal through choices an
  const f=await fixture(t),p=await party(f),game=await start(p,'0'),ended=[];let guestSocket=p.guest;
  const host=createCoopRun({start:game,localId:'p1',ground:null,send:m=>p.host.send(m),onEnd:r=>ended.push(r)}),guest=createCoopRun({start:game,localId:'p2',ground:null,send:m=>guestSocket.send(m),onEnd:r=>ended.push(r)});
  host.begin(0);guest.begin(0);const initial=host.sim.players.map(p=>({x:p.x,z:p.z}));host.input(1,0);guest.input(0,1);host.accept(await p.host.next('up'));
- const batch=async()=>{host.advance();host.advance();guest.accept((await guestSocket.next('down')).data);assert.equal(host.hash(),guest.hash());};
+ const batch=async()=>{host.advance();host.advance();host.flush();while(guest.frame<host.frame)guest.accept((await guestSocket.next('down')).data);assert.equal(host.hash(),guest.hash());};
  for(let i=0;i<30;i++)await batch();assert.equal(guest.frame,60);assert(host.sim.players[0].x-initial[0].x>5);assert(guest.sim.players[1].z-initial[1].z>5);
  for(const d of [host,guest]){const s=d.sim,a=s.players[0];s.gems.push({id:s.nextId++,x:a.x,z:a.z,v:s.xpNeed,vx:0,vz:0});}
  await batch();assert(host.sim.pending.p1&&host.sim.pending.p2);
