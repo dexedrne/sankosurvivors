@@ -1,6 +1,6 @@
 SANKO RACERS — SANKOSURVIVORS FUN INTEGRATION
 
-Accepted original Racers source: a0d5d6a850ed697f5edf25168ac22e505a48c4b4 (countryside and invisible-boundary repair).
+Accepted original Racers source: abaff5e3539a3d03410efe5467ae7aee3c74cb5c (accepted driving build).
 The existing fan game's owner requested this packaged Fun route on 9 November 2026. That scope does not establish a new licence grant, endorsement, or authorization for unrelated standalone publication.
 
 Native SankoQuest assets and adapted terrain/character code retain their separate ownership and notices in CREDITS.txt. The exact accepted roadster is separately attributed to Speedy-Works under CC BY 4.0, with the Shitbox modifications described in CREDITS.txt; only its URL/location changed. No additional Shitbox game code was imported. LICENSE.shitbox is retained in full, separately from the car licence. Three.js and Draco notices are retained in full. Vite is build tooling, not shipped runtime code.

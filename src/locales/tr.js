@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A clearer view in Racers": "Racers için daha net görüş",
+  "The Racers chase camera moves closer when native walls or roofs block the car, then eases back when the view clears.": "Racers kamerası, duvarlar veya çatılar arabayı kapattığında yaklaşır; görüş açıldığında yumuşakça geri çekilir.",
+  "Camera checks use nearby native geometry. Driving, the countryside map and the original race loop stay the same.": "Kamera yakındaki özgün geometriyi kontrol eder. Sürüş, kırsal harita ve özgün yarış parkuru aynı kalır.",
   "More countryside for Racers": "Racers için daha geniş kırsal alan",
   "Sanko Racers opens the countryside around Greentown, with nearly three times the driving area. Survivors starts south of town.": "Sanko Racers, Greentown çevresindeki kırsal alanı açıyor; sürüş alanı neredeyse üç katına çıktı. Survivors kasabanın güneyinde başlıyor.",
   "The old invisible map boundaries are removed. The minimap and a ground outline show the expanded driving area; solid walls still stop the car.": "Eski görünmez harita sınırları kaldırıldı. Mini harita ve yerdeki çizgi genişleyen sürüş alanını gösteriyor; sağlam duvarlar arabayı durdurmaya devam ediyor.",

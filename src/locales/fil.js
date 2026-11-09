@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "A clearer view in Racers": "Mas malinaw na tanaw sa Racers",
+  "The Racers chase camera moves closer when native walls or roofs block the car, then eases back when the view clears.": "Lumalapit ang camera ng Racers kapag natatakpan ng mga pader o bubong ang kotse, at dahan-dahang bumabalik kapag malinaw na ang tanaw.",
+  "Camera checks use nearby native geometry. Driving, the countryside map and the original race loop stay the same.": "Ginagamit ng camera ang kalapit na orihinal na geometry. Walang pagbabago sa pagmamaneho, kanayunan at orihinal na karera.",
   "More countryside for Racers": "Mas malawak na lugar para sa Racers",
   "Sanko Racers opens the countryside around Greentown, with nearly three times the driving area. Survivors starts south of town.": "Bukas na ang kanayunan sa paligid ng Greentown sa Sanko Racers, na may halos tatlong beses na lugar para magmaneho. Nagsisimula ang Survivors sa timog ng bayan.",
   "The old invisible map boundaries are removed. The minimap and a ground outline show the expanded driving area; solid walls still stop the car.": "Wala na ang dating hindi nakikitang hangganan. Ipinapakita ng minimap at guhit sa lupa ang mas malawak na lugar; hinaharangan pa rin ng matitibay na pader ang kotse.",

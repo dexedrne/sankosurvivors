@@ -27,7 +27,7 @@ test('packaging refuses changed bytes, traversal and symlinks at its input bound
 
 test('every packaged and shared route dependency matches its recorded bytes', () => {
  const m=manifest();
- assert.equal(m.source.commit,'a0d5d6a850ed697f5edf25168ac22e505a48c4b4');
+ assert.equal(m.source.commit,'abaff5e3539a3d03410efe5467ae7aee3c74cb5c');
  assert.equal(m.shared.length,193);
  for(const item of [...m.files,...m.shared]) {
   assert.match(item.path,/^\/(?:fun\/racers|assets|draco)\//);
@@ -65,7 +65,7 @@ test('adapted client reverses exactly to the accepted source artifact', () => {
   assert.equal(js.split(after).length-1,count,after);
   js=js.split(after).join(before);
  }
- assert.equal(hash(js),'752dc557683e4e6cdfb8b6bef4de9a15d017aed3c5376647f0333cfebbea2ae2');
+ assert.equal(hash(js),'ad095a51e03811f9f270933c6056774db27680be63481396a0ddefccaaa11b32');
  const credits=read('public/fun/racers/CREDITS.txt').toString();
  assert.match(credits,/Speedy-Works/);
  assert.match(credits,/creativecommons.org\/licenses\/by\/4.0/);

@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A clearer view in Racers": "Una vista más clara en Racers",
+  "The Racers chase camera moves closer when native walls or roofs block the car, then eases back when the view clears.": "La cámara de Racers se acerca cuando las paredes o los tejados tapan el coche y vuelve suavemente cuando la vista queda libre.",
+  "Camera checks use nearby native geometry. Driving, the countryside map and the original race loop stay the same.": "La cámara comprueba la geometría original cercana. La conducción, el campo y el circuito original siguen igual.",
   "More countryside for Racers": "Más campo para Racers",
   "Sanko Racers opens the countryside around Greentown, with nearly three times the driving area. Survivors starts south of town.": "Sanko Racers abre el campo alrededor de Greentown, con casi tres veces más espacio para conducir. Survivors empieza al sur del pueblo.",
   "The old invisible map boundaries are removed. The minimap and a ground outline show the expanded driving area; solid walls still stop the car.": "Se eliminan los antiguos límites invisibles. El minimapa y una línea en el suelo muestran la nueva zona; las paredes sólidas siguen deteniendo el coche.",
