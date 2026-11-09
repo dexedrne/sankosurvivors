@@ -120,3 +120,22 @@ test('the API, other origins, POSTs and range requests are never handled', async
   }
   assert.equal(w.fetched.length, 0);
 });
+
+
+test('Racers navigation caches its own document without overwriting the main game', async () => {
+ for(const path of ['/fun/racers/','/fun/racers/index.html']){
+  const w=worker({network:{[path]:()=>response('driving page',{type:'text/html'})}});
+  w.seed(CACHE,'/',response('main game',{type:'text/html'}));
+  assert.equal((await w.fetchEvent(request(path,{mode:'navigate'}))).res.body,'driving page');
+  assert.equal(w.stores.get(CACHE).get(ORIGIN+'/').body,'main game');
+  assert.equal(w.stores.get(CACHE).get(ORIGIN+'/fun/racers/').body,'driving page');
+ }
+});
+test('offline Racers uses its own cached page and never the main-game fallback', async () => {
+ for(const cached of [false,true]){
+  const w=worker({offline:true});w.seed(CACHE,'/',response('main game',{type:'text/html'}));
+  if(cached)w.seed(CACHE,'/fun/racers/',response('driving page',{type:'text/html'}));
+  const {res}=await w.fetchEvent(request('/fun/racers/?mode=survivors',{mode:'navigate'}));
+  assert.equal(res?.body,cached?'driving page':undefined);
+ }
+});

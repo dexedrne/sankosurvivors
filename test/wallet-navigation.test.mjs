@@ -50,7 +50,7 @@ function menu(mode = 'title') {
     if (parent) { parent.children.push(el); classes.delete('hidden'); }
     elements.set(id, el); return el;
   }
-  for (const id of ['coop', 'cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'upgrades', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'merchant', 'pause', 'end', 'title']) element(id);
+  for (const id of ['modemenu', 'coop', 'cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'upgrades', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'merchant', 'pause', 'end', 'title']) element(id);
   for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('settingssummary',elements.get('settings'),'summary');
@@ -67,7 +67,7 @@ function menu(mode = 'title') {
   const $ = id => { assert.ok(elements.has(id), `unknown DOM id ${id}`); return elements.get(id); };
   $(mode).classList.remove('hidden');
   const app = Function('$', 'addEventListener', 'document', 'initialMode', 'onWallet', 'walletRevision', `
-    let mode=initialMode, started=0, connected=0, mobileModal=false;
+    let mode=initialMode, started=0, connected=0, mobileModal=false, petViewer=null, petViewDrag=null;
     const walletModalOpen=()=>mobileModal;
     const keys=new Set(), startRun=()=>{started++;}, pause=on=>{mode=on?'pause':'play';};
     $('start').onclick=startRun; $('again').onclick=startRun;

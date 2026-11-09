@@ -22,6 +22,7 @@ import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, weaponLook, 
 import { createCharacterKit, armorSet, cloneActor, ownActorResource, disposeActor } from './character.js';
 import { NATIVE_PETS, petChoice } from './pets.js';
 import { createPetRenderer } from './pet-renderer.js';
+import { createPetPreview } from './pet-preview.js';
 import { createBunModels } from './bun-models.js';
 import { terrainFromTiles, WATER_Y } from './terrain.js';
 
@@ -1187,9 +1188,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const dyn = new THREE.Group(); dyn.name = 'dyn'; scene.add(dyn);
   const meleeFx = createMeleeVfx({ group: dyn, camera, groundAt, colorOut, fxOnly });
   const bunModels = createBunModels(loadGLB, A);
-  const petRenderer = createPetRenderer({
+  const petModels = {
     choice: id => petChoice(id) || bunModels.choice(id),
-    group: dyn, groundAt,
     async load(id) {
       if (bunModels.choice(id)) return bunModels.load(id);
       const pet = NATIVE_PETS[id], proto = await prepare(A(pet.model), pet.height, pet.walk);
@@ -1211,7 +1211,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       };
       return actor;
     },
-  });
+  };
+  const petRenderer = createPetRenderer({ ...petModels, group: dyn, groundAt });
 
   const fallbackGeo = new THREE.CapsuleGeometry(0.4, 0.8, 4, 8);
   const fallbackMat = new THREE.MeshLambertMaterial({ color: 0xcc5544 });
@@ -2158,7 +2159,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     cam.x = curMap.cx; cam.z = curMap.cz;
   }
   return { hop: () => { hopReq = true; }, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v, previewY = null) { cam.shift = v; cam.previewY = previewY; if (previewY == null) camera.clearViewOffset(); }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
-    preloadGear, setPet: petRenderer.set, petState: petRenderer.state,
+    preloadGear, setPet: petRenderer.set, petState: petRenderer.state, createPetPreview: canvas => createPetPreview({ canvas, ...petModels }),
     // QA hooks
     setAura(on) { dmtAura = !!on; },
     applySettings, getSettings: () => ({ ...settings }), qaGrade: () => ({ en: grade.enabled, rts: grade.renderToScreen, passes: composer.passes.map((p) => p.constructor.name + (p.enabled ? "" : "(off)")), low: grade.uniforms.uLow.value }),

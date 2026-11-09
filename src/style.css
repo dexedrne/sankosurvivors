@@ -923,3 +923,56 @@ body.ds-layout #tradebtn { position:fixed; bottom:calc(112px + env(safe-area-ins
 
 #lbbtn { font-size: clamp(16px, 2vw, 22px); white-space: nowrap; }
 @media (pointer: coarse) { #runvariant button { min-height: 44px; } }
+
+/* Mode families keep experiments and boss challenges out of the map grid. */
+#modebtn { display:flex; width:100%; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; text-align:left; min-height:60px; }
+#modebtn > span:first-child { display:grid; gap:4px; min-width:0; }
+#modebtn small { font-size:14px; color:var(--gold); } #modename { font-size:22px; font-weight:400; }
+.modechange { font-size:16px; white-space:nowrap; }
+#funfeature { display:flex; gap:8px; align-items:center; background:#1d3923; padding:8px; margin:8px 0; border:1px solid #58713c; text-align:left; }
+#funfeature img { width:48px; height:48px; object-fit:contain; image-rendering:pixelated; }
+#funfeature b { display:block; font-size:20px; font-weight:400; } #funfeature small { display:block; font-size:14px; color:var(--gold); } #funfeature .featurebeer { width:30px; margin-left:auto; }
+#modemenu .modepanel { width:min(900px,96vw); max-width:96vw; padding:14px 18px; display:flex; flex-direction:column; overflow:hidden; }
+.modehead h2 { margin:0 0 4px; font-size:36px; } .modehead p { margin:0 0 10px; font-size:16px; }
+#modecategories { display:grid; grid-template-columns:1fr 1.3fr 1fr; gap:6px; margin:0 0 12px; }
+#modecategories button { overflow-wrap:anywhere; min-height:44px; min-width:0; margin:0; font-size:20px; padding:6px; }
+.modecards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; overflow:auto; min-height:0; overscroll-behavior:contain; padding:3px; text-align:left; }
+#runvariant { display:contents; }
+#modemenu .modecard { display:flex; flex-direction:column; padding:0; margin:0; min-width:0; text-align:left; font-weight:400; overflow:hidden; color:var(--cream); text-decoration:none; border:5px solid transparent; border-image:url(../assets/ui/sq/grey_slot.png) 8 stretch; background:#2b2419; text-shadow:1px 1px #000; white-space:normal; cursor:pointer; }
+#modemenu .modecard.on { border-image-source:url(../assets/ui/sq/yellow_slot.png); }
+#modemenu .modecard:hover, #modemenu .modecard:focus-visible { outline:2px solid var(--gold); outline-offset:1px; }
+.modecard-art { display:flex; height:112px; flex:none; justify-content:center; align-items:center; position:relative; border-bottom:1px solid #73603c; }
+.modecard-art > img { width:86px; height:86px; object-fit:contain; image-rendering:pixelated; }
+.adventure-art { background:#344d29; } .boss-art { background:#453239; } .raid-art { background:#4a3a20; } .slimer-art { background:#284b2b; }
+.slimer-art > img:first-child { width:104px; height:104px; } .modecard-art .eventbeer { position:absolute; width:44px; height:44px; right:22px; bottom:6px; transform:rotate(14deg); }
+.racers-art > img { width:100%; height:100%; object-fit:cover; object-position:50% 59%; image-rendering:auto; }
+.modecard-body { display:flex; flex-direction:column; gap:9px; padding:12px 14px; flex:1; }
+.modecard-title { font-family:RSQuill8,sans-serif; font-size:28px; font-weight:400; line-height:1.1; color:var(--gold); }
+.modecard-copy { display:block; font-size:17px; line-height:1.25; }
+.modebadges { display:flex; gap:6px; flex-wrap:wrap; margin-top:auto; }
+.modebadges > span { font-size:14px; border:1px solid #77603e; padding:3px 6px; background:#1e1b13; }
+.modecard-action { display:block; padding-top:8px; border-top:1px solid #655337; color:#b9db8a; font-size:18px; }
+#modemenustatus { font-size:16px; margin:6px 0; } #modemenustatus:empty { display:none; }
+#modemenuclose { min-height:44px; margin:10px 0 0; flex-shrink:0; }
+@media (max-width:560px) { #modemenu .modepanel { padding:10px; } .modecards { grid-template-columns:1fr; } .modecard-art { height:92px; } .modecard-body { gap:7px; padding:10px; } #modecategories button { font-size:17px; } .modehead h2 { font-size:30px; } }
+@media (min-width:561px) and (max-height:600px) { .modecard-art { height:76px; } .modecard-body { gap:6px; padding:8px 12px; } .modecard-title { font-size:25px; } .modecard-copy { font-size:16px; } .modehead p { margin-bottom:6px; } }
+.modecards:has([data-category="normal"]:not(.hidden)) { grid-template-columns:1fr; }
+#pets .petpanel { width:min(900px,96vw); max-width:96vw; padding:14px 18px; display:flex; flex-direction:column; overflow:hidden; }
+#petstitle { margin:0 0 4px; } .petintro { font-size:16px; margin:0 0 12px; }
+.petlayout { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:18px; min-height:0; text-align:left; }
+.petshowcase { min-width:0; } .petshowcase h3, .petchoices h3 { color:var(--gold); font-size:22px; font-weight:400; margin:0 0 8px; }
+.petstage { height:clamp(180px,34dvh,310px); position:relative; border:2px solid #6e6640; background:#1c3024; overflow:hidden; }
+#petpreview { display:block; width:100%; height:100%; touch-action:none; cursor:grab; } #petpreview:active { cursor:grabbing; }
+#petpreviewempty { position:absolute; left:10px; right:10px; top:45%; text-align:center; pointer-events:none; font-size:20px; color:var(--cream); }
+.petrotate { display:grid; grid-template-columns:48px minmax(0,1fr) 48px; gap:6px; margin-top:8px; }
+.petrotate button { min-width:44px; min-height:44px; font-size:18px; margin:0; padding:4px; }
+#petpreviewhint { font-size:14px; text-align:center; margin:6px 0 0; }
+.petchoices { min-width:0; overflow:auto; overscroll-behavior:contain; padding:0 3px 3px; }
+#petlist { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+#petlist button { display:flex; flex-direction:column; justify-content:center; gap:6px; min-height:78px; min-width:0; padding:8px 6px; margin:0; text-align:center; }
+.pet-choice-name { font-size:20px; overflow-wrap:anywhere; } #petlist button small { color:var(--gold); font-size:14px; }
+#petlist button[aria-pressed="true"] { border-image-source:url(../assets/ui/sq/yellow_slot.png); }
+#petbuns { margin-top:10px; padding-top:8px; border-top:1px solid #6b5837; } #petbuns p { font-size:15px; margin:0 0 6px; } #petbunrefresh { font-size:16px; min-height:44px; width:100%; margin:0; }
+#petstatus { font-size:15px; margin:10px 0 6px; } #petsclose { min-height:44px; flex-shrink:0; margin:4px 0 0; }
+@media (max-width:560px) { #pets .petpanel { padding:10px; overflow:auto; } .petlayout { grid-template-columns:1fr; gap:12px; flex-shrink:0; } .petstage { height:210px; } .petchoices { overflow:visible; } .petshowcase h3, .petchoices h3 { font-size:20px; } #petlist button { min-height:64px; } }
+@media (min-width:561px) and (max-height:600px) { .petstage { height:180px; } #pets .petpanel { padding:10px 14px; } .petintro { margin-bottom:7px; } }

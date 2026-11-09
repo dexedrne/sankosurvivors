@@ -15,7 +15,7 @@ const cloudBlock=main.slice(main.indexOf('let cloudConnecting ='),main.indexOf('
 const pull=main.slice(main.indexOf('const cloudPull ='),main.indexOf("document.addEventListener('visibilitychange'",main.indexOf('const cloudPull =')));
 const preferenceHelpers=main.slice(main.indexOf('function applySavedGraphics('),main.indexOf('async function boot()'));
 const bootSource=main.slice(main.indexOf('async function boot('),main.indexOf('// ---- gear ---'));
-const petInitSource=main.slice(main.indexOf('async function applyPetChoice()'),main.indexOf("$('petsbtn').onclick"));
+const petInitSource=main.slice(main.indexOf('function syncPetPreview()'),main.indexOf("$('petsbtn').onclick"));
 const currentPetSource=main.slice(main.indexOf('function currentPetChoice()'),main.indexOf('function buildPets()'));
 const afterBoot=main.slice(main.indexOf('boot().then('),main.indexOf('// QA hooks'));
 const choices=main.slice(main.indexOf('function savedChoice('),main.indexOf('let selMap ='));
@@ -75,7 +75,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     const ADVENTURER_BY_ID={adventurer:{id:'adventurer',weapon:'Sword'},wizard:{id:'wizard',weapon:'Staff'},alex:{id:'alex',weapon:'Sword'}},mapRequests=[];
     const load=(key,fallback)=>{try{return profileValue(key,JSON.parse(localStorage.getItem(key)||'null')??fallback,fallback);}catch{return fallback;}},save=(key,value)=>localStorage.setItem(key,JSON.stringify(value)),clearedMaps=()=>new Set(load('sq-cleared',[])),unlockedMap=()=>true,asset=()=>'',bossName=()=> 'Dragon',weaponTitle=()=> 'Sword';
     let hardOn=false,endlessOn=false;const rankedWeek={map:'greentown'},rankedLive=()=>storedLive,rankedPlaying=()=>!!rankedRun&&!!sim&&!sim.over;
-    let selectedPet=null,petRequest=0;const petRequests=[];
+    let selectedPet=null,petRequest=0,petViewer=null;const petRequests=[];
     let rendererDefaults=null;let renderer={setPet:async id=>{petRequests.push(id);},getSettings:()=>({}),applySettings(next){if(failSettings&&Object.hasOwn(next,'res'))throw Error('fixture display failure');},async loadMap(map){mapRequests.push(map.id);await mapStage();if(failMap)throw Error('fixture map failure');},async preloadGear(){await gearStage();if(failStart)throw Error('fixture gear failure');},reset(){},setZoom(){},setShift(){},setYaw(){},setAura(){}};
     const bunCompanions=createBunCompanions({walletNow,walletRevision,onChange:applyPetChoice,load:async(address,{identity})=>({status:'ready',address,identity,block:{number:'0x123',hash:'0x'+'a'.repeat(64)},pets:[]})});
     ${currentPetSource}

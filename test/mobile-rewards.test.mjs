@@ -26,7 +26,7 @@ function setup({phone=true,held=false,ranked=false,natural=null,shown=!natural,c
     const PLAYER='p1',isTouchUI=phone,stickEl=$('stick'),keys=new Set(),rankedRec=${ranked?'new RunRecorder()':'null'};
     ${section('function readInput() {','function padEdges(')}
     ${section('const hop =','let padPrev')}
-    ${section("addEventListener('blur'",'function pause(on)')}
+    ${section("addEventListener('blur', () => { keys.clear();",'function pause(on)')}
     ${section('function pause(on)',"$('start').onclick")}
     ${section('function clearTouch() {',"addEventListener('pointerdown'")}
     ${section('function resumeAfterReward() {','function showLevelUp() {')}

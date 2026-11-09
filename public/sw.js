@@ -15,10 +15,12 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
   if (req.mode === 'navigate') {
+    const racers = url.pathname === '/fun/racers/' || url.pathname === '/fun/racers/index.html';
+    const page = racers ? '/fun/racers/' : '/';
     e.respondWith(fetch(req).then((res) => {
-      if (res.ok && (url.pathname === '/' || url.pathname === '/index.html') && /^text\/html/.test(res.headers.get('content-type') || '')) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('/', copy)); }
+      if (res.ok && (racers || url.pathname === '/' || url.pathname === '/index.html') && /^text\/html/.test(res.headers.get('content-type') || '')) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(page, copy)); }
       return res;
-    }).catch(() => caches.match('/')));
+    }).catch(() => caches.match(page)));
     return;
   }
   if (req.headers.has('range')) return; // music streams

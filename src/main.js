@@ -208,20 +208,62 @@ const MODE_INFO = {
   raid: 'Survive 25 minutes. Boss waves grow to three living bosses. Earn GP and gear; campaign progress and normal leaderboards stay separate.',
   fun: 'Slimer invasion in the underground factory. Endless survival with native Slimers and Mutant Slimers. Earn GP and gear; campaign progress and normal leaderboards stay separate.',
 };
+const MODE_GROUPS = {
+  normal: { name:'Adventure', blurb:'Choose a map and make your build.' },
+  challenge: { name:'Boss & Raid', blurb:'Learn a boss, or survive its reinforcements.' },
+  fun: { name:'Fun', blurb:'Silly ideas. Different ways to survive.' },
+};
+function showModeCategory(category) {
+  if (!Object.hasOwn(MODE_GROUPS, category)) return;
+  $('modemenutitle').textContent = MODE_GROUPS[category].name;
+  $('modemenublurb').textContent = MODE_GROUPS[category].blurb;
+  for (const button of $('modecategories').children) { const on = button.dataset.category === category; button.setAttribute('aria-pressed', String(on)); button.classList.toggle('on', on); }
+  for (const button of $('runvariant').children) button.classList.toggle('hidden', button.dataset.category !== category);
+  $('racersplay')?.classList.toggle('hidden', category !== 'fun');
+}
+function openModeMenu(category) {
+  if (mode !== 'title' || !canManuallyReload() || !progressCanLoad() || coop) return;
+  showModeCategory(category || (selVariant === 'normal' ? 'normal' : selVariant === 'fun' ? 'fun' : 'challenge'));
+  updateModePicker(); $('modemenustatus').textContent = '';
+  $('modemenu').classList.remove('hidden');
+  navFocus([...$('runvariant').children].find(b => !b.classList.contains('hidden') && b.dataset.variant === selVariant) || $('modecategories').querySelector('[aria-pressed="true"]'));
+}
+function closeModeMenu() {
+  $('modemenu').classList.add('hidden'); navFocus($('modebtn'));
+}
+async function chooseRunMode(value) {
+  if (mode !== 'title' || mapLoading || runStarting || coop || !Object.hasOwn(VARIANTS, value)) return;
+  $('modemenustatus').textContent = 'Preparing your mode…';
+  await selectVariant(value);
+  if (loadedMapId === selMap && selVariant === value) closeModeMenu();
+  else $('modemenustatus').textContent = 'Could not load the world. Try the mode again.';
+}
+function enterRacers(event) {
+  event.preventDefault();
+  if (mode !== 'title' || !canManuallyReload() || !progressCanLoad() || coop) { banner('Finish the current action before opening another game.', 3500); return; }
+  cancelPendingLoads(); location.assign('./fun/racers/?mode=survivors');
+}
 function updateModePicker() {
   const special = selVariant !== 'normal', fixed = selVariant === 'boss' || selVariant === 'fun';
   for (const button of $('runvariant').children) { const on = button.dataset.variant === selVariant; button.setAttribute('aria-pressed', String(on)); button.classList.toggle('on', on); button.disabled = mapLoading || runStarting || !!coop; }
   $('trialpick').classList.toggle('hidden', selVariant !== 'boss');
   $('trialboss').disabled = mapLoading || runStarting || !!coop;
   $('mpick').classList.toggle('hidden', fixed);
+  $('mappick').classList.toggle('hidden', fixed);
   $('mapinfo').classList.toggle('hidden', special);
   $('modes').classList.toggle('hidden', special); $('best').classList.toggle('hidden', special);
   $('apick').classList.toggle('hidden', selVariant === 'boss');
   $('variantinfo').textContent = special ? MODE_INFO[selVariant] : '';
+  const names = { normal:'Adventure', boss:'Boss Trials', raid:'Survival Raid', fun:'Slimer Invasion' };
+  $('modename').textContent = names[selVariant];
+  $('modecaption').textContent = special ? selVariant === 'fun' ? 'Fun' : 'Boss & Raid' : 'Game mode';
+  $('modebtn').disabled = mapLoading || runStarting || !!coop;
+  $('funfeature').classList.toggle('hidden', selVariant !== 'fun');
+  $('start').textContent = { normal:'Enter the field', boss:'Challenge the boss', raid:'Enter the raid', fun:'Start the invasion' }[selVariant];
   if (selVariant === 'boss') { $('adventurerlabel').textContent = ADVENTURER_BY_ID[BOSS_KIT.adv].name; $('ainfo').textContent = BOSS_KIT.label; }
 }
 async function selectVariant(value) {
-  if (!Object.hasOwn(VARIANTS, value) || mapLoading || runStarting || coop) return;
+  if (mode !== 'title' || !Object.hasOwn(VARIANTS, value) || mapLoading || runStarting || coop) return;
   if (selVariant === 'normal' || selVariant === 'raid') fieldMap = selMap;
   selVariant = value; hardOn = endlessOn = false; $('hard').checked = $('endless').checked = false;
   const map = value === 'fun' ? 'oasis' : value === 'boss' ? 'greentown' : fieldMap;
@@ -230,7 +272,12 @@ async function selectVariant(value) {
   catch { banner('Could not load the world. Try the mode again.', 3500); }
   finally { $('start').disabled = loadedMapId !== selMap; buildAdventurers(); updateModePicker(); window.__idleSim = null; }
 }
-for (const button of $('runvariant').children) button.onclick = () => selectVariant(button.dataset.variant);
+for (const button of $('runvariant').children) button.onclick = () => chooseRunMode(button.dataset.variant);
+$('modebtn').onclick = () => openModeMenu();
+for (const button of $('modecategories').children) button.onclick = () => showModeCategory(button.dataset.category);
+$('modemenuclose').onclick = closeModeMenu;
+$('modemenu').addEventListener('click', event => { if (event.target.id === 'modemenu') closeModeMenu(); });
+$('racersplay').onclick = enterRacers;
 $('trialboss').innerHTML = TRIAL_BOSSES.map(id => `<option value="${id}">${ENEMIES[id].name}</option>`).join('');
 $('trialboss').onchange = e => { if (TRIAL_BOSSES.includes(e.target.value)) trialBoss = e.target.value; };
 $('hard').onchange = (e) => { hardOn = e.target.checked; showBest(); };
@@ -747,6 +794,7 @@ $('gearbtn').onclick = () => { buildGear(); $('gear').classList.remove('hidden')
 // ---- cosmetic companions (device preference, outside progress/cloud/transfer) ----
 const petPreference = value => petChoice(value) || bunChoice(value);
 let selectedPet = petPreference(load('sq-pet', null)), petRemembered = true, petRequest = 0;
+let petViewer = null, petViewDrag = null, petPreviewFailed = false;
 // BUN authority stays in memory; a stored token ID is only a preference.
 const bunCompanions = createBunCompanions({ walletNow, walletRevision, onChange: applyPetChoice });
 document.addEventListener('visibilitychange', () => { if (document.hidden) bunCompanions.clear(); else bunCompanions.refresh(); });
@@ -760,7 +808,7 @@ function buildPets() {
   $('petbunstatus').textContent = !walletNow() ? 'Connect a wallet from the main menu to check your BUN companions.' : ownership.status === 'loading' ? 'Checking BUN ownership…' : ownership.status !== 'ready' ? 'Could not verify BUN ownership. Ordinary companions are still available.' : ownership.pets.some(pet => pet.eligible) ? 'BUN ownership verified. Companions are cosmetic.' : 'No usable BUN companions found. Eggs must be hatched; unsupported appearances cannot be equipped.';
   $('petbunrefresh').disabled = !walletNow() || ownership.status === 'loading';
   // End BUN picker.
-  $('petlist').innerHTML = choices.map(([id, name]) => `<button class="ghost" data-pet="${id || ''}" aria-pressed="${selectedPet === id}">${name}</button>`).join('');
+  $('petlist').innerHTML = choices.map(([id, name]) => `<button class="ghost" data-pet="${id || ''}" aria-pressed="${selectedPet === id}"><span class="pet-choice-name">${name}</span><small>${selectedPet === id ? 'Selected' : 'Choose'}</small></button>`).join('');
   for (const button of $('petlist').querySelectorAll('button')) button.onclick = () => {
     selectedPet = petPreference(button.dataset.pet);
     try { localStorage.setItem('sq-pet', JSON.stringify(selectedPet)); petRemembered = true; } catch { petRemembered = false; }
@@ -769,22 +817,57 @@ function buildPets() {
   const state = renderer?.petState() || 'idle';
   $('petloadtext').textContent = state === 'loading' ? 'Loading companion…' : state === 'unavailable' ? 'Could not load this companion. You can still play.' : selectedPet ? 'Your companion is ready.' : 'No companion selected.';
   if (bunChoice(selectedPet) && !currentPetChoice()) $('petloadtext').textContent = 'BUN ownership must be verified before this companion can appear.';
+  $('petpreviewname').textContent = choices.find(([id]) => id === selectedPet)?.[1] || 'Choose a companion';
+  const previewState = petViewer?.state() || (petPreviewFailed ? 'unavailable' : 'idle');
+  $('petpreviewempty').classList.toggle('hidden', previewState === 'ready');
+  $('petpreviewempty').textContent = previewState === 'loading' ? 'Loading preview…' : previewState === 'unavailable' ? 'Preview unavailable' : 'Choose a companion';
+  $('petpreviewhint').textContent = previewState === 'unavailable' ? '3D preview unavailable. You can still choose a companion.' : 'Drag the model to rotate';
+  for (const id of ['petrotateleft','petrotateright','petresetview']) $(id).disabled = previewState !== 'ready';
   $('petvisit').classList.toggle('hidden', petRemembered);
   $('petretry').classList.toggle('hidden', state !== 'unavailable');
   if (focused !== undefined || hadFocus && (!$('pets').contains(document.activeElement) || document.activeElement?.disabled)) navFocus($('petlist').querySelector(`[data-pet="${focused}"]`) || $('petlist').querySelector('[aria-pressed="true"]') || $('petlist').querySelector('button'));
+}
+function syncPetPreview() {
+  if (!petViewer) return Promise.resolve();
+  const viewer = petViewer, choice = currentPetChoice(), request = petRequest;
+  return viewer.set(choice, () => viewer === petViewer && request === petRequest && choice === currentPetChoice() && !$('pets').classList.contains('hidden'));
+}
+function openPetPreview() {
+  petViewer?.dispose(); petViewer = null; petViewDrag = null; petPreviewFailed = false;
+  try {
+    const old = $('petpreview'), canvas = old.cloneNode(false);
+    old.replaceWith(canvas); // a closed WebGL context cannot be reused on the same canvas
+    petViewer = renderer.createPetPreview(canvas);
+    canvas.onpointerdown = event => {
+      if (event.button !== 0 || petViewDrag || petViewer?.state() !== 'ready') return;
+      petViewDrag = { id:event.pointerId, x:event.clientX }; canvas.setPointerCapture(event.pointerId); event.preventDefault();
+    };
+    canvas.onpointermove = event => {
+      if (petViewDrag?.id !== event.pointerId) return;
+      petViewer?.rotate((event.clientX - petViewDrag.x) * .012); petViewDrag.x = event.clientX; event.preventDefault();
+    };
+    canvas.onpointerup = canvas.onpointercancel = canvas.onlostpointercapture = event => { if (petViewDrag?.id === event.pointerId) petViewDrag = null; };
+    const viewer = petViewer;
+    syncPetPreview().then(() => { if (viewer === petViewer && !$('pets').classList.contains('hidden')) buildPets(); });
+  } catch { petViewer?.dispose(); petViewer = null; petPreviewFailed = true; }
+  buildPets();
 }
 async function applyPetChoice() {
   if (!renderer) return;
   const request = ++petRequest, choice = currentPetChoice();
   const pending = renderer.setPet(choice, () => request === petRequest && choice === currentPetChoice());
   if (!$('pets').classList.contains('hidden')) buildPets();
-  await pending;
+  await Promise.all([pending, syncPetPreview()]);
   if (request === petRequest && !$('pets').classList.contains('hidden')) buildPets();
 }
-$('petsbtn').onclick = () => { buildPets(); $('pets').classList.remove('hidden'); navFocus($('petlist').querySelector('[aria-pressed="true"]') || $('petlist').querySelector('button')); };
+$('petsbtn').onclick = () => { buildPets(); $('pets').classList.remove('hidden'); openPetPreview(); navFocus($('petlist').querySelector('[aria-pressed="true"]') || $('petlist').querySelector('button')); };
 $('petbunrefresh').onclick = () => bunCompanions.refresh();
 $('petretry').onclick = applyPetChoice;
-$('petsclose').onclick = () => { $('pets').classList.add('hidden'); navFocus($('petsbtn')); };
+$('petsclose').onclick = () => { petViewer?.dispose(); petViewer = null; petViewDrag = null; $('pets').classList.add('hidden'); navFocus($('petsbtn')); };
+$('petrotateleft').onclick = () => petViewer?.rotate(-Math.PI / 4);
+$('petrotateright').onclick = () => petViewer?.rotate(Math.PI / 4);
+$('petresetview').onclick = () => petViewer?.resetRotation();
+addEventListener('blur', () => { petViewDrag = null; });
 $('pets').addEventListener('click', e => { if (e.target.id === 'pets') $('petsclose').click(); });
 $('gearclose').onclick = () => { $('gear').classList.add('hidden'); navFocus($('gearbtn')); };
 
@@ -875,7 +958,7 @@ function containMenuTab(e) {
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 }
-for (const id of ['guide', 'pets', 'more', 'quests', 'gear', 'skills', 'upgrades', 'settings']) $(id).addEventListener('keydown', containMenuTab);
+for (const id of ['modemenu', 'guide', 'pets', 'more', 'quests', 'gear', 'skills', 'upgrades', 'settings']) $(id).addEventListener('keydown', containMenuTab);
 
 // ---- updates log -------------------------------------------------------------------------------------------------------
 $('updnew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
@@ -1731,7 +1814,7 @@ async function startRun(live = null) {
     } else sim = createSim({ seed, map, variant: selVariant, trialBoss, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
     if (!isRanked) { casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' }; loadCasualTickets(casualRun); }
     renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
-    for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'pets', 'more', 'upgrades']) $(id).classList.add('hidden');
+    for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'pets', 'more', 'upgrades', 'modemenu']) $(id).classList.add('hidden');
     $('cooppause').classList.add('hidden'); $('coopwait').classList.add('hidden');
     $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
     waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
@@ -1886,7 +1969,7 @@ function toMenu() {
 }
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
-const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades', 'merchant'];
+const MENU_SCREENS = ['modemenu', 'coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades', 'merchant'];
 addEventListener('keydown', (e) => {
   if (mode === 'recovery' || walletModalOpen()) return;
   if (mode === 'play' && (e.target?.closest?.('#equipmenthud') || e.target?.closest?.('[data-inspect]')) && ['Tab', 'Enter', ' '].includes(e.key)) return;
@@ -2393,7 +2476,7 @@ function updateHud(view) {
 
 // ---- menus with a controller or the arrow keys: spatial focus, A/Enter picks, B/Esc goes back -----------------------
 const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
-const NAV_ITEMS = '#trialboss, #coop input, summary, [data-milestone][tabindex="0"], .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
+const NAV_ITEMS = '#trialboss, #coop input, #racersplay, summary, [data-milestone][tabindex="0"], .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { if (walletModalOpen()) return null; if (mode === 'recovery') return $('progressrecovery'); return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden') && !el.closest('details:not([open]) > :not(summary)')); }
@@ -2431,7 +2514,7 @@ function navBack() {
     if (id === 'skills' || id === 'gear') { $(id + 'close').click(); return true; }
     if (id === 'settings') { $('setclose').click(); return true; }
     if (id === 'quests') { $('questclose').click(); return true; }
-    if (id === 'guide' || id === 'pets' || id === 'more' || id === 'coop' || id === 'upgrades') { $(id + 'close').click(); return true; }
+    if (id === 'modemenu' || id === 'guide' || id === 'pets' || id === 'more' || id === 'coop' || id === 'upgrades') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
     navFocus(null); return true;
   }
@@ -2528,6 +2611,7 @@ function loop(ts) {
   if (mode !== 'play' || document.hidden) setMapPeek(false);
   if (document.hidden || !['play','pause','levelup','casket'].includes(mode) || inspectedElement && !inspectedElement.isConnected) hideItemInspection();
   if (!document.hidden) bunCompanions.sync(!!bunChoice(selectedPet));
+  if (petViewer && $('pets').classList.contains('hidden')) { petViewer.dispose(); petViewer = null; petViewDrag = null; }
   const cap = renderer && Number(renderer.getSettings().fps); // Frame rate cap setting (saves battery)
   if (cap && ts - lastDrawn < 1000 / cap - 2) return;
   lastDrawn = ts;
@@ -2539,6 +2623,10 @@ function loop(ts) {
     if (edges.b) navBack();
     if (edges.a && navPress()) edges.a = false;
     if (edges.start && mode === 'title' && !$('start').disabled && navScreen()?.id === 'title') edges.a = true;
+  }
+  if (petViewer && !$('pets').classList.contains('hidden')) {
+    if (document.hidden || ts - lastMenuDrawn < 1000 / 30 - .1) return;
+    const elapsed = (ts - lastMenuDrawn) / 1000; lastMenuDrawn = ts; petViewer.draw(elapsed); return;
   }
   if (mode === 'title' || mode === 'end') {
     if (edges.a && mode === 'title' && !$('start').disabled && navScreen()?.id === 'title') startRun(); else if (edges.a && mode === 'end' && navScreen()?.id === 'end') startRun();
@@ -2625,7 +2713,7 @@ boot().then(async () => {
   if (!walletHandoff && (rankedLive() || readRanked('sq-ranked-submit') || readRanked('sq-ranked-payment'))) {
     await openRanked();
     if (rankedLive()?.sim !== SIM_ID && rankedLive() && !readRanked('sq-ranked-submit')) recoverRankedRun();
-  }
+  } else if (params.get('menu') === 'fun' && !walletHandoff) openModeMenu('fun');
 });
 // QA hooks (?qa or ?debug): drive the game from a test browser
 // test controls (god mode, skipping time, items) exist only on a local test copy, never on the live site

@@ -1,0 +1,16 @@
+SANKO RACERS — UNOFFICIAL LOCAL FAN PROTOTYPE
+
+SankoQuest world, terrain, textures, scene placements and modular human models belong to Sanko GameCorp. Selected files are reused from the owner's local SankoSurvivors native export collection. SankoSurvivors records the original fan game's use as made with Sanko GameCorp's blessing; that statement does not establish a separate public redistribution or commercial licence for Sanko Racers. Confirm permission before publication. This prototype claims no ownership or endorsement.
+Native terrain sampling and modular-character assembly adapted from the owner's SankoSurvivors source; kept local, no public source licence asserted.
+
+Shitbox Petal 1.6 / Miata roadster:
+“low poly mazda mx-5 miata na (UPDATE)” by Speedy-Works.
+https://sketchfab.com/3d-models/low-poly-mazda-mx-5-miata-na-update-819982eac6944241be32c62343c4d530
+https://sketchfab.com/Speedy-Works
+Creative Commons Attribution 4.0: https://creativecommons.org/licenses/by/4.0/
+Shitbox modifications: badges removed, retextured, optimised, split for the game. Prototype uses that actual exported car; selects its open roof and first detail level, animates wheels. No other Shitbox car model is included. Shitbox repository game-code licence is reproduced in LICENSE.shitbox, separately from the car asset licence.
+
+Three.js 0.170.0 — MIT, copyright three.js authors.
+Draco decoder — Apache License 2.0, copyright The Draco Authors. See public/DRACO-LICENSE.txt.
+Vite 6.4.5 — MIT, copyright Vite contributors.
+These runtime/development dependency licences remain in their installed packages; copies are included in local distribution notices where applicable.

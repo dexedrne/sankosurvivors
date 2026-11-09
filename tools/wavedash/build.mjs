@@ -11,6 +11,7 @@ await build({ root, configFile: resolve(root, 'vite.wavedash.config.mjs') });
 // Vite copies public files. Only the game's local assets/decoder belong in this upload.
 for (const file of await readdir(out)) if (file !== 'index.html' && file !== 'assets' && file !== 'draco' && file !== 'licenses') await rm(resolve(out, file), { recursive: true });
 await rm(resolve(out, 'assets/sanko'), { recursive: true, force: true });
+await rm(resolve(out, 'assets/racers'), { recursive: true, force: true });
 const files = [];
 async function walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {

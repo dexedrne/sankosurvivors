@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),render=readFileSync(new URL('../src/render.js',import.meta.url),'utf8');
 const helpers=main.slice(main.indexOf('function applySavedGraphics('),main.indexOf('async function boot()'));
 const boot=main.slice(main.indexOf('async function boot()'),main.indexOf('// ---- gear'));
-const petInit=main.slice(main.indexOf('async function applyPetChoice()'),main.indexOf("$('petsbtn').onclick"));
+const petInit=main.slice(main.indexOf('function syncPetPreview()'),main.indexOf("$('petsbtn').onclick"));
 const currentPetSource=main.slice(main.indexOf('function currentPetChoice()'),main.indexOf('function buildPets()'));
 const apply=render.slice(render.indexOf('  function applySettings('),render.indexOf('  // rain: streaks',render.indexOf('  function applySettings(')));
 const defaults=render.slice(render.indexOf('  const settings = {'),render.indexOf('  // time of day:',render.indexOf('  const settings = {')));
@@ -19,7 +19,7 @@ async function start(raw,petPending=false){
   const load=(key,fallback)=>JSON.parse(store.get(key)||'null')??fallback,save=(key,v)=>store.set(key,JSON.stringify(v)),params=new URLSearchParams();
   let applied=null,caught=null,renderer=null,rendererDefaults=null;const console={error:e=>caught=e},getGear=()=>({}),labels={},selMap='greentown';
   const playTitleMusic=()=>{};
-  let selectedPet=petPending?'chicken':null,petRequest=0;const petRequests=[];
+  let selectedPet=petPending?'chicken':null,petRequest=0,petViewer=null;const petRequests=[];
   const bunCompanions=createBunCompanions({walletNow:()=>null,walletRevision:()=>0,onChange:()=>{}});
   ${currentPetSource}
   ${petInit}

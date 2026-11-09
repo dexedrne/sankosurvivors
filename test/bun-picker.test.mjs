@@ -20,8 +20,8 @@ function setup(preference=null){
     }return nodes.get(id);
   };
   const calls=[],renderer={state:'idle',setPet(id,allowed=()=>true){calls.push({id,allowed});this.state=id?'ready':'idle';return Promise.resolve(true);},petState(){return this.state;}};
-  const app=Function('$','NATIVE_PETS','petChoice','createBunCompanions','bunChoice','load','localStorage','renderer','document','walletNow','walletRevision','navFocus',section+`;return{open:()=>$('petsbtn').onclick(),apply:applyPetChoice,pref:()=>selectedPet,refresh:()=>bunCompanions.refresh()};`)(
-    $,NATIVE_PETS,petChoice,options=>createBunCompanions({...options,load:(owner,opts)=>new Promise(resolve=>requests.push({owner,opts,resolve}))}),bunChoice,(key,fallback)=>store.has(key)?JSON.parse(store.get(key)):fallback,{setItem:(key,value)=>store.set(key,value)},renderer,document,()=>wallet,()=>revision,el=>{if(el)document.activeElement=el;});
+  const app=Function('$','NATIVE_PETS','petChoice','createBunCompanions','bunChoice','load','localStorage','renderer','document','walletNow','walletRevision','navFocus','addEventListener',section+`;return{open:()=>$('petsbtn').onclick(),apply:applyPetChoice,pref:()=>selectedPet,refresh:()=>bunCompanions.refresh()};`)(
+    $,NATIVE_PETS,petChoice,options=>createBunCompanions({...options,load:(owner,opts)=>new Promise(resolve=>requests.push({owner,opts,resolve}))}),bunChoice,(key,fallback)=>store.has(key)?JSON.parse(store.get(key)):fallback,{setItem:(key,value)=>store.set(key,value)},renderer,document,()=>wallet,()=>revision,el=>{if(el)document.activeElement=el;},()=>{});
   const finish=(i,pets)=>requests[i].resolve({status:'ready',address,identity:requests[i].opts.identity,block:{number:'0x123',hash:'0x'+'a'.repeat(64)},pets});
   return{app,$,store,calls,requests,finish,visibility,document,focusChoice:id=>{document.activeElement=$('petlist').querySelector(`[data-pet="${id}"]`);assert(document.activeElement);},switch:()=>{wallet=null;revision++;}};
 }
