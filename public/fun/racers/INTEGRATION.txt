@@ -1,11 +1,11 @@
 SANKO RACERS — SANKOSURVIVORS FUN INTEGRATION
 
-Accepted original Racers source: e527ab4e11cc31da797d2f5fbc88a07ac4c67213 (accepted driving build).
+Accepted original Racers source: fe3969bac2476882c3846fae6b7fccc4a9a69810 (accepted driving build).
 The existing fan game's owner requested this packaged Fun route on 9 November 2026. That scope does not establish a new licence grant, endorsement, or authorization for unrelated standalone publication.
 
 Native SankoQuest assets and adapted terrain/character code retain their separate ownership and notices in CREDITS.txt. The exact accepted roadster is separately attributed to Speedy-Works under CC BY 4.0, with the Shitbox modifications described in CREDITS.txt; only its URL/location changed. No additional Shitbox game code was imported. LICENSE.shitbox is retained in full, separately from the car licence. Three.js and Draco notices are retained in full. Vite is build tooling, not shipped runtime code.
 
-Client adaptations: exact, hash-pinned asset/decoder URLs; private Racers car, placements and collision fences; Survivors default (explicit ?mode=race and ?mode=versus remain); Back to SankoSurvivors link and scrollable short-screen panel. No gameplay/physics/storage logic changed. Race best remains guarded under sanko-racers-greentown-v1; SankoSurvivors progress is not read or written.
+Client adaptations: exact, hash-pinned asset/decoder URLs; private Racers car, placements and collision fences; Free Drive default (explicit ?mode=race, ?mode=versus and ?mode=survivors remain); Back to SankoSurvivors link and scrollable short-screen panel. No gameplay/physics/storage logic changed. World Circuit best remains guarded under sanko-racers-world-v1; the old Greentown record stays untouched; SankoSurvivors progress is not read or written.
 
 Reproduce: node tools/package-racers.mjs <accepted-dist> <accepted-desktop-survivors.png> [SQS-public-root]. Input hashes are in tools/racers-inputs.json; served hashes and URL adaptations are in manifest.json. Reused shared files must match the accepted inputs byte-for-byte. The accepted inventory and nav.bin are omitted: neither name appears in the runtime client; collision uses the accepted nav.png and Racers fences.
 

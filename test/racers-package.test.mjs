@@ -10,6 +10,7 @@ const root = new URL('../', import.meta.url);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const read = file => fs.readFileSync(new URL(file, root));
 const manifest = () => JSON.parse(read('public/fun/racers/manifest.json'));
+const inputs = JSON.parse(read('tools/racers-inputs.json'));
 
 test('packaging refuses changed bytes, traversal and symlinks at its input boundary', () => {
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'racers-input-'));
@@ -27,8 +28,9 @@ test('packaging refuses changed bytes, traversal and symlinks at its input bound
 
 test('every packaged and shared route dependency matches its recorded bytes', () => {
  const m=manifest();
- assert.equal(m.source.commit,'e527ab4e11cc31da797d2f5fbc88a07ac4c67213');
- assert.equal(m.shared.length,197);
+ assert.equal(m.source.commit,inputs.commit);
+ assert.match(m.source.commit,/^[a-f0-9]{40}$/);
+ assert.equal(m.shared.length,267);
  for(const item of [...m.files,...m.shared]) {
   assert.match(item.path,/^\/(?:fun\/racers|assets|draco)\//);
   assert.ok(!item.path.includes('..'));
@@ -49,8 +51,14 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  assert.doesNotMatch(html,/<iframe\b/i);
  const m=manifest();
  const js=read(`public${m.files.find(f=>f.path.endsWith('.js')).path}`).toString();
- assert.match(js,/==="race"\?"race":"survivors"/);
- assert.match(js,/sanko-racers-greentown-v1/);
+ assert.match(js,/==="race"\?"race":"free"/);
+ assert.match(js,/sanko-racers-world-v1/);
+ assert(js.includes('minX:0,maxX:512,minZ:0,maxZ:512'));
+ for(const phrase of ['FREE DRIVE · SANKOQUEST WORLD','WORLD RACE · GUARD & PRIEST','handbrake'])assert(js.includes(phrase),phrase);
+ const css=read(`public${m.files.find(f=>f.path.endsWith('.css')).path}`).toString();
+ for(const asset of ['RuneScape-Plain-12.ttf','RuneScape-Quill-8.ttf','frame.png','grey_slot.png','yellow_slot.png'])assert(css.includes(asset),asset);
+ assert(html.includes('data-action="handbrake"'));
+ assert(html.includes('id="free-start"'));
  assert.equal((js.match(/localStorage/g)||[]).length,2);
  assert.doesNotMatch(js,/\.\/assets\/|\.\/draco\/|100\.65\.235\.118|127\.0\.0\.1|localhost|walletconnect|supabase|ethereum|\/api\//i);
  assert.equal(js.includes('nav.bin'),false);
@@ -65,7 +73,7 @@ test('adapted client reverses exactly to the accepted source artifact', () => {
   assert.equal(js.split(after).length-1,count,after);
   js=js.split(after).join(before);
  }
- assert.equal(hash(js),'6e8680bdee4ec04a9a1460ad3b333da0c51b568cff127318b258cb4f41b01cf3');
+ assert.equal(hash(js),inputs.files.find(f=>f.role==='client').sha256);
  const credits=read('public/fun/racers/CREDITS.txt').toString();
  assert.match(credits,/Speedy-Works/);
  assert.match(credits,/creativecommons.org\/licenses\/by\/4.0/);

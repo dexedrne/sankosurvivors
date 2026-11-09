@@ -190,7 +190,7 @@ button:hover:not(:disabled) { filter: brightness(1.18); }
 /* cards and skills read on dark brown, framed by the slot edge (no fill) */
 .card, .skill { border-image: url(../assets/ui/sq/grey_slot.png) 14 stretch; background: #3a2e22; }
 .card.sel, .card:hover { border-image: url(../assets/ui/sq/yellow_slot.png) 14 stretch; background: #4a3a26; }
-.card.evo { border-image: url(../assets/ui/sq/blue_slot.png) 14 stretch; background: #23324a; }
+.card.evo { border-image: url(../assets/ui/sq/blue_slot.png) 14 stretch; background: #3a2e22; }
 .card { width: 196px; } .card p { color: var(--cream); } #levelup .panel { max-width: min(700px, 96vw); }
 /* secondary actions are grey; leaving a run is the red one */
 button.ghost { border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch; color: #fff; }
@@ -972,6 +972,8 @@ body.ds-layout #tradebtn { position:fixed; bottom:calc(112px + env(safe-area-ins
 #petlist button { display:flex; flex-direction:column; justify-content:center; gap:6px; min-height:78px; min-width:0; padding:8px 6px; margin:0; text-align:center; }
 .pet-choice-name { font-size:20px; overflow-wrap:anywhere; } #petlist button small { color:var(--gold); font-size:14px; }
 #petlist button[aria-pressed="true"] { border-image-source:url(../assets/ui/sq/yellow_slot.png); }
+/* Wide actions tile the button art across instead of smearing it; the vertical art stays stretched. Small slots, icon and rotate buttons keep stretch. */
+#modemenuclose, #petsclose, #more .morelist button, #pause .panel button, #petresetview, #petbunrefresh { border-image-repeat:round stretch; }
 #petbuns { margin-top:10px; padding-top:8px; border-top:1px solid #6b5837; } #petbuns p { font-size:15px; margin:0 0 6px; } #petbunrefresh { font-size:16px; min-height:44px; width:100%; margin:0; }
 #petstatus { font-size:15px; margin:10px 0 6px; } #petsclose { min-height:44px; flex-shrink:0; margin:4px 0 0; }
 @media (max-width:560px) { #pets .petpanel { padding:10px; overflow:auto; } .petlayout { grid-template-columns:1fr; gap:12px; flex-shrink:0; } .petstage { height:210px; } .petchoices { overflow:visible; } .petshowcase h3, .petchoices h3 { font-size:20px; } #petlist button { min-height:64px; } }

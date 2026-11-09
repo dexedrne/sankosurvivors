@@ -6,7 +6,7 @@ export function createPetPreview({ canvas, choice, load, spawn, renderer = new T
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 1.5));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
-  const scene = new THREE.Scene(); scene.background = new THREE.Color(0x172933);
+  const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1e1710);
   scene.add(new THREE.HemisphereLight(0xfff6e6, 0x5d6f4a, 1.55));
   const sun = new THREE.DirectionalLight(0xffe9c4, 2.6); sun.position.set(-3, 6, 4); scene.add(sun);
   const camera = new THREE.PerspectiveCamera(38, 1, .01, 100), pivot = new THREE.Group(); scene.add(pivot);

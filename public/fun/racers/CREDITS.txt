@@ -1,6 +1,6 @@
 SANKO RACERS — UNOFFICIAL LOCAL FAN PROTOTYPE
 
-SankoQuest world, terrain, textures, scene placements and modular human models belong to Sanko GameCorp. Selected files are reused from the owner's local SankoSurvivors native export collection. SankoSurvivors records the original fan game's use as made with Sanko GameCorp's blessing; that statement does not establish a separate public redistribution or commercial licence for Sanko Racers. Confirm permission before publication. This prototype claims no ownership or endorsement.
+SankoQuest world, terrain, textures, scene placements, modular human models, pixel fonts and UI frames/buttons belong to Sanko GameCorp. Selected files are reused from the owner's local SankoSurvivors native export collection. SankoSurvivors records the original fan game's use as made with Sanko GameCorp's blessing; that statement does not establish a separate public redistribution or commercial licence for Sanko Racers. Confirm permission before publication. This prototype claims no ownership or endorsement.
 Native terrain sampling and modular-character assembly adapted from the owner's SankoSurvivors source; kept local, no public source licence asserted.
 
 Shitbox Petal 1.6 / Miata roadster:

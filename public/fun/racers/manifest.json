@@ -1,8 +1,8 @@
 {
   "source": {
-    "commit": "e527ab4e11cc31da797d2f5fbc88a07ac4c67213",
-    "implementation": "e527ab4e11cc31da797d2f5fbc88a07ac4c67213",
-    "clientSha256": "6e8680bdee4ec04a9a1460ad3b333da0c51b568cff127318b258cb4f41b01cf3"
+    "commit": "fe3969bac2476882c3846fae6b7fccc4a9a69810",
+    "implementation": "fe3969bac2476882c3846fae6b7fccc4a9a69810",
+    "clientSha256": "a44e983a77ae8a17192535e80c8cc410218b0b843c4eaef906fd9aad87a61fd9"
   },
   "adaptations": {
     "client": [
@@ -30,21 +30,16 @@
         "before": "\"world/tiles/fences.json\"",
         "after": "\"racers/world/tiles/fences.json\"",
         "count": 1
-      },
-      {
-        "before": "===\"survivors\"?\"survivors\":\"race\"",
-        "after": "===\"race\"?\"race\":\"survivors\"",
-        "count": 1
       }
     ],
     "html": [
       {
-        "before": "/assets/index-BWtb1wIr.js",
-        "after": "./racers-86ab6548f4af80b9.js"
+        "before": "/assets/index-DHiBghAB.js",
+        "after": "./racers-b5eadbb65a4c6dd3.js"
       },
       {
-        "before": "/assets/index-CmKkvw_K.css",
-        "after": "./racers-d17fed88e1df06f5.css"
+        "before": "/assets/index-ZWTP6qJ5.css",
+        "after": "./racers-949ab79e4cb4f42b.css"
       },
       {
         "before": "<a href=\"./CREDITS.txt\"",
@@ -56,18 +51,18 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 2878,
-      "sha256": "a005deea7cbb204211fa3e6d87dbc04fcfb8b96e8f952f8a6cfd11782ce67fc2"
+      "bytes": 3145,
+      "sha256": "236bd2887d99b2d38f5ba58cb3a239d8287930348bbfac254bd8fe48010b3963"
     },
     {
-      "path": "/fun/racers/racers-86ab6548f4af80b9.js",
-      "bytes": 703031,
-      "sha256": "86ab6548f4af80b91736f8f01888ef0c9b791a081a9905f94019b55e8f9b7bb0"
+      "path": "/fun/racers/racers-b5eadbb65a4c6dd3.js",
+      "bytes": 729369,
+      "sha256": "b5eadbb65a4c6dd3d2f10896249c9214112c2504149d6b6b769d86d93b138f3d"
     },
     {
-      "path": "/fun/racers/racers-d17fed88e1df06f5.css",
-      "bytes": 5947,
-      "sha256": "d17fed88e1df06f5c482cac7ffb70999104629b7e2ce1043fb614fb346077383"
+      "path": "/fun/racers/racers-949ab79e4cb4f42b.css",
+      "bytes": 7400,
+      "sha256": "949ab79e4cb4f42bfcb1148ec6719d4ffa1b32aa8e8e56c00896f3a12e2b16e7"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -76,13 +71,13 @@
     },
     {
       "path": "/fun/racers/INTEGRATION.txt",
-      "bytes": 1880,
-      "sha256": "d0ac0c38ee12d87f20bd01500610846e1d0e8b430ade8046819f94ec38b7e41e"
+      "bytes": 1945,
+      "sha256": "d5e674a6425d1236f63e4b90815df825a65b157757b7ea4a03f0d8f9c86ee494"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
-      "bytes": 1682,
-      "sha256": "6f1d7d447e1f01a74499e7b2c4d1848dbd10b444589c595fb4127928f7b0ad19"
+      "bytes": 1714,
+      "sha256": "3bc78e026a81ab98ace3ccb434eb9fe7bcb29ceb5c9527b4eef074a9250b6c3f"
     },
     {
       "path": "/fun/racers/DRACO-LICENSE.txt",
@@ -106,8 +101,8 @@
     },
     {
       "path": "/assets/racers/placements.json",
-      "bytes": 532403,
-      "sha256": "d2d793ed7782f6994decf17c90ef61e7192badf7eef81c15def732f5af2a5e5b"
+      "bytes": 708890,
+      "sha256": "d61dfeab308ee849c2aad7d256dbc82c4de4f0c79856b9fff32d44b203b12f52"
     },
     {
       "path": "/assets/racers/world/tiles/fences.json",
@@ -242,6 +237,36 @@
       "sha256": "ff0bb672ca030ac73553217ff042496af559b1cd0aca47a6f222c0172c2bfdf3"
     },
     {
+      "path": "/assets/ui/sq/accept_button.png",
+      "bytes": 6662,
+      "sha256": "10108e50107fca10e59da433d68844d4f4315aad61ab397eed1126af59a27379"
+    },
+    {
+      "path": "/assets/ui/sq/fonts/RuneScape-Plain-12.ttf",
+      "bytes": 17560,
+      "sha256": "a4bb4b07cbbad7a25d8f4b801882dcd9a01a156c8eb1c1da068d8700077ad90c"
+    },
+    {
+      "path": "/assets/ui/sq/fonts/RuneScape-Quill-8.ttf",
+      "bytes": 21128,
+      "sha256": "aeee13731f38975b47ef286a592fead443fde5b779542482de81ccccaeb9dc52"
+    },
+    {
+      "path": "/assets/ui/sq/frame.png",
+      "bytes": 5490,
+      "sha256": "c87b4ef018af096bef23acfbd5e7485a7f7e133eb620bf17e3dd8eb44d52df07"
+    },
+    {
+      "path": "/assets/ui/sq/grey_slot.png",
+      "bytes": 7555,
+      "sha256": "9bf001033acfab8126df17e22e9273f20d7be4a00be9f292bbad983bb8aee0f5"
+    },
+    {
+      "path": "/assets/ui/sq/yellow_slot.png",
+      "bytes": 8171,
+      "sha256": "940ef99b01121e53b8559160cb9a3be9b6f0771ee6fdbe032e259ccaebb0a68d"
+    },
+    {
       "path": "/assets/world/nodes/Wheat.glb",
       "bytes": 18340,
       "sha256": "7369f4cdb03a5883fbb3f44d909caaec46bbb29f12c57f68d1e9dee86dca7651"
@@ -250,6 +275,26 @@
       "path": "/assets/world/nodes/anvil.glb",
       "bytes": 4756,
       "sha256": "6bc1a8cdd9c6bb1923adb45ffabb6984e19d376489dfc41767940f1ea0a43909"
+    },
+    {
+      "path": "/assets/world/nodes/cherry.glb",
+      "bytes": 92200,
+      "sha256": "df37633ce46a2444cbfb00940e9625aa0a11c07f0017900f6cb6a558c1cbea6b"
+    },
+    {
+      "path": "/assets/world/nodes/coal.glb",
+      "bytes": 3528,
+      "sha256": "b3caa7b5b75391ea896c231dfbb6ed49338c5373e669a52538e25ef5332e1fbd"
+    },
+    {
+      "path": "/assets/world/nodes/copper.glb",
+      "bytes": 3528,
+      "sha256": "72b6544c67b840e2f181156e6260c3f5a683484474e4d167aeaa957606ec4cb3"
+    },
+    {
+      "path": "/assets/world/nodes/dracaena.glb",
+      "bytes": 85904,
+      "sha256": "06ee83a8ad30ff974d6072486a922715851c237ec0579ad0419266b0191be8ee"
     },
     {
       "path": "/assets/world/nodes/flax.glb",
@@ -262,6 +307,11 @@
       "sha256": "ba59153a5fbfb393d4c9779002724aab6786464197a5c102c55fb482319ba348"
     },
     {
+      "path": "/assets/world/nodes/iron.glb",
+      "bytes": 3524,
+      "sha256": "01701dfa2d4409f07fc9b2a639c9915ff99a276e67c39f1e50eb7727cd20137a"
+    },
+    {
       "path": "/assets/world/nodes/oak.glb",
       "bytes": 75072,
       "sha256": "a4ae8162ca06f86c6d8077a13007728e6361cf8921d25697250a86c0b6368989"
@@ -272,9 +322,19 @@
       "sha256": "ebd178129d26cd47b69da7e6b859899df19ae89060190cd3070e838bcb2f902f"
     },
     {
+      "path": "/assets/world/nodes/practice_dummy.glb",
+      "bytes": 5820,
+      "sha256": "f1689418041b27e896b886e6c6a662bdbd11b70d1381dd852d4bfca3174c0e5a"
+    },
+    {
       "path": "/assets/world/nodes/slotmachine.glb",
       "bytes": 30020,
       "sha256": "f002fda889ff3b1110010b493935b1727890df1b3d913358cce0d4162b11b8d3"
+    },
+    {
+      "path": "/assets/world/nodes/tin.glb",
+      "bytes": 3524,
+      "sha256": "73707d8615ff17b363ea547dd1c3a5b77256466b824aa4fa2de87e992e99eafc"
     },
     {
       "path": "/assets/world/nodes/tree.glb",
@@ -302,6 +362,11 @@
       "sha256": "bd4f5ddd45ae0443f8af70f251c69046592385e156a7fc1803629770617fd504"
     },
     {
+      "path": "/assets/world/scene-models/BankRoof.glb",
+      "bytes": 15048,
+      "sha256": "5fa85af1f62c05b6006a86fa62fc95dc37a8e07a36f3782d956facec1ac7197f"
+    },
+    {
       "path": "/assets/world/scene-models/Bed Single.glb",
       "bytes": 16064,
       "sha256": "a85cf50d975a0a96b429569e05838eed01a6456610fb0fa518edf58d28ed92c1"
@@ -310,6 +375,11 @@
       "path": "/assets/world/scene-models/Bench.glb",
       "bytes": 15672,
       "sha256": "1ce39a077f760e8d73ec09995903a18918fd5b13f9dc1f3f4248c21d24988323"
+    },
+    {
+      "path": "/assets/world/scene-models/Bones.glb",
+      "bytes": 17052,
+      "sha256": "390f6c1e09e2b7d7277175e15e15b546bd5c0bd20925f5c0850b98dce9ccc91b"
     },
     {
       "path": "/assets/world/scene-models/Bookcase.glb",
@@ -372,14 +442,49 @@
       "sha256": "069716fd52874f0ffe4d21de5aa1d3cfe8b9e6455d7447b63452dc2f9e456367"
     },
     {
+      "path": "/assets/world/scene-models/Lighthouse.glb",
+      "bytes": 49308,
+      "sha256": "7ffde37fac42079f872bec214b906bd0adad9f404c4600452a773eb03552ffb3"
+    },
+    {
+      "path": "/assets/world/scene-models/Longhouse.glb",
+      "bytes": 32792,
+      "sha256": "899c4aba8f12b9a1dbd6b4f09740f6948709f0b68366506cb1a2e47d1e661825"
+    },
+    {
+      "path": "/assets/world/scene-models/LonghouseRoof.glb",
+      "bytes": 10520,
+      "sha256": "bd31218cee90474975b49514211e2d7611240f7ed1d12536a17f4a32dc5930e5"
+    },
+    {
       "path": "/assets/world/scene-models/PSX Style Wall 2.glb",
       "bytes": 67728,
       "sha256": "e5092b1e35ac3eb6664793c392a7b6725881fe2805f7ec5300559dc925b54f3e"
     },
     {
+      "path": "/assets/world/scene-models/Pedestal.glb",
+      "bytes": 24916,
+      "sha256": "65ac0def4f8484aa88770af29f41da8ae3fdbe1c8c8ad50ae5c3acdd942557b9"
+    },
+    {
+      "path": "/assets/world/scene-models/Pike.glb",
+      "bytes": 10364,
+      "sha256": "0848f013f80b3b7b863acc750f16c5c525c1ef2ecd9df6fa0cadcf6a16a3dd1b"
+    },
+    {
+      "path": "/assets/world/scene-models/Pillar.glb",
+      "bytes": 13756,
+      "sha256": "ee5a10161e9c3690529d0a27f3bf1f55e770431247a16e4b9df0bcf70d2aac6c"
+    },
+    {
       "path": "/assets/world/scene-models/Practice Dummy.glb",
       "bytes": 5820,
       "sha256": "f1689418041b27e896b886e6c6a662bdbd11b70d1381dd852d4bfca3174c0e5a"
+    },
+    {
+      "path": "/assets/world/scene-models/Sawmill.glb",
+      "bytes": 23648,
+      "sha256": "0e4413fe0cc43129024e92cc37e7d2bf749192d5b8a8cb6138fcbbbcb73aee4e"
     },
     {
       "path": "/assets/world/scene-models/Sconce light.glb",
@@ -392,6 +497,16 @@
       "sha256": "26163df86ec33401d01b947d07ee80fac994afc00713e0d07a63dbe05a330330"
     },
     {
+      "path": "/assets/world/scene-models/Shack.glb",
+      "bytes": 27924,
+      "sha256": "9ca93a15476a3b2f95ca41a03ede5486925a3b894ff19bcd5a95fd53c5f07b5d"
+    },
+    {
+      "path": "/assets/world/scene-models/ShackRoof.glb",
+      "bytes": 9148,
+      "sha256": "0a810a58422b4b04c3076ac09f4894d1d8c30eaca330a5db1a85e046d406287a"
+    },
+    {
       "path": "/assets/world/scene-models/Shelf (1).glb",
       "bytes": 6392,
       "sha256": "a88a75ddc13faac60f3e7354deeacda8bef748cacd2e546dce60d0527ba0e658"
@@ -400,6 +515,11 @@
       "path": "/assets/world/scene-models/SquareTable.glb",
       "bytes": 6524,
       "sha256": "116e6fb1af004c18d2ca0b9d49b7000cc47d5e06a71ceaa88251eee878a728a4"
+    },
+    {
+      "path": "/assets/world/scene-models/Stairs.glb",
+      "bytes": 11988,
+      "sha256": "d7630602b41980c5d3fb5ae063683b4b3fc9bc56da5bdf759a2db4f8206235fb"
     },
     {
       "path": "/assets/world/scene-models/Stall.glb",
@@ -422,6 +542,11 @@
       "sha256": "17bbbd0a9affdfaa8dd36fc41d45f7658465a11c5950605c889d17db75d57d81"
     },
     {
+      "path": "/assets/world/scene-models/Well.glb",
+      "bytes": 12372,
+      "sha256": "137236a0c39b9ea31706c28a96e1262767c69e6799df1dfcbc46fc94773da9b4"
+    },
+    {
       "path": "/assets/world/scene-models/Wood Water Trough.glb",
       "bytes": 9532,
       "sha256": "6917d5cbfe283e61e8e7048a0bfc73032c90601ed3092f8c61899b12c9918c73"
@@ -435,6 +560,21 @@
       "path": "/assets/world/scene-models/Wooden Sign hanging.glb",
       "bytes": 26528,
       "sha256": "01bea986f93515d5685bcdd6ee8d2cccf0f063c8ad432c84e07218c94873f96d"
+    },
+    {
+      "path": "/assets/world/scene-models/Wooden Sign3.glb",
+      "bytes": 18024,
+      "sha256": "6dc7fd61f4d41287c4ef555412567e64cb67ce79af21c037b8f0ecba26c80fd2"
+    },
+    {
+      "path": "/assets/world/scene-models/arenafloor2.glb",
+      "bytes": 98392,
+      "sha256": "28236bf795198a51214907ca673c1d768d51f732f32bbacdb09dc066cf1ffeed"
+    },
+    {
+      "path": "/assets/world/scene-models/arenawall.glb",
+      "bytes": 480188,
+      "sha256": "acf07139e0e1bb9fe2f53a155e69865e67ab4f979a92c9ef081bdb6fd1ec294c"
     },
     {
       "path": "/assets/world/scene-models/bankroof2.glb",
@@ -460,6 +600,26 @@
       "path": "/assets/world/scene-models/bed.glb",
       "bytes": 16668,
       "sha256": "493fac320b9f28173944830df522e0f88de5e53372fb8210093320be479cc9f0"
+    },
+    {
+      "path": "/assets/world/scene-models/boat.glb",
+      "bytes": 9912,
+      "sha256": "f4901810317fea394bd6c48842761ea34d59dfc19bb35cd75a1d26e14d0f7400"
+    },
+    {
+      "path": "/assets/world/scene-models/buns/shapey_rigged.glb",
+      "bytes": 62016,
+      "sha256": "b45194f1abd968c86feb1ca249619c5c9be122add09577d5a2b9f38fa67e601a"
+    },
+    {
+      "path": "/assets/world/scene-models/cactus.glb",
+      "bytes": 80972,
+      "sha256": "dd845543d52b142bcf1ff943dcda2da3079f0ccf6aea5f4f78c6b6bb19f59a70"
+    },
+    {
+      "path": "/assets/world/scene-models/camprocks.glb",
+      "bytes": 21744,
+      "sha256": "c79adb71dab75877aba1fa6fbda9b77b1d1cdd358a5525fc1d09c7ef4c43e309"
     },
     {
       "path": "/assets/world/scene-models/castle/garden_curb.glb",
@@ -490,6 +650,11 @@
       "path": "/assets/world/scene-models/cemetery.glb",
       "bytes": 36380,
       "sha256": "81a6f918c4e3325ec31cebad5278faa7a5ca8fd38cc1fdb5be5ae0d76d73688d"
+    },
+    {
+      "path": "/assets/world/scene-models/chair.glb",
+      "bytes": 83012,
+      "sha256": "d6b7a547057031989043a5e21b16fafaabc0ba41558b23b5975e9b731b282551"
     },
     {
       "path": "/assets/world/scene-models/chest.glb",
@@ -530,6 +695,26 @@
       "path": "/assets/world/scene-models/court_Stone_bench_3x1.glb",
       "bytes": 5852,
       "sha256": "0ab25adb90005571ba3335869ed61f40dcbfc4ded5615aa3d0b522eb88486569"
+    },
+    {
+      "path": "/assets/world/scene-models/deadtree1.glb",
+      "bytes": 5104,
+      "sha256": "4229f42326666c01543aabf4266d9a65649d51dc98ee9cedd1b73532be80460e"
+    },
+    {
+      "path": "/assets/world/scene-models/deadtree2.glb",
+      "bytes": 17744,
+      "sha256": "d0b78b3cd9bdc8a12c4a8d403f5cea5b9918fb8891f387d9f8386f6a4d55a1c9"
+    },
+    {
+      "path": "/assets/world/scene-models/dock-norope.glb",
+      "bytes": 57304,
+      "sha256": "ef066b54daaa00647d9f96fd43feb42f6cbb042af1f0ee56026bdf55ed8f398d"
+    },
+    {
+      "path": "/assets/world/scene-models/dock-rope-tall.glb",
+      "bytes": 65776,
+      "sha256": "d593eb2330b127c8245d6c1711af80561c710332da85d53ca3f45d1f6b934390"
     },
     {
       "path": "/assets/world/scene-models/exchange/arcades-v1.glb",
@@ -587,9 +772,34 @@
       "sha256": "b7199b603e04d805e40f7c5c96e1515364bdf9e388d035d8652fff73ace39847"
     },
     {
+      "path": "/assets/world/scene-models/farm_Firewood_station.glb",
+      "bytes": 16828,
+      "sha256": "28bae6e03c238efc062b5ea091ae33cedf9a2a61d0ac027ee6f1beb42900f9ee"
+    },
+    {
+      "path": "/assets/world/scene-models/farm_Lantern_hanging.glb",
+      "bytes": 21092,
+      "sha256": "65b95111d57b900561976c6a019b634ce4c86258ec848fe84d3b254a7c99d5dd"
+    },
+    {
       "path": "/assets/world/scene-models/farm_Lantern_wall.glb",
       "bytes": 23388,
       "sha256": "c2ac139692af52bf480bdcaa0cbdd50cef2e67c64276c623940eaf1bb1906c7c"
+    },
+    {
+      "path": "/assets/world/scene-models/farm_Tool_rack.glb",
+      "bytes": 58072,
+      "sha256": "106cfe877e0b57289c0500c23b4520a0b2edabe117888e1366b2bee9bf0b2e7b"
+    },
+    {
+      "path": "/assets/world/scene-models/farmhouse_timber_details.glb",
+      "bytes": 14408,
+      "sha256": "dcb2ccacb7b8d4fc2863c46d648ba40b724794deb2cc713af777c1ec329786fe"
+    },
+    {
+      "path": "/assets/world/scene-models/farmhouse_timber_roof.glb",
+      "bytes": 278244,
+      "sha256": "fda67e1e0640f836c20504624ab190a75166d8c90f300132239e86e7b3f69584"
     },
     {
       "path": "/assets/world/scene-models/fireplace.glb",
@@ -607,6 +817,11 @@
       "sha256": "b25ec7f2054058add37f1a4a97eb58f82c5439d2e164eaeb270300bcb7deaef5"
     },
     {
+      "path": "/assets/world/scene-models/grass_yellow.glb",
+      "bytes": 131988,
+      "sha256": "a935ba51325b5d5970a2612249e4a67432fe2fd858cd2d33fd5776475c1e00ce"
+    },
+    {
       "path": "/assets/world/scene-models/hall_Entrance_arch.glb",
       "bytes": 29476,
       "sha256": "fb448eca894e78242d21036dca586facb43ecfa16677831dc358224bab7d7f41"
@@ -620,6 +835,21 @@
       "path": "/assets/world/scene-models/hall_Tutorial_chair.glb",
       "bytes": 47604,
       "sha256": "632c90f7687ee8d27edbf4b946cfc3fd66f9c39ef519c78184c72455e0e2c783"
+    },
+    {
+      "path": "/assets/world/scene-models/home_Linen_cupboard.glb",
+      "bytes": 33140,
+      "sha256": "ba1d9c6b2e6d418feb68f199b336e8ec062e26a2ce911cb7be4999ad3efb7887"
+    },
+    {
+      "path": "/assets/world/scene-models/home_Rug_bedroom.glb",
+      "bytes": 11616,
+      "sha256": "79664a057f399c7fd0cacff12a3ac81ee737dc89be9891ce7ab9cfadac47f131"
+    },
+    {
+      "path": "/assets/world/scene-models/home_Rug_living.glb",
+      "bytes": 11612,
+      "sha256": "91f89cfc2338fa55414cf3d62401f33a96694c68a860946a6d866d46e5355065"
     },
     {
       "path": "/assets/world/scene-models/home_Settle_bench.glb",
@@ -707,6 +937,11 @@
       "sha256": "a4ae8162ca06f86c6d8077a13007728e6361cf8921d25697250a86c0b6368989"
     },
     {
+      "path": "/assets/world/scene-models/models/environment/tree3.glb",
+      "bytes": 39312,
+      "sha256": "9997dc4d2121c63d04f6df4ce264c4065d48b3fdd8faffbe12faa46b2c245eae"
+    },
+    {
       "path": "/assets/world/scene-models/models/equipment/weapons/blade/katana/iron_katana.glb",
       "bytes": 13464,
       "sha256": "8aee6daa239660da8516214670b0e0c54e392b04590345d9bc2f4a33df904d73"
@@ -715,6 +950,11 @@
       "path": "/assets/world/scene-models/models/equipment/weapons/blade/shortsword/iron_shortsword.glb",
       "bytes": 4272,
       "sha256": "0c22c8609e960f911d305811c335990958b1d1e99ddaa17d61e5a370e6521b17"
+    },
+    {
+      "path": "/assets/world/scene-models/obelisk.glb",
+      "bytes": 331376,
+      "sha256": "d2f61c7153f27de047d8cb24147b84ed41e702736d2f92284ecf9ff86f3ae559"
     },
     {
       "path": "/assets/world/scene-models/painting.glb",
@@ -742,6 +982,31 @@
       "sha256": "4ed6fe2cd3121e316058723498b73346a668089aa56367aa93051e35e2380747"
     },
     {
+      "path": "/assets/world/scene-models/paya_banner.glb",
+      "bytes": 42320,
+      "sha256": "353bc1b3e6ac905aeb499b8a965032a5de3a561b137eaab8851884a99099100f"
+    },
+    {
+      "path": "/assets/world/scene-models/paya_cactus.glb",
+      "bytes": 93916,
+      "sha256": "3070a1118e56ee8ce786a5f4fc11b0aa91b2a3e789cfd536306690346f0deda0"
+    },
+    {
+      "path": "/assets/world/scene-models/paya_hut_base.glb",
+      "bytes": 3772,
+      "sha256": "ca3f7e7eb7de2cc7cf2684fb927fb1fdfc5ede1d0a00a1856c16bfe0d45979bc"
+    },
+    {
+      "path": "/assets/world/scene-models/paya_hut_roof.glb",
+      "bytes": 3760,
+      "sha256": "a89c1d0394945d0e57c9cbb2fa3a9147af6547e887fd7ee4a659057a316e578a"
+    },
+    {
+      "path": "/assets/world/scene-models/paya_tower.glb",
+      "bytes": 54192,
+      "sha256": "c0fcebeeb9c3d8c13e7c966086dc98c0c8ebf9d68664d61b5802a39091e46453"
+    },
+    {
       "path": "/assets/world/scene-models/plantbig.glb",
       "bytes": 10032,
       "sha256": "39f41b2d49c2584e1d8d2c9863ae75020d71157504961c1796d8147e1ce14860"
@@ -750,6 +1015,31 @@
       "path": "/assets/world/scene-models/plantsmall.glb",
       "bytes": 62368,
       "sha256": "39c0874b2de1e2408fb5bd716d3342128402e0c5b63088d1af22a2c1ebc5218c"
+    },
+    {
+      "path": "/assets/world/scene-models/reeds.glb",
+      "bytes": 6380,
+      "sha256": "6d742351ee4e3716524c408fedd14d8e55da79d67a1e2235ab7103d93d2565e0"
+    },
+    {
+      "path": "/assets/world/scene-models/rock.glb",
+      "bytes": 26404,
+      "sha256": "6ac4dc8221a314b16ccf71c188118e0f260a9d4d62deabff21fdd564096da054"
+    },
+    {
+      "path": "/assets/world/scene-models/ruins_corner_1.glb",
+      "bytes": 76172,
+      "sha256": "b05b8ef1d6e258e14459e2d925c1a72da9e24d91ee3c699c3b3a468bef0ad50e"
+    },
+    {
+      "path": "/assets/world/scene-models/ruins_corner_2.glb",
+      "bytes": 77936,
+      "sha256": "516c4b35da712e10a80e80ba0978ab1f5b0ae14cae3bc94a99cebfdc0b76c65f"
+    },
+    {
+      "path": "/assets/world/scene-models/ruins_corner_3.glb",
+      "bytes": 79640,
+      "sha256": "feeaa2b1d07e2d99dc79c1544b492e944889955a2109c4a4108e1d3eabac0719"
     },
     {
       "path": "/assets/world/scene-models/ruins_grid_02_1.glb",
@@ -832,6 +1122,16 @@
       "sha256": "6f108b748925c8b0e08ac53ceb11d2cc4d0fece2ae7882e4bdf646452ba57798"
     },
     {
+      "path": "/assets/world/scene-models/sandbun.glb",
+      "bytes": 123352,
+      "sha256": "c8b2adf62ba0a1efb22d528788895ef4ee554b9d5566faa968d63304fc6dcf5c"
+    },
+    {
+      "path": "/assets/world/scene-models/sandstonePaths.glb",
+      "bytes": 10792,
+      "sha256": "1524b24bffe6415117b603ea2bfee3e8850b128e243be6e2d9d99204a45c1713"
+    },
+    {
       "path": "/assets/world/scene-models/shelf.glb",
       "bytes": 2840,
       "sha256": "7edc3f9c8c0513e2049ede1b3d764db97e6c193da3fec529b95054e4b3d2ea13"
@@ -845,6 +1145,41 @@
       "path": "/assets/world/scene-models/shop_Remilio_GeneralStore_Hobo.glb",
       "bytes": 281764,
       "sha256": "cde03b649fa0e1d1692a43609b72f91755b8de762244781ac6d01cbd4835756b"
+    },
+    {
+      "path": "/assets/world/scene-models/slotmachine.glb",
+      "bytes": 30020,
+      "sha256": "f002fda889ff3b1110010b493935b1727890df1b3d913358cce0d4162b11b8d3"
+    },
+    {
+      "path": "/assets/world/scene-models/sphinx.glb",
+      "bytes": 1060356,
+      "sha256": "171ab331fdf5efa305230767d99df1a73f1f31f1d29eed72344d45032333d56a"
+    },
+    {
+      "path": "/assets/world/scene-models/starterIslandHouseDoors.glb",
+      "bytes": 7568,
+      "sha256": "4d0d41188e9aad931ff2987445ce0c912f29eeab3a61cf4db8faed093c6b1b60"
+    },
+    {
+      "path": "/assets/world/scene-models/starterIslandHouseInterior.glb",
+      "bytes": 597840,
+      "sha256": "390e22acd639a27402c18d75f9d027ba264c6f469922b55fe432407df8f760ed"
+    },
+    {
+      "path": "/assets/world/scene-models/starterIslandHouseRoof.glb",
+      "bytes": 630244,
+      "sha256": "25820ac379e28442557e9c97b80f3b3e4cac2145ff64eac9b7c9630288284d50"
+    },
+    {
+      "path": "/assets/world/scene-models/stonehenge.glb",
+      "bytes": 14120,
+      "sha256": "880bcf2a2788184ccf5ef957630bd67f1ee3c850f7fbc417326b7071dabe529e"
+    },
+    {
+      "path": "/assets/world/scene-models/tomb.glb",
+      "bytes": 224612,
+      "sha256": "fb1c39a957a0c2825a8a3016d8573b96db2b9ec56f12055d9a18c09f1aa24cec"
     },
     {
       "path": "/assets/world/scene-models/town_Chimney_workshop.glb",
@@ -997,9 +1332,19 @@
       "sha256": "6424d59ee86043fcab57070b0c55b89c268005964019c406582d4f44fe0acfdb"
     },
     {
+      "path": "/assets/world/scene-models/woodenhut_wallback.glb",
+      "bytes": 7940,
+      "sha256": "5a4e0459ee77e53c409c7ea09e4d1c2824d3318160fafdaa3437fa4d29875f49"
+    },
+    {
       "path": "/assets/world/scene-models/woodenhut_walls.glb",
       "bytes": 31236,
       "sha256": "3754bf837315b492eee3252f386ac1479b71c4630404482579906bef42a7a8ec"
+    },
+    {
+      "path": "/assets/world/scene-models/woodenpillar.glb",
+      "bytes": 4380,
+      "sha256": "8fc7a93f898e626d84dc9710197d44b1454063645c1d557301f80b18863c029f"
     },
     {
       "path": "/assets/world/terrain/cliff-rpg-v3.png",
@@ -1106,7 +1451,7 @@
     {
       "path": "assets/inventory.json",
       "reason": "No runtime reference (asserted before packaging)",
-      "sha256": "fc4755b09178fbf1771b0108b99bf64b5d86f67a0c8d33ef20044c04dfb5323e"
+      "sha256": "e2f626c787fe91d2c9a4a4d64dbee5ed0b026f6d3f66b99266bf00dc3457a374"
     },
     {
       "path": "assets/world/tiles/nav.bin",

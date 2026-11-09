@@ -1,5 +1,12 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Drive the whole world": "Conduce por todo el mundo",
+  "Sanko Racers opens the whole native world, with Free Drive and a longer World Circuit.": "Sanko Racers abre todo el mundo original, con Conducción libre y un Circuito mundial más largo.",
+  "Hold Space or the Drift button to slide through turns. Race the Guard and Priest, try a time trial, or drive to survive.": "Mantén Espacio o el botón Derrape para deslizarte en las curvas. Corre contra el Guardia y el Sacerdote, prueba una contrarreloj o conduce para sobrevivir.",
+  "Racers menus now use the original pixel fonts, frames and stone buttons. Main-game evolution cards and pet previews use warm brown backgrounds.": "Los menús de Racers usan las fuentes pixeladas, marcos y botones de piedra originales. Las cartas de evolución y vistas de mascotas del juego principal usan fondos marrones cálidos.",
+  "Explore the whole world. Choose Free Drive, races or driving survival.": "Explora todo el mundo. Elige Conducción libre, carreras o supervivencia al volante.",
+  "Free Drive": "Conducción libre",
+  "Go for a drive ›": "Salir a conducir ›",
   "Sanko Racers has a new in-engine menu image showing its three-car lineup at Greentown castle.": "Sanko Racers tiene una nueva imagen de menú capturada dentro del juego, con sus tres coches frente al castillo de Greentown.",
   "Castle Defence": "Defensa del castillo",
   "Defend the castle": "Defiende el castillo",

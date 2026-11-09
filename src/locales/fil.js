@@ -1,5 +1,12 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Drive the whole world": "Magmaneho sa buong mundo",
+  "Sanko Racers opens the whole native world, with Free Drive and a longer World Circuit.": "Bukas na sa Sanko Racers ang buong orihinal na mundo, kasama ang Free Drive at mas mahabang World Circuit.",
+  "Hold Space or the Drift button to slide through turns. Race the Guard and Priest, try a time trial, or drive to survive.": "Pindutin nang matagal ang Space o Drift para dumulas sa mga liko. Makipagkarera sa Guard at Priest, subukan ang time trial, o magmaneho para mabuhay.",
+  "Racers menus now use the original pixel fonts, frames and stone buttons. Main-game evolution cards and pet previews use warm brown backgrounds.": "Gamit na ng mga menu ng Racers ang orihinal na pixel font, frame at mga butong bato. Mainit na kayumanggi ang background ng evolution card at pet preview sa pangunahing laro.",
+  "Explore the whole world. Choose Free Drive, races or driving survival.": "Galugarin ang buong mundo. Pumili ng Free Drive, karera o survival sa pagmamaneho.",
+  "Free Drive": "Malayang pagmamaneho",
+  "Go for a drive ›": "Magmaneho ›",
   "Sanko Racers has a new in-engine menu image showing its three-car lineup at Greentown castle.": "May bagong larawang kuha sa loob ng laro ang Sanko Racers menu, na nagpapakita ng tatlong kotse sa kastilyo ng Greentown.",
   "Castle Defence": "Pagtanggol sa Kastilyo",
   "Defend the castle": "Ipagtanggol ang kastilyo",

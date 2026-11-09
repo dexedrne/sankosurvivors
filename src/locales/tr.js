@@ -1,5 +1,12 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Drive the whole world": "Dünyanın tamamında sür",
+  "Sanko Racers opens the whole native world, with Free Drive and a longer World Circuit.": "Sanko Racers, Serbest Sürüş ve daha uzun Dünya Pisti ile özgün dünyanın tamamını açıyor.",
+  "Hold Space or the Drift button to slide through turns. Race the Guard and Priest, try a time trial, or drive to survive.": "Virajlarda kaymak için Boşluk tuşunu veya Drift düğmesini basılı tut. Muhafız ve Rahip ile yarış, zamana karşı dene veya hayatta kalmak için sür.",
+  "Racers menus now use the original pixel fonts, frames and stone buttons. Main-game evolution cards and pet previews use warm brown backgrounds.": "Racers menüleri artık özgün piksel yazılarını, çerçevelerini ve taş düğmelerini kullanıyor. Ana oyunun evrim kartları ve evcil hayvan önizlemeleri sıcak kahverengi arka planlar kullanıyor.",
+  "Explore the whole world. Choose Free Drive, races or driving survival.": "Dünyanın tamamını keşfet. Serbest Sürüş, yarışlar veya arabayla hayatta kalmayı seç.",
+  "Free Drive": "Serbest Sürüş",
+  "Go for a drive ›": "Sürüşe çık ›",
   "Sanko Racers has a new in-engine menu image showing its three-car lineup at Greentown castle.": "Sanko Racers menüsünde artık Greentown kalesinin önündeki üç aracı gösteren oyun içi bir görsel var.",
   "Castle Defence": "Kale Savunması",
   "Defend the castle": "Kaleyi savun",

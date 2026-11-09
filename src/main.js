@@ -243,7 +243,7 @@ async function chooseRunMode(value) {
 function enterRacers(event) {
   event.preventDefault();
   if (mode !== 'title' || !canManuallyReload() || !progressCanLoad() || coop) { banner('Finish the current action before opening another game.', 3500); return; }
-  cancelPendingLoads(); location.assign('./fun/racers/?mode=survivors');
+  cancelPendingLoads(); location.assign('./fun/racers/?mode=free');
 }
 function updateModePicker() {
   const special = selVariant !== 'normal', fixed = ['boss', 'fun', 'wizard', 'castle'].includes(selVariant);
