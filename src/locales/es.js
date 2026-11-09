@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "An open road in Apache": "Un camino abierto en Apache",
+  "Sanko Racers starts outside Apache’s fenced enclosure, facing the open road. Restart uses the same safe start.": "Sanko Racers empieza fuera del recinto vallado de Apache, mirando al camino abierto. Reiniciar usa el mismo punto seguro.",
   "Drive the whole world": "Conduce por todo el mundo",
   "Sanko Racers opens the whole native world, with Free Drive and a longer World Circuit.": "Sanko Racers abre todo el mundo original, con Conducción libre y un Circuito mundial más largo.",
   "Hold Space or the Drift button to slide through turns. Race the Guard and Priest, try a time trial, or drive to survive.": "Mantén Espacio o el botón Derrape para deslizarte en las curvas. Corre contra el Guardia y el Sacerdote, prueba una contrarreloj o conduce para sobrevivir.",

@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "An open road in Apache": "Bukas na daan sa Apache",
+  "Sanko Racers starts outside Apache’s fenced enclosure, facing the open road. Restart uses the same safe start.": "Nagsisimula ang Sanko Racers sa labas ng bakod sa Apache, nakaharap sa bukas na daan. Sa pag-restart, ligtas na puntong ito rin ang gamit.",
   "Drive the whole world": "Magmaneho sa buong mundo",
   "Sanko Racers opens the whole native world, with Free Drive and a longer World Circuit.": "Bukas na sa Sanko Racers ang buong orihinal na mundo, kasama ang Free Drive at mas mahabang World Circuit.",
   "Hold Space or the Drift button to slide through turns. Race the Guard and Priest, try a time trial, or drive to survive.": "Pindutin nang matagal ang Space o Drift para dumulas sa mga liko. Makipagkarera sa Guard at Priest, subukan ang time trial, o magmaneho para mabuhay.",

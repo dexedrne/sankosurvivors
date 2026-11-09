@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "An open road in Apache": "Apache’de açık yol",
+  "Sanko Racers starts outside Apache’s fenced enclosure, facing the open road. Restart uses the same safe start.": "Sanko Racers artık Apache’nin çitli alanının dışında, açık yola dönük başlıyor. Yeniden başlatma da aynı güvenli noktayı kullanır.",
   "Drive the whole world": "Dünyanın tamamında sür",
   "Sanko Racers opens the whole native world, with Free Drive and a longer World Circuit.": "Sanko Racers, Serbest Sürüş ve daha uzun Dünya Pisti ile özgün dünyanın tamamını açıyor.",
   "Hold Space or the Drift button to slide through turns. Race the Guard and Priest, try a time trial, or drive to survive.": "Virajlarda kaymak için Boşluk tuşunu veya Drift düğmesini basılı tut. Muhafız ve Rahip ile yarış, zamana karşı dene veya hayatta kalmak için sür.",
