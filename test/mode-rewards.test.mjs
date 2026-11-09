@@ -18,10 +18,10 @@ test('Boss Trials cannot award durable GP, gear, quests, records, clears or cont
   assert.equal(receipt.personalBest, null); assert.equal(receipt.newPersonalBest, false); assert.equal(canContinueCasual(s), false);
 });
 
-for (const variant of ['raid', 'fun']) test(`${variant} journals only earned GP and ordinary loot without campaign progress`, () => {
+for (const variant of ['raid', 'fun', 'wizard']) test(`${variant} journals only earned GP and ordinary loot without campaign progress`, () => {
   const s = finished(variant), db = storage();
   const earned = phaseCoins(s, { won: true });
-  assert.equal(earned, 2 + 6 + 7 + (variant === 'fun' ? Math.floor((1500 - s.map.length) / 10) : 0));
+  assert.equal(earned, 2 + 6 + 7 + (['fun', 'wizard'].includes(variant) ? Math.floor((1500 - s.map.length) / 10) : 0));
   const receipt = prepareRunRewards(db, s, { earned });
   assert.deepEqual(Object.keys(receipt.data).sort(), ['sq-bank', 'sq-coins']);
   assert.equal(Number(receipt.data['sq-coins']), 100 + earned + 25);

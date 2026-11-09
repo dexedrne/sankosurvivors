@@ -5,10 +5,10 @@ import {createSim,spawnEnemy,step,TICK} from '../src/sim.js';
 import {SKILLS} from '../src/content.js';
 import {translateText} from '../src/i18n.js';
 const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
-function readout(meta={},gear={},forced=false) {
+function readout(meta={},gear={},forced=false,variant='normal') {
   const start=source.indexOf('function progressionText('),end=source.indexOf('function buildSkills(',start);
   assert(start>=0&&end>start,'shared progression readout exists');
-  return Function('createSim','getSkills','getGear','runAdv','selAdv','PLAYER',`${source.slice(start,end)};return progressionText(getSkills(),getGear());`)(createSim,()=>meta,()=>gear,()=>({id:forced?'sankson':'adventurer'}),'adventurer','p1');
+  return Function('createSim','getSkills','getGear','runAdv','selAdv','PLAYER','selVariant',`${source.slice(start,end)};return progressionText(getSkills(),getGear());`)(createSim,()=>meta,()=>gear,()=>({id:forced?'sankson':'adventurer'}),'adventurer','p1',variant);
 }
 test('new progression has no extra pressure; utility ranks disclose their real cost',()=>{
   assert.equal(readout(),'Casual scaling: enemy HP/contact damage +0%; base spawn pressure +0%.');
@@ -19,6 +19,7 @@ test('starting gear counts twice and a forced adventurer ignores the saved gear 
   const meta=Object.freeze({coins:5}),gear=Object.freeze({head:'Bronze Helmet',feet:'Bronze Boots'});
   assert.equal(readout(meta,gear),'Casual scaling: enemy HP/contact damage +13.5%; base spawn pressure +7.425%.');
   assert.equal(readout(meta,gear,true),readout(meta));
+  assert.equal(readout(meta,gear,true,'wizard'),readout(meta,gear),'the cosmetic elder role retains saved gear pressure');
   assert.deepEqual(meta,{coins:5});assert.deepEqual(gear,{head:'Bronze Helmet',feet:'Bronze Boots'});
 });
 test('the current cap and corrupt stored skills follow the simulation clamp',()=>{

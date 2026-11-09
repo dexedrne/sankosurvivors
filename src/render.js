@@ -1,3 +1,4 @@
+import { WISE_OLD_MAN } from './game-modes.js';
 import { frameTitleCamera } from './title-framing.js';
 import { createMeleeVfx } from './melee-vfx.js';
 import { createStormEffects } from './storm-effects.js';
@@ -676,7 +677,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     [/wizard/i, FOLK_LOOKS[5]],
     [/priest/i, { hair: 'Short', hairColor: 0xcfcfcf, skin: 0xe2c4af, shirt: 0xe8e0d0, pants: 0x3a3530, armor: {} }], // pale vestments
     [/cemetary|cemetery|grave/i, { hair: 'Shaggy', hairColor: 0x4a3a2a, skin: 0xc9a07a, shirt: 0x4b4238, pants: 0x2e2a26, armor: { head: 'Straw Hat' } }], // gravediggers
-    [/elder/i, { hair: 'Long', hairColor: 0xe6e6e6, skin: 0xd9b48f, shirt: 0x6b5a45, pants: 0x4a4033, armor: {} }],
+    [/elder/i, WISE_OLD_MAN.look],
     [/guard/i, FOLK_LOOKS[4]],
   ];
   // Apache Village: Sanko's own Buns stand at the first five spots, in the game's order (live capture 2 Nov:
@@ -1769,7 +1770,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (a && a.adv !== p.adv) { disposeActor(a.root, a.mixer); playerActors.delete(p.id); a = null; } // picked someone else on the title screen
       if (!a) {
         let inst = null;
-        if (kit) { try { const look = (ADVENTURER_BY_ID[p.adv] || ADVENTURER_BY_ID.adventurer).look; const k = kit.build({ ...look, h: 1.6 }); /* SankoQuest's people stand ~1.6 (skeletons, the same size, measure 1.51 in the live game) */ inst = { root: k.root, inner: k.master, mixer: k.mixer, kit: k, armorLvl: 0, baseArmor: look.armor || {} }; } catch (e) { console.warn('player rig failed', e); } }
+        if (kit) { try { const look = (view.variant === 'wizard' && p.adv === WISE_OLD_MAN.id ? WISE_OLD_MAN : ADVENTURER_BY_ID[p.adv] || ADVENTURER_BY_ID.adventurer).look; const k = kit.build({ ...look, h: 1.6 }); /* SankoQuest's people stand ~1.6 (skeletons, the same size, measure 1.51 in the live game) */ inst = { root: k.root, inner: k.master, mixer: k.mixer, kit: k, armorLvl: 0, baseArmor: look.armor || {} }; } catch (e) { console.warn('player rig failed', e); } }
         if (!inst) inst = playerProto ? instantiate(playerProto) : makeEnemy('goblin');
         const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: SLOT_COLORS[p.slot % 4], side: THREE.DoubleSide }));
         ownActorResource(ring.geometry); ownActorResource(ring.material);
@@ -1815,7 +1816,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         // worn: the adventurer's own look, then the armor passive's tier, then the gear you really wear (from caskets and the
         // bank) on top, so a casket's straw hat shows instead of hiding under the passive's helmet
         const worn = {}, wornNames = []; for (const [k, n] of Object.entries(p.gear || {})) if (isClothing(n)) { worn[k] = clothFile(n); wornNames.push(n); } // the shield goes in the hand, below
-        const want = { ...a.baseArmor, ...armorSet(lvl), ...worn }, gsig = JSON.stringify(want);
+        // Keep the elder's plain clothes while equipped gear still grants its combat bonuses.
+        const want = view.variant === 'wizard' && p.adv === WISE_OLD_MAN.id ? {} : { ...a.baseArmor, ...armorSet(lvl), ...worn }, gsig = JSON.stringify(want);
         if (gsig !== a.gearSig) {
           const missing = wornNames.filter((n) => !kit.isLoaded(clothPath(n)));
           if (!missing.length) { a.gearSig = gsig; a.kit.setArmor(want); }

@@ -10,7 +10,7 @@ import { MERCHANT, merchantEligible, merchantStock } from './merchant.js';
 import { phaseCoins, continuationBaseline } from './casual-continuation.js';
 import { groundHash } from './ground-pack.js';
 import { extraStorms, stormView } from './weather.js';
-import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION, RAID_WAVES } from './game-modes.js';
+import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION, RAID_WAVES, WISE_OLD_MAN } from './game-modes.js';
 
 export const TICK = 1 / 30;
 export const WORLD = { cx: 365, cz: 300, radius: 70 }; // default (Greentown); each map in content.js has its own centre/radius
@@ -56,9 +56,13 @@ function oasisGround(ground) {
 export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, coop = false, variant = 'normal', trialBoss = 'giant' } = {}) {
   if (!Object.hasOwn(VARIANTS, variant) || !TRIAL_BOSSES.includes(trialBoss)) throw Error('Unknown game mode or trial boss.');
   if (variant !== 'normal') {
-    if (ranked || pace !== 2 || hard || endAt || endless && variant !== 'fun' || !MAPS.some(m => m.id === map.id)
+    if (ranked || pace !== 2 || hard || endAt || endless && !['fun', 'wizard'].includes(variant) || !MAPS.some(m => m.id === map.id)
       || !players.length || !coop && players.length !== 1) throw Error('Special modes require a casual pace2 run.');
     if (variant === 'fun') { if (map.id !== 'oasis') throw Error('Slimer Invasion requires Hidden Oasis.'); endless = true; }
+    if (variant === 'wizard') {
+      if (coop || map.id !== 'greentown') throw Error('Wizard Invasion requires solo Greentown.');
+      endless = true; players = players.map(p => ({ ...p, adv: WISE_OLD_MAN.id, weapon: WISE_OLD_MAN.weapon }));
+    }
     if (variant === 'boss') { meta = {}; players = players.map(p => ({ id: p.id, name: p.name, adv: BOSS_KIT.adv })); }
   }
   if (coop && (ranked || pace !== 2 || players.length !== 2)) throw Error('Co-op requires two casual pace2 players.');
@@ -90,7 +94,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
   if (variant !== 'normal') {
     sim.variant = variant;
     if (variant === 'boss') sim.trialBoss = trialBoss;
-    else Object.assign(sim, { wave: 0, nextWave: variant === 'raid' ? RAID_WAVES[0] : 240 });
+    else Object.assign(sim, { wave: 0, nextWave: variant === 'wizard' ? null : variant === 'raid' ? RAID_WAVES[0] : 240 });
   }
   players.forEach((p, i) => {
     const a = (i / Math.max(players.length, 1)) * Math.PI * 2;
@@ -462,7 +466,7 @@ export function spawnEnemy(sim, type, x, z, scaleHp = 1) {
     // monsters speed up as the run goes on, but only by a fifth (reached at 5:00): the fastest (fox, dog, wolf) stay just
     // under your own base speed, so you can always outrun a chase (it was +45%, and from 4:30 foxes outran you)
     speed: def.speed * 0.95 * (1 + Math.min(0.2, t / 1500)) * (elite ? 0.9 : 1), elite,
-    atkCd: def.boss ? 3 + sim.rng() * 2 : 0, charge: null,
+    atkCd: sim.variant === 'wizard' ? 1.5 + sim.rng() * 2 : def.boss ? 3 + sim.rng() * 2 : 0, charge: null,
   });
 }
 
@@ -530,15 +534,15 @@ function spawnTick(sim, dt) {
   const curse = sim.pace >= 2 && !sim.ranked ? sim.players.reduce((a, p) => (p.alive ? Math.max(a, passiveLevel(p, 'curse')) : a), 0) : 0; sim.curse = curse;
   const base = sim.pace >= 2 ? 125 + 70 * (sim.spawnCount - 1) + 150 * progress : 75 + 70 * (sim.spawnCount - 1) + 155 * progress * progress;
   // cursed, the crowd fills up sooner but never past the late-game crowd (every monster is its own draw: phones)
-  const cap = curse ? Math.min(base * (1 + CURSE.cap * curse), 125 + 70 * (sim.spawnCount - 1) + 150) : base;
+  const cap = sim.variant === 'wizard' ? 28 : curse ? Math.min(base * (1 + CURSE.cap * curse), 125 + 70 * (sim.spawnCount - 1) + 150) : base;
   const rate = (1 + CURSE.rate * curse) * ((sim.pace >= 2 ? (1.15 + 6.0 * progress + 3.0 * progress * progress) * (1 + 0.55 * (sim.vet - 1)) : 1.05 + 1.6 * progress + 6.4 * progress * progress) + Math.max(0, t - M.length) / 92)
     * (0.7 + 0.45 * sim.spawnCount) * (sim.hard ? 1.35 : 1); // enemies per second
-  sim.spawnAcc += rate * dt;
+  sim.spawnAcc += (sim.variant === 'wizard' ? (0.55 + Math.min(1.1, t / 240)) * (1 + 0.55 * (sim.vet - 1)) * (1 + CURSE.rate * curse) : rate) * dt;
   if (sim.event && sim.event.kind === 'duel') sim.spawnAcc = Math.min(sim.spawnAcc, 0.5); // the crowd holds back while you duel
   // on the whole-world map, the monsters come from the region you are standing in
   const R = M.world ? regionOf(sim, sim.players.find((p) => p.alive) || sim.players[0]) : M;
   if (M.world && R.id !== sim.region) { sim.region = R.id; sim.fx.push({ k: 'region', id: R.id }); }
-  const pool = sim.variant === 'fun' ? [{ type: 'slimer', w: 4 }, ...(t >= 200 ? [{ type: 'mslimer', w: 3 }] : [])] : R.pool.filter((s) => spawnReady(sim, s) && !(R.retire && R.retire[s.type] && t >= R.retire[s.type]));
+  const pool = sim.variant === 'wizard' ? [{ type: 'shapewiz', w: 4 }, ...(t >= 120 ? [{ type: 'starwiz', w: 2 }] : [])] : sim.variant === 'fun' ? [{ type: 'slimer', w: 4 }, ...(t >= 200 ? [{ type: 'mslimer', w: 3 }] : [])] : R.pool.filter((s) => spawnReady(sim, s) && !(R.retire && R.retire[s.type] && t >= R.retire[s.type]));
   const total = pool.reduce((a, s) => a + s.w, 0);
   while (sim.spawnAcc >= 1 && sim.enemies.length < cap) {
     sim.spawnAcc -= 1;
@@ -563,7 +567,7 @@ function spawnSpot(sim, anchor) {
     let x = anchor.x + (ahead ? dsin(a) : dcos(a)) * d, z = anchor.z + (ahead ? dcos(a) : dsin(a)) * d;
     const off = hyp(x - M.cx, z - M.cz);
     if (off > M.r) { x = M.cx + (x - M.cx) * (M.r / off); z = M.cz + (z - M.cz) * (M.r / off); }
-    if (walkable(sim, x, z) && flowAt(sim, x, z) !== -2) return [x, z];
+    if (walkable(sim, x, z) && flowAt(sim, x, z) !== -2 && (sim.variant !== 'wizard' || sim.players.every(p => !p.alive || hyp(p.x - x, p.z - z) >= 12))) return [x, z];
   }
   return null;
 }
@@ -1265,6 +1269,29 @@ function bossAct(sim, e, def, tp, d, dx, dz, dt) {
   }
   return null;
 }
+// Wizard-only pressure: short aimed volleys, finite lifetime and a shared shot budget.
+function wizardAct(sim, e, tp, d, dx, dz, dt) {
+  if (e.charge) {
+    e.charge.wind -= dt;
+    if (e.charge.wind <= 0) {
+      const base = e.charge.aim, n = e.type === 'starwiz' ? 3 : 1;
+      for (let i = 0; i < n && sim.eproj.length < 40; i++) {
+        const a = base + (i - (n - 1) / 2) * 0.24;
+        sim.eproj.push({ id: sim.nextId++, x: e.x, z: e.z, vx: dsin(a) * 7, vz: dcos(a) * 7, r: 0.35, dmg: 8, life: 4, art: e.type === 'starwiz' ? 'ice' : 'fire' });
+      }
+      sim.fx.push({ k: 'volley', x: e.x, z: e.z });
+      e.charge = null; e.atkCd = 3.5 + sim.rng() * 2;
+    }
+    return true;
+  }
+  e.atkCd -= dt;
+  if (e.atkCd <= 0 && d >= 4 && d <= 22 && sim.eproj.length < 40 && clearPath(sim, e.x, e.z, tp.x, tp.z)) {
+    e.charge = { wind: 0.7, aim: datan2(dx, dz) };
+    sim.fx.push({ k: 'aim', id: e.id, x: e.x, z: e.z, a: e.charge.aim, len: d, t: 0.7 });
+    return true;
+  }
+  return d >= 8 && d <= 16 && clearPath(sim, e.x, e.z, tp.x, tp.z);
+}
 function stepBossAttacks(sim, dt) {
   for (const h of sim.hazards) {
     h.t -= dt;
@@ -1275,6 +1302,7 @@ function stepBossAttacks(sim, dt) {
   }
   sim.hazards = sim.hazards.filter((h) => !h.done);
   for (const b of sim.eproj) {
+    if (sim.variant === 'wizard' && !clearPath(sim, b.x, b.z, b.x + b.vx * dt, b.z + b.vz * dt)) { b.dead = true; continue; }
     b.x += b.vx * dt; b.z += b.vz * dt; b.life -= dt;
     if (b.life <= 0 || !walkable(sim, b.x, b.z) && sim.ground && hyp(b.vx, b.vz) > 0) { b.dead = true; continue; }
     for (const p of sim.players) if (p.alive && p.inv <= 0 && hyp(p.x - b.x, p.z - b.z) < b.r + PLAYER_BASE.radius) { hurtPlayer(sim, p, Math.max(1, b.dmg - playerStats(p).armor), 'volley'); b.dead = true; break; }
@@ -1360,6 +1388,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       if (d > 2.5 || blockedSteering) { const fd = flowDir(sim, e.x, e.z); if (fd) { mx = fd[0] * e.speed; mz = fd[1] * e.speed; } }
       let bossMove = false;
       if (def.boss) { const m = bossAct(sim, e, def, tp, d, dx, dz, dt); if (m) { mx = m[0]; mz = m[1]; bossMove = true; } }
+      if (sim.variant === 'wizard' && wizardAct(sim, e, tp, d, dx, dz, dt)) { mx = mz = 0; }
       if (e.treasure) { mx = -(dx / d) * e.speed; mz = -(dz / d) * e.speed; } // it runs from you
       if (sim.pace >= 2 && sim.tick <= 7200) { mx *= 1.05; mz *= 1.05; } // first four minutes at 30 Hz; no permanent spawn-speed change
       // soft separation

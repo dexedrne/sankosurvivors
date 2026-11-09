@@ -3,7 +3,7 @@ import { armouryQuote, prepareArmoury } from './armoury.js';
 import { createCoopClient } from './coop-client.js';
 import { predictedView } from './coop-view.js';
 import { groundHash } from './ground-pack.js';
-import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION } from './game-modes.js';
+import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION, WISE_OLD_MAN } from './game-modes.js';
 import { RunRecorder, RANKED, pauseRemaining, rankedPoints, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { clockPolicy } from './ranked-clock.js';
@@ -119,7 +119,7 @@ const autoEquipOn = () => load('sq-autoequip', false) === true; // Device prefer
 const unlockedMap = (i) => params.has('unlock') || i === 0 || !!MAPS[i].special || clearedMaps().has(MAPS[i].after || MAPS[i - 1].id);
 const unlockedAdv = (a) => params.has('unlock') || a.unlock <= clearedMaps().size;
 // some maps fix who you play (Tutorial Island: Alex)
-const runAdv = () => ADVENTURER_BY_ID[selVariant === 'boss' ? BOSS_KIT.adv : (MAP_BY_ID[selMap] && MAP_BY_ID[selMap].forceAdv) || selAdv];
+const runAdv = () => selVariant === 'wizard' ? WISE_OLD_MAN : ADVENTURER_BY_ID[selVariant === 'boss' ? BOSS_KIT.adv : (MAP_BY_ID[selMap] && MAP_BY_ID[selMap].forceAdv) || selAdv];
 
 // ---- icons: real SankoQuest item icons -----------------------------------------------------------------
 const EMOJI = { curse: '🎃', baseball: '⚾', lighter: '🔥', area: '🧥', amount: '🪶', crit: '🍄', thorns: '🦂', greed: '🗝️', greatsword: '⚔️', shortsword: '🗡️', katana: '🗡️', axe: '🪓', pickaxe: '⛏️', shield: '🛡️', bow: '🏹', staff: '🪄', might: '💪', haste: '💨', vigor: '❤️', boots: '👢', magnet: '🧲', armor: '🛡️', growth: '📖', fish: '🐟' };
@@ -206,6 +206,7 @@ const MODE_INFO = {
   normal: 'Campaign maps, gear and permanent progress.',
   boss: 'Fixed Ranger kit. Defeat one boss and retry. Practice only: no GP, gear or campaign progress.',
   raid: 'Survive 25 minutes. Boss waves grow to three living bosses. Earn GP and gear; campaign progress and normal leaderboards stay separate.',
+  wizard: 'Solo only. Play as the Wise Old Man with Spells against enemy wizards in Greentown. Dodge their projectiles. Endless survival earns GP and gear; campaign progress and normal leaderboards stay separate.',
   fun: 'Slimer invasion in the underground factory. Endless survival with native Slimers and Mutant Slimers. Earn GP and gear; campaign progress and normal leaderboards stay separate.',
 };
 const MODE_GROUPS = {
@@ -223,7 +224,7 @@ function showModeCategory(category) {
 }
 function openModeMenu(category) {
   if (mode !== 'title' || !canManuallyReload() || !progressCanLoad() || coop) return;
-  showModeCategory(category || (selVariant === 'normal' ? 'normal' : selVariant === 'fun' ? 'fun' : 'challenge'));
+  showModeCategory(category || (selVariant === 'normal' ? 'normal' : ['fun', 'wizard'].includes(selVariant) ? 'fun' : 'challenge'));
   updateModePicker(); $('modemenustatus').textContent = '';
   $('modemenu').classList.remove('hidden');
   navFocus([...$('runvariant').children].find(b => !b.classList.contains('hidden') && b.dataset.variant === selVariant) || $('modecategories').querySelector('[aria-pressed="true"]'));
@@ -244,7 +245,7 @@ function enterRacers(event) {
   cancelPendingLoads(); location.assign('./fun/racers/?mode=survivors');
 }
 function updateModePicker() {
-  const special = selVariant !== 'normal', fixed = selVariant === 'boss' || selVariant === 'fun';
+  const special = selVariant !== 'normal', fixed = ['boss', 'fun', 'wizard'].includes(selVariant);
   for (const button of $('runvariant').children) { const on = button.dataset.variant === selVariant; button.setAttribute('aria-pressed', String(on)); button.classList.toggle('on', on); button.disabled = mapLoading || runStarting || !!coop; }
   $('trialpick').classList.toggle('hidden', selVariant !== 'boss');
   $('trialboss').disabled = mapLoading || runStarting || !!coop;
@@ -252,21 +253,22 @@ function updateModePicker() {
   $('mappick').classList.toggle('hidden', fixed);
   $('mapinfo').classList.toggle('hidden', special);
   $('modes').classList.toggle('hidden', special); $('best').classList.toggle('hidden', special);
-  $('apick').classList.toggle('hidden', selVariant === 'boss');
+  $('apick').classList.toggle('hidden', selVariant === 'boss' || selVariant === 'wizard');
   $('variantinfo').textContent = special ? MODE_INFO[selVariant] : '';
-  const names = { normal:'Adventure', boss:'Boss Trials', raid:'Survival Raid', fun:'Slimer Invasion' };
+  const names = { normal:'Adventure', boss:'Boss Trials', raid:'Survival Raid', fun:'Slimer Invasion', wizard:'Wizard Invasion' };
   $('modename').textContent = names[selVariant];
-  $('modecaption').textContent = special ? selVariant === 'fun' ? 'Fun' : 'Boss & Raid' : 'Game mode';
+  $('modecaption').textContent = special ? ['fun', 'wizard'].includes(selVariant) ? 'Fun' : 'Boss & Raid' : 'Game mode';
   $('modebtn').disabled = mapLoading || runStarting || !!coop;
   $('funfeature').classList.toggle('hidden', selVariant !== 'fun');
-  $('start').textContent = { normal:'Enter the field', boss:'Challenge the boss', raid:'Enter the raid', fun:'Start the invasion' }[selVariant];
+  $('start').textContent = { normal:'Enter the field', boss:'Challenge the boss', raid:'Enter the raid', fun:'Start the invasion', wizard:'Start the invasion' }[selVariant];
+  if (selVariant === 'wizard') { $('adventurerlabel').textContent = WISE_OLD_MAN.name; $('ainfo').textContent = 'Wise Old Man · Spells · Solo only'; }
   if (selVariant === 'boss') { $('adventurerlabel').textContent = ADVENTURER_BY_ID[BOSS_KIT.adv].name; $('ainfo').textContent = BOSS_KIT.label; }
 }
 async function selectVariant(value) {
   if (mode !== 'title' || !Object.hasOwn(VARIANTS, value) || mapLoading || runStarting || coop) return;
   if (selVariant === 'normal' || selVariant === 'raid') fieldMap = selMap;
   selVariant = value; hardOn = endlessOn = false; $('hard').checked = $('endless').checked = false;
-  const map = value === 'fun' ? 'oasis' : value === 'boss' ? 'greentown' : fieldMap;
+  const map = value === 'fun' ? 'oasis' : ['boss', 'wizard'].includes(value) ? 'greentown' : fieldMap;
   $('start').disabled = true;
   try { await pickMap(map, false); }
   catch { banner('Could not load the world. Try the mode again.', 3500); }
@@ -512,6 +514,7 @@ async function startRankedEntry(entry) {
     const adv = $('rankedadv').value;
     rankedMessage('Loading this week’s map…');
     if (mapLoading) throw new Error('The map is still loading. Try again in a moment.');
+    selVariant = 'normal';
     await pickMap(rankedWeek.map);
     rankedMessage('Starting your ranked run…');
     const d = await rankedApi(BASE, 'start', { entry: entry.entry, adv, sim: SIM_ID, build:BUILD, deadline });
@@ -587,7 +590,7 @@ $('rankedretry').onclick = submitRanked;
 
 // ---- skills shop ----------------------------------------------------------------------------------------------------
 function progressionText(meta, gear) {
-  const { vet } = createSim({ meta, players: [{ id: PLAYER, gear: runAdv().id !== selAdv ? {} : gear }] });
+  const { vet } = createSim({ meta, players: [{ id: PLAYER, gear: selVariant !== 'wizard' && runAdv().id !== selAdv ? {} : gear }] });
   const strength = Math.round((vet - 1) * 100000) / 1000;
   const spawns = Math.round(strength * 0.55 * 1000) / 1000;
   return `Casual scaling: enemy HP/contact damage +${strength}%; base spawn pressure +${spawns}%.`;
@@ -1427,7 +1430,7 @@ function titleNameEditing() {
 function syncTitleProgress() {
   titleProgressPending = false;
   fieldMap = savedChoice('sq-map', MAP_BY_ID, 'greentown');
-  selMap = selVariant === 'fun' ? 'oasis' : selVariant === 'boss' ? 'greentown' : fieldMap;
+  selMap = selVariant === 'fun' ? 'oasis' : ['boss', 'wizard'].includes(selVariant) ? 'greentown' : fieldMap;
   selAdv = savedChoice('sq-adv', ADVENTURER_BY_ID, 'adventurer');
   syncTitleNames();
   buildAdventurers(); buildMaps(); showBest(); window.__idleSim = null;
@@ -1696,6 +1699,7 @@ function coopLoadout() {
   return { name:$('coopname').value.trim().slice(0,16) || 'Adventurer', adv:selAdv, meta:getSkills(), gear, gearLv:Object.fromEntries(Object.values(gear).filter(n => levels[n]).map(n => [n,levels[n]])), cleared:[...clearedMaps()].filter(id => Object.hasOwn(MAP_BY_ID,id)) };
 }
 function openCoop() {
+  if (selVariant === 'wizard') { banner('Wizard Invasion is solo only. Choose another mode for co-op.', 3500); return; }
   if (mode !== 'title' || !canManuallyReload() || !progressCanLoad() || readRanked('sq-ranked-payment') || readRanked('sq-ranked-submit')) { banner('Finish the current action before joining co-op.', 3500); return; }
   cancelPendingLoads(); mode = 'coop'; coopHomeMap = selMap; coopResult = null; lastRun = null;
   $('more').classList.add('hidden'); $('coop').classList.remove('hidden'); $('coopform').classList.remove('hidden'); $('cooproom').classList.add('hidden');
@@ -1785,6 +1789,7 @@ async function startRun(live = null) {
   if (!live?.run && (rankedLive() || rankedPlaying())) { openRanked(); return; }
   const isRanked = !!live?.run;
   if (isRanked && live.sim !== SIM_ID) return;
+  if (isRanked) selVariant = 'normal';
   if (!isRanked && titleProgressPending) syncTitleProgress();
   cancelPendingLoads(); runStarting = true;
   try {
@@ -1799,7 +1804,7 @@ async function startRun(live = null) {
     if (mode === 'recovery') return;
     audio.music(map.music); audio.init().catch(() => {});
     const seed = Number(params.get('seed')) || (Math.random() * 1e9) | 0;
-    const adv = runAdv(), forced = adv.id !== selAdv;
+    const adv = runAdv(), forced = selVariant !== 'wizard' && adv.id !== selAdv;
     const gear = isRanked || forced ? {} : getGear();
     await renderer.preloadGear(Object.values(gear));
     if (mode === 'recovery') return;
@@ -2410,7 +2415,7 @@ function updateHud(view) {
   updateBeerHud();
   updateReviveHud();
   $('modeprogress').classList.toggle('hidden', !sim.variant);
-  if (sim.variant) $('modeprogress').innerHTML = `<span>${VARIANTS[sim.variant].name}</span>` + (sim.wave != null ? ` · <span>Wave</span> ${sim.wave}${sim.nextWave ? ` · <span>Next wave</span> ${fmtT(Math.max(0, sim.nextWave - sim.t))}` : ''}` : ` · <span>${ENEMIES[sim.trialBoss].name}</span>`);
+  if (sim.variant) $('modeprogress').innerHTML = `<span>${VARIANTS[sim.variant].name}</span>` + (sim.variant === 'wizard' ? '' : sim.wave != null ? ` · <span>Wave</span> ${sim.wave}${sim.nextWave ? ` · <span>Next wave</span> ${fmtT(Math.max(0, sim.nextWave - sim.t))}` : ''}` : ` · <span>${ENEMIES[sim.trialBoss].name}</span>`);
   updateDamageHud();
   $('hpfill').style.width = Math.min(100, Math.max(0, (me.hp / me.mhp) * 100)) + '%';
   $('hptext').textContent = `${me.hp} / ${me.mhp}`;
@@ -2635,7 +2640,7 @@ function loop(ts) {
         lastMenuDrawn = ts;
         if (!window.__idleSim) {
           const T = renderer.terrain;
-          window.__idleSim = createSim({ seed: 1, map: MAP_BY_ID[selMap], ground: T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null } : null, players: [{ id: PLAYER, name: 'You', adv: runAdv().id, gear: runAdv().id !== selAdv ? {} : getGear() }] });
+          window.__idleSim = createSim({ seed: 1, ...(selVariant === 'wizard' ? { variant: 'wizard' } : {}), map: MAP_BY_ID[selMap], ground: T ? { n: T.cell ? T.cells : T.n, blocked: T.blocked, cell: !!T.cell, water: T.water || null, walls: T.walls || null } : null, players: [{ id: PLAYER, name: 'You', adv: runAdv().id, gear: selVariant !== 'wizard' && runAdv().id !== selAdv ? {} : getGear() }] });
           const previewSpots = { greentown: [378.5, 270.5], apache: [202.5, 85.5], world: [378.5, 270.5] };
           if (Object.hasOwn(previewSpots, selMap)) { const p = window.__idleSim.players[0]; [p.x, p.z] = findWalkable(window.__idleSim, ...previewSpots[selMap]); } // title only; Whole World is south of Greentown's bank
         }

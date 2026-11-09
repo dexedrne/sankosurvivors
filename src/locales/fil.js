@@ -1,5 +1,18 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.": "Fun → Pagsalakay ng mga Salamangkero: gumanap bilang Wise Old Man sa walang katapusang labanan ng mahika sa Greentown.",
+  "Enemy wizards aim before firing. Dodge single bolts and later spread shots; your skills and gear bonuses still apply.": "Tumututok muna ang mga kalabang salamangkero bago bumaril. Iwasan ang mga tira at mga susunod na kalat na putok; nananatili ang bonus ng skills at gamit mo.",
+  "Wizard Invasion is solo and has separate results. Earn GP and gear without normal leaderboard entries or campaign clears.": "Pang-isahan ang Wizard Invasion at hiwalay ang resulta nito. Kumita ng GP at gamit nang walang normal na leaderboard entry o campaign clear.",
+
+  "Wizard Invasion": "Pagsalakay ng mga Mago",
+  "Wise Old Man": "Matalinong Matanda",
+  "Solo only": "Solo lang",
+  "Wise Old Man · Spells · Solo only": "Matalinong Matanda · Mga Mahika · Solo lang",
+  "Play as the Wise Old Man. Dodge wizard projectiles in an endless Greentown invasion.": "Maglaro bilang Matalinong Matanda. Iwasan ang mga tira ng mago sa walang katapusang pagsalakay sa Greentown.",
+  "Choose Wizard Invasion ›": "Piliin ang Pagsalakay ng mga Mago ›",
+  "Solo only. Play as the Wise Old Man with Spells against enemy wizards in Greentown. Dodge their projectiles. Endless survival earns GP and gear; campaign progress and normal leaderboards stay separate.": "Solo lang. Maglaro bilang Matalinong Matanda na may Mga Mahika laban sa mga mago sa Greentown. Iwasan ang mga tira nila. Kumita ng GP at kagamitan sa walang katapusang laban; hiwalay ang progreso ng kampanya at normal na mga leaderboard.",
+  "Wizard Invasion is solo only. Choose another mode for co-op.": "Solo lang ang Pagsalakay ng mga Mago. Pumili ng ibang mode para sa co-op.",
+
   "Race the Guard and Priest": "Makipagkarera sa Guard at Priest",
   "Sanko Racers has an NPC race: a shared countdown, ten gates, live positions and honest finish times.": "May NPC race na sa Sanko Racers: sabay na countdown, sampung gate, kasalukuyang puwesto at tunay na oras ng pagtatapos.",
   "The Guard and Priest drive the same roads and obey solid walls. Their cars do not block yours. Choose NPC race inside Fun → Sanko Racers.": "Sa parehong mga kalsada nagmamaneho ang Guard at Priest at hindi sila dumadaan sa solidong pader. Hindi haharang ang mga kotse nila. Piliin ang NPC race sa Fun → Sanko Racers.",

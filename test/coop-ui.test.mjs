@@ -30,7 +30,7 @@ test('public lobby loadout sends only worn reinforcement levels and known cleare
 });
 test('lobby entry refuses active play, recovery, pending payments and an outstanding wallet operation',()=>{
  for(const [mode,canReload,pending]of[['play',true,false],['recovery',true,false],['title',false,false],['title',true,true]]){
-  const notes=[],open=Function('mode','canManuallyReload','readRanked','banner','progressCanLoad',source('function openCoop()', "$('coopbtn').onclick")+';return openCoop;')(mode,()=>canReload,()=>pending?{}:null,(...a)=>notes.push(a),()=>true);assert.doesNotThrow(()=>open());assert.equal(notes.length,1);
+  const notes=[],open=Function('mode','canManuallyReload','readRanked','banner','progressCanLoad','selVariant',source('function openCoop()', "$('coopbtn').onclick")+';return openCoop;')(mode,()=>canReload,()=>pending?{}:null,(...a)=>notes.push(a),()=>true,'normal');assert.doesNotThrow(()=>open());assert.equal(notes.length,1);
  }
 });
 test('actual co-op render loop never advances a second clock in play or a local pause menu',async()=>{
@@ -52,14 +52,14 @@ test('joining another map keeps the selected ordinary adventurer until the room 
 });
 
 test('a cancelled world load must settle before another co-op lobby can start',()=>{
- const notes=[],open=Function('canManuallyReload','progressCanLoad','readRanked','banner',`const mode='title';${source('function openCoop()', "$('coopbtn').onclick")};return openCoop;`)(()=>true,()=>false,()=>null,text=>notes.push(text));assert.doesNotThrow(()=>open());assert.equal(notes.length,1);
+ const notes=[],open=Function('canManuallyReload','progressCanLoad','readRanked','banner',`const mode='title',selVariant='normal';${source('function openCoop()', "$('coopbtn').onclick")};return openCoop;`)(()=>true,()=>false,()=>null,text=>notes.push(text));assert.doesNotThrow(()=>open());assert.equal(notes.length,1);
 });
 
 
 test('cancelled gear preload keeps new lobby and solo admission blocked until restoration settles',async()=>{
  const nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{value:'',disabled:false,textContent:'',classList:{add(){},remove(){},toggle(){}},focus(){}});return nodes.get(id);};
  let release;const gear=new Promise(r=>release=r),clients=[],maps=[],notes=[];
- const f=Function('$','gear','clients','maps','notes',`let mode='title',coop=null,coopHomeMap=null,coopLoading=false,coopResult=null,lastRun=null,selMap='greentown',loadedMapId='greentown',runStarting=false,mapLoading=false;const coopRelay='ws://127.0.0.1/coop',BUILD='fixture',SIM_ID='fixture',renderer={preloadGear:()=>gear};const rankedBusy=false,rankedLive=()=>false,buyBusy=false,walletConnecting=null,holderChecking=null,walletRequests=0,walletModalOpen=()=>false,cloudConnecting=null;${source('const cloudCanLoad =', 'function cancelPendingLoads()')}
+ const f=Function('$','gear','clients','maps','notes',`let mode='title',selVariant='normal',coop=null,coopHomeMap=null,coopLoading=false,coopResult=null,lastRun=null,selMap='greentown',loadedMapId='greentown',runStarting=false,mapLoading=false;const coopRelay='ws://127.0.0.1/coop',BUILD='fixture',SIM_ID='fixture',renderer={preloadGear:()=>gear};const rankedBusy=false,rankedLive=()=>false,buyBusy=false,walletConnecting=null,holderChecking=null,walletRequests=0,walletModalOpen=()=>false,cloudConnecting=null;${source('const cloudCanLoad =', 'function cancelPendingLoads()')}
  const readRanked=()=>null,banner=t=>notes.push(t),cancelPendingLoads=()=>{},load=()=>'',createCoopClient=options=>{const c={closed:false,options};clients.push(c);return c;},pickMap=async id=>{maps.push(id);selMap=loadedMapId=id;},runGround=()=>null;
  ${source('function openCoop()', "$('coopbtn').onclick")}
  ${source('async function startRun(', 'let bannerT =')}

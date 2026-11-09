@@ -1,5 +1,18 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.": "Eğlence → Büyücü İstilası: Wise Old Man olarak Greentown’da sonsuz bir büyü savaşına katıl.",
+  "Enemy wizards aim before firing. Dodge single bolts and later spread shots; your skills and gear bonuses still apply.": "Düşman büyücüler ateş etmeden önce nişan alır. Tekli atışlardan ve daha sonra gelen yaylım atışlarından kaç; yetenek ve ekipman bonusların geçerlidir.",
+  "Wizard Invasion is solo and has separate results. Earn GP and gear without normal leaderboard entries or campaign clears.": "Büyücü İstilası tek kişiliktir ve sonuçları ayrıdır. GP ve ekipman kazan; normal sıralama ve harita ilerlemesi etkilenmez.",
+
+  "Wizard Invasion": "Büyücü İstilası",
+  "Wise Old Man": "Bilge Yaşlı Adam",
+  "Solo only": "Yalnızca tek oyuncu",
+  "Wise Old Man · Spells · Solo only": "Bilge Yaşlı Adam · Büyüler · Yalnızca tek oyuncu",
+  "Play as the Wise Old Man. Dodge wizard projectiles in an endless Greentown invasion.": "Bilge Yaşlı Adam olarak oyna. Greentown’daki sonsuz istilada büyücülerin atışlarından kaç.",
+  "Choose Wizard Invasion ›": "Büyücü İstilası seç ›",
+  "Solo only. Play as the Wise Old Man with Spells against enemy wizards in Greentown. Dodge their projectiles. Endless survival earns GP and gear; campaign progress and normal leaderboards stay separate.": "Yalnızca tek oyuncu. Greentown’da düşman büyücülere karşı Büyüler ile Bilge Yaşlı Adam olarak oyna. Atışlarından kaç. Sonsuz hayatta kalmada GP ve ekipman kazan; sefer ilerlemesi ve normal sıralamalar ayrıdır.",
+  "Wizard Invasion is solo only. Choose another mode for co-op.": "Büyücü İstilası yalnızca tek oyuncu içindir. Eşli oyun için başka bir mod seç.",
+
   "Race the Guard and Priest": "Muhafız ve Rahip ile yarış",
   "Sanko Racers has an NPC race: a shared countdown, ten gates, live positions and honest finish times.": "Sanko Racers’da NPC yarışı var: ortak geri sayım, on kapı, anlık sıralama ve gerçek bitiş süreleri.",
   "The Guard and Priest drive the same roads and obey solid walls. Their cars do not block yours. Choose NPC race inside Fun → Sanko Racers.": "Muhafız ve Rahip aynı yollarda sürer ve sağlam duvarlardan geçmez. Arabaları sizi engellemez. Eğlence → Sanko Racers içinde NPC race seçin.",

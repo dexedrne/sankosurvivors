@@ -1,5 +1,18 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.": "Diversión → Invasión de magos: juega como Wise Old Man en un combate mágico sin fin en Greentown.",
+  "Enemy wizards aim before firing. Dodge single bolts and later spread shots; your skills and gear bonuses still apply.": "Los magos enemigos apuntan antes de disparar. Esquiva los proyectiles y las ráfagas que llegan después; se mantienen tus bonificaciones de habilidades y equipo.",
+  "Wizard Invasion is solo and has separate results. Earn GP and gear without normal leaderboard entries or campaign clears.": "Invasión de magos es individual y tiene resultados separados. Gana GP y equipo sin entrar en las clasificaciones normales ni completar mapas de campaña.",
+
+  "Wizard Invasion": "Invasión de magos",
+  "Wise Old Man": "Anciano Sabio",
+  "Solo only": "Solo individual",
+  "Wise Old Man · Spells · Solo only": "Anciano Sabio · Hechizos · Solo individual",
+  "Play as the Wise Old Man. Dodge wizard projectiles in an endless Greentown invasion.": "Juega como el Anciano Sabio. Esquiva los proyectiles de los magos en una invasión sin fin en Greentown.",
+  "Choose Wizard Invasion ›": "Elegir Invasión de magos ›",
+  "Solo only. Play as the Wise Old Man with Spells against enemy wizards in Greentown. Dodge their projectiles. Endless survival earns GP and gear; campaign progress and normal leaderboards stay separate.": "Solo individual. Juega como el Anciano Sabio con Hechizos contra magos enemigos en Greentown. Esquiva sus proyectiles. La supervivencia sin fin otorga GP y equipo; la campaña y las tablas normales quedan separados.",
+  "Wizard Invasion is solo only. Choose another mode for co-op.": "Invasión de magos es solo individual. Elige otro modo para jugar en cooperativo.",
+
   "Race the Guard and Priest": "Compite contra el Guardia y el Sacerdote",
   "Sanko Racers has an NPC race: a shared countdown, ten gates, live positions and honest finish times.": "Sanko Racers tiene una carrera contra PNJ: cuenta atrás compartida, diez puertas, posiciones en directo y tiempos de llegada reales.",
   "The Guard and Priest drive the same roads and obey solid walls. Their cars do not block yours. Choose NPC race inside Fun → Sanko Racers.": "El Guardia y el Sacerdote conducen por las mismas calles y respetan los muros sólidos. Sus coches no bloquean el tuyo. Elige NPC race en Diversión → Sanko Racers.",
