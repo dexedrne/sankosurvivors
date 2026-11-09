@@ -1264,6 +1264,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   });
   const shardTex = new THREE.TextureLoader().load(A('ui/items/item_Bones.png'), (t) => { t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; for (const g of gemSets) { g.material.map = t; g.material.needsUpdate = true; } });
   const pickupSprites = new Map(); const iconCache = new Map();
+  let merchantActor = null;
   const shrineObjs = new Map(), SHRINE_COLORS = { strength: 0xff5a3c, prayer: 0xbfe8ff, magic: 0xb06aff, agility: 0x7be06a, fortune: 0xffd34d, wealth: 0xffb03a }; // as SHRINES in sim.js
   const PICKUP_ICON = { coin: 'Gold', cheese: 'Cheese', crawdad: 'Cooked Crawdad', trout: 'Cooked Brown Trout', catfish: 'Cooked Catfish', bass: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
   const PICKUP_SIZE = { chest: 1.5, coin: 0.855, cheese: 0.8, crawdad: 0.8, trout: 0.95, catfish: 1.0, bass: 1.1 };
@@ -1990,6 +1991,31 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     syncSpellHeads();
     meleeFx.flush();
 
+    // The original Remilio shopkeeper: model completion only attaches during a current encounter update.
+    const merchant = view.merchant;
+    if (merchantActor && merchantActor.id !== merchant?.id) { disposeActor(merchantActor.root, merchantActor.mixer); merchantActor = null; }
+    if (merchant) {
+      if (!merchantActor) {
+        const root = new THREE.Group(); root.name = 'wandering-merchant';
+        const ring = softRing(0xffdc71, 0.65, 0.9, { opacity: 0.8, arcs: 4 }); ring.position.y = 0.08; root.add(ring); dyn.add(root);
+        merchantActor = { id: merchant.id, root, mixer: null, model: null, at: view.t };
+      }
+      const a = merchantActor;
+      a.root.position.set(merchant.x, groundAt(merchant.x, merchant.z), merchant.z);
+      const me = view.players.find(p => p.id === localId) || view.players[0];
+      if (me) a.root.rotation.y = Math.atan2(me.x - merchant.x, me.z - merchant.z);
+      if (!a.model) {
+        const proto = folkProto('bun:remilio', 'models/buns/remilio.glb', 1.25);
+        if (proto) {
+          const actor = kit ? kit.animate(proto.gltf, 1.25, 'idle', { fromRest: 'hips' }) : instantiate(proto, 'idle');
+          a.model = actor.root; a.model.name = 'merchant-remilio'; a.mixer = actor.mixer;
+          a.root.add(a.model);
+        }
+      }
+      if (a.mixer && view.t > a.at) a.mixer.update(Math.min(0.1, view.t - a.at));
+      a.at = view.t;
+    }
+
     // shrines: SankoQuest's altar, a pillar of light in the shrine's colour, and a circle that fills as you charge it
     const seenS = new Set();
     for (const [id, kind, x, z, ch] of view.shrines || []) {
@@ -2109,6 +2135,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const seenShield = new Set();
 
   function reset() {
+    if (merchantActor) { disposeActor(merchantActor.root, merchantActor.mixer); merchantActor = null; }
     msInstances.clear(); if (msBatch) msBatch.count = 0;
     resetWeather();
     meleeFx.reset();

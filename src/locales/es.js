@@ -1,5 +1,23 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Wandering merchant": "Mercader ambulante",
+  "The fight is paused. Spend GP earned this run; purchases reduce your final GP reward.": "La batalla está en pausa. Gasta GP ganados en esta partida; las compras reducen tu recompensa final de GP.",
+  "Run GP": "GP de la partida",
+  "For sale": "En venta",
+  "Buy": "Comprar",
+  "Sold out": "Agotado",
+  "Unavailable": "No disponible",
+  "This merchant is no longer available.": "Este mercader ya no está disponible.",
+  "Offer unavailable. Check your run GP and try another item.": "Oferta no disponible. Revisa tus GP de la partida y prueba otro objeto.",
+  "Back to the fight": "Volver a la batalla",
+  "Trade": "Comerciar",
+  "No stat change": "Sin cambios de atributos",
+  "Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running, up to 60 seconds remaining; the speed bonus stays +35%.": "Recupera 20 de vida, mejorada por las bonificaciones de curación. Añade 8 segundos de velocidad, hasta 60 segundos restantes; el aumento se mantiene en +35%.",
+  "Travelling merchant and capped beer": "Mercader ambulante y límite de cerveza",
+  "In solo casual runs, a wandering merchant sometimes appears nearby. Find the gold minimap marker, approach, then choose Trade or press F.": "En las partidas casuales en solitario, a veces aparece un mercader cerca. Busca la marca dorada del minimapa, acércate y elige Comerciar o pulsa F.",
+  "Each merchant has three fixed gear offers. Purchases use GP earned during this run and reduce your final GP reward; shopping pauses the fight.": "Cada mercader tiene tres ofertas fijas de equipo. Las compras usan GP ganados en esta partida y reducen la recompensa final de GP; comprar pausa la batalla.",
+  "Tin of Beer adds 8 seconds of speed boost, capped at 60 seconds remaining. It still heals at the cap; the speed bonus stays +35%.": "Tin of Beer añade 8 segundos de velocidad, hasta un máximo de 60 segundos restantes. Sigue curando en el límite; el aumento se mantiene en +35%.",
+
 "Menu music recovery": "Recuperación de la música del menú",
 "If an earlier audio start was blocked, a fresh tap retries menu music. Music and sound effects keep their separate volume settings.": "Si se bloqueó un inicio de audio anterior, otro toque vuelve a intentar reproducir la música del menú. La música y los efectos conservan sus ajustes de volumen separados.",
 

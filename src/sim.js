@@ -6,6 +6,8 @@ import {
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength,
   weaponSlotItem, TUMBLE, PASTURE_NAV, OASIS_WATER_NAV, SNOW_WAVE_AT, isSnowEnemy,
 } from './content.js';
+import { MERCHANT, merchantEligible, merchantStock } from './merchant.js';
+import { phaseCoins, continuationBaseline } from './casual-continuation.js';
 import { groundHash } from './ground-pack.js';
 import { extraStorms, stormView } from './weather.js';
 
@@ -75,6 +77,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
     ground,               // optional { n, blocked: Uint8Array, walls?: Uint8Array } one cell per world unit: ridges, mountains, water; thin walls
     flow: null, flowT: 0, // distance-to-player field so monsters find their way around cliffs
   };
+  if (pace === 2 && !ranked && !coop && players.length === 1) Object.assign(sim, { merchant: null, merchantSpent: 0, merchantLootIndices: [] });
   if (coop) sim.coop = true;
   players.forEach((p, i) => {
     const a = (i / Math.max(players.length, 1)) * Math.PI * 2;
@@ -912,7 +915,7 @@ export function foodDrop(t, u, elite = false, pace = 1) {
 function useItem(sim, p, kind) {
   const st = playerStats(p);
   if (FOOD[kind]) p.hp = Math.min(p.maxHp, p.hp + FOOD[kind].heal * st.heal);
-  else if (kind === 'beer') { p.hp = Math.min(p.maxHp, p.hp + 20 * st.heal); p.buffs.speed = 8 + (sim.pace >= 2 ? Math.max(0, p.buffs.speed || 0) : 0); }
+  else if (kind === 'beer') { p.hp = Math.min(p.maxHp, p.hp + 20 * st.heal); p.buffs.speed = sim.pace >= 2 ? Math.min(60, 8 + Math.max(0, p.buffs.speed || 0)) : 8; }
   else if (kind === 'pumpkin') { sim.src = 'pumpkin'; sim.fx.push({ k: 'nuke', x: p.x, z: p.z, r: 20 }); for (const e of sim.enemies) if (hyp(e.x - p.x, e.z - p.z) < 20) damageEnemy(sim, e, 45 + sim.t * 0.25, p.id, 4, p.x, p.z); }
   else if (kind === 'warp') { for (const g of sim.gems) g.pulled = true; for (const o of sim.pickups) if (o.kind === 'coin') o.pulled = true; }
   sim.fx.push({ k: 'use', kind, x: p.x, z: p.z, ...(sim.coop ? { player: p.id } : {}) });
@@ -921,6 +924,61 @@ export function useBelt(sim, playerId, slot) {
   const p = sim.players.find((q) => q.id === playerId);
   if (!p || !p.alive || slot < 0 || slot >= p.belt.length) return false;
   const kind = p.belt.splice(slot, 1)[0]; useItem(sim, p, kind); return true;
+}
+
+// Merchant state and RNG exist only in the solo casual simulation.
+function merchantTick(sim, dt) {
+  if (!merchantEligible(sim) || !sim.players[0].alive) return;
+  sim.merchantT = (sim.merchantT ?? MERCHANT.first + sim.rng() * MERCHANT.firstJitter) - dt;
+  if (sim.merchant) {
+    sim.merchant.life -= dt;
+    if (sim.merchant.life <= 0) sim.merchant = null;
+  }
+  if (sim.merchantT > 0 || sim.merchant) return;
+  sim.merchantT = MERCHANT.every + sim.rng() * MERCHANT.jitter;
+  const p = sim.players[0], M = sim.map;
+  if (sim.ground) updateFlow(sim, p);
+  for (let tries = 0; tries < 20; tries++) {
+    const a = sim.rng() * 6.283, d = 12 + sim.rng() * 10, x = p.x + dcos(a) * d, z = p.z + dsin(a) * d;
+    if (hyp(x - M.cx, z - M.cz) + 1 > M.r || !walkable(sim, x, z) || sim.ground && flowAt(sim, x, z) < 0) continue;
+    let clear = true;
+    for (let j = Math.floor(z - 1); j <= Math.floor(z + 1) && clear; j++) {
+      for (let i = Math.floor(x - 1); i <= Math.floor(x + 1) && clear; i++) {
+        clear = walkable(sim, i + 0.5, j + 0.5) && clearPath(sim, x, z, i + 0.5, j + 0.5, true);
+      }
+    }
+    if (!clear) continue;
+    sim.merchant = { id: sim.nextId++, x, z, life: MERCHANT.life, offers: merchantStock(sim) };
+    break;
+  }
+}
+export function merchantNear(sim, playerId) {
+  if (!merchantEligible(sim) || sim.over) return false;
+  const p = sim.players.find(p => p.id === playerId), m = sim.merchant;
+  return !!(p?.alive && m && m.life > 0 && Number.isFinite(m.x) && Number.isFinite(m.z)
+    && hyp(p.x - m.x, p.z - m.z) <= MERCHANT.range && walkable(sim, m.x, m.z)
+    && clearPath({ ...sim }, p.x, p.z, m.x, m.z, true));
+}
+export function buyMerchant(sim, playerId, merchantId, index, { multiplier = 1, baseline = null } = {}) {
+  if (!merchantEligible(sim) || !Number.isFinite(multiplier) || multiplier < 1 || multiplier > 3
+    || baseline && baseline.sim !== sim || continuationBaseline(sim) !== baseline
+    || !Number.isInteger(index) || index < 0 || !merchantNear(sim, playerId) || Object.keys(sim.pending).length) return false;
+  const p = sim.players[0], m = sim.merchant, offer = m.offers[index];
+  if (m.id !== merchantId || !offer || offer.sold || !Object.hasOwn(GEAR, offer.item)
+    || !Number.isSafeInteger(offer.price) || offer.price < 60 || p.levelQ > 0 || p.casketQ.length) return false;
+  // Prepare the existing casket receipt before committing either the purchase or its debit.
+  try {
+    const available = phaseCoins(sim, { player: p, multiplier, baseline });
+    if (!Number.isFinite(available) || available < offer.price || !Number.isSafeInteger(sim.merchantSpent + offer.price)) return false;
+    const receipt = { ...p, casketQ: [...p.casketQ], casketLootIndices: [...p.casketLootIndices] };
+    const next = { ...sim, loot: [...sim.loot], fx: [...sim.fx], pending: { ...sim.pending } };
+    gotCasket(next, receipt, offer.item); openCasket(next, receipt);
+    if (next.pending[p.id]) next.pending[p.id].merchantPurchase = true;
+    for (const key of ['gear', 'gb', 'hp', 'maxHp', 'casketQ', 'casketLootIndices']) p[key] = receipt[key];
+    sim.loot = next.loot; sim.fx = next.fx; sim.pending = next.pending;
+    sim.merchantLootIndices.push(sim.loot.length - 1); sim.merchantSpent += offer.price; offer.sold = true;
+    return true;
+  } catch { return false; }
 }
 
 // ---- shrines (owner 3 Nov: "we should have shrines"): one of SankoQuest's altars rises nearby every two minutes or so;
@@ -1209,6 +1267,7 @@ export function step(sim, inputs = {}, dt = TICK) {
   spawnTick(sim, dt);
   eventTick(sim, dt);
   shrineTick(sim, dt);
+  merchantTick(sim, dt);
 
   // enemies: chase, separate, hurt
   const cell = 1.6, grid = new Map();
@@ -1349,8 +1408,9 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
     proj: sim.proj.map((p) => [p.id, p.art, r1(p.x), r1(p.z), Math.round(datan2(p.vx, p.vz) * 20) / 20, p.lvl, Math.round((p.spin || 0) * 10) / 10, p.evo ? 1 : 0, p.mt ?? -1]),
     gems: sim.gems.map((g) => [g.id, r1(g.x), r1(g.z), g.v]),
     pickups: sim.pickups.map((k) => [k.id, k.kind, r1(k.x), r1(k.z)]),
+    ...(merchantEligible(sim) ? { merchant: sim.merchant ? { ...sim.merchant, offers: sim.merchant.offers.map(o => ({ ...o })) } : null } : {}),
     shrines: sim.shrines.map((s) => [s.id, s.kind, r1(s.x), r1(s.z), Math.round(Math.min(1, s.charge / SHRINE.charge) * 100) / 100, Math.round(s.life)]),
-    pending: Object.fromEntries(Object.entries(sim.pending).map(([id, v]) => [id, v.casket ? { choices: v.choices, left: Math.ceil(v.left), casket: v.casket, rec: v.rec, more: v.more } : { choices: v.choices, left: Math.ceil(v.left) }])),
+    pending: Object.fromEntries(Object.entries(sim.pending).map(([id, v]) => [id, v.casket ? { ...(v.merchantPurchase ? { merchantPurchase: true } : {}), choices: v.choices, left: Math.ceil(v.left), casket: v.casket, rec: v.rec, more: v.more } : { choices: v.choices, left: Math.ceil(v.left) }])),
     fx,
   };
 }

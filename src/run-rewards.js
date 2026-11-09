@@ -34,7 +34,8 @@ export function prepareRunRewards(storage, sim, { earned, ranked = false, coop =
     return { name, wasAlched, fresh, soldCoins: coins - before, on: Object.values(worn).includes(name) };
   }).filter(Boolean);
   const stats = load('sq-stats', {}), add = (key, value) => { stats[key] = finiteNumber(stats[key]) + value; };
-  add('kills', owned.kills - (baseline?.kills || 0)); add('bosses', owned.bossKills - (baseline?.bossKills || 0)); add('evolves', owned.evolves - (baseline?.evolves || 0)); add('caskets', owned.loot.length - (baseline?.caskets || 0));
+  const merchantCaskets = !coop ? (sim.merchantLootIndices?.length || 0) - (baseline?.merchantLootCount || 0) : 0;
+  add('kills', owned.kills - (baseline?.kills || 0)); add('bosses', owned.bossKills - (baseline?.bossKills || 0)); add('evolves', owned.evolves - (baseline?.evolves || 0)); add('caskets', owned.loot.length - (baseline?.caskets || 0) - merchantCaskets);
   const deltaKills = Object.fromEntries(Object.entries(owned.killsByType).map(([type, count]) => [type, count - (baseline?.killsByType[type] || 0)]));
   for (const [type, count] of Object.entries(deltaKills)) add('kills.' + type, count);
   add('kills.spiders', (deltaKills.spider || 0) + (deltaKills.jspider || 0) + (deltaKills.pspider || 0));

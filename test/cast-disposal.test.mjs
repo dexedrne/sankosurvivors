@@ -16,6 +16,7 @@ function between(start, end) {
 function harness() {
   return Function('THREE', 'ownActorResource', 'disposeActor', 'createPetRenderer', 'createMeleeVfx', 'createSpellMaterials', `
     const dyn = new THREE.Group(), entGroup = new THREE.Group(), camera = new THREE.PerspectiveCamera();
+    let merchantActor=null; const folkProto=()=>null;
     const projObjs = new Map(), eprojObjs = new Map(), shrineObjs = new Map(), shieldObjs = new Map();
     const groundAt = () => 0, fxOnly = o => o, colorOut = s => s, emit = () => {}, A = s => s;
     const meleeFx = createMeleeVfx({group:dyn,camera,groundAt,fxOnly,colorOut});
@@ -37,7 +38,7 @@ function harness() {
     let landing = false;
     const spellLand = () => landing;
     function frame(state = {}) {
-      const view = { t:0, players: [], proj: [], eproj: [], shrines: [], ...state }, dt = 0.1, time = 0, vt = 0;
+      const view = { t:0, players: [], proj: [], eproj: [], shrines: [], ...state }, dt = 0.1, time = 0, vt = 0, localId='p1';
       meleeFx.begin(view.t,false);
       ${between('    // monster projectiles (fire and ice)', '    // pickups\n')}
     }
@@ -50,7 +51,7 @@ function harness() {
       for (const root of [ARROW, ...arrowCache]) if (root) root.traverse(o => { if (o.geometry) resources.add(o.geometry); for (const m of [].concat(o.material || [])) resources.add(m); });
       return resources;
     }
-    return { frame, reset, shared, dyn, meleeFx, projObjs, eprojObjs, shrineObjs, msBursts,
+    return { frame, reset, shared, dyn, meleeFx, merchant:()=>merchantActor, projObjs, eprojObjs, shrineObjs, msBursts,
       landing: value => { landing = value; }, burst: () => magicBurst(0, 1, 0, SPELL_ELEMENT.fire, 'blast'), expire: () => stepMagicBursts(performance.now() + 1000) };
   `)(THREE, ownActorResource, disposeActor, createPetRenderer, createMeleeVfx, createSpellMaterials);
 }
@@ -117,3 +118,5 @@ test('reset purges active casts, enemy shots, bursts and shrines with disposal e
   assert.deepEqual(h.dyn.children.filter(o=>o.name!=='spell-heads'), [h.meleeFx.mesh]); assert.equal(h.dyn.getObjectByName('spell-heads')?.count,0); assert.equal(h.meleeFx.mesh.count,0); assert.equal(h.shrineObjs.size, 0);
   assert.ok(own.every(x => x.disposals === 1)); assert.ok(cached.every(x => x.disposals === 0));
 });
+
+test('merchant retirement and reset dispose their owned ring without touching cached assets',()=>{const h=harness();h.frame({merchant:{id:17,x:1,z:1},players:[{id:'p1',x:0,z:0}]});const root=h.merchant().root,owned=watch(uniqueResources(root,h.shared())),cached=watch(h.shared());h.frame();assert.equal(h.merchant(),null);assert.equal(root.parent,null);assert.ok(owned.every(x=>x.disposals===1));assert.ok(cached.every(x=>x.disposals===0));h.frame({merchant:{id:18,x:2,z:1},players:[{id:'p1',x:0,z:0}]});const next=watch(uniqueResources(h.merchant().root,h.shared()));h.reset();assert.equal(h.merchant(),null);assert.ok(next.every(x=>x.disposals===1));});

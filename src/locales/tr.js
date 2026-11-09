@@ -1,5 +1,23 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Wandering merchant": "Gezgin tüccar",
+  "The fight is paused. Spend GP earned this run; purchases reduce your final GP reward.": "Savaş duraklatıldı. Bu turda kazandığın GP’yi harca; alışveriş son GP ödülünü azaltır.",
+  "Run GP": "Tur GP’si",
+  "For sale": "Satılık",
+  "Buy": "Satın al",
+  "Sold out": "Tükendi",
+  "Unavailable": "Kullanılamıyor",
+  "This merchant is no longer available.": "Bu tüccar artık burada değil.",
+  "Offer unavailable. Check your run GP and try another item.": "Teklif kullanılamıyor. Tur GP’ni kontrol edip başka eşya dene.",
+  "Back to the fight": "Savaşa dön",
+  "Trade": "Ticaret",
+  "No stat change": "Özellik değişimi yok",
+  "Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running, up to 60 seconds remaining; the speed bonus stays +35%.": "İyileştirme bonuslarıyla artan 20 can yeniler. Hız artışına 8 saniye ekler; kalan süre en fazla 60 saniyedir ve hız bonusu +%35 kalır.",
+  "Travelling merchant and capped beer": "Gezgin tüccar ve bira sınırı",
+  "In solo casual runs, a wandering merchant sometimes appears nearby. Find the gold minimap marker, approach, then choose Trade or press F.": "Tek kişilik normal turlarda bazen yakınında bir gezgin tüccar belirir. Mini haritadaki altın işareti bul, yaklaş ve Ticaret’i seç veya F’ye bas.",
+  "Each merchant has three fixed gear offers. Purchases use GP earned during this run and reduce your final GP reward; shopping pauses the fight.": "Her tüccarın üç sabit ekipman teklifi vardır. Alışveriş bu turda kazanılan GP’yi kullanır ve son GP ödülünü azaltır; savaş duraklar.",
+  "Tin of Beer adds 8 seconds of speed boost, capped at 60 seconds remaining. It still heals at the cap; the speed bonus stays +35%.": "Tin of Beer hız artışına 8 saniye ekler; kalan süre en fazla 60 saniyedir. Sınırdayken de iyileştirir; hız bonusu +%35 kalır.",
+
 "Menu music recovery": "Menü müziği kurtarma",
 "If an earlier audio start was blocked, a fresh tap retries menu music. Music and sound effects keep their separate volume settings.": "Önceki ses başlangıcı engellendiyse yeni bir dokunuş menü müziğini yeniden dener. Müzik ve ses efektleri ayrı ses düzeyi ayarlarını korur.",
 

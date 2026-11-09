@@ -10,6 +10,7 @@ const slice=(a,b)=>{const start=source.indexOf(a),end=source.indexOf(b,start);as
 // Execute the shipped seams with real Three objects; only unrelated rendering/assets are outside this fixture.
 export function spellFixture(){
  return Function('THREE','ownActorResource','disposeActor','ENEMIES','createMeleeVfx','createSpellMaterials',`'use strict';
+  let merchantActor=null;
   const dyn=new THREE.Group(),camera=new THREE.PerspectiveCamera(),actors=new Map(),playerActors=new Map(),corpses=[],projObjs=new Map(),eprojObjs=new Map();
   const fxOnly=o=>o,colorOut=s=>s,groundAt=()=>0,meleeTrail=()=>{},emit=()=>{};const meleeFx=createMeleeVfx({group:dyn,camera,groundAt,colorOut,fxOnly});let wallNow=0;const performance={now:()=>wallNow};
   const ringMat=col=>new THREE.MeshBasicMaterial({color:col}),addEffect=o=>dyn.add(o),arrowOf=()=>{throw Error('Only magic is requested by this fixture')};

@@ -1,3 +1,4 @@
+import {phaseCoins} from '../src/casual-continuation.js';
 import{drawStormMinimap}from'../src/storm-effects.js';
 import test from'node:test';import assert from'node:assert/strict';import{readFileSync}from'node:fs';import{createSim,playerStats}from'../src/sim.js';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
@@ -20,7 +21,7 @@ test('actual solo-start handler cannot leave an active co-op lobby through a bac
 });
 test('actual guest GP calculation uses its own kills, coins and alch',()=>{
  const sim=createSim({coop:true,players:[{id:'p1'},{id:'p2'}]});sim.kills=600;sim.players[0].kills=594;sim.players[0].coins=20;sim.players[1].kills=6;sim.players[1].coins=2;sim.players[1].alch=7;
- const calculate=Function('PLAYER','playerStats',`const savedPass=()=>null,DMT_COIN_BONUS=.25;${source('function runCoins(', 'function endRun()')};return runCoins;`)('p2',playerStats);assert.equal(calculate(sim),14);assert.equal(calculate(sim,true),134);
+ const calculate=Function('PLAYER','playerStats','phaseCoins',`const savedPass=()=>null,DMT_COIN_BONUS=.25;const casualRun=null;${source('function runCoinOptions(', 'function endRun()')};return runCoins;`)('p2',playerStats,phaseCoins);assert.equal(calculate(sim),14);assert.equal(calculate(sim,true),134);
 });
 test('public lobby loadout sends only worn reinforcement levels and known cleared maps',()=>{
  const make=Function('MAP_BY_ID',`const selAdv='ranger',runAdv=()=>({id:'ranger'}),getGear=()=>({head:'Bronze Helmet'}),getGearLv=()=>({'Bronze Helmet':1,'Runite Helmet':3}),getSkills=()=>({combat:2}),clearedMaps=()=>new Set(['greentown','future-zone']),$=()=>({value:' Guest fixture '});${source('function coopLoadout()', 'function openCoop()')};return coopLoadout;`)({greentown:{}});

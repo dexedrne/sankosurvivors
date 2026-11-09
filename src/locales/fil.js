@@ -1,5 +1,23 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Wandering merchant": "Naglalakbay na merchant",
+  "The fight is paused. Spend GP earned this run; purchases reduce your final GP reward.": "Naka-pause ang laban. Gumastos ng GP na kinita sa run na ito; ibabawas ang binili sa huling GP reward mo.",
+  "Run GP": "GP ng run",
+  "For sale": "Ibinebenta",
+  "Buy": "Bumili",
+  "Sold out": "Ubos na",
+  "Unavailable": "Hindi available",
+  "This merchant is no longer available.": "Wala na ang merchant na ito.",
+  "Offer unavailable. Check your run GP and try another item.": "Hindi available ang offer. Tingnan ang GP ng run mo at subukan ang ibang item.",
+  "Back to the fight": "Bumalik sa laban",
+  "Trade": "Makipagkalakalan",
+  "No stat change": "Walang pagbabago sa stats",
+  "Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running, up to 60 seconds remaining; the speed bonus stays +35%.": "Nagbabalik ng 20 health, na nadaragdagan ng healing bonuses. Nagdadagdag ng 8 segundo ng mabilis na takbo, hanggang 60 segundo ang natitirang oras; nananatiling +35% ang speed bonus.",
+  "Travelling merchant and capped beer": "Naglalakbay na merchant at limitasyon ng beer",
+  "In solo casual runs, a wandering merchant sometimes appears nearby. Find the gold minimap marker, approach, then choose Trade or press F.": "Sa solo casual runs, may merchant na paminsan-minsang lilitaw sa malapit. Hanapin ang gintong marka sa minimap, lumapit at piliin ang Makipagkalakalan o pindutin ang F.",
+  "Each merchant has three fixed gear offers. Purchases use GP earned during this run and reduce your final GP reward; shopping pauses the fight.": "May tatlong nakatakdang gear offer ang bawat merchant. GP na kinita sa run na ito ang gagamitin at ibabawas sa huling GP reward; naka-pause ang laban habang bumibili.",
+  "Tin of Beer adds 8 seconds of speed boost, capped at 60 seconds remaining. It still heals at the cap; the speed bonus stays +35%.": "Nagdadagdag ang Tin of Beer ng 8 segundo ng speed boost, hanggang 60 segundo ang natitira. Nagpapagaling pa rin ito kapag nasa limitasyon; nananatiling +35% ang speed bonus.",
+
 "Menu music recovery": "Pagbalik ng menu music",
 "If an earlier audio start was blocked, a fresh tap retries menu music. Music and sound effects keep their separate volume settings.": "Kung na-block ang naunang audio start, susubukan ulit ang menu music sa bagong tap. Magkahiwalay pa rin ang volume ng music at sound effects.",
 

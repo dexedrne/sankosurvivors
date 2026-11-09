@@ -16,7 +16,7 @@ import { createScreenLayout } from './screen-layout.js';
 import { setupFullscreen } from './fullscreen.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, BELT_SIZE, TICK, SHRINE, SHRINES } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, merchantNear, buyMerchant, BELT_SIZE, TICK, SHRINE, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { DamageMeter } from './damage-meter.js';
 import { bindBeltItem } from './belt-input.js';
@@ -41,7 +41,7 @@ import { connect as requestWallet, disconnect as walletDisconnect, restore as wa
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, evolutionPassives, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
-  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, gearPieceBonus, bonusText, deltaText, gearRarity, alchValue, ARMOR_TIERS,
+  GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, gearPieceBonus, bonusText, deltaText, compareGear, gearRarity, alchValue, ARMOR_TIERS,
   gearGroups, isWeaponItem, WEAPON_ITEMS, weaponItemText, weaponItemLabel, weaponStep, CARD_RARITIES, CARD_RARITY_NAMES, CARD_HEAL, weaponStats, passiveStrength, cardLuck,
 } from './content.js';
 
@@ -1711,11 +1711,12 @@ let bannerT = 0;
 function banner(text, ms = 2500) { const b = $('banner'); b.textContent = text; b.classList.add('on'); clearTimeout(bannerT); bannerT = setTimeout(() => b.classList.remove('on'), ms); }
 
 // the coins (GP) a run has earned so far; the HUD shows it live and the end screen adds the 120 for holding the map
-function runCoins(s, won = false) {
-  const p = s.coop ? s.players.find(p => p.id === PLAYER) : s.players[0], endlessBonus = s.endless ? Math.floor(Math.max(0, s.t - s.map.length) / 10) : 0, dmtOn = !!savedPass();
-  if (s.endless && casualRun?.sim === s && casualRun.baseline) return phaseCoins(s, { baseline: casualRun.baseline, player: p, multiplier: playerStats(p).coinBonus * (s.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1) });
-  return Math.round((Math.floor((s.coop ? p.kills : s.kills) / 6) + p.coins * 3 + (won ? 120 : 0) + endlessBonus) * playerStats(p).coinBonus * (s.hard ? 1.25 : 1) * (dmtOn ? 1 + DMT_COIN_BONUS : 1)) + Math.max(0, Math.floor(p.alch || 0));
+function runCoinOptions(s) {
+  const p = s.coop ? s.players.find(p => p.id === PLAYER) : s.players[0];
+  return { player: p, multiplier: playerStats(p).coinBonus * (s.hard ? 1.25 : 1) * (savedPass() ? 1 + DMT_COIN_BONUS : 1), baseline: s.endless && casualRun?.sim === s ? casualRun.baseline || null : null };
 }
+function runCoins(s, won = false) { return phaseCoins(s, { ...runCoinOptions(s), won }); }
+
 function endRun() {
   if (sim.coop && coopResult !== 'complete') return;
   mode = 'end';
@@ -1821,6 +1822,7 @@ $('continueunconfirmed').onclick = () => continueAfterScore(true);
 function toMenu() {
   if (rankedPlaying()) return;
   if (coop) { const c = coop; coop = null; c.close(); selMap = coopHomeMap || selMap; coopResult = null; }
+  merchantVisit = null; $('merchant').classList.add('hidden');
   PLAYER = 'p1'; $('coop').classList.add('hidden'); $('coopwait').classList.add('hidden');
   rankedRun = null; rankedRec = null; applyDmt();
   rankedClock = null;
@@ -1834,7 +1836,7 @@ function toMenu() {
 }
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
-const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades'];
+const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades', 'merchant'];
 addEventListener('keydown', (e) => {
   if (mode === 'recovery' || walletModalOpen()) return;
   if (mode === 'play' && (e.target?.closest?.('#equipmenthud') || e.target?.closest?.('[data-inspect]')) && ['Tab', 'Enter', ' '].includes(e.key)) return;
@@ -1844,6 +1846,7 @@ addEventListener('keydown', (e) => {
     if (setMapPeek(true)) { e.preventDefault(); return; }
   }
   if (e.repeat) return;
+  if (mode === 'play' && k === 'f' && openMerchant()) { e.preventDefault(); return; }
   if (mode === 'play' && k === 'escape' && !$('damagepanel').classList.contains('hidden')) { setDamagePanel(false); e.preventDefault(); return; }
   if ((k === 'enter' || k === ' ') && e.target?.matches?.('button, a[href]')) return;
   keys.add(k);
@@ -2111,8 +2114,8 @@ function showCasket() {
   const pend = sim.pending[PLAYER]; if (!pend || !pend.casket) return;
   const c = pend.casket;
   // Settings: a piece that improves nothing is high alched without stopping the run (still a recorded choice in ranked)
-  if (autoAlchOn() && !c.anyUp) { toast(`${imgTag(c.item)} <span>Auto high alch<br><b>${c.item}</b> +${c.alch} coins</span>`); pickCasket(1, true); return; }
-  if (autoEquipOn() && canAutoEquip(sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0], c.item, sim.pace)) { pickCasket(0, true); return; }
+  if (!pend.merchantPurchase && autoAlchOn() && !c.anyUp) { toast(`${imgTag(c.item)} <span>Auto high alch<br><b>${c.item}</b> +${c.alch} coins</span>`); pickCasket(1, true); return; }
+  if (!pend.merchantPurchase && autoEquipOn() && canAutoEquip(sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0], c.item, sim.pace)) { pickCasket(0, true); return; }
   shownPending = rewardWasShown = true; mode = 'casket'; selCard = pend.rec; audio.duck(true);
   waitingForMove = false; $('movehint').classList.add('hidden'); stickEl.classList.add('hidden');
   const rows = Object.entries(c.delta).map(([k, v]) => `<li class="${v > 0 ? 'up' : 'down'}">${deltaText(k, v)}</li>`);
@@ -2150,6 +2153,48 @@ function pickCasket(i, auto = false) {
   afterCasket();
 }
 $('ckwear').onclick = () => pickCasket(0); $('ckalch').onclick = () => pickCasket(1);
+
+// ---- wandering merchant: an optional paused shop using only this run's GP --------------------
+let merchantVisit = null;
+function renderMerchant() {
+  const m = sim?.merchant;
+  if (!merchantVisit || merchantVisit.sim !== sim || m?.id !== merchantVisit.id) { $('merchantstatus').textContent = 'This merchant is no longer available.'; return; }
+  const p = sim.players.find(p => p.id === PLAYER), budget = runCoins(sim);
+  $('merchantgp').textContent = budget.toLocaleString();
+  $('merchantoffers').innerHTML = m.offers.map((offer, i) => {
+    if (!Object.hasOwn(GEAR, offer.item)) return '';
+    const c = compareGear(p.gear, p.gearLv || {}, offer.item, sim.pace), valid = Number.isSafeInteger(offer.price) && offer.price > 0;
+    const delta = Object.entries(c.delta).map(([k, v]) => `<li class="${v > 0 ? 'up' : 'down'}">${esc(deltaText(k, v))}</li>`).join('');
+    return `<article class="merchantoffer">${casketItemHTML(offer.item, 'new', 'For sale')}<ul class="merchantdelta">${delta || '<li>No stat change</li>'}</ul><button type="button" data-merchant-offer="${i}"${offer.sold || !valid || budget < offer.price ? ' disabled' : ''}>${offer.sold ? 'Sold out' : valid ? `<span>Buy</span> · <span translate="no">${offer.price.toLocaleString()} GP</span>` : 'Unavailable'}</button></article>`;
+  }).join('');
+  for (const button of $('merchantoffers').querySelectorAll('[data-merchant-offer]')) button.onclick = () => buyMerchantOffer(Number(button.dataset.merchantOffer));
+}
+function openMerchant() {
+  if (mode !== 'play' || !sim || sim.pending[PLAYER] || !merchantNear(sim, PLAYER)) return false;
+  merchantVisit = { sim, id: sim.merchant.id };
+  clearTouch(); keys.clear(); pendingUse = null; setMapPeek(false); audio.duck(true);
+  rewardWasShown = true;
+  mode = 'merchant'; $('tradebtn').classList.add('hidden'); $('merchantstatus').textContent = '';
+  renderMerchant(); $('merchant').classList.remove('hidden');
+  ($('merchantoffers').querySelectorAll('button:not([disabled])')[0] || $('merchantclose')).focus({ preventScroll: true });
+  return true;
+}
+function closeMerchant() {
+  $('merchant').classList.add('hidden'); merchantVisit = null;
+  if (mode !== 'merchant') return;
+  clearTouch(); keys.clear(); pendingUse = null; mode = 'play';
+  if (sim?.pending[PLAYER]) showLevelUp(); else { audio.duck(false); resumeAfterReward(); }
+}
+function buyMerchantOffer(index) {
+  if (mode !== 'merchant' || !merchantVisit || merchantVisit.sim !== sim || merchantVisit.id !== sim?.merchant?.id) return false;
+  if (!buyMerchant(sim, PLAYER, merchantVisit.id, index, runCoinOptions(sim))) {
+    $('merchantstatus').textContent = 'Offer unavailable. Check your run GP and try another item.'; renderMerchant(); return false;
+  }
+  closeMerchant(); return true;
+}
+$('tradebtn').onclick = openMerchant;
+$('merchantclose').onclick = closeMerchant;
+$('merchant').addEventListener('keydown', containMenuTab);
 
 // ---- HUD -----------------------------------------------------------------------------------------------------------------------------
 let hudT = 0; const slotCache = { w: '', p: '', b: '' };
@@ -2231,6 +2276,7 @@ function updateHud(view) {
   if (runBest && !passedBest && betterRun(runBest, { t, kills:view.kills, won:sim.over === 'win' }) !== runBest) { passedBest = true; banner(`New best on ${sim.map.name}!`, 2200); audio.play('level', { vol: 0.8 }); }
   $('clockgoal').textContent = (goal ? `of ${fmtT(goal)}` : '') + (runBest ? (passedBest ? ' · new best!' : ` · best ${fmtT(runBest.t)}`) : '') + chaseText(t, view.kills);
   $('kills').textContent = view.kills;
+  $('tradebtn').classList.toggle('hidden', mode !== 'play' || !sim || !merchantNear(sim, PLAYER));
   if (sim && sim.players[0] && (frame % 10 === 0 || !$('gp').textContent)) $('gp').textContent = runCoins(sim).toLocaleString();
   const boss = view.enemies.find((e) => ENEMIES[e[1]].boss);
   $('bossbar').classList.toggle('hidden', !boss);
@@ -2239,7 +2285,7 @@ function updateHud(view) {
   if (bk !== slotCache.b) {
     for (const dispose of beltDisposers) dispose(); beltDisposers = [];
     slotCache.b = bk; const BELT_ICON = { beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard' };
-    const BELT_TIP = { beer: sim.pace >= 2 ? 'Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running; the speed bonus stays +35%.' : 'Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.', pumpkin: 'Blasts nearby enemies. Damage grows with run time.', warp: 'Pulls all dropped bones and coins to you.' };
+    const BELT_TIP = { beer: sim.pace >= 2 ? 'Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running, up to 60 seconds remaining; the speed bonus stays +35%.' : 'Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.', pumpkin: 'Blasts nearby enemies. Damage grows with run time.', warp: 'Pulls all dropped bones and coins to you.' };
     $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i]; return `<button type="button" class="bslot${k ? '' : ' empty'}" data-i="${i}" data-kind="${k || ''}" ${k ? `aria-label="${BELT_ICON[k]}" aria-describedby="belttip${i}"` : 'disabled aria-label="Empty item slot"'}>${k ? imgTag(BELT_ICON[k]) : ''}<small>${i + 1}</small>${k ? `<span id="belttip${i}" class="belttip" role="tooltip" hidden><b>${BELT_ICON[k]}</b><span>${BELT_TIP[k]}</span><em>Tap to use. Hold to inspect.</em></span>` : ''}</button>`; }).join('');
     for (const el of $('belt').children) if (el.dataset.kind) {
       const i = Number(el.dataset.i), kind = el.dataset.kind;
@@ -2310,6 +2356,7 @@ function navBack() {
   if (walletModalOpen()) return true;
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
+    if (id === 'merchant') { closeMerchant(); return true; }
     if (id === 'skills' || id === 'gear') { $(id + 'close').click(); return true; }
     if (id === 'settings') { $('setclose').click(); return true; }
     if (id === 'quests') { $('questclose').click(); return true; }
@@ -2385,6 +2432,7 @@ function drawMinimap(view) {
   // the edge of this map's arena
   if (sim.map.r < 500) { mmx.strokeStyle = 'rgba(255,240,192,0.5)'; mmx.lineWidth = 1.5; mmx.beginPath(); mmx.arc((sim.map.cx - me.x) * PX, (sim.map.cz - me.z) * PX, sim.map.r * PX, 0, Math.PI * 2); mmx.stroke(); }
   for (const p of view.players) if (p.id !== PLAYER && p.al) dot(p.x, p.z, 3, '#69c8ff');
+  if (view.merchant) { dot(view.merchant.x, view.merchant.z, 6, '#1a1309'); dot(view.merchant.x, view.merchant.z, 4, '#ffe77b'); }
   for (const k of view.pickups) if (k[1] === 'casket' || k[1] === 'chest') dot(k[2], k[3], 3.5, '#ffd34d');
   for (const e of view.enemies) { const def = ENEMIES[e[1]]; dot(e[2], e[3], def.boss ? 5 : e[7] ? 3.5 : 1.8, def.boss ? '#ff3b2f' : e[7] ? '#ffd34d' : '#ff7b6b'); }
   mmx.restore();
@@ -2449,6 +2497,7 @@ function loop(ts) {
   if (sim.coop) syncCoopRun(inp, edges);
   else if (mode === 'play') {
     if (edges.start) { pause(true); return; }
+    if (edges.b && openMerchant()) return;
     if (edges.a) hop();
     if (waitingForMove && (Math.hypot(inp.mx, inp.mz) > 0.01 || pendingUse === 4)) { waitingForMove = false; $('movehint').classList.add('hidden'); audio.duck(false); }
     if (waitingForMove) acc = 0;
@@ -2480,7 +2529,7 @@ function loop(ts) {
     if (edges.start) pause(false);
     if (mode === 'pause' && ts - lastMenuDrawn < 1000 / 30 - 0.1) return;
   }
-  if (['pause', 'end', 'recovery'].includes(mode)) {
+  if (['pause', 'merchant', 'end', 'recovery'].includes(mode)) {
     if (ts - lastMenuDrawn < 1000 / 30 - 0.1) return;
     lastMenuDrawn = ts;
   }

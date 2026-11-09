@@ -887,3 +887,15 @@ body.touch #equipmenthud, body.ds-layout #equipmenthud { display:none; }
 #loadout [data-inspect]:focus-visible { outline:2px solid var(--gold); }
 #equipmentitems .slot:is(:hover,:focus-visible)::after { content:none; }
 #itemtip { max-height:calc(100dvh - 16px); overflow:auto; }
+
+/* The optional merchant keeps mobile movement and shop choices separate. */
+#tradebtn { position:absolute; left:50%; bottom:calc(150px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); pointer-events:auto; min-height:44px; margin:0; padding:8px 18px; font-size:20px; }
+#merchant .panel { max-width:760px; }
+#merchantoffers { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.merchantoffer { min-width:0; display:flex; flex-direction:column; padding:8px; border:1px solid var(--line); background:#1e171066; }
+.merchantoffer .ckitem { margin:0; flex-direction:column; text-align:center; }
+.merchantoffer .cktext { min-width:0; overflow-wrap:anywhere; }
+.merchantdelta { padding-left:16px; margin:10px 0; flex:1; text-align:left; font:16px RSPlain,sans-serif; }
+.merchantoffer button { width:100%; min-width:0; margin:0; overflow-wrap:anywhere; font-size:18px; }
+body.ds-layout #tradebtn { position:fixed; bottom:calc(112px + env(safe-area-inset-bottom,0px)); }
+@media(max-width:600px) { #merchantoffers { grid-template-columns:1fr; } .merchantoffer .ckitem { flex-direction:row; text-align:left; } }

@@ -97,8 +97,7 @@ export function transformMain(source) {
   s = once(s, "isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills + seconds survived' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? ''", "endlessOn ? ''");
   s = once(s, "${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'}", "${endlessOn ? 'Endless' : 'Survive'}");
   s = once(s, '${!isRanked && hardOn', '${hardOn');
-  s = once(s, ', dmtOn = !!savedPass();', ';');
-  s = s.replaceAll(' * (dmtOn ? 1 + DMT_COIN_BONUS : 1)', '');
+  s = once(s, ' * (savedPass() ? 1 + DMT_COIN_BONUS : 1)', '');
   s = once(s, '  const wasRanked = !!rankedRun;\n');
   s = once(s, '  const cutoff = !!rankedRun?.cutoff;\n');
   s = once(s, "cutoff ? 'The ranked week has ended. Your earned score is being checked.' : ");
@@ -117,7 +116,7 @@ export function transformMain(source) {
   s = once(s, '  rankedClock = null;\n');
   s = once(s, '  enforceRankedDeadline();\n');
   s = once(s, '  syncRankedClock();\n');
-  s = once(s, "const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades'];", "const MENU_SCREENS = ['board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades'];");
+  s = once(s, "const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades', 'merchant'];", "const MENU_SCREENS = ['board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades', 'merchant'];");
   s = once(s, "$('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); };", "$('again').onclick = startRun;");
   s = between(s, "addEventListener('blur', () => { keys.clear(); clearTouch();", "$('start').onclick", `let resumeMode = 'play', focusLostWhileStarting = false;
 function suspendPage() {

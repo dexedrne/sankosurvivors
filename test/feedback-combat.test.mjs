@@ -6,6 +6,7 @@ import { MAPS } from '../src/content.js';
 function fresh(options = {}) {
   const sim = createSim({ seed: 1107, ...options });
   sim.spawnAcc = -1e9; sim.bossIndex = 99; sim.eventT = sim.shrineT = 1e9;
+  if (sim.pace===2 && !sim.ranked && !sim.coop) sim.merchantT=1e9;
   const p = sim.players[0]; p.inv = 1e9;
   return { sim, p };
 }

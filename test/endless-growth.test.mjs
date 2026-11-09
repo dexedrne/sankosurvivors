@@ -16,6 +16,7 @@ function complete(p) {
 function fresh(options={}) {
  const sim=options.ranked ? rankedSim({seed:1108,mapId:'greentown',adv:'adventurer',week:options.week??1}) : createSim({seed:1108,endless:true,...options});
  sim.spawnAcc=-1e9;sim.bossIndex=99;sim.eventT=sim.shrineT=1e9;
+ if(sim.pace===2&&!sim.ranked&&!sim.coop)sim.merchantT=1e9;
  for(const p of sim.players)complete(p);
  return {sim,p:sim.players[0]};
 }

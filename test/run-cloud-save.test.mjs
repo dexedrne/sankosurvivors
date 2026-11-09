@@ -13,7 +13,7 @@ import {saveRunProgress,recoverRunProgress,recoverProgressImport} from '../src/p
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),J=JSON.stringify;
 const profile=main.slice(main.indexOf('const load = '),main.indexOf('// ---- icons:'));
 const best=main.slice(main.indexOf('const bestKey = '),main.indexOf('function showBest()'));
-const finish=main.slice(main.indexOf('function runCoins('),main.indexOf('function toMenu()'));
+const finish=main.slice(main.indexOf('function runCoinOptions('),main.indexOf('function toMenu()'));
 const persist=main.slice(main.indexOf('function persistRanked()'),main.indexOf('setInterval(() => { if (rankedPlaying())'));
 const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
 function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',responses=[],storageFault=null,continuePlay=false}={}){

@@ -50,7 +50,7 @@ function menu(mode = 'title') {
     if (parent) { parent.children.push(el); classes.delete('hidden'); }
     elements.set(id, el); return el;
   }
-  for (const id of ['coop', 'cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'upgrades', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'pause', 'end', 'title']) element(id);
+  for (const id of ['coop', 'cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'upgrades', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'merchant', 'pause', 'end', 'title']) element(id);
   for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('settingssummary',elements.get('settings'),'summary');
