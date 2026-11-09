@@ -1,15 +1,15 @@
 {
   "source": {
-    "commit": "abaff5e3539a3d03410efe5467ae7aee3c74cb5c",
-    "implementation": "abaff5e3539a3d03410efe5467ae7aee3c74cb5c",
-    "clientSha256": "ad095a51e03811f9f270933c6056774db27680be63481396a0ddefccaaa11b32"
+    "commit": "e527ab4e11cc31da797d2f5fbc88a07ac4c67213",
+    "implementation": "e527ab4e11cc31da797d2f5fbc88a07ac4c67213",
+    "clientSha256": "6e8680bdee4ec04a9a1460ad3b333da0c51b568cff127318b258cb4f41b01cf3"
   },
   "adaptations": {
     "client": [
       {
         "before": "\"./assets/\"",
         "after": "\"/assets/\"",
-        "count": 4
+        "count": 3
       },
       {
         "before": "\"./draco/\"",
@@ -32,19 +32,19 @@
         "count": 1
       },
       {
-        "before": "get(\"mode\")===\"survivors\"?\"survivors\":\"race\"",
-        "after": "get(\"mode\")===\"race\"?\"race\":\"survivors\"",
+        "before": "===\"survivors\"?\"survivors\":\"race\"",
+        "after": "===\"race\"?\"race\":\"survivors\"",
         "count": 1
       }
     ],
     "html": [
       {
-        "before": "/assets/index-CEBDM2PW.js",
-        "after": "./racers-3b014efb26a1c954.js"
+        "before": "/assets/index-BWtb1wIr.js",
+        "after": "./racers-86ab6548f4af80b9.js"
       },
       {
-        "before": "/assets/index-CvBKTRtH.css",
-        "after": "./racers-a49170a32ae24339.css"
+        "before": "/assets/index-CmKkvw_K.css",
+        "after": "./racers-d17fed88e1df06f5.css"
       },
       {
         "before": "<a href=\"./CREDITS.txt\"",
@@ -56,18 +56,18 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 2619,
-      "sha256": "8df0cd429106ea022e873ce2cbee41a4791e171eb0ff2ab4fbfd3a8708585a07"
+      "bytes": 2878,
+      "sha256": "a005deea7cbb204211fa3e6d87dbc04fcfb8b96e8f952f8a6cfd11782ce67fc2"
     },
     {
-      "path": "/fun/racers/racers-3b014efb26a1c954.js",
-      "bytes": 696512,
-      "sha256": "3b014efb26a1c954c09d8ea5309bdccfe956dfd470414246eac38e782c0d158c"
+      "path": "/fun/racers/racers-86ab6548f4af80b9.js",
+      "bytes": 703031,
+      "sha256": "86ab6548f4af80b91736f8f01888ef0c9b791a081a9905f94019b55e8f9b7bb0"
     },
     {
-      "path": "/fun/racers/racers-a49170a32ae24339.css",
-      "bytes": 5053,
-      "sha256": "a49170a32ae24339337c400dbdb1f7ed17f72d54f44378d3dcfeddcc43201d42"
+      "path": "/fun/racers/racers-d17fed88e1df06f5.css",
+      "bytes": 5947,
+      "sha256": "d17fed88e1df06f5c482cac7ffb70999104629b7e2ce1043fb614fb346077383"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -76,8 +76,8 @@
     },
     {
       "path": "/fun/racers/INTEGRATION.txt",
-      "bytes": 1864,
-      "sha256": "89ef0d0ac58b3795175a50786f4949a55060369a749d4a8d815ab3c98e7027f8"
+      "bytes": 1880,
+      "sha256": "d0ac0c38ee12d87f20bd01500610846e1d0e8b430ade8046819f94ec38b7e41e"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -152,9 +152,19 @@
       "sha256": "90f16e5735476a9599853c587a26a50536828a45e24514dafa03a4db6c00334d"
     },
     {
+      "path": "/assets/models/playerCharacter/Chest/Clothing/Iron Chestplate.glb",
+      "bytes": 53640,
+      "sha256": "50bdba0858e347257d26b4ad0221c94227b8bbbbfb6d8f786902aa596ff123ba"
+    },
+    {
       "path": "/assets/models/playerCharacter/Chest/Styles/Shoulders.glb",
       "bytes": 32164,
       "sha256": "7dbb45ca499e87d4bd90838d5b213f41201976d82089b1d974356b89f46db633"
+    },
+    {
+      "path": "/assets/models/playerCharacter/Feet/Clothing/Iron Boots.glb",
+      "bytes": 23648,
+      "sha256": "8d642eae7b2f86ab234117e9619c7b701b7341957c0610fadb81e75dcb9f7cd5"
     },
     {
       "path": "/assets/models/playerCharacter/Feet/Feet.glb",
@@ -170,6 +180,11 @@
       "path": "/assets/models/playerCharacter/Head/Bald.glb",
       "bytes": 17476,
       "sha256": "3492664d6b2ad29b7fbcc1313569bc4aa378b2e25060cbf8a27d421a66f6f5e4"
+    },
+    {
+      "path": "/assets/models/playerCharacter/Head/Clothing/Iron Helmet.glb",
+      "bytes": 41316,
+      "sha256": "cda2ec281cb64155b7591d4a1feb9abde70f6612650c1d020af3d09f3770b9c4"
     },
     {
       "path": "/assets/models/playerCharacter/Head/Neck.glb",
@@ -215,6 +230,11 @@
       "path": "/assets/models/playerCharacter/Head/Styles/Sideswept.glb",
       "bytes": 32352,
       "sha256": "6d03ca85fbd2f8fa80782b858ea262640594b87314c51f9b2e4d1a7b73c518f2"
+    },
+    {
+      "path": "/assets/models/playerCharacter/Legs/Clothing/Iron Leggings.glb",
+      "bytes": 25768,
+      "sha256": "f2dd33562cbabcf5496ec4f64792270951fe9a857cd2f4a3258fd1701f358add"
     },
     {
       "path": "/assets/models/playerCharacter/Legs/Styles/Pants.glb",
@@ -1086,7 +1106,7 @@
     {
       "path": "assets/inventory.json",
       "reason": "No runtime reference (asserted before packaging)",
-      "sha256": "d9960e70893a93754a109e091643fd6ef647333a2fcfe968b037d812148ff1d9"
+      "sha256": "fc4755b09178fbf1771b0108b99bf64b5d86f67a0c8d33ef20044c04dfb5323e"
     },
     {
       "path": "assets/world/tiles/nav.bin",

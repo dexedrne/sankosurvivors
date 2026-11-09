@@ -1,6 +1,6 @@
 {
-  "commit": "abaff5e3539a3d03410efe5467ae7aee3c74cb5c",
-  "implementation": "abaff5e3539a3d03410efe5467ae7aee3c74cb5c",
+  "commit": "e527ab4e11cc31da797d2f5fbc88a07ac4c67213",
+  "implementation": "e527ab4e11cc31da797d2f5fbc88a07ac4c67213",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -69,21 +69,21 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-CEBDM2PW.js",
-      "bytes": 696501,
-      "sha256": "ad095a51e03811f9f270933c6056774db27680be63481396a0ddefccaaa11b32",
+      "path": "assets/index-BWtb1wIr.js",
+      "bytes": 703019,
+      "sha256": "6e8680bdee4ec04a9a1460ad3b333da0c51b568cff127318b258cb4f41b01cf3",
       "role": "client"
     },
     {
-      "path": "assets/index-CvBKTRtH.css",
-      "bytes": 4877,
-      "sha256": "373863d63312d7e0cdc4450546e03b87e0661c610e9fb7d115b030ce7b5d6332",
+      "path": "assets/index-CmKkvw_K.css",
+      "bytes": 5771,
+      "sha256": "21f1f3639ce92a59a0fa415e5b9ef989e23719ca0cd3c06c25d985fe8a7a6e74",
       "role": "stylesheet"
     },
     {
       "path": "assets/inventory.json",
-      "bytes": 31066,
-      "sha256": "d9960e70893a93754a109e091643fd6ef647333a2fcfe968b037d812148ff1d9",
+      "bytes": 31784,
+      "sha256": "fc4755b09178fbf1771b0108b99bf64b5d86f67a0c8d33ef20044c04dfb5323e",
       "role": "omit-unused"
     },
     {
@@ -93,9 +93,21 @@
       "role": "shared"
     },
     {
+      "path": "assets/models/playerCharacter/Chest/Clothing/Iron Chestplate.glb",
+      "bytes": 53640,
+      "sha256": "50bdba0858e347257d26b4ad0221c94227b8bbbbfb6d8f786902aa596ff123ba",
+      "role": "shared"
+    },
+    {
       "path": "assets/models/playerCharacter/Chest/Styles/Shoulders.glb",
       "bytes": 32164,
       "sha256": "7dbb45ca499e87d4bd90838d5b213f41201976d82089b1d974356b89f46db633",
+      "role": "shared"
+    },
+    {
+      "path": "assets/models/playerCharacter/Feet/Clothing/Iron Boots.glb",
+      "bytes": 23648,
+      "sha256": "8d642eae7b2f86ab234117e9619c7b701b7341957c0610fadb81e75dcb9f7cd5",
       "role": "shared"
     },
     {
@@ -114,6 +126,12 @@
       "path": "assets/models/playerCharacter/Head/Bald.glb",
       "bytes": 17476,
       "sha256": "3492664d6b2ad29b7fbcc1313569bc4aa378b2e25060cbf8a27d421a66f6f5e4",
+      "role": "shared"
+    },
+    {
+      "path": "assets/models/playerCharacter/Head/Clothing/Iron Helmet.glb",
+      "bytes": 41316,
+      "sha256": "cda2ec281cb64155b7591d4a1feb9abde70f6612650c1d020af3d09f3770b9c4",
       "role": "shared"
     },
     {
@@ -168,6 +186,12 @@
       "path": "assets/models/playerCharacter/Head/Styles/Sideswept.glb",
       "bytes": 32352,
       "sha256": "6d03ca85fbd2f8fa80782b858ea262640594b87314c51f9b2e4d1a7b73c518f2",
+      "role": "shared"
+    },
+    {
+      "path": "assets/models/playerCharacter/Legs/Clothing/Iron Leggings.glb",
+      "bytes": 25768,
+      "sha256": "f2dd33562cbabcf5496ec4f64792270951fe9a857cd2f4a3258fd1701f358add",
       "role": "shared"
     },
     {
@@ -1228,8 +1252,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 2546,
-      "sha256": "34721f69a0516f4bcb708b4294a5da7a25c4e5c94b237cd178848d1709bde4f7",
+      "bytes": 2805,
+      "sha256": "da25e2418ce35a785aa94ec088391fc2562fa9d2b0aa104885966dbe869971c2",
       "role": "entry"
     }
   ],

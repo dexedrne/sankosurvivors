@@ -1,5 +1,9 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Race the Guard and Priest": "Compite contra el Guardia y el Sacerdote",
+  "Sanko Racers has an NPC race: a shared countdown, ten gates, live positions and honest finish times.": "Sanko Racers tiene una carrera contra PNJ: cuenta atrás compartida, diez puertas, posiciones en directo y tiempos de llegada reales.",
+  "The Guard and Priest drive the same roads and obey solid walls. Their cars do not block yours. Choose NPC race inside Fun → Sanko Racers.": "El Guardia y el Sacerdote conducen por las mismas calles y respetan los muros sólidos. Sus coches no bloquean el tuyo. Elige NPC race en Diversión → Sanko Racers.",
+
   "A clearer view in Racers": "Una vista más clara en Racers",
   "The Racers chase camera moves closer when native walls or roofs block the car, then eases back when the view clears.": "La cámara de Racers se acerca cuando las paredes o los tejados tapan el coche y vuelve suavemente cuando la vista queda libre.",
   "Camera checks use nearby native geometry. Driving, the countryside map and the original race loop stay the same.": "La cámara comprueba la geometría original cercana. La conducción, el campo y el circuito original siguen igual.",

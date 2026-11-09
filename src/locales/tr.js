@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Race the Guard and Priest": "Muhafız ve Rahip ile yarış",
+  "Sanko Racers has an NPC race: a shared countdown, ten gates, live positions and honest finish times.": "Sanko Racers’da NPC yarışı var: ortak geri sayım, on kapı, anlık sıralama ve gerçek bitiş süreleri.",
+  "The Guard and Priest drive the same roads and obey solid walls. Their cars do not block yours. Choose NPC race inside Fun → Sanko Racers.": "Muhafız ve Rahip aynı yollarda sürer ve sağlam duvarlardan geçmez. Arabaları sizi engellemez. Eğlence → Sanko Racers içinde NPC race seçin.",
+
   "A clearer view in Racers": "Racers için daha net görüş",
   "The Racers chase camera moves closer when native walls or roofs block the car, then eases back when the view clears.": "Racers kamerası, duvarlar veya çatılar arabayı kapattığında yaklaşır; görüş açıldığında yumuşakça geri çekilir.",
   "Camera checks use nearby native geometry. Driving, the countryside map and the original race loop stay the same.": "Kamera yakındaki özgün geometriyi kontrol eder. Sürüş, kırsal harita ve özgün yarış parkuru aynı kalır.",

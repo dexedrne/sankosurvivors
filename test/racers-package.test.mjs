@@ -27,8 +27,8 @@ test('packaging refuses changed bytes, traversal and symlinks at its input bound
 
 test('every packaged and shared route dependency matches its recorded bytes', () => {
  const m=manifest();
- assert.equal(m.source.commit,'abaff5e3539a3d03410efe5467ae7aee3c74cb5c');
- assert.equal(m.shared.length,193);
+ assert.equal(m.source.commit,'e527ab4e11cc31da797d2f5fbc88a07ac4c67213');
+ assert.equal(m.shared.length,197);
  for(const item of [...m.files,...m.shared]) {
   assert.match(item.path,/^\/(?:fun\/racers|assets|draco)\//);
   assert.ok(!item.path.includes('..'));
@@ -49,7 +49,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  assert.doesNotMatch(html,/<iframe\b/i);
  const m=manifest();
  const js=read(`public${m.files.find(f=>f.path.endsWith('.js')).path}`).toString();
- assert.match(js,/get\("mode"\)==="race"\?"race":"survivors"/);
+ assert.match(js,/==="race"\?"race":"survivors"/);
  assert.match(js,/sanko-racers-greentown-v1/);
  assert.equal((js.match(/localStorage/g)||[]).length,2);
  assert.doesNotMatch(js,/\.\/assets\/|\.\/draco\/|100\.65\.235\.118|127\.0\.0\.1|localhost|walletconnect|supabase|ethereum|\/api\//i);
@@ -65,7 +65,7 @@ test('adapted client reverses exactly to the accepted source artifact', () => {
   assert.equal(js.split(after).length-1,count,after);
   js=js.split(after).join(before);
  }
- assert.equal(hash(js),'ad095a51e03811f9f270933c6056774db27680be63481396a0ddefccaaa11b32');
+ assert.equal(hash(js),'6e8680bdee4ec04a9a1460ad3b333da0c51b568cff127318b258cb4f41b01cf3');
  const credits=read('public/fun/racers/CREDITS.txt').toString();
  assert.match(credits,/Speedy-Works/);
  assert.match(credits,/creativecommons.org\/licenses\/by\/4.0/);

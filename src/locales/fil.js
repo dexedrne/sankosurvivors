@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Race the Guard and Priest": "Makipagkarera sa Guard at Priest",
+  "Sanko Racers has an NPC race: a shared countdown, ten gates, live positions and honest finish times.": "May NPC race na sa Sanko Racers: sabay na countdown, sampung gate, kasalukuyang puwesto at tunay na oras ng pagtatapos.",
+  "The Guard and Priest drive the same roads and obey solid walls. Their cars do not block yours. Choose NPC race inside Fun → Sanko Racers.": "Sa parehong mga kalsada nagmamaneho ang Guard at Priest at hindi sila dumadaan sa solidong pader. Hindi haharang ang mga kotse nila. Piliin ang NPC race sa Fun → Sanko Racers.",
+
   "A clearer view in Racers": "Mas malinaw na tanaw sa Racers",
   "The Racers chase camera moves closer when native walls or roofs block the car, then eases back when the view clears.": "Lumalapit ang camera ng Racers kapag natatakpan ng mga pader o bubong ang kotse, at dahan-dahang bumabalik kapag malinaw na ang tanaw.",
   "Camera checks use nearby native geometry. Driving, the countryside map and the original race loop stay the same.": "Ginagamit ng camera ang kalapit na orihinal na geometry. Walang pagbabago sa pagmamaneho, kanayunan at orihinal na karera.",
