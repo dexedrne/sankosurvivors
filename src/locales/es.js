@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Spells follow their caster": "Los hechizos salen de quien los lanza",
+  "In co-op, newly cast spells start from the adventurer who cast them, even when teammates stand close together.": "En cooperativo, los hechizos nuevos salen del aventurero que los lanza, aunque sus compañeros estén muy cerca.",
   "Fewer crowd draws": "Menos llamadas de dibujo en las multitudes",
   "Compatible enemy model parts now share a draw call, keeping their original shapes, colours and animations.": "Las partes compatibles de los enemigos comparten una llamada de dibujo y conservan sus formas, colores y animaciones originales.",
   "Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.": "Diversión → Invasión de magos: juega como Wise Old Man en un combate mágico sin fin en Greentown.",

@@ -1970,8 +1970,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           const { col, tier } = staffSpell(lvl, evo, id);
           o.add(magicSphere(col, tier)); Object.assign(o.userData, { spell: { col, tier } });
           // it left its caster this tick: start the flight there, so the tail grows out of the caster as the game's does
-          let c = null, cd = 4; for (const p of view.players) if (p.al) { const d = (p.x - x) ** 2 + (p.z - z) ** 2; if (d < cd) { cd = d; c = p; } }
-          if (c) spellSample(o.userData, vt - 1, c.x, groundAt(c.x, c.z) + 1.3, c.z, ang);
+          const caster = view.spellCasters?.[id];
+          let c = caster == null ? null : view.players.find(p => p.id === caster && p.al), cd = 4;
+          if (caster == null) for (const p of view.players) if (p.al) { const d = (p.x - x) ** 2 + (p.z - z) ** 2; if (d < cd) { cd = d; c = p; } }
+          if (c && (c.x - x) ** 2 + (c.z - z) ** 2 < 4) spellSample(o.userData, vt - 1, c.x, groundAt(c.x, c.z) + 1.3, c.z, ang);
         } else if (art === 'arrow') {
           o.add(arrowOf(mt)); // SankoQuest's flying arrow, as the live game draws it, with the head in the arrows' metal
           Object.assign(o.userData, evo ? { trail: 0x9fe6ff, every: 0.5 } : { trail: 0xb89a6a, every: 0.7 }); // the glacial bow's frost, or a little dust

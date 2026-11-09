@@ -2702,6 +2702,7 @@ function loop(ts) {
     lastMenuDrawn = ts;
   }
   const view = snapshot(sim, { maxEnemies: 420 });
+  view.spellCasters = Object.fromEntries(sim.proj.filter(p => p.art === 'bolt').map(p => [p.id, p.owner]));
   view.petActive = mode === 'play' && !waitingForMove && !Object.keys(view.pending || {}).length && !view.over && (!sim.coop || !!coop?.run && !coop.run.held && !coop.run.closed);
   view.alpha = Math.min(1, Math.max(0, acc / TICK)); // where between sim ticks this frame is (the renderer slides spells by it)
   if (view.fx.some((f) => f.k === 'die' && f.boss)) slowmo = 0.9;

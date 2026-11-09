@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.44.76',date:'9 Nov 2026',title:'Spells follow their caster',items:["In co-op, newly cast spells start from the adventurer who cast them, even when teammates stand close together."]},
   {version:'0.44.75',date:'9 Nov 2026',title:'Fewer crowd draws',items:['Compatible enemy model parts now share a draw call, keeping their original shapes, colours and animations.']},
   {version:'0.44.74',date:'9 Nov 2026',title:'Wizard Invasion',items:['Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.','Enemy wizards aim before firing. Dodge single bolts and later spread shots; your skills and gear bonuses still apply.','Wizard Invasion is solo and has separate results. Earn GP and gear without normal leaderboard entries or campaign clears.']},
   {version:'0.44.73',date:'9 Nov 2026',title:'Race the Guard and Priest',items:['Sanko Racers has an NPC race: a shared countdown, ten gates, live positions and honest finish times.','The Guard and Priest drive the same roads and obey solid walls. Their cars do not block yours. Choose NPC race inside Fun → Sanko Racers.']},

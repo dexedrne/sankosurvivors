@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Spells follow their caster": "Ang mahika ay nagmumula sa tamang adventurer",
+  "In co-op, newly cast spells start from the adventurer who cast them, even when teammates stand close together.": "Sa co-op, ang mga bagong spell ay nagsisimula sa adventurer na gumawa nito, kahit magkalapit ang magkakampi.",
   "Fewer crowd draws": "Mas kaunting pagguhit sa dagsa ng kalaban",
   "Compatible enemy model parts now share a draw call, keeping their original shapes, colours and animations.": "Magkasamang iginuguhit ang magkakatugmang bahagi ng mga kalaban, habang pinananatili ang orihinal nilang hugis, kulay at animasyon.",
   "Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.": "Fun → Pagsalakay ng mga Salamangkero: gumanap bilang Wise Old Man sa walang katapusang labanan ng mahika sa Greentown.",

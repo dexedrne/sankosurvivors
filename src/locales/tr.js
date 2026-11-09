@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Spells follow their caster": "Büyüler kendi büyücüsünden çıkar",
+  "In co-op, newly cast spells start from the adventurer who cast them, even when teammates stand close together.": "Eşli oyunda takım arkadaşları birbirine yakın dursa bile yeni büyüler onları yapan maceracıdan çıkar.",
   "Fewer crowd draws": "Kalabalıklarda daha az çizim çağrısı",
   "Compatible enemy model parts now share a draw call, keeping their original shapes, colours and animations.": "Uyumlu düşman modeli parçaları artık aynı çizim çağrısını paylaşır; özgün şekilleri, renkleri ve animasyonları korunur.",
   "Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.": "Eğlence → Büyücü İstilası: Wise Old Man olarak Greentown’da sonsuz bir büyü savaşına katıl.",
