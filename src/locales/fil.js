@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+"Menu music recovery": "Pagbalik ng menu music",
+"If an earlier audio start was blocked, a fresh tap retries menu music. Music and sound effects keep their separate volume settings.": "Kung na-block ang naunang audio start, susubukan ulit ang menu music sa bagong tap. Magkahiwalay pa rin ang volume ng music at sound effects.",
+
   "New ranked runs keep growing after the build is maxed: each earned level grants a random +1% damage, maximum health or area.": "Patuloy ang paglakas sa bagong ranked runs kapag maxed na ang build: bawat level ay nagbibigay ng random na +1% damage, maximum health o area.",
   "Holding Tab keeps the desktop map open. Ranked consent is visible, saved payments say Receipt, and confirmed week-0 reward transactions are linked on the leaderboard.": "Mananatiling bukas ang desktop map habang hawak ang Tab. Nakikita na ang ranked checkbox, Resibo na ang saved payments, at may link sa kumpirmadong week-0 rewards sa leaderboard.",
   "Spell impacts follow the actual hit deadline; pointblank blasts retain the bolt’s own element.": "Sabay sa tunay na tama ang spell impacts; pinapanatili ng pointblank blasts ang elemento ng mismong projectile.",

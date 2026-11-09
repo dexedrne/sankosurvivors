@@ -70,7 +70,7 @@ export function createAudio() {
       try { const r = await fetch(host + `${n}.${EXT[n] || 'mp3'}`); buffers.set(n, await ctx.decodeAudioData(await r.arrayBuffer())); } catch { /* optional */ }
     }));
   }
-  async function init() {
+  async function init(trustedGesture = false) {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
       ctx = new AC(); sfxGain = ctx.createGain(); sfxGain.gain.value = sfxLevel(); sfxGain.connect(ctx.destination);
@@ -83,7 +83,8 @@ export function createAudio() {
       }
       if (desired) current = musicSlots[0];
     }
-    if (!resuming && (ctx.state === 'suspended' || ctx.state === 'interrupted')) {
+    // A blocked resume can stay pending until a later gesture calls resume again.
+    if ((!resuming || trustedGesture) && (ctx.state === 'suspended' || ctx.state === 'interrupted')) {
       try { resuming = Promise.resolve(ctx.resume()); } catch (e) { resuming = Promise.reject(e); }
       const pending = resuming;
       pending.then(() => { if (resuming === pending) resuming = null; }, () => { if (resuming === pending) resuming = null; });

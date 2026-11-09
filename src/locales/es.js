@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+"Menu music recovery": "Recuperación de la música del menú",
+"If an earlier audio start was blocked, a fresh tap retries menu music. Music and sound effects keep their separate volume settings.": "Si se bloqueó un inicio de audio anterior, otro toque vuelve a intentar reproducir la música del menú. La música y los efectos conservan sus ajustes de volumen separados.",
+
   "New ranked runs keep growing after the build is maxed: each earned level grants a random +1% damage, maximum health or area.": "Las nuevas partidas clasificatorias siguen creciendo al completar la build: cada nivel ganado otorga al azar +1% de daño, vida máxima o área.",
   "Holding Tab keeps the desktop map open. Ranked consent is visible, saved payments say Receipt, and confirmed week-0 reward transactions are linked on the leaderboard.": "Mantener Tab conserva el mapa de escritorio abierto. La casilla clasificatoria es visible, los pagos guardados indican Recibo y la clasificación enlaza las transacciones confirmadas de la semana 0.",
   "Spell impacts follow the actual hit deadline; pointblank blasts retain the bolt’s own element.": "Los impactos de hechizos respetan el momento del golpe; las explosiones a quemarropa conservan el elemento del proyectil.",

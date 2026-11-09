@@ -987,7 +987,7 @@ function playTitleMusic() {
 function unlockAudio(event) {
   if (event ? !event.isTrusted : !globalThis.navigator?.userActivation?.hasBeenActive) return;
   playTitleMusic();
-  audio.init().catch(() => {});
+  audio.init(event?.isTrusted === true).catch(() => {});
 }
 for (const type of ['click', 'touchend', 'keydown']) addEventListener(type, unlockAudio, true);
 // The first gesture may have happened in the owned preboot save chooser.

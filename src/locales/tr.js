@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+"Menu music recovery": "Menü müziği kurtarma",
+"If an earlier audio start was blocked, a fresh tap retries menu music. Music and sound effects keep their separate volume settings.": "Önceki ses başlangıcı engellendiyse yeni bir dokunuş menü müziğini yeniden dener. Müzik ve ses efektleri ayrı ses düzeyi ayarlarını korur.",
+
   "New ranked runs keep growing after the build is maxed: each earned level grants a random +1% damage, maximum health or area.": "Yeni dereceli turlarda tüm geliştirmeler tamamlandıktan sonra da büyüme sürer: kazanılan her seviye rastgele %1 hasar, azami can veya alan verir.",
   "Holding Tab keeps the desktop map open. Ranked consent is visible, saved payments say Receipt, and confirmed week-0 reward transactions are linked on the leaderboard.": "Tab basılı tutulduğunda masaüstü haritası açık kalır. Dereceli onay kutusu görünürdür; kaydedilen ödemeler Makbuz olarak belirtilir ve skor tablosunda onaylanmış 0. hafta ödül işlemleri vardır.",
   "Spell impacts follow the actual hit deadline; pointblank blasts retain the bolt’s own element.": "Büyü etkileri gerçek vuruş anını izler; yakın patlamalar merminin kendi elementini korur.",

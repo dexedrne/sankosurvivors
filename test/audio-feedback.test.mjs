@@ -11,7 +11,7 @@ function fixture(values={},fail={}){
   createBufferSource(){const node={playbackRate:{value:0},connect(next){this.next=next;},start(){sources.push(this);}};return node;}
   createMediaElementSource(el){assert.equal(el.route,undefined,'one source node per reusable media element');return{connect(node){el.route=node;musicGains.add(node);}};}
   async decodeAudioData(value){return{fixture:value};}
-  resume(){const attempt={};resumes.push(attempt);return new Promise((resolve,reject)=>{attempt.resolve=()=>{this.state='running';resolve();};attempt.reject=reject;if(!fail.deferResume)attempt.resolve();});}
+  resume(){const attempt={};resumes.push(attempt);return new Promise((resolve,reject)=>{attempt.resolve=()=>{this.state='running';resolve();};attempt.reject=reject;if(!fail.deferResume&&(!fail.resumeNeedsGesture||fail.gesture))resumes.forEach(p=>p.resolve());});}
  }
  class Audio{
   constructor(url){this._src=url;this._volume=1;this.paused=true;this.assignments=[];tracks.push(this);}
@@ -147,6 +147,20 @@ for(const state of ['suspended','interrupted'])test('init awaits '+state+' resum
 });
 test('a failed context resume does not poison the next gesture or re-fetch decoded effects',async()=>{
  const fail={state:'suspended',deferResume:true},f=fixture({},fail);const first=f.audio.init();const rejected=assert.rejects(first,/resume denied/);f.resumes[0].reject(Error('resume denied'));await rejected;const count=f.fetches.length;fail.deferResume=false;await f.audio.init();assert.equal(f.contexts[0].state,'running');assert.equal(f.fetches.length,count);
+});
+for(const state of ['suspended','interrupted'])test('a trusted menu tap retries an earlier blocked '+state+' resume',async()=>{
+ const fail={state,resumeNeedsGesture:true},f=fixture({'sq-vol':'{"s":30,"m":80}'},fail),main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),a=main.indexOf('function unlockAudio('),b=main.indexOf('// ---- version, leaderboard',a);
+ const unlock=Function('audio','addEventListener','playTitleMusic','globalThis',main.slice(a,b)+';return unlockAudio;')(f.audio,()=>{},()=>f.audio.music('mid'),{navigator:{userActivation:{hasBeenActive:true}}});
+ await f.settle();assert.equal(f.contexts[0].state,state);assert.equal(f.resumes.length,1);const fetchCount=f.fetches.length,ready=f.audio.init();
+ unlock({isTrusted:false});await f.settle();assert.equal(f.resumes.length,1,'ordinary init and synthetic events do not retry pending work');
+ fail.gesture=true;unlock({isTrusted:true});await f.settle();assert.equal(f.contexts[0].state,'running','the next activating tap must reach resume despite the pending earlier promise');await ready;
+ assert.equal(f.resumes.length,2);assert.equal(f.contexts.length,1);assert.equal(f.tracks.length,2);assert.equal(f.fetches.length,fetchCount);
+ for(let i=0;i<30;i++)f.fade();assert.equal(f.tracks[0].src,'music/Adobe_Fantasy.mp3');assert.equal(f.tracks[0].paused,false);assert.equal(f.tracks[0].level,.4);assert.equal(f.gains[0].gain.value,.25);assert.equal(f.plays.length,2,'resume recovery keeps the existing music streams');
+});
+for(const outcome of ['resolve','reject'])test('an older resume '+outcome+' cannot clear a newer gesture retry',async()=>{
+ const f=fixture({},{state:'suspended',deferResume:true}),first=f.audio.init(),firstSettled=outcome==='reject'?assert.rejects(first,/old resume failed/):first,second=f.audio.init(true);
+ assert.equal(f.resumes.length,2);f.resumes[0][outcome](Error('old resume failed'));await firstSettled;f.contexts[0].state='interrupted';
+ const ordinary=f.audio.init();assert.equal(f.resumes.length,2,'older settlement must not release the current pending guard');f.resumes[1].resolve();await Promise.all([second,ordinary]);assert.equal(f.contexts[0].state,'running');
 });
 test('a stale spare-prime completion cannot pause its newly promoted source',async()=>{
  const f=fixture({},{deferPlay:true});f.audio.music('early');await f.audio.init();const prime=f.plays[1];f.audio.music('mid');const current=f.plays.at(-1);assert.equal(current.el,prime.el);assert.notEqual(current.src,prime.src);prime.resolve();await f.settle();assert.equal(current.el.paused,false);current.resolve();f.plays[0].resolve();await f.settle();for(let i=0;i<30;i++)f.fade();assert.equal(current.el.level,.3);
