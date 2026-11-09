@@ -158,7 +158,7 @@ export const WEAPONS = {
     next: (l) => ['+damage', '+shield', '+speed', '+shield', '+damage', 'Runite wall'][l - 1] || 'max',
   },
   staff: {
-    name: 'Shard Staff', icon: 'staff', model: 'equipment/weapons/staff/staff.glb',
+    name: 'Spells', icon: 'staff', model: 'equipment/weapons/staff/staff.glb',
     blurb: 'Fires homing shard bolts that burst on impact.',
     stats: (l) => ({ dmg: L(l, 11, 3.2), cd: L(l, 1.2, -0.09), count: 1 + Math.floor((l + 1) / 3), speed: 14, burst: l >= 2 ? L(l, 1.5, 0.25) : 0, life: 2.2 }),
     next: (l) => ['+bolt, bolts burst', '+burst', '+damage', '+bolt', '+burst', 'Void shards'][l - 1] || 'max',
@@ -259,7 +259,7 @@ export function weaponItem(id, level, step = null) {
     default: return 'Staff';
   }
 }
-export function weaponTitle(id, level, step = null) { return id === 'staff' ? `Staff · ${SHARDS[Math.min(level, 6) - 1]} Shard` : weaponItem(id, level, step); }
+export function weaponTitle(id, level, step = null) { return id === 'staff' ? `Spells · ${SHARDS[Math.min(level, 6) - 1]} Shard` : weaponItem(id, level, step); }
 // icons: SankoQuest's file names (trimmed pieces share the plain icon, the Minion set is the Mystic robe and skirt,
 // "Magician's Amulet" is item_Magicians_Amulet.png)
 export const itemIconFile = (name) => `item_${name.replace(' Short Sword', ' Sword').replace(/ \(t\)$/, '').replace(/^Minion /, 'Mystic ').replace(/^Lighter$/, 'Lighter2').replace(/'/g, '').replace(/ /g, '_')}.png`;
@@ -324,7 +324,7 @@ export const EVOLUTIONS = {
   bow:     { passive: 'boots',  name: 'Glacial Bow',    item: 'Glacial Bow',    blurb: 'Volleys of arrows that pierce everything.' },
   axe:     { passive: 'vigor',  name: 'Runite Axe Storm', item: 'Runite Axe',   blurb: 'Twice the axes, bigger and heavier.' },
   shield:  { passive: 'armor',  name: 'Ogre Shield',    item: 'Ogre Shield',    blurb: 'More shields, wider orbit, brutal knockback.' },
-  staff:   { passive: 'growth', name: 'Void Staff',     item: 'Void Shard',     blurb: 'More bolts that burst in huge blasts.' },
+  staff:   { passive: 'growth', name: 'Void Spells',     item: 'Void Shard',     blurb: 'More bolts that burst in huge blasts.' },
   pickaxe: { passive: 'haste',  name: 'Earthshaker',    item: 'Earth Shard',    blurb: 'Faster, wider quakes.' },
   greatsword: { passive: 'vigor', name: 'Bloodspinner', item: 'Adamantite 2hd Sword', blurb: 'Spins twice as often, wider, and heals you with every spin.' },
   shortsword: { passive: 'magnet', name: 'Swordstorm',  item: 'Adamantite Short Sword', blurb: 'A ring of swords in every direction that pierces everything.' },

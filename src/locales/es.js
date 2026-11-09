@@ -1,5 +1,17 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Spells": "Hechizos",
+  "Void Spells": "Hechizos del Vacío",
+  "Void Spells!": "¡Hechizos del Vacío!",
+  "Clearer spell names": "Nombres de hechizos más claros",
+  "The weapon is now called Spells in menus, upgrades and results. Existing spells and evolution recipes stay the same.": "El arma ahora se llama Hechizos en los menús, las mejoras y los resultados. Los hechizos y las recetas de evolución actuales siguen igual.",
+  "EVOLVES SPELLS · AIR SHARD": "EVOLUCIONA Hechizos · Fragmento de Aire",
+  "EVOLVES SPELLS · WATER SHARD": "EVOLUCIONA Hechizos · Fragmento de Agua",
+  "EVOLVES SPELLS · EARTH SHARD": "EVOLUCIONA Hechizos · Fragmento de Tierra",
+  "EVOLVES SPELLS · FIRE SHARD": "EVOLUCIONA Hechizos · Fragmento de Fuego",
+  "EVOLVES SPELLS · SPIRIT SHARD": "EVOLUCIONA Hechizos · Fragmento de Espíritu",
+  "EVOLVES SPELLS · VOID SHARD": "EVOLUCIONA Hechizos · Fragmento de Vacío",
+
   "Wandering merchant": "Mercader ambulante",
   "The fight is paused. Spend GP earned this run; purchases reduce your final GP reward.": "La batalla está en pausa. Gasta GP ganados en esta partida; las compras reducen tu recompensa final de GP.",
   "Run GP": "GP de la partida",
@@ -1515,6 +1527,8 @@ export const text = {
 };
 
 export const patterns = [
+  ["Void Spells +{1}", "Hechizos del Vacío +{1}"],
+  ["Spells +{1}", "Hechizos +{1}"],
   ["1st: {1} DMT + participation", "1.º: {1} DMT + participación"],
   ["2nd: {1} DMT + participation", "2.º: {1} DMT + participación"],
   ["3rd: {1} DMT + participation", "3.º: {1} DMT + participación"],

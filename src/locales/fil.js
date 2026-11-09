@@ -1,5 +1,17 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Spells": "Mga Mahika",
+  "Void Spells": "Mga Mahika ng Kawalan",
+  "Void Spells!": "Mga Mahika ng Kawalan!",
+  "Clearer spell names": "Mas malinaw na pangalan ng mahika",
+  "The weapon is now called Spells in menus, upgrades and results. Existing spells and evolution recipes stay the same.": "Mga Mahika na ang pangalan ng armas sa mga menu, upgrade at resulta. Pareho pa rin ang kasalukuyang mahika at mga recipe ng ebolusyon.",
+  "EVOLVES SPELLS · AIR SHARD": "EVOLVE: Mga Mahika · Piraso ng Hangin",
+  "EVOLVES SPELLS · WATER SHARD": "EVOLVE: Mga Mahika · Piraso ng Tubig",
+  "EVOLVES SPELLS · EARTH SHARD": "EVOLVE: Mga Mahika · Piraso ng Lupa",
+  "EVOLVES SPELLS · FIRE SHARD": "EVOLVE: Mga Mahika · Piraso ng Apoy",
+  "EVOLVES SPELLS · SPIRIT SHARD": "EVOLVE: Mga Mahika · Piraso ng Espiritu",
+  "EVOLVES SPELLS · VOID SHARD": "EVOLVE: Mga Mahika · Piraso ng Kawalan",
+
   "Wandering merchant": "Naglalakbay na merchant",
   "The fight is paused. Spend GP earned this run; purchases reduce your final GP reward.": "Naka-pause ang laban. Gumastos ng GP na kinita sa run na ito; ibabawas ang binili sa huling GP reward mo.",
   "Run GP": "GP ng run",
@@ -1515,6 +1527,8 @@ export const text = {
 };
 
 export const patterns = [
+  ["Void Spells +{1}", "Mga Mahika ng Kawalan +{1}"],
+  ["Spells +{1}", "Mga Mahika +{1}"],
   ["1st: {1} DMT + participation", "Ika-1: {1} DMT + pakikilahok"],
   ["2nd: {1} DMT + participation", "Ika-2: {1} DMT + pakikilahok"],
   ["3rd: {1} DMT + participation", "Ika-3: {1} DMT + pakikilahok"],

@@ -1,5 +1,17 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Spells": "Büyüler",
+  "Void Spells": "Hiçlik Büyüleri",
+  "Void Spells!": "Hiçlik Büyüleri!",
+  "Clearer spell names": "Büyü isimleri netleşti",
+  "The weapon is now called Spells in menus, upgrades and results. Existing spells and evolution recipes stay the same.": "Silah artık menülerde, yükseltmelerde ve sonuçlarda Büyüler olarak görünüyor. Mevcut büyüler ve evrim tarifleri aynı.",
+  "EVOLVES SPELLS · AIR SHARD": "EVRİMLEŞEN: Büyüler · Hava Parçası",
+  "EVOLVES SPELLS · WATER SHARD": "EVRİMLEŞEN: Büyüler · Su Parçası",
+  "EVOLVES SPELLS · EARTH SHARD": "EVRİMLEŞEN: Büyüler · Toprak Parçası",
+  "EVOLVES SPELLS · FIRE SHARD": "EVRİMLEŞEN: Büyüler · Ateş Parçası",
+  "EVOLVES SPELLS · SPIRIT SHARD": "EVRİMLEŞEN: Büyüler · Ruh Parçası",
+  "EVOLVES SPELLS · VOID SHARD": "EVRİMLEŞEN: Büyüler · Hiçlik Parçası",
+
   "Wandering merchant": "Gezgin tüccar",
   "The fight is paused. Spend GP earned this run; purchases reduce your final GP reward.": "Savaş duraklatıldı. Bu turda kazandığın GP’yi harca; alışveriş son GP ödülünü azaltır.",
   "Run GP": "Tur GP’si",
@@ -1515,6 +1527,8 @@ export const text = {
 };
 
 export const patterns = [
+  ["Void Spells +{1}", "Hiçlik Büyüleri +{1}"],
+  ["Spells +{1}", "Büyüler +{1}"],
   ["1st: {1} DMT + participation", "1.: {1} DMT + katılım"],
   ["2nd: {1} DMT + participation", "2.: {1} DMT + katılım"],
   ["3rd: {1} DMT + participation", "3.: {1} DMT + katılım"],
