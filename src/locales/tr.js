@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Upgrades": "Geliştirmeler",
+  "Your main menu, organised": "Ana menün düzenlendi",
+  "Gear and Skills are together in Upgrades. Pets is on the main menu.": "Ekipman ve Beceriler, Geliştirmeler altında bir arada. Evcil Hayvanlar ana menüde.",
+  "Settings is in More, and the update notes are called Updates.": "Ayarlar, Diğer menüsünde; güncelleme notlarının adı Güncellemeler.",
+
   "Casual leaderboards have an All maps view with the top five on each map.": "Normal skor tablolarında her haritanın ilk beşini gösteren Tüm haritalar görünümü var.",
   "All maps": "Tüm haritalar",
   "Clearer spells and safer ground": "Daha belirgin büyüler ve daha güvenli zemin",

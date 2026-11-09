@@ -12,6 +12,10 @@ const moreHandlers=['morebtn','moreclose'].map(id=>source.split('\n').find(line=
 const moreCapture=source.split('\n').find(line=>line.startsWith("for (const b of document.querySelectorAll('#more"));
 const questHandlers=source.split('\n').filter(line=>line.startsWith("$('questbtn').onclick")||line.startsWith("$('questclose').onclick")).join('\n');
 const coopClose=source.split('\n').find(line=>line.startsWith("$('coopclose').onclick"));
+const page = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const upgradeHandlers=source.split('\n').filter(line=>['upgradesbtn','upgradesclose','gearbtn','skillsbtn','gearclose','skillsclose'].some(id=>line.startsWith("$('"+id+"').onclick"))).join('\n');
+const upgradeBackdrop=source.split('\n').find(line=>line.startsWith("$('upgrades').addEventListener('click'"))||'';
+const settingsHandlers=source.slice(source.indexOf('const openSettings ='),source.indexOf("$('settings').addEventListener"));
 const petClose=source.split('\n').find(line=>line.startsWith("$('petsclose').onclick"));
 const trapStart=source.indexOf('function containMenuTab('),sharedTrap=trapStart<0?'':source.slice(trapStart,source.indexOf('\nfor (const id',trapStart));
 const sliderKey = source.slice(source.indexOf("    r.addEventListener('keydown'"), source.indexOf('\n', source.indexOf("    r.addEventListener('keydown'")));
@@ -28,7 +32,7 @@ function menu(mode = 'title') {
   function element(id, parent = null, tag = 'button') {
     const classes = new Set(['hidden']), handlers = [];
     const el = {
-      id, parent, tag, handlers, children: [], disabled: false, textContent: '', onclick: null, value: 50, tabIndex: 0,
+      id, parent, tag, handlers, children: [], disabled: false, dataset: {}, textContent: '', onclick: null, value: 50, tabIndex: 0,
       classList: { contains: c => classes.has(c), add: c => classes.add(c), remove: c => classes.delete(c) },
       get offsetParent() { return this.closest('.hidden') ? null : {}; },
       closest(selector) { if (selector === 'details:not([open]) > :not(summary)') return null; if (selector === '#equipmenthud') return this.id === 'equipmenthud' ? this : this.parent?.closest(selector) || null; assert.equal(selector, '.hidden'); return this.classList.contains('hidden') ? this : this.parent?.closest(selector) || null; },
@@ -46,15 +50,19 @@ function menu(mode = 'title') {
     if (parent) { parent.children.push(el); classes.delete('hidden'); }
     elements.set(id, el); return el;
   }
-  for (const id of ['coop', 'cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'pause', 'end', 'title']) element(id);
+  for (const id of ['coop', 'cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'upgrades', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'pause', 'end', 'title']) element(id);
   for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
-  element('volume', elements.get('settings'), 'input'); element('settingsclose', elements.get('settings'));
+  element('settingssummary',elements.get('settings'),'summary');
+  element('volume', elements.get('settings'), 'input'); element('setclose', elements.get('settings'));
   element('coopclose',elements.get('coop'));element('coopname',elements.get('coop'),'input');element('coopinvite',elements.get('coop'),'input');
   element('morebtn',elements.get('title'));element('guidebtn',elements.get('more'));element('coopbtn',elements.get('title'));element('questbtn',elements.get('more'));element('questclose',elements.get('quests'));element('moreclose',elements.get('more'));
   element('guidesummary',elements.get('guide'),'summary');element('guideclose',elements.get('guide'));
+  for(const id of ['upgradesbtn','petsbtn'])element(id,elements.get('title'));
+  for(const id of ['gearbtn','skillsbtn','upgradesclose'])element(id,elements.get('upgrades'));
+  for(const [id,parent] of [['gearclose','gear'],['skillsclose','skills'],['skillgrid','skills'],['skillrefund','skills'],['setbtn','more'],['setbtn2','pause']])element(id,elements.get(parent));
   element('petchoice',elements.get('pets'));element('petsclose',elements.get('pets'));
-  element('settingssummary',elements.get('settings'),'summary');element('guidecurrentrecipes');element('guideoldrecipes');
+  element('guidecurrentrecipes');element('guideoldrecipes');
   for (const id of ['walletchip', 'cloudwal', 'clouddev']) element(id);
   const $ = id => { assert.ok(elements.has(id), `unknown DOM id ${id}`); return elements.get(id); };
   $(mode).classList.remove('hidden');
@@ -78,15 +86,19 @@ function menu(mode = 'title') {
     ${coopClose}
     ${questHandlers}
     ${moreCapture}
+    const buildSettings=()=>{},buildGear=()=>{},buildSkills=()=>{};
+    ${settingsHandlers}
+    ${upgradeHandlers}
+    ${upgradeBackdrop}
     ${petClose}
-    for(const id of ['guide','pets','more'])if(typeof containMenuTab==='function')$(id).addEventListener('keydown',containMenuTab);
+    for(const id of ['guide','pets','more','upgrades','gear','skills','settings'])if(typeof containMenuTab==='function')$(id).addEventListener('keydown',containMenuTab);
     let cloudChoice=null;
     const cloud={${choose}};
     return {back:navBack, move:navMove, screen:()=>navScreen()?.id,
       frame(edges){${pad}},
       modal:on=>mobileModal=on, choose:cloud.choose, focus(id){navFocus($(id));},
       state:()=>({started,connected,mode})};
-  `)($, (event, fn, capture = false) => listeners.push({ event, fn, capture }), { get activeElement() { return active; },querySelectorAll:()=>[elements.get('guidebtn'),elements.get('questbtn')] }, mode, () => () => {}, () => 0);
+  `)($, (event, fn, capture = false) => listeners.push({ event, fn, capture }), { get activeElement() { return active; },querySelectorAll:()=>[elements.get('guidebtn'),elements.get('questbtn'),elements.get('setbtn')] }, mode, () => () => {}, () => 0);
   return {
     app, $, get active() { return active?.id; },
     open(id) { $(id).classList.remove('hidden'); },
@@ -211,7 +223,7 @@ test('summary reached with ordinary native focus keeps native arrows',()=>{
 test('spatially selected volume accepts left/right and leaves with down',()=>{
   const m=menu(); m.open('settings'); m.app.focus('volume'); m.key('ArrowRight');
   assert.equal(Number(m.$('volume').value),55);
-  m.key('ArrowDown'); assert.equal(m.active,'settingsclose');
+  m.key('ArrowDown'); assert.equal(m.active,'setclose');
 });
 test('Escape closes settings from a spatially selected volume slider',()=>{
   const m=menu(); m.open('settings'); m.app.focus('volume'); m.key('Escape');
@@ -255,7 +267,7 @@ test('co-op modal blocks background starts and its Back returns to the title Co-
 });
 test('Pets blocks stale keyboard/controller starts and its actual Back handler returns focus',()=>{
  const m=menu();m.open('pets');m.app.focus('start');m.key('Enter',{native:true});m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);assert.equal(m.app.screen(),'pets');
- m.key('Escape');assert.equal(m.$('pets').classList.contains('hidden'),true);assert.equal(m.active,'morebtn');
+ m.key('Escape');assert.equal(m.$('pets').classList.contains('hidden'),true);assert.equal(m.active,'petsbtn');
 });
 test('Pets keeps forward and reverse native Tab within its controls',()=>{
  const m=menu();m.open('pets');m.$('petsclose').focus();m.key('Tab',{native:true});assert.equal(m.active,'petchoice');m.key('Tab',{native:true,shiftKey:true});assert.equal(m.active,'petsclose');
@@ -263,4 +275,32 @@ test('Pets keeps forward and reverse native Tab within its controls',()=>{
 
 test('Quests opens from More without a background start, and Escape returns focus to More',()=>{
  const m=menu();m.$('morebtn').click();m.$('questbtn').click();assert.equal(m.$('more').classList.contains('hidden'),true);assert.equal(m.app.screen(),'quests');assert.equal(m.active,'questclose');m.app.focus('start');m.key('Enter',{native:true});m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);m.open('quests');m.key('Escape');assert.equal(m.$('quests').classList.contains('hidden'),true);assert.equal(m.active,'morebtn');
+});
+
+test('title has five main buttons and More owns Settings and Updates',()=>{
+ const grid=page.match(/<div class="btngrid">(.*?)<\/div>/s)[1];
+ assert.deepEqual([...grid.matchAll(/<button id="(.*?)"/g)].map(m=>m[1]),['upgradesbtn','petsbtn','coopbtn','lbbtn','morebtn']);
+ const more=page.slice(page.indexOf('<div id="more"'),page.indexOf('<div id="more"')+1600);
+ assert.match(more,/id="setbtn"/);assert.doesNotMatch(more,/id="petsbtn"/);assert.match(more,/id="updbtn"[^>]*>Updates</);
+});
+test('Upgrades contains Tab, blocks background starts and returns to its title button',()=>{
+ const m=menu();m.$('upgradesbtn').click();assert.equal(m.app.screen(),'upgrades');assert.equal(m.active,'gearbtn');
+ m.$('upgradesclose').focus();m.key('Tab',{native:true});assert.equal(m.active,'gearbtn');m.key('Tab',{native:true,shiftKey:true});assert.equal(m.active,'upgradesclose');
+ m.app.focus('start');m.key('Enter',{native:true});m.key(' ',{native:true});m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);
+ m.key('Escape');assert.equal(m.app.screen(),'title');assert.equal(m.active,'upgradesbtn');
+});
+for(const child of ['gear','skills'])test('Upgrades '+child+' child Back returns to the visible chooser',()=>{
+ const m=menu();m.$('upgradesbtn').click();m.$(child+'btn').click();assert.equal(m.app.screen(),child);assert(m.$(child).contains(m.$(m.active)),'opening a child focuses its own controls');assert.equal(m.$('upgrades').classList.contains('hidden'),false);
+ m.key('Escape');assert.equal(m.app.screen(),'upgrades');assert.equal(m.active,child+'btn');assert.notEqual(m.$(child+'btn').offsetParent,null);
+ m.app.frame({b:true});assert.equal(m.app.screen(),'title');assert.equal(m.active,'upgradesbtn');
+});
+for(const mode of ['title','pause'])test('Settings Back restores its '+mode+' entry button',()=>{
+ const m=menu(mode);if(mode==='title')m.$('morebtn').click();m.$(mode==='title'?'setbtn':'setbtn2').click();assert.equal(m.app.screen(),'settings');assert(m.active && m.$('settings').contains(m.$(m.active)),'Settings focuses its own controls');
+ m.$('setclose').focus();m.key('Tab',{native:true});assert.equal(m.active,'settingssummary');m.key('Tab',{native:true,shiftKey:true});assert.equal(m.active,'setclose');
+ m.key('Escape');assert.equal(m.app.screen(),mode);assert.equal(m.active,mode==='title'?'morebtn':'setbtn2');assert.equal(m.app.state().started,0);
+});
+
+test('Upgrades backdrop uses its Back handler and children paint above their retained parent',()=>{
+ const m=menu();m.$('upgradesbtn').click();m.$('upgrades').click();assert.equal(m.app.screen(),'title');assert.equal(m.active,'upgradesbtn');
+ for(const child of ['gear','skills'])assert(page.indexOf('id="upgrades"')<page.indexOf('id="'+child+'"'));
 });

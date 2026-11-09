@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Upgrades": "Mga Upgrade",
+  "Your main menu, organised": "Mas maayos na pangunahing menu",
+  "Gear and Skills are together in Upgrades. Pets is on the main menu.": "Magkasama ang Kagamitan at Mga kasanayan sa Mga Upgrade. Nasa pangunahing menu ang Mga alagang kasama.",
+  "Settings is in More, and the update notes are called Updates.": "Nasa Iba pa ang Mga setting, at Mga update na ang tawag sa mga tala ng update.",
+
   "Casual leaderboards have an All maps view with the top five on each map.": "May Lahat ng mapa na view ang casual leaderboard na nagpapakita ng nangungunang lima sa bawat mapa.",
   "All maps": "Lahat ng mapa",
   "Clearer spells and safer ground": "Mas malinaw na mga spell at mas ligtas na daan",

@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Upgrades": "Mejoras",
+  "Your main menu, organised": "Tu menú principal, organizado",
+  "Gear and Skills are together in Upgrades. Pets is on the main menu.": "Equipo y Habilidades están juntos en Mejoras. Mascotas está en el menú principal.",
+  "Settings is in More, and the update notes are called Updates.": "Ajustes está en Más, y las notas de actualización se llaman Actualizaciones.",
+
   "Casual leaderboards have an All maps view with the top five on each map.": "Las clasificaciones casuales tienen una vista de Todos los mapas con los cinco mejores de cada mapa.",
   "All maps": "Todos los mapas",
   "Clearer spells and safer ground": "Hechizos más visibles y terreno más seguro",

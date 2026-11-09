@@ -570,9 +570,12 @@ function buildSkills() {
     changeSkills({kind:'refund'});
   };
 }
+$('upgradesbtn').onclick = () => { $('upgrades').classList.remove('hidden'); navFocus($('gearbtn')); };
+$('upgradesclose').onclick = () => { $('upgrades').classList.add('hidden'); navFocus($('upgradesbtn')); };
+$('upgrades').addEventListener('click', e => { if (e.target.id === 'upgrades') $('upgradesclose').click(); });
 $('skillsbtn').onclick = () => { buildSkills(); $('skills').classList.remove('hidden'); navFocus($('skillgrid').querySelector('button:not(:disabled)') || ($('skillrefund').disabled ? $('skillsclose') : $('skillrefund'))); };
 // tapping outside a menu panel closes it
-for (const id of ['skills', 'gear', 'quests']) $(id).addEventListener('click', (e) => { if (e.target.id === id) { if (id === 'skills') $('skillsclose').click(); else $(id).classList.add('hidden'); } });
+for (const id of ['skills', 'gear', 'quests']) $(id).addEventListener('click', (e) => { if (e.target.id === id) { if (id === 'skills' || id === 'gear') $(id + 'close').click(); else $(id).classList.add('hidden'); } });
 $('skillsclose').onclick = () => { $('skillrefund').dataset.sure = ''; $('skills').classList.add('hidden'); navFocus($('skillsbtn')); };
 
 // ---- loading ------------------------------------------------------------------------------------------------------------
@@ -702,7 +705,7 @@ function buildGear() {
 
 }
 async function refreshIdle() { window.__idleSim = null; if (renderer) await renderer.preloadGear(Object.values(getGear())); }
-$('gearbtn').onclick = () => { buildGear(); $('gear').classList.remove('hidden'); };
+$('gearbtn').onclick = () => { buildGear(); $('gear').classList.remove('hidden'); navFocus($('gearclose')); };
 
 // ---- cosmetic companions (device preference, outside progress/cloud/transfer) ----
 const petPreference = value => petChoice(value) || bunChoice(value);
@@ -744,7 +747,7 @@ async function applyPetChoice() {
 $('petsbtn').onclick = () => { buildPets(); $('pets').classList.remove('hidden'); navFocus($('petlist').querySelector('[aria-pressed="true"]') || $('petlist').querySelector('button')); };
 $('petbunrefresh').onclick = () => bunCompanions.refresh();
 $('petretry').onclick = applyPetChoice;
-$('petsclose').onclick = () => { $('pets').classList.add('hidden'); navFocus($('morebtn')); };
+$('petsclose').onclick = () => { $('pets').classList.add('hidden'); navFocus($('petsbtn')); };
 $('pets').addEventListener('click', e => { if (e.target.id === 'pets') $('petsclose').click(); });
 $('gearclose').onclick = () => { $('gear').classList.add('hidden'); navFocus($('gearbtn')); };
 
@@ -811,10 +814,10 @@ const SETTINGS = [
     if (focused) navFocus($('setlist').querySelector(`button[data-id="${id}"][data-v='${JSON.stringify(v)}']`));
   };
 }
-const openSettings = () => { buildSettings(); $('settings').classList.remove('hidden'); };
+const openSettings = () => { buildSettings(); $('settings').classList.remove('hidden'); navFocus($('settings').querySelector('summary') || $('setclose')); };
 $('setbtn').onclick = openSettings; $('setbtn2').onclick = openSettings;
-$('setclose').onclick = () => $('settings').classList.add('hidden');
-$('settings').addEventListener('click', (e) => { if (e.target.id === 'settings') $('settings').classList.add('hidden'); });
+$('setclose').onclick = () => { $('settings').classList.add('hidden'); navFocus($(mode === 'title' ? 'morebtn' : 'setbtn2')); };
+$('settings').addEventListener('click', (e) => { if (e.target.id === 'settings') $('setclose').click(); });
 
 function guideRecipes(pace) {
   return Object.entries(EVOLUTIONS).map(([id, evolution]) => `<div class="guiderecipe"><span>${esc(WEAPONS[id].name)}</span> → <b>${esc(evolution.name)}</b><small>${evolutionPassives(id, pace).map(passive => `<span>${esc(PASSIVES[passive].name)}</span>`).join(' / ')}</small></div>`).join('');
@@ -833,12 +836,12 @@ function containMenuTab(e) {
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 }
-for (const id of ['guide', 'pets', 'more', 'quests', 'gear', 'skills']) $(id).addEventListener('keydown', containMenuTab);
+for (const id of ['guide', 'pets', 'more', 'quests', 'gear', 'skills', 'upgrades', 'settings']) $(id).addEventListener('keydown', containMenuTab);
 
 // ---- updates log -------------------------------------------------------------------------------------------------------
 $('updnew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
 $('morenew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
-// More: the extras (settings, what's new, DMT, bug report, install) in one small panel
+// More: the extras (settings, updates, DMT, bug report, install) in one small panel
 $('morebtn').onclick = () => { $('more').classList.remove('hidden'); navFocus($('guidebtn')); };
 $('moreclose').onclick = () => { $('more').classList.add('hidden'); navFocus($('morebtn')); };
 $('more').addEventListener('click', (e) => { if (e.target.id === 'more') $('more').classList.add('hidden'); });
@@ -991,8 +994,8 @@ unlockAudio();
 
 // ---- version, leaderboard and bug reports ------------------------------------------------------------------------------
 $('version').textContent = 'v' + LATEST;
-$('version').title = "What's new";
-$('version').onclick = () => $('updbtn').click(); // the version in the corner opens what's new
+$('version').title = 'Updates';
+$('version').onclick = () => $('updbtn').click(); // the version in the corner opens Updates
 const recentErrors = [];
 addEventListener('error', (e) => { recentErrors.push(String(e.message || e).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 addEventListener('unhandledrejection', (e) => { recentErrors.push(String(e.reason && e.reason.message || e.reason).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
@@ -1668,7 +1671,7 @@ async function startRun(live = null) {
     } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
     if (!isRanked) { casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' }; loadCasualTickets(casualRun); }
     renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
-    for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'pets', 'more']) $(id).classList.add('hidden');
+    for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'pets', 'more', 'upgrades']) $(id).classList.add('hidden');
     $('cooppause').classList.add('hidden'); $('coopwait').classList.add('hidden');
     $('hud').classList.remove('hidden'); mode = 'play'; shownPending = false;
     waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden'); clearTouch();
@@ -1812,7 +1815,7 @@ function toMenu() {
 }
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
-const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];
+const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades'];
 addEventListener('keydown', (e) => {
   if (mode === 'recovery' || walletModalOpen()) return;
   if (mode === 'play' && (e.target?.closest?.('#equipmenthud') || e.target?.closest?.('[data-inspect]')) && ['Tab', 'Enter', ' '].includes(e.key)) return;
@@ -2288,9 +2291,10 @@ function navBack() {
   if (walletModalOpen()) return true;
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
-    if (id === 'skills') { $('skillsclose').click(); return true; }
+    if (id === 'skills' || id === 'gear') { $(id + 'close').click(); return true; }
+    if (id === 'settings') { $('setclose').click(); return true; }
     if (id === 'quests') { $('questclose').click(); return true; }
-    if (id === 'guide' || id === 'pets' || id === 'more' || id === 'coop') { $(id + 'close').click(); return true; }
+    if (id === 'guide' || id === 'pets' || id === 'more' || id === 'coop' || id === 'upgrades') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
     navFocus(null); return true;
   }

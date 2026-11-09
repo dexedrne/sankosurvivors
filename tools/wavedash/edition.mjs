@@ -117,7 +117,7 @@ export function transformMain(source) {
   s = once(s, '  rankedClock = null;\n');
   s = once(s, '  enforceRankedDeadline();\n');
   s = once(s, '  syncRankedClock();\n');
-  s = once(s, "const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];", "const MENU_SCREENS = ['board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more'];");
+  s = once(s, "const MENU_SCREENS = ['coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades'];", "const MENU_SCREENS = ['board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades'];");
   s = once(s, "$('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); };", "$('again').onclick = startRun;");
   s = between(s, "addEventListener('blur', () => { keys.clear(); clearTouch();", "$('start').onclick", `let resumeMode = 'play', focusLostWhileStarting = false;
 function suspendPage() {

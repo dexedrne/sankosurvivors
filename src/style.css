@@ -413,7 +413,8 @@ body.touch .seg button { min-height: 38px; min-width: 44px; }
 
 /* title menu: the big start button, the four main screens in a 2x2 grid, then a compact row of small extras */
 #actions .btngrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 4px; }
-#actions .btngrid button { margin: 0; }
+#actions .btngrid button { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+#actions .btngrid #morebtn { grid-column: 1 / -1; }
 #actions .minirow { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
 #actions .minirow button { flex: 1 1 30%; margin: 0; padding: 3px 4px; font-size: 14px; min-width: 0; white-space: nowrap; }
 #actions .minirow #updatebtn { border-image-source: url(../assets/ui/sq/green_slot.png); }
@@ -628,7 +629,7 @@ body.touch .ckbtns .kb { display: none; }
    has too much stuff"): Settings and More sit in one even 2x3 grid with Gear, Skills, Quests and Leaderboard; Start at the
    top of its panel; the panels hug their content; on phones a padlock replaces the "clear this map first" lines */
 #actions .btngrid { grid-template-columns: 1fr 1fr; gap: 6px; }
-#actions .btngrid button { margin: 0; }
+#actions .btngrid button { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 #actions .minirow:not(:has(button:not(.hidden))) { display: none; }
 #actions #loadbar { order: 0; } #actions #loadtext { order: 0; } #actions #start { order: 1; } #actions #rankedbtn { order: 2; }
 #actions #modes { order: 3; margin: 2px 0; } #actions .btngrid { order: 4; } #actions .minirow { order: 5; }
