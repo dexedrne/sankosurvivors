@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Fewer crowd draws": "Kalabalıklarda daha az çizim çağrısı",
+  "Compatible enemy model parts now share a draw call, keeping their original shapes, colours and animations.": "Uyumlu düşman modeli parçaları artık aynı çizim çağrısını paylaşır; özgün şekilleri, renkleri ve animasyonları korunur.",
   "Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.": "Eğlence → Büyücü İstilası: Wise Old Man olarak Greentown’da sonsuz bir büyü savaşına katıl.",
   "Enemy wizards aim before firing. Dodge single bolts and later spread shots; your skills and gear bonuses still apply.": "Düşman büyücüler ateş etmeden önce nişan alır. Tekli atışlardan ve daha sonra gelen yaylım atışlarından kaç; yetenek ve ekipman bonusların geçerlidir.",
   "Wizard Invasion is solo and has separate results. Earn GP and gear without normal leaderboard entries or campaign clears.": "Büyücü İstilası tek kişiliktir ve sonuçları ayrıdır. GP ve ekipman kazan; normal sıralama ve harita ilerlemesi etkilenmez.",

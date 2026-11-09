@@ -2,6 +2,7 @@
 // legs, hands, feet and armor pieces. Each part is re-bound to one master skeleton and animated with the game's own FBX clips.
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { ARMOR_TIERS } from './content.js';
 
@@ -13,6 +14,7 @@ const HAIR = ['Short', 'Long', 'Shaggy', 'Pomp', 'Middle Part', 'Buns', 'Sideswe
 
 // Cached model geometry, maps and materials remain shared; only actor-created resources belong to cleanup.
 const actorResources = new WeakSet();
+const actorSources = new WeakMap(), mergedGeometry = new WeakMap();
 export function ownActorResource(resource) { actorResources.add(resource); return resource; }
 const meshSkeletons = new WeakMap(), skeletonUsers = new WeakMap(), skeletonPools = new WeakMap();
 function releaseSkeleton(mesh) {
@@ -39,19 +41,122 @@ function shareSkeleton(mesh, pool) {
 }
 export function cloneActor(scene, skeletons = new Set()) {
   const root = SkeletonUtils.clone(scene);
-  root.traverse(o => { if (o.isSkinnedMesh) shareSkeleton(o, skeletons); });
+  const originals = [], copies = [];
+  scene.traverse(o => originals.push(o)); root.traverse(o => copies.push(o));
+  copies.forEach((o, i) => {
+    if (o.isSkinnedMesh) { shareSkeleton(o, skeletons); actorSources.set(o, actorSources.get(originals[i]) || originals[i].geometry); }
+  });
   return root;
 }
-export function disposeActor(root, mixer) {
+function releaseActor(root, mixer, retained = new Set()) {
   mixer?.stopAllAction?.();
   if (mixer?.getRoot) mixer.uncacheRoot(mixer.getRoot());
   root.removeFromParent();
   root.traverse(o => {
     releaseSkeleton(o);
     for (const resource of [o, o.skeleton, o.geometry, ...[].concat(o.material || [])]) {
-      if (resource && actorResources.delete(resource)) resource.dispose();
+      if (resource && !retained.has(resource) && actorResources.delete(resource)) resource.dispose();
     }
   });
+}
+
+export function disposeActor(root, mixer) { releaseActor(root, mixer); }
+
+function materialState(material) {
+  if (material?.constructor !== THREE.MeshStandardMaterial || material.transparent || material.opacity !== 1 || material.clippingPlanes ||
+      ['onBeforeRender', 'onBeforeCompile', 'customProgramCacheKey'].some(k => material[k] !== THREE.Material.prototype[k])) return null;
+  const state = [];
+  for (const key of Object.keys(material).sort()) {
+    if (['uuid', 'name', 'userData', 'color', '_listeners'].includes(key)) continue;
+    const value = material[key];
+    if (value?.isColor) state.push([key, value.r, value.g, value.b]);
+    else if (value?.isVector2) state.push([key, value.x, value.y]);
+    else if (value?.isEuler) state.push([key, value.x, value.y, value.z, value.order]);
+    else if (value && typeof value === 'object') {
+      if (key !== 'defines' || Object.values(value).some(v => v && typeof v === 'object' || typeof v === 'function')) return null;
+      state.push([key, Object.entries(value).sort()]);
+    } else if (typeof value === 'function') return null;
+    else state.push([key, value]);
+  }
+  return JSON.stringify(state);
+}
+
+// Only immutable source geometries anchor this cache; actor-owned palettes and materials never do.
+export function mergeActorMeshes(root, clips = []) {
+  const targeted = new Set(), nodes = [];
+  root.traverse(o => nodes.push(o));
+  for (const clip of clips) for (const track of clip.tracks) {
+    let binding;
+    try { binding = THREE.PropertyBinding.parseTrackName(track.name); } catch { return 0; }
+    const targets = nodes.filter(o => o.name === binding.nodeName || o.uuid === binding.nodeName);
+    // Object/bones accessors and unresolved or ambiguous names cannot safely lose their binding node.
+    if (binding.objectName || targets.length !== 1) return 0;
+    targeted.add(targets[0]);
+  }
+  const groups = [];
+  root.traverseVisible(mesh => {
+    const geometry = mesh.geometry, source = actorSources.get(mesh), material = mesh.material;
+    if (!mesh.isSkinnedMesh || mesh.children.length || targeted.has(mesh) || !meshSkeletons.has(mesh) ||
+        !source || source !== geometry || actorResources.has(source) || Array.isArray(material) ||
+        mesh.customDepthMaterial || mesh.customDistanceMaterial ||
+        ['onBeforeRender', 'onAfterRender', 'onBeforeShadow', 'onAfterShadow'].some(k => mesh[k] !== THREE.Object3D.prototype[k]) ||
+        Object.keys(geometry.morphAttributes).length || mesh.morphTargetInfluences?.length || geometry.groups.length ||
+        geometry.drawRange.start !== 0 || geometry.drawRange.count !== Infinity) return;
+    const state = materialState(material); if (state === null) return;
+    const attributes = Object.entries(geometry.attributes).sort(([a], [b]) => a.localeCompare(b));
+    if (!geometry.attributes.position || !geometry.attributes.skinIndex || !geometry.attributes.skinWeight ||
+        geometry.attributes.color && geometry.attributes.color.itemSize !== 3 ||
+        attributes.some(([, a]) => !a.isBufferAttribute || a.isInterleavedBufferAttribute || a.isInstancedBufferAttribute ||
+          a.count !== geometry.attributes.position.count || !ArrayBuffer.isView(a.array)) ||
+        geometry.index && (!geometry.index.isBufferAttribute || geometry.index.itemSize !== 1) ||
+        (geometry.index?.count ?? geometry.attributes.position.count) % 3 !== 0) return;
+    const layout = JSON.stringify([attributes.map(([key, a]) => [key, a.itemSize, a.normalized, a.array.constructor.name, a.gpuType]),
+      geometry.index && [geometry.index.array.constructor.name, geometry.index.normalized]]);
+    if (mesh.matrixAutoUpdate) mesh.updateMatrix();
+    const group = groups.find(g => {
+      const a = g[0];
+      return a.mesh.parent === mesh.parent && a.mesh.skeleton === mesh.skeleton && a.state === state && a.layout === layout &&
+        a.mesh.matrix.equals(mesh.matrix) && a.mesh.bindMode === mesh.bindMode && a.mesh.bindMatrix.equals(mesh.bindMatrix) &&
+        a.mesh.bindMatrixInverse.equals(mesh.bindMatrixInverse) &&
+        ['castShadow', 'receiveShadow', 'frustumCulled', 'renderOrder', 'matrixAutoUpdate', 'matrixWorldAutoUpdate'].every(k => a.mesh[k] === mesh[k]) &&
+        a.mesh.layers.mask === mesh.layers.mask;
+    });
+    const entry = { mesh, state, layout };
+    if (group) group.push(entry); else groups.push([entry]);
+  });
+  let saved = 0;
+  for (const group of groups) {
+    if (group.length < 2) continue;
+    const parts = group.map(p => p.mesh), first = parts[0], anchor = actorSources.get(first);
+    const key = JSON.stringify(parts.map(m => [actorSources.get(m).uuid, m.material.color.r, m.material.color.g, m.material.color.b, m.material.vertexColors]));
+    let cache = mergedGeometry.get(anchor); if (!cache) mergedGeometry.set(anchor, cache = new Map());
+    let geometry = cache.get(key);
+    if (!geometry) {
+      const temporary = parts.map(m => {
+        const g = m.geometry.clone(), original = g.attributes.color, colors = new Float32Array(g.attributes.position.count * 3);
+        for (let i = 0; i < g.attributes.position.count; i++) {
+          colors[i * 3] = m.material.color.r * (m.material.vertexColors && original ? original.getX(i) : 1);
+          colors[i * 3 + 1] = m.material.color.g * (m.material.vertexColors && original ? original.getY(i) : 1);
+          colors[i * 3 + 2] = m.material.color.b * (m.material.vertexColors && original ? original.getZ(i) : 1);
+        }
+        g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); return g;
+      });
+      geometry = mergeGeometries(temporary); temporary.forEach(g => g.dispose());
+      if (!geometry) continue;
+      cache.set(key, geometry);
+    }
+    const material = ownActorResource(first.material.clone()); material.color.setRGB(1, 1, 1); material.vertexColors = true;
+    const merged = new THREE.SkinnedMesh(geometry, material);
+    merged.copy(first, false); merged.geometry = geometry; merged.material = material;
+    merged.bindMatrix.copy(first.bindMatrix); merged.bindMatrixInverse.copy(first.bindMatrixInverse); merged.skeleton = first.skeleton;
+    // Retain the existing live palette before releasing any of its previous users.
+    shareSkeleton(merged, skeletonPools.get(first.skeleton)); actorSources.set(merged, anchor); first.parent.add(merged);
+    const retained = new Set();
+    root.traverse(o => { if (!parts.includes(o)) for (const m of [].concat(o.material || [])) retained.add(m); });
+    for (const mesh of parts) releaseActor(mesh, null, retained);
+    saved += parts.length - 1;
+  }
+  return saved;
 }
 
 export function armorSet(level) {
@@ -190,6 +295,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
 
     const inst = {
       root, master, mixer, spec, yaw0: 0,
+      crowdClips: [...Object.values(scaled), ...[...ready.values()].flatMap(g => g?.animations || [])],
       setMoving(moving, speedScale = 1) {
         const want = moving ? 'run' : 'idle';
         if (want !== cur && act[want]) { act[want].reset().fadeIn(0.15).play(); act[cur] && act[cur].fadeOut(0.15); cur = want; }
@@ -316,7 +422,8 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     const root = new THREE.Group(), holder = new THREE.Group(); holder.add(master); root.add(holder);
     root.updateMatrixWorld(true);
     const mixer = new THREE.AnimationMixer(master);
-    mixer.clipAction(fitClip(clips[clipName] || clips.run || clips.idle, bones, fromRest)).play();
+    const animation = fitClip(clips[clipName] || clips.run || clips.idle, bones, fromRest);
+    mixer.clipAction(animation).play();
     mixer.update(0); root.updateMatrixWorld(true);
     const hip = bones.get('mixamorig_Hips'), top = bones.get('mixamorig_HeadTop_End') || bones.get('mixamorig_Head');
     if (zUp) { holder.rotation.x = -Math.PI / 2; root.updateMatrixWorld(true); } // like the player rig: the clips are Z-up
@@ -338,7 +445,9 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
       for (const side of ['Left', 'Right']) { const foot = bones.get(`mixamorig_${side}Foot`), toe = bones.get(`mixamorig_${side}ToeBase`); if (foot && toe) { foot.getWorldPosition(a); toe.getWorldPosition(b); fx += b.x - a.x; fz += b.z - a.z; } }
       yaw0 = Math.hypot(fx, fz) > 1e-6 ? Math.atan2(fx, fz) : 0;
     } catch { yaw0 = 0; }
-    return { root, inner: master, mixer, kit: { yaw0 } };
+    // Fitting only removes position tracks and changes values, so originals cover every fitted binding too.
+    const crowdClips = [...(gltf.animations || []), ...Object.values(clips), animation];
+    return { root, inner: master, mixer, kit: { yaw0 }, crowdClips };
   }
   return { build, load, animate, isLoaded: (path) => !!ready.get(path), clothingPath: clothing, hasHair: (h) => !!ready.get(`Head/Styles/${h}`) };
 }

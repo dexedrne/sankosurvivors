@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Fewer crowd draws": "Mas kaunting pagguhit sa dagsa ng kalaban",
+  "Compatible enemy model parts now share a draw call, keeping their original shapes, colours and animations.": "Magkasamang iginuguhit ang magkakatugmang bahagi ng mga kalaban, habang pinananatili ang orihinal nilang hugis, kulay at animasyon.",
   "Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.": "Fun → Pagsalakay ng mga Salamangkero: gumanap bilang Wise Old Man sa walang katapusang labanan ng mahika sa Greentown.",
   "Enemy wizards aim before firing. Dodge single bolts and later spread shots; your skills and gear bonuses still apply.": "Tumututok muna ang mga kalabang salamangkero bago bumaril. Iwasan ang mga tira at mga susunod na kalat na putok; nananatili ang bonus ng skills at gamit mo.",
   "Wizard Invasion is solo and has separate results. Earn GP and gear without normal leaderboard entries or campaign clears.": "Pang-isahan ang Wizard Invasion at hiwalay ang resulta nito. Kumita ng GP at gamit nang walang normal na leaderboard entry o campaign clear.",

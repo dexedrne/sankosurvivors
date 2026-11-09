@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Fewer crowd draws": "Menos llamadas de dibujo en las multitudes",
+  "Compatible enemy model parts now share a draw call, keeping their original shapes, colours and animations.": "Las partes compatibles de los enemigos comparten una llamada de dibujo y conservan sus formas, colores y animaciones originales.",
   "Fun → Wizard Invasion: play as the Wise Old Man in an endless Greentown spell fight.": "Diversión → Invasión de magos: juega como Wise Old Man en un combate mágico sin fin en Greentown.",
   "Enemy wizards aim before firing. Dodge single bolts and later spread shots; your skills and gear bonuses still apply.": "Los magos enemigos apuntan antes de disparar. Esquiva los proyectiles y las ráfagas que llegan después; se mantienen tus bonificaciones de habilidades y equipo.",
   "Wizard Invasion is solo and has separate results. Earn GP and gear without normal leaderboard entries or campaign clears.": "Invasión de magos es individual y tiene resultados separados. Gana GP y equipo sin entrar en las clasificaciones normales ni completar mapas de campaña.",

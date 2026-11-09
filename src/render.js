@@ -20,7 +20,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, weaponLook, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR, TUMBLE } from './content.js';
-import { createCharacterKit, armorSet, cloneActor, ownActorResource, disposeActor } from './character.js';
+import { createCharacterKit, armorSet, cloneActor, ownActorResource, disposeActor, mergeActorMeshes } from './character.js';
 import { NATIVE_PETS, petChoice } from './pets.js';
 import { createPetRenderer } from './pet-renderer.js';
 import { createPetPreview } from './pet-preview.js';
@@ -235,7 +235,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       mixer.clipAction(clip).play();
     }
     const deathClip = clips.find((c) => /death|die/i.test(c.name)) || null;
-    return { root, inner, mixer, mats, deathClip };
+    return { root, inner, mixer, mats, deathClip, crowdClips: clips };
   }
   // Orient a (non-skinned) item model so its longest axis points along +Z.
   function orientedItem(proto, length, upright = false) {
@@ -1243,13 +1243,24 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         const armor = {}; for (const k of ['head', 'chest', 'hands', 'legs', 'feet']) if (def.rig[k]) armor[k] = def.rig[k];
         const inst = kit.build({ hair: def.rig.hair, armor, shirt: def.rig.shirt, h: def.h });
         inst.setMoving(true);
-        return { root: inst.root, inner: inst.master, mixer: inst.mixer, kit: inst };
+        return { root: inst.root, inner: inst.master, mixer: inst.mixer, kit: inst, crowdClips: inst.crowdClips };
       } catch (e) { console.warn('rig enemy failed', type, e); }
     }
     const p = protos[type];
     if (p && def.mixamo && kit) { try { const inst = kit.animate(p.gltf, def.h, 'walk', { fromRest: FROM_REST.get(type) || false }); const fix = def.yawFix || YAW_FIX.get(type) || 0; if (fix && inst.kit) inst.kit.yaw0 += fix; if (STAR_BODY.has(type)) turnStarBody(inst.root); return inst; } catch (e) { console.warn('mob anim failed', type, e); } }
     if (!p) { const m = new THREE.Mesh(fallbackGeo, fallbackMat); const g = new THREE.Group(); m.position.y = 0.8; g.add(m); return { root: g, inner: m, mixer: null }; }
     return instantiate(p, ENEMIES[type].walk);
+  }
+
+  function batchEnemy(actor) {
+    if (actor.crowdClips) {
+      mergeActorMeshes(actor.root, actor.crowdClips);
+      if (actor.mats) {
+        actor.mats = [];
+        actor.root.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material || [])) if (m.emissive) actor.mats.push(m); });
+      }
+    }
+    return actor;
   }
 
   // soft round shadows under monsters (cheap; the player and bosses get real ones)
@@ -1880,7 +1891,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       seenE.add(id);
       let a = actors.get(id);
       if (!a) {
-        a = makeEnemy(type); a.type = type; a.px = x; a.pz = z; a.base = 1; dyn.add(a.root); actors.set(id, a);
+        a = batchEnemy(makeEnemy(type)); a.type = type; a.px = x; a.pz = z; a.base = 1; dyn.add(a.root); actors.set(id, a);
         if (elite) { // golden elite: bigger, with a gold halo on the ground
           a.base = 1.35; const halo = softRing(0xffd34d, 0.72, 1.02, { opacity: 0.75, fill: 0.1, arcs: 2 }); halo.position.y = 0.06; a.root.add(halo); a.halo = halo;
         }
