@@ -47,7 +47,7 @@
 
 <div id="hud" class="hidden">
   <div id="topbar"><div id="xpbar"><i id="xpfill"></i><span id="lvl">Lv 1</span></div>
-    <div id="clock">0:00</div><div id="clockgoal"></div><div id="killcount"><b id="kills">0</b> slain <b id="gp">0</b> GP</div></div>
+    <div id="clock">0:00</div><div id="clockgoal"></div><div id="modeprogress" class="hidden"></div><div id="killcount"><b id="kills">0</b> slain <b id="gp">0</b> GP</div></div>
   <div id="bossbar" class="hidden"><span id="bossname"></span><div><i id="bossfill"></i></div></div>
   <div id="belt"></div>
   <div id="hp"><div class="bar"><i id="hpfill"></i></div><div class="hpreadout"><span id="hptext">100</span><span id="revivehud" role="group" aria-labelledby="revivelabel" hidden><span id="reviveicon"></span><span id="revivelabel">Revive</span><b id="reviveleft" translate="no"></b></span></div><div id="beerboost" role="group" aria-labelledby="beerlabel" hidden><span id="beericon"></span><span id="beerlabel">Speed boost</span><b id="beerleft" role="timer" translate="no"></b></div></div>
@@ -70,7 +70,7 @@
   <div id="topright"><label class="langpick"><span>Language</span> <select data-language aria-label="Language"><option value="en" translate="no">English</option><option value="tr" translate="no">Türkçe</option><option value="es" translate="no">Español</option><option value="fil" translate="no">Filipino</option></select></label><div id="coinbox"><img src="./assets/ui/items/item_Gold.png" alt=""><b id="coins">0</b></div><button id="walletchip" class="walletchip" aria-haspopup="dialog">Connect wallet</button><div id="dmtchip" class="hidden">DMT holder</div><div id="best"></div></div>
   <div id="menu">
     <section><details id="adventurerpick" open><summary><span>Adventurer</span><b id="adventurerlabel" translate="no"></b></summary><div id="apick"></div><div id="ainfo"></div></details></section>
-    <section><details id="mappick" open><summary><span>Map</span><b id="maplabel" translate="no"></b></summary><div id="mpick"></div><div id="mapinfo"></div></details></section>
+    <section><details id="mappick" open><summary><span>Map</span><b id="maplabel" translate="no"></b></summary><div id="variantpick" role="group" aria-label="Run mode"><div id="runvariant"><button data-variant="normal" aria-pressed="true">Field</button><button data-variant="boss" aria-pressed="false">Boss</button><button data-variant="raid" aria-pressed="false">Raid</button><button data-variant="fun" aria-pressed="false">Fun</button></div><label id="trialpick" class="hidden">Boss <select id="trialboss" aria-label="Trial boss"></select></label><p id="variantinfo"></p></div><div id="mpick"></div><div id="mapinfo"></div></details></section>
     <section id="actions">
       <div id="loadbar"><i id="loadfill"></i></div><div id="loadtext">Loading the world…</div>
       <div id="modes"><label id="hardwrap" class="hidden"><input type="checkbox" id="hard"> Hard mode <small class="lockhint">clear this map first</small></label><label id="endlesswrap" class="hidden"><input type="checkbox" id="endless"> Endless <small class="lockhint">clear this map first</small></label></div>

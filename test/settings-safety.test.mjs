@@ -23,7 +23,7 @@ async function start(raw,petPending=false){
   const bunCompanions=createBunCompanions({walletNow:()=>null,walletRevision:()=>0,onChange:()=>{}});
   ${currentPetSource}
   ${petInit}
-  const createRenderer=async()=>({setPet(id){petRequests.push(id);return petPending?new Promise(()=>{}):Promise.resolve(true);},preloadGear:async()=>{},getSettings:()=>({...factoryDefaults}),applySettings:v=>applied=v,setZoom(){},setShift(){}}),pickAssetHost=async()=>{},buildAdventurers=()=>{},buildMaps=()=>{},showBest=()=>{},requestAnimationFrame=()=>{},loop=()=>{};
+  const createRenderer=async()=>({setPet(id){petRequests.push(id);return petPending?new Promise(()=>{}):Promise.resolve(true);},preloadGear:async()=>{},getSettings:()=>({...factoryDefaults}),applySettings:v=>applied=v,setZoom(){},setShift(){}}),pickAssetHost=async()=>{},buildAdventurers=()=>{},buildMaps=()=>{},showBest=()=>{},updateModePicker=()=>{},requestAnimationFrame=()=>{},loop=()=>{};
   ${helpers}
   ${boot}
   return (async()=>{await boot();return{disabled:$('start').disabled,applied,error:caught?.message||null,coins:store.get('sq-coins'),saved:JSON.parse(store.get('sq-settings')),petRequests};})();

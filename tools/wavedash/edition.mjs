@@ -92,7 +92,7 @@ export function transformMain(source) {
   s = between(s, '    if (isRanked) {\n      const restored', '    } else sim = createSim');
   s = once(s, '    } else sim = createSim', '    sim = createSim');
   s = between(s, "    $('quit').disabled = isRanked;", '    const goalText', `    $('quit').disabled = false; $('quit').textContent = 'Quit run'; pendingUse = null; slowmo = 0;
-    runBest = profileBest(getBests()[bestKey(sim)]); passedBest = false;
+    runBest = sim.variant ? null : profileBest(getBests()[bestKey(sim)]); passedBest = false;
 `);
   s = once(s, "isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills + seconds survived' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? ''", "endlessOn ? ''");
   s = once(s, "${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'}", "${endlessOn ? 'Endless' : 'Survive'}");
@@ -108,9 +108,11 @@ export function transformMain(source) {
   s = between(s, '    if (!rankedSaved) {', '    receipt ||=');
   s = once(s, '{ earned, ranked: wasRanked, coop: !!sim.coop, playerId: PLAYER, result: coopResult, baseline: sim.endless ? session?.baseline : null }', '{ earned, baseline: sim.endless ? session?.baseline : null }');
   s = between(s, '    const kpmNote =', "    let bestNote = '';");
-  s = once(s, '    if (!wasRanked && !sim.coop) {', '    {');
+  s = once(s, '    if (!wasRanked && !sim.coop && !sim.variant) {', '    if (!sim.variant) {');
   s = once(s, '${kpmNote}', '');
   s = once(s, "${dmtOn ? ' <em class=\"dmtnote\">DMT +25%</em>' : ''}", '');
+  s = once(s, "      const board = $('endlb'); if (board) board.classList.add('hidden');\n");
+  s = once(s, "      if ($('lbsubmit')) $('lbsubmit').disabled = true;\n");
   s = once(s, '    cloud.push(true);\n');
   s = once(s, '  rankedRun = null; rankedRec = null; applyDmt();\n');
   s = once(s, '  rankedClock = null;\n');
@@ -141,7 +143,7 @@ function pause(on) {
   s = between(s, '// ---- installable app (PWA)', '// folding or rotating');
   s = once(s, "    $('cooppause').classList.add('hidden'); $('coopwait').classList.add('hidden');\n");
   s = once(s, "  PLAYER = 'p1'; $('coop').classList.add('hidden'); $('coopwait').classList.add('hidden');", "  PLAYER = 'p1';");
-  s = once(s, "const NAV_ITEMS = '#coop input, ", "const NAV_ITEMS = '");
+  s = once(s, "const NAV_ITEMS = '#trialboss, #coop input, ", "const NAV_ITEMS = '#trialboss, ");
   for (const action of ['r', 's']) s = once(s, `rankedRec ? rankedChoice(sim, rankedRec, '${action}') : `);
   s = s.replaceAll('if (rankedRec) persistRanked();', '');
   s = s.replaceAll('if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else ', '');

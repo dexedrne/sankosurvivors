@@ -911,3 +911,15 @@ body.ds-layout #tradebtn { position:fixed; bottom:calc(112px + env(safe-area-ins
 .coopchoice[hidden] { display:none; }
 
 .beltcount { position:absolute; top:0; right:2px; font:16px RSPlain,sans-serif; color:var(--gold); text-shadow:1px 1px #000; pointer-events:none; }
+
+#variantpick { margin: 6px 0; }
+#runvariant { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
+#runvariant button { font-size: 16px; min-height: 36px; padding: 4px 2px; min-width: 0; }
+#runvariant button.on { color: var(--gold); outline: 1px solid var(--gold); }
+#variantinfo { font-size: 14px; line-height: 1.12; margin: 6px 0; }
+#trialpick { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+#trialboss { flex: 1; min-width: 0; padding: 5px; color: var(--ink); background: #263e23; font: inherit; font-size: 16px; }
+#modeprogress { position: absolute; left: 14px; top: 4px; max-width: calc(100% - 100px); color: var(--cream); font-size: 16px; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 1px 1px 0 #000; }
+
+#lbbtn { font-size: clamp(16px, 2vw, 22px); white-space: nowrap; }
+@media (pointer: coarse) { #runvariant button { min-height: 44px; } }

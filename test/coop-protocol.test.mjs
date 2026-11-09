@@ -57,3 +57,11 @@ test('room settings, guest inputs and host batches have bounded runtime schemas'
  assert.deepEqual(cleanDown(batch),batch);assert.notEqual(cleanDown(batch).events,batch.events);
  for(const down of [{...batch,from:0},{...batch,upTo:0},{...batch,upTo:62},{...batch,hash:[1,123]},{...batch,hash:[2,Infinity]},{...batch,events:[batch.events[1],batch.events[0]]},{...batch,events:[{frame:3,hero:0,move:[0,0]}]},{...batch,events:Array(241).fill(batch.events[0])},{...batch,events:[{frame:1,hero:2,move:[0,0]}]},{...batch,credential:'fixture'}])assert.equal(cleanDown(down),null);
 });
+
+test('optional movement echoes retain protocol1 old frames and reject invalid or misplaced sequences',async()=>{
+ const {cleanDown}=await import('../src/coop-protocol.js');const event={frame:1,hero:1,move:[127,0],moveSeq:17};
+ assert.deepEqual(cleanFrame(event,2),event);assert.deepEqual(cleanDown({from:1,upTo:1,events:[event]}).events,[event]);
+ for(const moveSeq of [0,-1,.5,2**32,NaN,Infinity,'1',null])assert.equal(cleanFrame({...event,moveSeq},2),null);
+ for(const extra of [{leave:true},{action:{kind:'use',index:0},actionSeq:1}])assert.equal(cleanFrame({frame:1,hero:1,moveSeq:1,...extra},2),null);
+ assert.deepEqual(cleanFrame({frame:1,hero:1,move:[0,0]},2),{frame:1,hero:1,move:[0,0]});
+});

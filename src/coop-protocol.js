@@ -1,4 +1,5 @@
 // Host-ordered inputs adapt RunEscape v0.27's co-op protocol to SQS30Hz; see licenses/run-escape.txt.
+import {TRIAL_BOSSES,BOSS_KIT} from './game-modes.js';
 import {ADVENTURER_BY_ID,MAP_BY_ID,MAPS,SKILLS,GEAR,GEAR_SLOTS,GEAR_MAX_LV} from './content.js';
 export const COOP_PROTOCOL=1, COOP_HZ=30, COOP_PARTY=2, COOP_HISTORY=600;
 const record=v=>!!v&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v));
@@ -35,43 +36,59 @@ export function cleanAction(value){
 }
 
 export function cleanRoomSettings(value){
- if(!keys(value,['protocol','build','sim','map','hard','endless']))return null;
+ if(!keys(value,['protocol','build','sim','map','hard','endless','variant','trialBoss']))return null;
  const {protocol,build,sim,map,hard,endless}=value;
  if(protocol!==COOP_PROTOCOL||typeof build!=='string'||!/^[A-Za-z0-9+._-]{1,80}$/.test(build)||typeof sim!=='string'||!/^[0-9a-f]{12}$/.test(sim)||!known(MAP_BY_ID,map)||typeof hard!=='boolean'||typeof endless!=='boolean')return null;
- return {protocol,build,sim,map,hard,endless};
+ const mode={};
+ if(Object.hasOwn(value,'variant')){
+  const {variant,trialBoss}=value;
+  if(!['boss','raid','fun'].includes(variant)||hard||(variant==='fun'?(map!=='oasis'||!endless):endless))return null;
+  if(variant==='boss'){if(!TRIAL_BOSSES.includes(trialBoss))return null;mode.trialBoss=trialBoss;}
+  else if(Object.hasOwn(value,'trialBoss'))return null;
+  mode.variant=variant;
+ }else if(Object.hasOwn(value,'trialBoss'))return null;
+ return {protocol,build,sim,map,hard,endless,...mode};
+}
+
+export function roomSettings(value){
+ if(!record(value))return null;
+ return cleanRoomSettings(Object.fromEntries(['protocol','build','sim','map','hard','endless','variant','trialBoss'].filter(k=>Object.hasOwn(value,k)).map(k=>[k,value[k]])));
 }
 
 export function cleanStart(value){
- if(!keys(value,['protocol','epoch','build','sim','ground','seed','map','hard','endless','players']))return null;
+ if(!keys(value,['protocol','epoch','build','sim','ground','seed','map','hard','endless','players','variant','trialBoss']))return null;
  const {protocol,epoch,build,sim,ground,seed,map,hard,endless,players}=value;
- if(!cleanRoomSettings({protocol,build,sim,map,hard,endless})||typeof epoch!=='string'||!/^[A-Za-z0-9_-]{16,64}$/.test(epoch)||typeof ground!=='string'||!/^[0-9a-f]{1,8}$/.test(ground)||!uint(seed)||!Array.isArray(players)||players.length!==COOP_PARTY)return null;
+ const settings=roomSettings(value);
+ if(!settings||typeof epoch!=='string'||!/^[A-Za-z0-9_-]{16,64}$/.test(epoch)||typeof ground!=='string'||!/^[0-9a-f]{1,8}$/.test(ground)||!uint(seed)||!Array.isArray(players)||players.length!==COOP_PARTY)return null;
  const definition=MAP_BY_ID[map],mapIndex=MAPS.indexOf(definition),roster=[];
  for(let i=0;i<players.length;i++){
   const member=players[i];if(!keys(member,['id','loadout'])||member.id!==`p${i+1}`)return null;
   const loadout=cleanLoadout(member.loadout);if(!loadout)return null;
   const cleared=new Set(loadout.cleared),adventurer=ADVENTURER_BY_ID[loadout.adv];
-  if(!definition.special&&mapIndex>0&&!cleared.has(definition.after||MAPS[mapIndex-1].id)||(hard||endless)&&!cleared.has(map))return null;
-  if(definition.forceAdv?loadout.adv!==definition.forceAdv:adventurer.special||adventurer.unlock>cleared.size)return null;
+  if(settings.variant!=='fun'&&(!definition.special&&mapIndex>0&&!cleared.has(definition.after||MAPS[mapIndex-1].id)||(hard||endless)&&!cleared.has(map)))return null;
+  if(settings.variant==='boss'){if(loadout.adv!==BOSS_KIT.adv||Object.keys(loadout.meta).length||Object.keys(loadout.gear).length||Object.keys(loadout.gearLv).length)return null;}
+  else if(definition.forceAdv?loadout.adv!==definition.forceAdv:adventurer.special||adventurer.unlock>cleared.size)return null;
   if(definition.forceAdv){loadout.gear={};loadout.gearLv={};}
   roster.push({id:member.id,loadout});
  }
- return {protocol,epoch,build,sim,ground,seed,map,hard,endless,players:roster};
+ return {...settings,epoch,ground,seed,players:roster};
 }
 
 // Room selections become the map's forced loadout; received start packets still use strict cleanStart.
 export function prepareStart(value){
- const force=record(value)&&MAP_BY_ID[value.map]?.forceAdv;
+ const force=record(value)&&(value.variant==='boss'?BOSS_KIT.adv:MAP_BY_ID[value.map]?.forceAdv);
  if(!force)return cleanStart(value);
  if(!Array.isArray(value.players)||!value.players.every(m=>keys(m,['id','loadout'])&&cleanLoadout(m.loadout)))return null;
- return cleanStart({...value,players:value.players.map(m=>({...m,loadout:{...m.loadout,adv:force}}))});
+ return cleanStart({...value,players:value.players.map(m=>({...m,loadout:{...m.loadout,adv:force,...(value.variant==='boss'?{meta:{},gear:{},gearLv:{}}:{})}}))});
 }
 
 export function cleanFrame(value,partySize){
- if(!keys(value,['frame','hero','move','action','actionSeq','decision','leave'])||!uint(value.frame)||!Number.isInteger(partySize)||partySize<1||partySize>COOP_PARTY||!uint(value.hero)||value.hero>=partySize)return null;
+ if(!keys(value,['frame','hero','move','moveSeq','action','actionSeq','decision','leave'])||!uint(value.frame)||!Number.isInteger(partySize)||partySize<1||partySize>COOP_PARTY||!uint(value.hero)||value.hero>=partySize)return null;
  const {frame,hero}=value,variants=['move','action','leave'].filter(k=>Object.hasOwn(value,k));if(variants.length!==1)return null;
  if(variants[0]==='move'){
-  const move=cleanMove(value.move);return move&&!Object.hasOwn(value,'actionSeq')&&!Object.hasOwn(value,'decision')?{frame,hero,move}:null;
+  const move=cleanMove(value.move),echo=Object.hasOwn(value,'moveSeq');return move&&(!echo||uint(value.moveSeq)&&value.moveSeq>0)&&!Object.hasOwn(value,'actionSeq')&&!Object.hasOwn(value,'decision')?{frame,hero,move,...(echo?{moveSeq:value.moveSeq}:{})}:null;
  }
+ if(Object.hasOwn(value,'moveSeq'))return null;
  if(variants[0]==='leave')return value.leave===true&&!Object.hasOwn(value,'actionSeq')&&!Object.hasOwn(value,'decision')?{frame,hero,leave:true}:null;
  const action=cleanAction(value.action),{actionSeq,decision}=value;
  if(!action||!uint(actionSeq)||actionSeq===0)return null;

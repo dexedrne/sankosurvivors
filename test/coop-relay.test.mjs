@@ -177,3 +177,15 @@ for(const retained of ['original','pending'])test('interrupted resume can retry 
  guest.ws.terminate();await p.host.next('hold');p.host.send({t:'loaded',epoch:game.epoch,frame:2});const stale=await f.client();stale.send({t:'resume',code:p.room.code,token:p.guestSession.token,identity});assert.equal((await stale.next('error')).code,'invalidSession');stale.ws.terminate();
  const next=await f.client();next.send({t:'resume',code:p.room.code,token:pending.token,identity});const rotated=await next.next('session');assert.notEqual(rotated.token,pending.token);await next.next('resumed');next.send({t:'loaded',epoch:game.epoch,frame:2});await next.next('begin');await p.host.next('begin');
 });
+
+test('relay forwards optional positive movement echoes and rejects malformed metadata before forwarding',async t=>{
+ const f=await fixture(t),p=await party(f),game=await start(p);
+ const data={from:1,upTo:1,events:[{frame:1,hero:1,move:[127,0],moveSeq:17}]};
+ p.host.send({t:'down',epoch:game.epoch,data});assert.deepEqual((await p.guest.next('down')).data,data);
+ for(const moveSeq of [0,-1,.5,2**32,'17']){
+  const q=await party(f),next=await start(q);
+  q.host.send({t:'down',epoch:next.epoch,data:{from:1,upTo:1,events:[{frame:1,hero:1,move:[127,0],moveSeq}]}});
+  assert.equal((await q.host.next('error')).code,'invalidMessage');assert.equal(await q.host.closed,1008);
+  await assert.rejects(q.guest.next('down',()=>true,60),/Relay did not send down/);
+ }
+});

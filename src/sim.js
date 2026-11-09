@@ -10,6 +10,7 @@ import { MERCHANT, merchantEligible, merchantStock } from './merchant.js';
 import { phaseCoins, continuationBaseline } from './casual-continuation.js';
 import { groundHash } from './ground-pack.js';
 import { extraStorms, stormView } from './weather.js';
+import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION, RAID_WAVES } from './game-modes.js';
 
 export const TICK = 1 / 30;
 export const WORLD = { cx: 365, cz: 300, radius: 70 }; // default (Greentown); each map in content.js has its own centre/radius
@@ -52,7 +53,14 @@ function oasisGround(ground) {
   return corrected;
 }
 
-export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, coop = false } = {}) {
+export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, coop = false, variant = 'normal', trialBoss = 'giant' } = {}) {
+  if (!Object.hasOwn(VARIANTS, variant) || !TRIAL_BOSSES.includes(trialBoss)) throw Error('Unknown game mode or trial boss.');
+  if (variant !== 'normal') {
+    if (ranked || pace !== 2 || hard || endAt || endless && variant !== 'fun' || !MAPS.some(m => m.id === map.id)
+      || !players.length || !coop && players.length !== 1) throw Error('Special modes require a casual pace2 run.');
+    if (variant === 'fun') { if (map.id !== 'oasis') throw Error('Slimer Invasion requires Hidden Oasis.'); endless = true; }
+    if (variant === 'boss') { meta = {}; players = players.map(p => ({ id: p.id, name: p.name, adv: BOSS_KIT.adv })); }
+  }
   if (coop && (ranked || pace !== 2 || players.length !== 2)) throw Error('Co-op requires two casual pace2 players.');
   if (pace >= 2) { ground = pastureGround(ground); if (map.id === 'oasis') ground = oasisGround(ground); }
   meta = clampSkills(meta);
@@ -79,6 +87,11 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
   };
   if (pace === 2 && !ranked && !coop && players.length === 1) Object.assign(sim, { merchant: null, merchantSpent: 0, merchantLootIndices: [] });
   if (coop) sim.coop = true;
+  if (variant !== 'normal') {
+    sim.variant = variant;
+    if (variant === 'boss') sim.trialBoss = trialBoss;
+    else Object.assign(sim, { wave: 0, nextWave: variant === 'raid' ? RAID_WAVES[0] : 240 });
+  }
   players.forEach((p, i) => {
     const a = (i / Math.max(players.length, 1)) * Math.PI * 2;
     sim.players.push({
@@ -93,10 +106,12 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       ...(coop ? { killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], dmgBy: {} } : {}),
     });
   });
+  if (variant === 'boss') for (const p of sim.players) { p.weapons = { ...BOSS_KIT.weapons }; p.passives = { ...BOSS_KIT.passives }; }
   // veterans: skill ranks plus two for every piece of gear worn, 1.5% each, to +75% at 50 (pace 2 only; ranked has neither)
   { const ranks = Object.values(meta).reduce((a, v) => a + (Number(v) || 0), 0) + 2 * Math.max(0, ...sim.players.map((p) => Object.keys(p.gear || {}).length)); sim.vet = 1 + 0.015 * Math.min(50, ranks); }
   if (coop) sim.vet = 1 + 0.015 * Math.min(50, Math.max(...sim.players.map(p => Object.values(p.meta).reduce((a, n) => a + n, 0) + 2 * Object.keys(p.gear).length)));
   for (const p of sim.players) { const st = playerStats(p); p.maxHp = st.maxHp; p.hp = st.maxHp; p.rerolls = st.rerolls; p.revives = st.revives; const w = findWalkable(sim, p.x, p.z); p.x = w[0]; p.z = w[1]; }
+  if (variant === 'boss') { updateFlow(sim); spawnModeBoss(sim, trialBoss); }
   return sim;
 }
 
@@ -244,6 +259,21 @@ function moveTo(sim, o, nx, nz, tumble = false, fencePath = false) {
     if (o.x === x && o.z === z) break;
   }
 }
+// Ordinary walking is also used on a copied body for guest render prediction.
+export function walkPlayer(sim, p, mx, mz, speed, dt) {
+  const len = hyp(mx, mz);
+  p.moving = len > 0.01;
+  if (p.moving) {
+    mx /= Math.max(1, len); mz /= Math.max(1, len);
+    moveTo(sim, p, p.x + mx * speed * dt, p.z + mz * speed * dt);
+    p.face = datan2(mx, mz);
+    if (sim.pace >= 2) p.moveFace = p.face;
+  }
+}
+export function boundPlayer(sim, p) {
+  const off = hyp(p.x - sim.map.cx, p.z - sim.map.cz);
+  if (off > sim.map.r) { p.x = sim.map.cx + (p.x - sim.map.cx) * sim.map.r / off; p.z = sim.map.cz + (p.z - sim.map.cz) * sim.map.r / off; }
+}
 const FLOW_R = 60, FLOW_W = FLOW_R * 2 + 1, FLOW_NONE = 65535;
 function updateFlow(sim, anchor = null) {
   const g = sim.ground; if (!g) { sim.flow = null; return; }
@@ -379,6 +409,12 @@ function killEnemy(sim, e, owner) {
   const p = sim.players.find((q) => q.id === owner);
   if (p) p.kills++;
   if (sim.coop && p) { p.killsByType[e.type] = (p.killsByType[e.type] || 0) + 1; if (def.boss) p.bossKills++; }
+  if (sim.variant === 'boss') {
+    sim.fx.push({ k: 'die', x: e.x, z: e.z, boss: def.boss ? 1 : 0, type: e.type });
+    if (def.boss) { sim.bossKills++; sim.hazards = sim.hazards.filter(h => h.by !== e.id); }
+    if (e.type === sim.trialBoss) sim.over = 'win';
+    return;
+  }
   sim.gems.push({ id: sim.nextId++, x: e.x, z: e.z, v: def.xp, vx: 0, vz: 0 });
   sim.fx.push({ k: 'die', x: e.x, z: e.z, boss: def.boss ? 1 : 0, elite: e.elite ? 1 : 0, ...(sim.pace >= 2 ? { type: e.type } : {}) });
   if (!def.boss) {
@@ -409,7 +445,7 @@ function killEnemy(sim, e, owner) {
     const luck = p ? playerStats(p).luck - 1 : 0;
     if (luck > 0 && sim.rng() < luck) drop('chest', e.x, e.z + 1.2);
     sim.bossKills++;
-    if (e.final && e.type === sim.map.finalBoss && !sim.endless) sim.over = 'win';
+    if (!sim.variant && e.final && e.type === sim.map.finalBoss && !sim.endless) sim.over = 'win';
   }
 }
 
@@ -431,11 +467,38 @@ export function spawnEnemy(sim, type, x, z, scaleHp = 1) {
 }
 
 const spawnReady = (sim, entry) => sim.t >= entry.t && (sim.pace < 2 || sim.t >= SNOW_WAVE_AT || !isSnowEnemy(entry.type));
+function spawnModeBoss(sim, type) {
+  const p = nearestPlayer(sim, sim.map.cx, sim.map.cz) || sim.players[0], a = sim.rng() * 6.283;
+  let x = p.x + dcos(a) * 20, z = p.z + dsin(a) * 20;
+  const off = hyp(x - sim.map.cx, z - sim.map.cz);
+  if (off > sim.map.r) { x = sim.map.cx + (x - sim.map.cx) * sim.map.r / off; z = sim.map.cz + (z - sim.map.cz) * sim.map.r / off; }
+  const w = findWalkable(sim, x, z);
+  spawnEnemy(sim, type, w[0], w[1]);
+  sim.fx.push({ k: 'boss', type });
+}
+function modeWaves(sim) {
+  const pool = [...new Set(sim.map.bosses.map(b => b.type))];
+  while (sim.nextWave !== null && sim.t >= sim.nextWave) {
+    sim.wave++;
+    const living = sim.enemies.filter(e => !e.dead && e.hp > 0 && ENEMIES[e.type].boss).length;
+    const count = Math.min(3 - living, sim.variant === 'raid' ? Math.min(3, sim.wave) : 1);
+    for (let i = 0; i < count; i++) {
+      const choices = sim.variant === 'fun' ? pool.filter(type => type !== sim.lastBoss) : pool;
+      const type = choices[Math.floor(sim.rng() * choices.length)] || pool[0];
+      spawnModeBoss(sim, type);
+      if (sim.variant === 'fun') sim.lastBoss = type;
+    }
+    // Advance even when the arena is full: missed waves never build a backlog.
+    sim.nextWave = sim.variant === 'raid' ? RAID_WAVES[sim.wave] ?? null : sim.nextWave + 180 + sim.rng() * 120;
+  }
+}
 function spawnTick(sim, dt) {
+  if (sim.variant === 'boss') return;
   const t = sim.t;
   // bosses
   const M = sim.map;
-  while (sim.bossIndex < M.bosses.length && t >= M.bosses[sim.bossIndex].t) {
+  if (sim.variant) modeWaves(sim);
+  while (!sim.variant && sim.bossIndex < M.bosses.length && t >= M.bosses[sim.bossIndex].t) {
     const b = M.bosses[sim.bossIndex++];
     const p = nearestPlayer(sim, M.cx, M.cz) || sim.players[0];
     const a = sim.rng() * 6.283;
@@ -445,7 +508,7 @@ function spawnTick(sim, dt) {
     sim.fx.push({ k: 'boss', type: b.type });
   }
   // endless: past the usual run length the map's bosses keep coming back, tougher each time
-  if (sim.endless && t >= M.length) {
+  if (!sim.variant && sim.endless && t >= M.length) {
     const casual = sim.pace >= 2 && !sim.ranked;
     sim.endlessBossT = casual ? Math.max(0, sim.endlessBossT - dt) : sim.endlessBossT - dt;
     if (sim.endlessBossT <= 0 && M.bosses.length && (!casual || sim.enemies.filter(e => !e.dead && e.hp > 0 && ENEMIES[e.type].boss).length < 6)) {
@@ -475,7 +538,7 @@ function spawnTick(sim, dt) {
   // on the whole-world map, the monsters come from the region you are standing in
   const R = M.world ? regionOf(sim, sim.players.find((p) => p.alive) || sim.players[0]) : M;
   if (M.world && R.id !== sim.region) { sim.region = R.id; sim.fx.push({ k: 'region', id: R.id }); }
-  const pool = R.pool.filter((s) => spawnReady(sim, s) && !(R.retire && R.retire[s.type] && t >= R.retire[s.type]));
+  const pool = sim.variant === 'fun' ? [{ type: 'slimer', w: 4 }, ...(t >= 200 ? [{ type: 'mslimer', w: 3 }] : [])] : R.pool.filter((s) => spawnReady(sim, s) && !(R.retire && R.retire[s.type] && t >= R.retire[s.type]));
   const total = pool.reduce((a, s) => a + s.w, 0);
   while (sim.spawnAcc >= 1 && sim.enemies.length < cap) {
     sim.spawnAcc -= 1;
@@ -1262,13 +1325,9 @@ export function step(sim, inputs = {}, dt = TICK) {
       p.face = p.moveFace = p.rollFace; p.rollT = Math.max(0, p.rollT - dt);
       if (p.rollT < 1e-9) p.rollT = 0;
     } else if (p.moving) {
-      const mx = inp.mx / Math.max(1, len), mz = inp.mz / Math.max(1, len);
-      moveTo(sim, p, p.x + mx * st.speed * dt, p.z + mz * st.speed * dt);
-      p.face = datan2(mx, mz);
-      if (sim.pace >= 2) p.moveFace = p.face;
+      walkPlayer(sim, p, inp.mx, inp.mz, st.speed, dt);
     }
-    const off = hyp(p.x - sim.map.cx, p.z - sim.map.cz);
-    if (off > sim.map.r) { p.x = sim.map.cx + (p.x - sim.map.cx) * sim.map.r / off; p.z = sim.map.cz + (p.z - sim.map.cz) * sim.map.r / off; }
+    boundPlayer(sim, p);
     p.inv = Math.max(0, p.inv - dt); p.hurt = Math.max(0, p.hurt - dt);
     for (const b of Object.keys(p.buffs)) p.buffs[b] = Math.max(0, p.buffs[b] - dt);
     if (!p.godMode) p.maxHp = st.maxHp; // godMode: QA only
@@ -1279,8 +1338,8 @@ export function step(sim, inputs = {}, dt = TICK) {
 
   sim.flowT -= dt; if (sim.flowT <= 0) { sim.flowT = 0.3; updateFlow(sim); }
   spawnTick(sim, dt);
-  eventTick(sim, dt);
-  shrineTick(sim, dt);
+  if (!sim.variant) eventTick(sim, dt);
+  if (sim.variant !== 'boss') shrineTick(sim, dt);
   merchantTick(sim, dt);
 
   // enemies: chase, separate, hurt
@@ -1400,7 +1459,8 @@ export function step(sim, inputs = {}, dt = TICK) {
   sim.pickups = sim.pickups.filter((k) => !k.taken);
 
   if (sim.players.every((p) => !p.alive)) sim.over = 'dead';
-  else if (sim.t >= sim.map.length && !sim.endless) sim.over = 'win';
+  else if (sim.variant === 'raid' && sim.t >= RAID_DURATION) sim.over = 'win';
+  else if (!sim.variant && sim.t >= sim.map.length && !sim.endless) sim.over = 'win';
   else if (sim.endAt && sim.t >= sim.endAt) sim.over = 'time';
   for (const p of sim.players) openCasket(sim, p); // a casket card waits for any level-up card first
 }
@@ -1420,6 +1480,7 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
   const fx = sim.fx; sim.fx = [];
   const storm = sim.pace >= 2 ? stormView(sim.event) : null;
   return {
+    ...(sim.variant ? { variant: sim.variant, ...(sim.variant === 'boss' ? { trialBoss: sim.trialBoss } : { wave: sim.wave, nextWave: sim.nextWave }) } : {}),
     ...(sim.pace >= 2 ? { snowWave: !!sim.snowWave, storm } : {}),
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.pace >= 2 ? storm?.kind || null : sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
     players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { beltCounts: p.belt.map((_, i) => beltCount(p, i)), rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),

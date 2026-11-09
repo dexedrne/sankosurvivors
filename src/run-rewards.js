@@ -4,8 +4,11 @@ import { MILESTONES, DUPLICATE_GEAR_COINS } from './profile-milestones.js';
 import { profileValue, profileBest, finiteNumber } from './progress-values.js';
 import { betterRun } from './personal-record.js';
 import { RUN_REWARD_KEYS } from './progress-import.js';
+import { VARIANTS } from './game-modes.js';
 
 export function prepareRunRewards(storage, sim, { earned, ranked = false, coop = false, playerId, result, baseline = null }) {
+  const special = sim.variant && sim.variant !== 'normal';
+  if (special && (!Object.hasOwn(VARIANTS, sim.variant) || ranked || sim.ranked || baseline || !Number.isFinite(earned) || earned < 0)) throw Error('Invalid special-mode rewards.');
   if (baseline && (baseline.sim !== sim || ranked || coop || !sim.endless)) throw Error('Wrong continuation rewards');
   const p = coop ? sim.players.find(p => p.id === playerId) : sim.players[0], owned = coop ? p : sim;
   if (coop !== (sim.coop === true) || coop && (!p || ranked || result !== 'complete' || !sim.over || !Number.isFinite(earned) || earned < 0)) throw Error('Co-op rewards require a verified completed run and its local player.');
@@ -15,9 +18,10 @@ export function prepareRunRewards(storage, sim, { earned, ranked = false, coop =
   const data = {}, save = (key, value) => { data[key] = JSON.stringify(value); };
   const won = sim.over === 'win', record = { t: Math.floor(sim.t), level: sim.level, kills: owned.kills, won };
   const previous = load('sq-best', null);
-  if (!coop && betterRun(previous, record) === record) save('sq-best', record);
+  if (!special && !coop && betterRun(previous, record) === record) save('sq-best', record);
   const cleared = new Set(load('sq-cleared', [])), clearedBefore = cleared.size;
-  if (won) { cleared.add(sim.map.id); save('sq-cleared', [...cleared]); }
+  if (!special && won) { cleared.add(sim.map.id); save('sq-cleared', [...cleared]); }
+  if (sim.variant === 'boss') return { data, record, cleared: [...cleared], clearedBefore, loot: [], quests: [], personalBest: null, newPersonalBest: false };
   let coins = finiteNumber(load('sq-coins', 0)) + earned, bank = load('sq-bank', []), bankChanged = false;
   const bankItem = (name, sell = true) => {
     if (!Object.hasOwn(GEAR, name)) return false;
@@ -33,6 +37,10 @@ export function prepareRunRewards(storage, sim, { earned, ranked = false, coop =
     const before = coins, fresh = !isWeaponItem(name) && bankItem(name, !wasAlched);
     return { name, wasAlched, fresh, soldCoins: coins - before, on: Object.values(worn).includes(name) };
   }).filter(Boolean);
+  if (special) {
+    save('sq-coins', coins); if (bankChanged) save('sq-bank', bank);
+    return { data, record, cleared: [...cleared], clearedBefore, loot, quests: [], personalBest: null, newPersonalBest: false };
+  }
   const stats = load('sq-stats', {}), add = (key, value) => { stats[key] = finiteNumber(stats[key]) + value; };
   const merchantCaskets = !coop ? (sim.merchantLootIndices?.length || 0) - (baseline?.merchantLootCount || 0) : 0;
   add('kills', owned.kills - (baseline?.kills || 0)); add('bosses', owned.bossKills - (baseline?.bossKills || 0)); add('evolves', owned.evolves - (baseline?.evolves || 0)); add('caskets', owned.loot.length - (baseline?.caskets || 0) - merchantCaskets);

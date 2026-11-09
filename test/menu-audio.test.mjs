@@ -23,7 +23,7 @@ test('the first trusted gesture selects music and unlocks before the renderer fi
 });
 test('actual return-to-menu lifecycle selects the title song after a run',()=>{
  const calls=[],a=main.indexOf('function toMenu()'),b=main.indexOf('// ---- input',a);
- const run=Function('audio',`let coop=null,PLAYER='p1',rankedRun=null,rankedRec=null,sim={},mode='end',waitingForMove=false,rewardWasShown=false;const selMap='greentown',MAP_BY_ID={greentown:{music:'early'}},window={},rankedPlaying=()=>false,applyDmt=()=>{},renderer={reset(){},setZoom(){},setShift(){}},$=()=>({classList:{add(){},remove(){}}}),buildAdventurers=()=>{},buildMaps=()=>{},showBest=()=>{},refreshPendingTitleProgress=()=>{};${titleCode()}${main.slice(a,b)};toMenu();return{mode,sim};`);
+ const run=Function('audio',`let coop=null,PLAYER='p1',rankedRun=null,rankedRec=null,sim={},mode='end',waitingForMove=false,rewardWasShown=false;const selMap='greentown',MAP_BY_ID={greentown:{music:'early'}},window={},rankedPlaying=()=>false,applyDmt=()=>{},renderer={reset(){},setZoom(){},setShift(){}},$=()=>({classList:{add(){},remove(){}}}),buildAdventurers=()=>{},buildMaps=()=>{},updateModePicker=()=>{},showBest=()=>{},refreshPendingTitleProgress=()=>{};${titleCode()}${main.slice(a,b)};toMenu();return{mode,sim};`);
  assert.deepEqual(run({duck:v=>calls.push(['duck',v]),music:v=>calls.push(['music',v])}),{mode:'title',sim:null});assert.deepEqual(calls,[['duck',false],['music','early']]);
 });
 function sliders(){

@@ -5,7 +5,7 @@ import {randomBytes,randomInt,timingSafeEqual} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {realpathSync} from 'node:fs';
 import WebSocket from 'ws';
-import {COOP_PROTOCOL,COOP_HISTORY,cleanLoadout,cleanRoomSettings,cleanStart,prepareStart,cleanUp,cleanDown} from '../src/coop-protocol.js';
+import {COOP_PROTOCOL,COOP_HISTORY,cleanLoadout,cleanRoomSettings,roomSettings,cleanStart,prepareStart,cleanUp,cleanDown} from '../src/coop-protocol.js';
 const own=(value,names)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(k=>names.includes(k));
 const uint=value=>Number.isInteger(value)&&value>=0&&value<=0xffffffff;
 const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -100,7 +100,7 @@ export function createCoopRelay({server,origins,maxRooms=64,loopbackProxy=false}
    if(r.game){fail(c,'alreadyStarted','This run has already started.');return;}
    if(r.members.length!==2||!r.members.every(p=>p.c&&p.ready)){fail(c,'notReady','Both players must be ready.');return;}
    const game=cleanStart(v.game);if(!game){fail(c,'invalidStart','The map, loadouts or game version could not be verified.');return;}
-   if(game.epoch!==r.epoch||!same(cleanRoomSettings({protocol:game.protocol,build:game.build,sim:game.sim,map:game.map,hard:game.hard,endless:game.endless}),r.settings)){fail(c,'versionMismatch','Room settings changed. Create a new room.');return;}
+   if(game.epoch!==r.epoch||!same(roomSettings(game),r.settings)){fail(c,'versionMismatch','Room settings changed. Create a new room.');return;}
    const roster=r.members.map(({id,loadout})=>({id,loadout}));
    // Forced-map gear is stripped on every participant's copy before comparing the roster.
    const expected=prepareStart({...game,players:roster});

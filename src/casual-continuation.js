@@ -3,7 +3,7 @@ export const continuationBaseline = sim => continuedBaselines.get(sim) || null;
 
 // Live-only continuation state: the existing reward journal owns durable profile writes.
 export function canContinueCasual(sim) {
-  return !!sim && !sim.ranked && !sim.coop && !sim.endless && sim.over === 'win' && sim.players[0]?.alive === true;
+  return !!sim && !sim.variant && !sim.ranked && !sim.coop && !sim.endless && sim.over === 'win' && sim.players[0]?.alive === true;
 }
 export function captureRewardBaseline(sim, receipt) {
   if (!canContinueCasual(sim)) throw Error('Not a casual victory');
@@ -20,10 +20,11 @@ export function continueCasual(sim, baseline) {
   continuedBaselines.set(sim, baseline);
 }
 export function phaseCoins(sim, { won = false, multiplier = 1, baseline = null, player = sim.players[0] } = {}) {
+  if (sim.variant === 'boss') return 0;
   if (baseline && baseline.sim !== sim) throw Error('Wrong reward baseline');
   const kills = sim.coop ? player.kills : sim.kills;
   const bonus = sim.endless ? Math.floor(Math.max(0, sim.t - sim.map.length) / 10) : 0;
-  const base = Math.floor(kills / 6) - (baseline?.killCoins || 0) + player.coins * 3 - (baseline?.pickupCoins || 0) + (won && !baseline ? 120 : 0) + bonus;
+  const base = Math.floor(kills / 6) - (baseline?.killCoins || 0) + player.coins * 3 - (baseline?.pickupCoins || 0) + (won && !sim.variant && !baseline ? 120 : 0) + bonus;
   const earned = Math.round(base * multiplier) + phaseAlch(sim, baseline, player), spent = (sim.merchantSpent || 0) - (baseline?.merchantSpent || 0);
   // Losing a coin bonus must not make earlier shopping charge the saved profile.
   return earned - Math.min(Math.max(0, earned), spent);

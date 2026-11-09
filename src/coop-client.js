@@ -1,4 +1,4 @@
-import {COOP_PROTOCOL,COOP_HZ,cleanLoadout,cleanRoomSettings,cleanStart,prepareStart,cleanUp,cleanDown,quantizeMove} from './coop-protocol.js';
+import {COOP_PROTOCOL,COOP_HZ,cleanLoadout,cleanRoomSettings,roomSettings,cleanStart,prepareStart,cleanUp,cleanDown} from './coop-protocol.js';
 import {createCoopRun} from './coop-run.js';
 const keys=(v,list)=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(k=>list.includes(k));
 const uint=n=>Number.isInteger(n)&&n>=0&&n<=0xffffffff;
@@ -15,16 +15,16 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
  if(!keys(identity,['protocol','build','sim'])||!cleanRoomSettings({...identity,map:'greentown',hard:false,endless:false})||typeof load!=='function')throw Error('Invalid co-op identity or loader');
  identity={...identity};
  let socket=null,generation=0,hello=false,stopped=false,intent=null,room=null,session=null,game=null,run=null,loading=false,recovering=false,request=null;
- let retryTimer=null,handshakeTimer=null,recoveryTimer=null,tick=null,lastProgress=0,lastTick=0,carry=0,pendingMove=null,sampledInput=null,stallGrace=false;
+ let retryTimer=null,handshakeTimer=null,recoveryTimer=null,tick=null,lastProgress=0,lastTick=0,carry=0,stallGrace=false;
  const status=value=>{if(!stopped)onStatus(value);};
  function send(value){
   if(stopped||!socket||socket.readyState!==1||!hello)return false;
   if(socket.bufferedAmount>131072){finish('connectionSlow');return false;}
   try{socket.send(JSON.stringify(value));return true;}catch{finish('connectionLost');return false;}
  }
- function neutral(){pendingMove=null;sampledInput?.(0,0);}
+ function neutral(){run?.resetInput();}
  function finish(reason){
-  if(stopped)return;stopped=true;pendingMove=null;clearTimeout(retryTimer);clearTimeout(handshakeTimer);clearTimeout(recoveryTimer);clearInterval(tick);
+  if(stopped)return;stopped=true;clearTimeout(retryTimer);clearTimeout(handshakeTimer);clearTimeout(recoveryTimer);clearInterval(tick);
   events.removeEventListener?.('blur',neutral,true);events.removeEventListener?.('visibilitychange',neutral,true);
   if(socket?.readyState===1)try{socket.send(JSON.stringify(run?.host&&reason==='complete'?{t:'end',epoch:game.epoch}:{t:'leave'}));}catch{}
   generation++;socket?.close();socket=null;session=null;intent=null;run?.close(reason);onEnd(reason,run);
@@ -38,25 +38,22 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
  }
  async function startGame(value){
   const next=cleanStart(value),expected=room&&next&&prepareStart({...next,players:room.members.map(({id,loadout})=>({id,loadout}))});
-  if(!next||!expected||!session||next.epoch!==session.epoch||!same(next.players,expected.players)||!same(cleanRoomSettings({protocol:next.protocol,build:next.build,sim:next.sim,map:next.map,hard:next.hard,endless:next.endless}),room.settings)){finish('invalidStart');return;}
+  if(!next||!expected||!session||next.epoch!==session.epoch||!same(next.players,expected.players)||!same(roomSettings(next),room.settings)){finish('invalidStart');return;}
   if(game){if(!same(game,next))finish('invalidStart');return;}
   game=next;request=null;loading=true;status('loading');
   try{
    const ground=await load(structuredClone(game));if(stopped||game!==next)return;
    run=createCoopRun({start:game,localId:session.you,ground,send,onEnd:finish});loading=false;
-   // Render input may arrive above120Hz; sample guest movement at the existing network tick.
-   sampledInput=run.input;
-   if(!run.host)run.input=(x,z)=>{const move=quantizeMove(x,z);if(!move||stopped||run.held||run.closed)return false;pendingMove=move;return true;};
    onRun(run,structuredClone(game),session.you);if(stopped)return;
    send({t:'loaded',epoch:game.epoch,frame:0});lastProgress=Date.now();lastTick=performance.now();
    tick=setInterval(()=>{
     const now=performance.now(),elapsed=now-lastTick;lastTick=now;
-    if(stopped||!run||run.held){carry=0;pendingMove=null;return;}
+    if(stopped||!run||run.held){carry=0;return;}
     try{if(run.host){
      // Catch short render stalls without fast-forwarding long background gaps or reward timers.
      carry+=Math.max(0,Math.min(250,elapsed));let steps=0;
      while(carry>=1000/COOP_HZ&&steps++<8&&!run.closed){run.advance();carry-=1000/COOP_HZ;}
-    }else{if(pendingMove){const move=pendingMove;pendingMove=null;sampledInput(move[0]/127,move[1]/127);}
+    }else{run.flushInput();
      // A resumed timer can precede queued socket events; grant grace once per real progress.
      if(elapsed>1000&&!stallGrace){lastProgress=Date.now();stallGrace=true;}if(Date.now()-lastProgress>15000)finish('hostStalled');}}catch{finish('invalidState');}
    },1000/COOP_HZ);tick.unref?.();
@@ -96,7 +93,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
    if(run.begin(v.frame)){lastTick=performance.now();carry=0;recovering=false;clearTimeout(recoveryTimer);lastProgress=Date.now();stallGrace=false;status('playing');}return;
   }
   if(v.t==='hold'){
-   if(!keys(v,['t','epoch','held','frame'])||v.held!==true||!uint(v.frame)){finish('invalidMessage');return;}pendingMove=null;run.hold();status('waiting');return;
+   if(!keys(v,['t','epoch','held','frame'])||v.held!==true||!uint(v.frame)){finish('invalidMessage');return;}run.hold();status('waiting');return;
   }
   if(v.t==='resumed'){
    if(!keys(v,['t','epoch','frame'])||!recovering||run.host||!uint(v.frame)){finish('invalidMessage');return;}status('catchingUp');run.recover(v.frame);return;
@@ -118,7 +115,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
   ws.addEventListener('close',()=>{
    if(stopped||current!==generation)return;socket=null;clearTimeout(handshakeTimer);
    if(run&&!run.host&&!run.closed&&session){
-    pendingMove=null;run.hold();if(!recovering){recovering=true;recoveryTimer=setTimeout(()=>finish('reconnectExpired'),10000);recoveryTimer.unref?.();}status('reconnecting');retryTimer=setTimeout(connect,250);retryTimer.unref?.();
+    run.hold();if(!recovering){recovering=true;recoveryTimer=setTimeout(()=>finish('reconnectExpired'),10000);recoveryTimer.unref?.();}status('reconnecting');retryTimer=setTimeout(connect,250);retryTimer.unref?.();
    }else finish('connectionLost');
   });
  }

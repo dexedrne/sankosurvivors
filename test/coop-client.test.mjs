@@ -88,3 +88,10 @@ test('duplicate old frame packets cannot keep a stalled guest alive without simu
  for(let at=33;at<=14982;at+=33){f.at(at);if(at===9999||at===13992)f.emit(down[0]);}
  f.at(15015);assert.deepEqual(f.ends,['hostStalled'],'valid but duplicate packets are not forward progress');
 });
+
+test('guest start and short stop edges reach socket before a network interval',async t=>{
+ const f=await fixture(t),p=await party(f);await start(p);const ws=p.guest.sockets[0],sent=[],native=ws.send.bind(ws);
+ ws.send=(text,...args)=>{const m=JSON.parse(text);if(m.t==='up'&&m.data.move)sent.push(m.data.move);return native(text,...args);};
+ p.guest.client.run.input(1,0);p.guest.client.run.input(0,0);
+ assert.deepEqual(sent,[[127,0],[0,0]],'both tap edges must bypass interval coalescing when budget permits');
+});

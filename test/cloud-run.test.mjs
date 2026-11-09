@@ -19,7 +19,7 @@ const petInitSource=main.slice(main.indexOf('async function applyPetChoice()'),m
 const currentPetSource=main.slice(main.indexOf('function currentPetChoice()'),main.indexOf('function buildPets()'));
 const afterBoot=main.slice(main.indexOf('boot().then('),main.indexOf('// QA hooks'));
 const choices=main.slice(main.indexOf('function savedChoice('),main.indexOf('let selMap ='));
-const mapPicker=main.slice(main.indexOf('async function pickMap('),main.indexOf("$('hard').onchange"));
+const mapPicker=main.slice(main.indexOf('async function pickMap('),main.indexOf('async function selectVariant('));
 const mapBuilder=main.slice(main.indexOf('function buildMaps('),main.indexOf('async function pickMap('));
 const tickets=main.slice(main.indexOf('function loadCasualTickets('),main.indexOf('function runGround()'));
 const start=main.slice(main.indexOf('async function startRun('),main.indexOf('let bannerT ='));
@@ -69,6 +69,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
   const app=Function('createCloud','walletNow','walletRevision','onWallet','$','location','gearStage','mapStage','failStart','navigator','caches','requestWallet','prove','importData','importProgress','recoverProgressImport','otherWallet','failMap','resumeStage','cleanSettings','profileValue','profileBest','failSettings','recoverRunProgress','document','petChoice','createBunCompanions',`
     let buyBusy=null,walletConnecting=null,walletRequests=0,walletUi=false,walletBal=null,recoveryCanRestart=null,recoveryOptions=null;const walletModalOpen=()=>walletUi;
     let coop=null,coopResult=null,coopHomeMap=null,coopLoading=false;let mode='title',sim=null,rankedRun=null,rankedRec=null,rankedBusy=false,storedLive=null,runTicket=null,casualRun=null,mapLoading=false,loadedMapId='greentown',selMap='greentown',selAdv='adventurer',acc=0,selCard=0,shownPending=false,waitingForMove=false,rewardWasShown=false,pendingUse=null,slowmo=0,runBest=null,passedBest=false,chase=null;
+    let selVariant='normal',trialBoss='giant',fieldMap=selMap;
     const audioApplied=[];const walletHandoff=null;let PLAYER='p';const BASE='./',SIM_ID='fixture-sim',params=new URLSearchParams(),keys=new Set(),slotCache={},WEAPONS={},PASSIVES={};
     const map={id:'greentown',name:'Greentown',length:900,finalBoss:'dragon',music:'fixture'},tutorial={...map,id:'tutorial',name:'Tutorial Island',special:true,forceAdv:'alex'},MAPS=[map,tutorial],MAP_BY_ID={greentown:map,tutorial};
     const ADVENTURER_BY_ID={adventurer:{id:'adventurer',weapon:'Sword'},wizard:{id:'wizard',weapon:'Staff'},alex:{id:'alex',weapon:'Sword'}},mapRequests=[];

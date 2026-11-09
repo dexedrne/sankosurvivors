@@ -1,7 +1,9 @@
 import { skillQuote, prepareSkills } from './skill-purchases.js';
 import { armouryQuote, prepareArmoury } from './armoury.js';
 import { createCoopClient } from './coop-client.js';
+import { predictedView } from './coop-view.js';
 import { groundHash } from './ground-pack.js';
+import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION } from './game-modes.js';
 import { RunRecorder, RANKED, pauseRemaining, rankedPoints, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf } from './ranked.js';
 import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
 import { clockPolicy } from './ranked-clock.js';
@@ -99,6 +101,7 @@ function savedChoice(key, known, fallback) {
 }
 let selMap = savedChoice('sq-map', MAP_BY_ID, 'greentown');
 let selAdv = savedChoice('sq-adv', ADVENTURER_BY_ID, 'adventurer');
+let selVariant = 'normal', trialBoss = 'giant', fieldMap = selMap;
 let loadedMapId = 'greentown', mapLoading = false, hardOn = false, endlessOn = false;
 // gear you own (from caskets and quests) and what you wear; lifetime stats that quests read
 const getBank = () => { const b = load('sq-bank', []); return Array.isArray(b) ? b.filter((n) => typeof n === 'string' && Object.hasOwn(GEAR, n)) : []; }; // old saves: unknown names are ignored
@@ -116,7 +119,7 @@ const autoEquipOn = () => load('sq-autoequip', false) === true; // Device prefer
 const unlockedMap = (i) => params.has('unlock') || i === 0 || !!MAPS[i].special || clearedMaps().has(MAPS[i].after || MAPS[i - 1].id);
 const unlockedAdv = (a) => params.has('unlock') || a.unlock <= clearedMaps().size;
 // some maps fix who you play (Tutorial Island: Alex)
-const runAdv = () => ADVENTURER_BY_ID[(MAP_BY_ID[selMap] && MAP_BY_ID[selMap].forceAdv) || selAdv];
+const runAdv = () => ADVENTURER_BY_ID[selVariant === 'boss' ? BOSS_KIT.adv : (MAP_BY_ID[selMap] && MAP_BY_ID[selMap].forceAdv) || selAdv];
 
 // ---- icons: real SankoQuest item icons -----------------------------------------------------------------
 const EMOJI = { curse: '🎃', baseball: '⚾', lighter: '🔥', area: '🧥', amount: '🪶', crit: '🍄', thorns: '🦂', greed: '🗝️', greatsword: '⚔️', shortsword: '🗡️', katana: '🗡️', axe: '🪓', pickaxe: '⛏️', shield: '🛡️', bow: '🏹', staff: '🪄', might: '💪', haste: '💨', vigor: '❤️', boots: '👢', magnet: '🧲', armor: '🛡️', growth: '📖', fish: '🐟' };
@@ -196,9 +199,40 @@ async function pickMap(id, remember = true) {
     mapLoading = true; $('start').disabled = true; $('loadtext').textContent = `Loading ${map.name}…`;
     try { await renderer.loadMap(map); loadedMapId = id; renderer.reset(); } finally { mapLoading = false; $('start').disabled = false; $('loadtext').textContent = ''; }
   }
-  buildMaps(); showBest(); $('tagline').textContent = `${map.name}: ${map.blurb}`; window.__idleSim = null;
+  buildMaps(); showBest(); updateModePicker(); $('tagline').textContent = `${map.name}: ${map.blurb}`; window.__idleSim = null;
   return refreshPendingTitleProgress();
 }
+const MODE_INFO = {
+  normal: 'Campaign maps, gear and permanent progress.',
+  boss: 'Fixed Ranger kit. Defeat one boss and retry. Practice only: no GP, gear or campaign progress.',
+  raid: 'Survive 25 minutes. Boss waves grow to three living bosses. Earn GP and gear; campaign progress and normal leaderboards stay separate.',
+  fun: 'Slimer invasion in the underground factory. Endless survival with native Slimers and Mutant Slimers. Earn GP and gear; campaign progress and normal leaderboards stay separate.',
+};
+function updateModePicker() {
+  const special = selVariant !== 'normal', fixed = selVariant === 'boss' || selVariant === 'fun';
+  for (const button of $('runvariant').children) { const on = button.dataset.variant === selVariant; button.setAttribute('aria-pressed', String(on)); button.classList.toggle('on', on); button.disabled = mapLoading || runStarting || !!coop; }
+  $('trialpick').classList.toggle('hidden', selVariant !== 'boss');
+  $('trialboss').disabled = mapLoading || runStarting || !!coop;
+  $('mpick').classList.toggle('hidden', fixed);
+  $('mapinfo').classList.toggle('hidden', special);
+  $('modes').classList.toggle('hidden', special); $('best').classList.toggle('hidden', special);
+  $('apick').classList.toggle('hidden', selVariant === 'boss');
+  $('variantinfo').textContent = special ? MODE_INFO[selVariant] : '';
+  if (selVariant === 'boss') { $('adventurerlabel').textContent = ADVENTURER_BY_ID[BOSS_KIT.adv].name; $('ainfo').textContent = BOSS_KIT.label; }
+}
+async function selectVariant(value) {
+  if (!Object.hasOwn(VARIANTS, value) || mapLoading || runStarting || coop) return;
+  if (selVariant === 'normal' || selVariant === 'raid') fieldMap = selMap;
+  selVariant = value; hardOn = endlessOn = false; $('hard').checked = $('endless').checked = false;
+  const map = value === 'fun' ? 'oasis' : value === 'boss' ? 'greentown' : fieldMap;
+  $('start').disabled = true;
+  try { await pickMap(map, false); }
+  catch { banner('Could not load the world. Try the mode again.', 3500); }
+  finally { $('start').disabled = loadedMapId !== selMap; buildAdventurers(); updateModePicker(); window.__idleSim = null; }
+}
+for (const button of $('runvariant').children) button.onclick = () => selectVariant(button.dataset.variant);
+$('trialboss').innerHTML = TRIAL_BOSSES.map(id => `<option value="${id}">${ENEMIES[id].name}</option>`).join('');
+$('trialboss').onchange = e => { if (TRIAL_BOSSES.includes(e.target.value)) trialBoss = e.target.value; };
 $('hard').onchange = (e) => { hardOn = e.target.checked; showBest(); };
 $('endless').onchange = (e) => { endlessOn = e.target.checked; showBest(); };
 
@@ -605,7 +639,7 @@ async function boot() {
     await renderer.preloadGear(Object.values(getGear()));
     applySavedGraphics();
     applyPetChoice();
-    $('start').disabled = false; buildAdventurers(); buildMaps(); showBest(); renderer.setZoom(0.45); renderer.setShift(2.4);
+    $('start').disabled = false; buildAdventurers(); buildMaps(); showBest(); updateModePicker(); renderer.setZoom(0.45); renderer.setShift(2.4);
     if (selMap !== 'greentown') await pickMap(selMap);
     playTitleMusic();
     if (params.has('clean')) $('title').classList.add('hidden');
@@ -1128,7 +1162,7 @@ $('lbname').value = load('sq-name', '');
 async function submitScore(target = lastRun) {
   // DOM click events are not result objects; every request owns its captured result.
   if (!target || target.type === 'click') target = lastRun;
-  if (!target || target.coop) return { ok: false };
+  if (!target || target.coop || target.variant) return { ok: false };
   if (target.sent) return { ok: true };
   const name = target.name || $('lbname').value.trim().slice(0, 16);
   if (!name) { $('lbmsg').textContent = 'Type a name first.'; return { ok: false }; }
@@ -1309,7 +1343,8 @@ function titleNameEditing() {
 }
 function syncTitleProgress() {
   titleProgressPending = false;
-  selMap = savedChoice('sq-map', MAP_BY_ID, 'greentown');
+  fieldMap = savedChoice('sq-map', MAP_BY_ID, 'greentown');
+  selMap = selVariant === 'fun' ? 'oasis' : selVariant === 'boss' ? 'greentown' : fieldMap;
   selAdv = savedChoice('sq-adv', ADVENTURER_BY_ID, 'adventurer');
   syncTitleNames();
   buildAdventurers(); buildMaps(); showBest(); window.__idleSim = null;
@@ -1541,6 +1576,7 @@ function toast(html) { const el = document.createElement('div'); el.className = 
 let runTicket = null;
 let casualRun = null;
 function loadCasualTickets(session) {
+  if (session.sim.variant) return;
   const s = session.sim, query = new URLSearchParams({ map: s.map.id, adv: s.players[0].adv, hard: s.hard ? '1' : '0', endless: s.endless ? '1' : '0' });
   session.tickets = fetch(`${BASE}api/run?${query}`).then(r => r.ok ? r.json() : null).then(d => {
     if (casualRun !== session || sim !== s) return;
@@ -1566,8 +1602,8 @@ function showCoopRoom(room) {
   $('coopform').classList.add('hidden'); $('cooproom').classList.remove('hidden');
   $('coopcode').textContent = room.code;
   const map = MAP_BY_ID[room.settings.map];
-  $('coopmap').textContent = `${map.name}${room.settings.hard ? ' · Hard' : ''}${room.settings.endless ? ' · Endless' : ''}`;
-  $('coopmembers').innerHTML = room.members.map(m => `<p><b translate="no">${esc(m.loadout.name)}</b> · ${ADVENTURER_BY_ID[map.forceAdv || m.loadout.adv].name} · <span>${!m.connected ? 'Disconnected' : m.ready ? 'Ready' : 'Not ready'}</span></p>`).join('');
+  $('coopmap').textContent = `${map.name}${room.settings.variant ? ' · ' + VARIANTS[room.settings.variant].name : ''}${room.settings.hard ? ' · Hard' : ''}${room.settings.endless ? ' · Endless' : ''}`;
+  $('coopmembers').innerHTML = room.members.map(m => `<p><b translate="no">${esc(m.loadout.name)}</b> · ${ADVENTURER_BY_ID[room.settings.variant==='boss'?BOSS_KIT.adv:map.forceAdv || m.loadout.adv].name} · <span>${!m.connected ? 'Disconnected' : m.ready ? 'Ready' : 'Not ready'}</span></p>`).join('');
   const me = room.members.find(m => m.id === room.you);
   $('coopready').textContent = me.ready ? 'Not ready' : 'Ready'; $('coopready').setAttribute('aria-pressed', String(me.ready));
   $('coopgo').classList.toggle('hidden', room.you !== 'p1'); $('coopgo').disabled = room.members.length !== 2 || !room.members.every(m => m.ready && m.connected);
@@ -1630,7 +1666,7 @@ function openCoop() {
   coop = c;
 }
 $('coopbtn').onclick = openCoop;
-$('coopcreate').onclick = () => { if (!coop?.create({map:selMap,hard:hardOn,endless:endlessOn},coopLoadout())) $('coopstatus').textContent = 'Check your name, map and adventurer selection.'; };
+$('coopcreate').onclick = () => { if (!coop?.create({map:selMap,hard:hardOn,endless:selVariant==='fun'||endlessOn,...(selVariant!=='normal'?{variant:selVariant,...(selVariant==='boss'?{trialBoss}: {})}:{})},coopLoadout())) $('coopstatus').textContent = 'Check your name, map and adventurer selection.'; };
 $('coopjoin').onclick = () => { if (!coop?.join($('coopinvite').value,coopLoadout())) $('coopstatus').textContent = 'Enter the six-character invite code.'; };
 $('coopready').onclick = () => { const room = coop?.room, me = room?.members.find(m => m.id === room.you); if (me) coop.ready(!me.ready); };
 $('coopgo').onclick = () => { if (!coop?.start({ground:runGround() ? groundHash(runGround()) : '0',seed:crypto.getRandomValues(new Uint32Array(1))[0]})) $('coopstatus').textContent = coopText('invalidStart'); };
@@ -1692,7 +1728,7 @@ async function startRun(live = null) {
       rankedClock = live.clockVersion === 1 ? new RankedClock({run:live.run,request:body=>rankedApi(BASE,'clock',body)}) : null;
       persistRanked();
       $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
-    } else sim = createSim({ seed, map, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
+    } else sim = createSim({ seed, map, variant: selVariant, trialBoss, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
     if (!isRanked) { casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' }; loadCasualTickets(casualRun); }
     renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
     for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'pets', 'more', 'upgrades']) $(id).classList.add('hidden');
@@ -1703,13 +1739,13 @@ async function startRun(live = null) {
     if (isRanked && enforceRankedDeadline()) return;
     if (isRanked) syncRankedClock();
     if (isRanked && sim.pending[PLAYER]) showLevelUp();
-    runBest = isRanked ? null : profileBest(getBests()[bestKey(sim)]); passedBest = false; chase = null;
+    runBest = isRanked || sim.variant ? null : profileBest(getBests()[bestKey(sim)]); passedBest = false; chase = null;
     if (isRanked && rankedWeek) { // the board as it stood when you entered, without your own wallet's run
       const race = raceOf(rankedWeek, liveRace(live).mode), me = (walletNow() && walletNow().address || '').toLowerCase();
       chase = { combined: kpmWeek(liveRace(live).week), rows: ((race && race.rows) || []).filter((r) => String(r.wallet || '').toLowerCase() !== me).map((r) => ({ t: Number(r.t) || 0, kills: Number(r.kills) || 0 })), kp: kpmWeek(liveRace(live).week) };
     }
     const goalText = isRanked && sim.endless ? `: endless, scored by ${kpmWeek(liveRace(live).week) ? 'kills + seconds survived' : 'time survived'}. The hunt is over at ${fmtT(sim.endAt)}` : !isRanked && endlessOn ? '' : `: last ${Math.floor(map.length / 60)}:00 or slay ${slayName(map, map.finalBoss)}`;
-    banner(`${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'} ${map.name}${!isRanked && hardOn ? ' (hard)' : ''}${goalText}`, 4500);
+    banner(sim.variant ? VARIANTS[sim.variant].name : `${isRanked ? `Ranked ·${sim.hard ? ' Hard ·' : ''}` : endlessOn ? 'Endless' : 'Survive'} ${map.name}${!isRanked && hardOn ? ' (hard)' : ''}${goalText}`, 4500);
   } finally { runStarting = false; }
 }
 let bannerT = 0;
@@ -1731,6 +1767,7 @@ function endRun() {
   const won = sim.over === 'win';
   const p = sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0];
   lastRun = { map: sim.map.id, t: Math.floor(sim.t), kills: sim.kills, level: sim.level, adv: p.adv, won, hard: !!sim.hard, endless: !!sim.endless, v: LATEST, sent: !!sim.coop, ticket: sim.coop ? null : runTicket, coop: !!sim.coop };
+  if (sim.variant) { lastRun.variant = sim.variant; lastRun.sent = true; lastRun.ticket = null; }
   const result = lastRun, session = casualRun?.sim === sim ? casualRun : null;
   if (session) session.result = result;
   if (session && canContinueCasual(sim)) { session.normalResult = result; session.phase = 'normal-end'; }
@@ -1751,7 +1788,7 @@ function endRun() {
     }
     if (wasRanked && !submitted) { submitted = true; submitRanked(); }
     receipt ||= prepareRunRewards(localStorage, sim, { earned, ranked: wasRanked, coop: !!sim.coop, playerId: PLAYER, result: coopResult, baseline: sim.endless ? session?.baseline : null });
-    saveRunProgress(localStorage, receipt.data);
+    if (Object.keys(receipt.data).length) saveRunProgress(localStorage, receipt.data);
     if (session && canContinueCasual(sim)) {
       session.baseline ||= captureRewardBaseline(sim, receipt); session.normalCommitted = true;
       $('continueendless').disabled = false; $('continueendless').classList.remove('hidden');
@@ -1779,13 +1816,21 @@ function endRun() {
     $('endtitle').textContent = cutoff ? 'The ranked week has ended. Your earned score is being checked.' : won ? `${sim.map.name} holds!` : sim.over === 'time' ? `The hunt is over at ${fmtT(sim.endAt)}` : sim.endless && sim.t >= sim.map.length ? `Endless: ${fmtT(sim.t)}` : `You fell in ${sim.map.name}`;
     const kpmNote = wasRanked && lastRun.kpm != null ? ` · ${lastRun.points.toLocaleString()} points · ${lastRun.kpm.toFixed(2)} kills per minute${lastRun.t < RANKED.minSeconds ? ` (too short to place: runs need ${fmtT(RANKED.minSeconds)})` : ''}` : '';
     let bestNote = '';
-    if (!wasRanked && !sim.coop) {
+    if (!wasRanked && !sim.coop && !sim.variant) {
       const b = receipt.personalBest;
       if (receipt.newPersonalBest) bestNote = b ? ` · new best (was ${fmtT(b.t)})!` : '';
       else bestNote = sim.t < b.t ? ` · ${fmtT(b.t - sim.t)} short of your best (${fmtT(b.t)})` : ` · best ${fmtT(b.t)}`;
     }
+    if (sim.variant) {
+      $('endtitle').innerHTML = `<span>${VARIANTS[sim.variant].name}</span> · <span>${won ? 'Victory' : 'Defeat'}</span>`;
+      const board = $('endlb'); if (board) board.classList.add('hidden');
+      if ($('lbsubmit')) $('lbsubmit').disabled = true;
+      $('again').textContent = sim.coop ? 'Co-op lobby' : 'Retry mode';
+      buildAdventurers(); updateModePicker();
+    }
     $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${kpmNote}${bestNote}${unlockNote}`;
     $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
+    if (sim.variant === 'boss') $('endcoins').textContent = 'Practice run: no GP or gear saved.';
     $('end').classList.remove('hidden');
     cloud.push(true);
   };
@@ -1837,7 +1882,7 @@ function toMenu() {
   waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
   for (const id of ['end', 'pause', 'levelup', 'casket', 'hud']) $(id).classList.add('hidden');
   $('hud').classList.add('hidden'); $('title').classList.remove('hidden'); renderer.reset(); renderer.setZoom(0.45); renderer.setShift(2.4);
-  buildAdventurers(); buildMaps(); showBest(); refreshPendingTitleProgress();
+  buildAdventurers(); buildMaps(); showBest(); refreshPendingTitleProgress(); updateModePicker();
 }
 
 // ---- input ------------------------------------------------------------------------------------------------------------------
@@ -1881,7 +1926,7 @@ addEventListener('keydown', (e) => {
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => { keys.clear(); clearTouch(); pendingUse = null; if (mode === 'play' && (document.hidden || !keepPlayingUnfocused())) pause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); pendingUse = null; if (mode === 'play') pause(true); } });
-function pause(on) { clearTouch(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (rankedRun) updateRankedPause(); }
+function pause(on) { clearTouch(); if (on) coop?.run?.resetInput(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (rankedRun) updateRankedPause(); }
 $('start').onclick = startRun; $('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
 $('quit').onclick = () => { if (rankedPlaying()) return; if (coop) { coop.close(); return; } pause(false); sim.over = 'dead'; };
 
@@ -2281,13 +2326,15 @@ function updateHud(view) {
   updateTumbleHud(me);
   updateBeerHud();
   updateReviveHud();
+  $('modeprogress').classList.toggle('hidden', !sim.variant);
+  if (sim.variant) $('modeprogress').innerHTML = `<span>${VARIANTS[sim.variant].name}</span>` + (sim.wave != null ? ` · <span>Wave</span> ${sim.wave}${sim.nextWave ? ` · <span>Next wave</span> ${fmtT(Math.max(0, sim.nextWave - sim.t))}` : ''}` : ` · <span>${ENEMIES[sim.trialBoss].name}</span>`);
   updateDamageHud();
   $('hpfill').style.width = Math.min(100, Math.max(0, (me.hp / me.mhp) * 100)) + '%';
   $('hptext').textContent = `${me.hp} / ${me.mhp}`;
   $('xpfill').style.width = Math.min(100, (view.xp / view.xpNeed) * 100) + '%';
   $('lvl').textContent = 'Lv ' + view.level;
   const t = Math.floor(view.t); $('clock').textContent = fmtT(t);
-  const goal = sim && sim.endAt ? sim.endAt : sim && !sim.endless && sim.map.length ? sim.map.length : 0;
+  const goal = sim.variant === 'raid' ? RAID_DURATION : sim.variant === 'boss' ? 0 : sim && sim.endAt ? sim.endAt : sim && !sim.endless && sim.map.length ? sim.map.length : 0;
   if (runBest && !passedBest && betterRun(runBest, { t, kills:view.kills, won:sim.over === 'win' }) !== runBest) { passedBest = true; banner(`New best on ${sim.map.name}!`, 2200); audio.play('level', { vol: 0.8 }); }
   $('clockgoal').textContent = (goal ? `of ${fmtT(goal)}` : '') + (runBest ? (passedBest ? ' · new best!' : ` · best ${fmtT(runBest.t)}`) : '') + chaseText(t, view.kills);
   $('kills').textContent = view.kills;
@@ -2346,7 +2393,7 @@ function updateHud(view) {
 
 // ---- menus with a controller or the arrow keys: spatial focus, A/Enter picks, B/Esc goes back -----------------------
 const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
-const NAV_ITEMS = '#coop input, summary, [data-milestone][tabindex="0"], .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
+const NAV_ITEMS = '#trialboss, #coop input, summary, [data-milestone][tabindex="0"], .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { if (walletModalOpen()) return null; if (mode === 'recovery') return $('progressrecovery'); return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden') && !el.closest('details:not([open]) > :not(summary)')); }
@@ -2372,6 +2419,7 @@ function navPress() {
   const scr = navScreen(); if (!scr) return false;
   if (!navEl || !scr.contains(navEl) || navEl.offsetParent === null) return false;
   if (navEl.id === 'hardwrap' || navEl.id === 'endlesswrap') { const cb = navEl.querySelector('input'); cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); return true; }
+  if (navEl.id === 'trialboss') { navEl.selectedIndex = (navEl.selectedIndex + 1) % navEl.options.length; navEl.dispatchEvent(new Event('change')); return true; }
   navEl.click(); return true;
 }
 function navBack() {
@@ -2565,7 +2613,8 @@ function loop(ts) {
   view.alpha = Math.min(1, Math.max(0, acc / TICK)); // where between sim ticks this frame is (the renderer slides spells by it)
   if (view.fx.some((f) => f.k === 'die' && f.boss)) slowmo = 0.9;
   audio.onFx(view.fx, mode === 'play' ? view : null, sim.map.world && view.region ? MAP_BY_ID[view.region].music : sim.map.music);
-  const flash = renderer.update(view, mode === 'play' || mode === 'levelup' ? dt : 0.001, PLAYER);
+  const renderView = coop?.run && mode === 'play' ? predictedView(view, coop.run.pose(), PLAYER) : view;
+  const flash = renderer.update(renderView, mode === 'play' || mode === 'levelup' ? dt : 0.001, PLAYER);
   $('hurt').classList.toggle('on', flash > 0.05);
   hudT += dt; if (hudT > 0.08 || view.fx.length) updateHud(view);
   if (hudT > 0.08) { hudT = 0; drawMinimap(view); }
