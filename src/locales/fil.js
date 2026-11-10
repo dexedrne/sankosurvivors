@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Race your friends": "Makipagkarera sa mga kaibigan",
+  "Sanko Racers: create a private World Circuit race for 2–4 players, share its invite link, ready up and start together. Non-blocking karts use the same handling; online results stay separate from solo records.": "Sanko Racers: gumawa ng pribadong World Circuit race para sa 2–4 manlalaro, ibahagi ang invite link, mag-ready at sabay-sabay magsimula. Hindi nagbabanggaan ang mga kart at pareho ang handling; hiwalay ang online results sa solo records.",
+  "V or the View button switches between chase and driver-eye cameras. Drag the mouse to look around; C recentres. Space or Drift is the handbrake.": "Gamitin ang V o View button para lumipat sa chase camera o pananaw ng driver. I-drag ang mouse para tumingin; C ang panggitna ng camera. Space o Drift ang handbrake.",
+  "The desert bridge crossing and indoor-floor collision flags are corrected. Building wall edges and water remain solid.": "Inayos ang pagtawid sa tulay ng disyerto at ang collision flags ng mga sahig sa loob. Harang pa rin ang mga pader at tubig.",
+  "Settings and Updates appear directly on the main menu when there is enough desktop space. Compact touch menus keep them in More.": "Direktang makikita ang Settings at Updates sa main menu kapag maluwag ang desktop. Nasa More pa rin ang mga ito sa compact touch menus.",
   "CrashOut Karts arrive": "Dumating na ang CrashOut Karts",
   "Sanko Racers now has 14 original CrashOut stock karts to choose from. Tuner is the default; the Miata stays available.": "May 14 orihinal na CrashOut stock kart na mapagpipilian sa Sanko Racers. Tuner ang default; puwede pa rin ang Miata.",
   "Every vehicle uses the same handling. Changing vehicles restarts your drive.": "Pare-pareho ang handling ng lahat ng sasakyan. Magsisimula muli ang iyong drive kapag nagpalit ka ng sasakyan.",

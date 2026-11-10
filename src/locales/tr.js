@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Race your friends": "Arkadaşlarınla yarış",
+  "Sanko Racers: create a private World Circuit race for 2–4 players, share its invite link, ready up and start together. Non-blocking karts use the same handling; online results stay separate from solo records.": "Sanko Racers: 2–4 oyunculuk özel bir World Circuit yarışı oluştur, davet bağlantısını paylaş, hazır ol ve birlikte başla. Kartlar birbirini engellemez ve aynı sürüş özelliklerini kullanır; çevrimiçi sonuçlar solo rekorlardan ayrıdır.",
+  "V or the View button switches between chase and driver-eye cameras. Drag the mouse to look around; C recentres. Space or Drift is the handbrake.": "V veya View düğmesiyle takip kamerası ve sürücü görüşü arasında geçiş yap. Etrafa bakmak için fareyi sürükle; C kamerayı ortalar. Space veya Drift el frenidir.",
+  "The desert bridge crossing and indoor-floor collision flags are corrected. Building wall edges and water remain solid.": "Çöl köprüsü geçişi ve iç mekân zemini çarpışma işaretleri düzeltildi. Bina duvarları ve su geçişi engellemeye devam eder.",
+  "Settings and Updates appear directly on the main menu when there is enough desktop space. Compact touch menus keep them in More.": "Masaüstünde yeterli alan varsa Ayarlar ve Güncellemeler doğrudan ana menüde görünür. Kompakt dokunmatik menülerde Daha fazla bölümünde kalır.",
   "CrashOut Karts arrive": "CrashOut Kartlar geldi",
   "Sanko Racers now has 14 original CrashOut stock karts to choose from. Tuner is the default; the Miata stays available.": "Sanko Racers’ta artık seçebileceğin 14 orijinal CrashOut stok kart var. Varsayılan Tuner; Miata da hâlâ kullanılabilir.",
   "Every vehicle uses the same handling. Changing vehicles restarts your drive.": "Tüm araçların sürüş özellikleri aynıdır. Araç değiştirmek sürüşünü yeniden başlatır.",

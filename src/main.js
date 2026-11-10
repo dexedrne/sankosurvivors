@@ -942,7 +942,7 @@ const SETTINGS = [
 }
 const openSettings = () => { buildSettings(); $('settings').classList.remove('hidden'); navFocus($('settings').querySelector('summary') || $('setclose')); };
 $('setbtn').onclick = openSettings; $('setbtn2').onclick = openSettings;
-$('setclose').onclick = () => { $('settings').classList.add('hidden'); navFocus($(mode === 'title' ? 'morebtn' : 'setbtn2')); };
+$('setclose').onclick = () => { $('settings').classList.add('hidden'); navFocus($(mode === 'title' ? ($('setbtn').closest('#actions') ? 'setbtn' : 'morebtn') : 'setbtn2')); };
 $('settings').addEventListener('click', (e) => { if (e.target.id === 'settings') $('setclose').click(); });
 
 function guideRecipes(pace) {
@@ -1100,9 +1100,9 @@ async function copyUpdate(button) {
 $('updbtn').onclick = () => {
   $('updlist').innerHTML = CHANGELOG.map((u) => `<div class="upd"><div class="updhead"><b>${u.title}</b><span>${u.date} · v${u.version}</span><button class="ghost updcopy" data-copy-update>Copy</button></div><ul>${u.items.map((i) => `<li>${i}</li>`).join('')}</ul></div>`).join('');
   for (const b of $('updlist').querySelectorAll('[data-copy-update]')) b.onclick = () => copyUpdate(b);
-  $('updates').classList.remove('hidden'); save('sq-seen', LATEST); $('updnew').classList.add('hidden'); $('morenew').classList.add('hidden');
+  $('updates').classList.remove('hidden'); navFocus($('updclose')); save('sq-seen', LATEST); $('updnew').classList.add('hidden'); $('morenew').classList.add('hidden');
 };
-$('updclose').onclick = () => $('updates').classList.add('hidden');
+$('updclose').onclick = () => { $('updates').classList.add('hidden'); navFocus($($('updbtn').closest('#actions') ? 'updbtn' : 'morebtn')); };
 $('updates').addEventListener('click', (e) => { if (e.target.id === 'updates') $('updates').classList.add('hidden'); });
 
 function playTitleMusic() {
@@ -1122,6 +1122,16 @@ unlockAudio();
 $('version').textContent = 'v' + LATEST;
 $('version').title = 'Updates';
 $('version').onclick = () => $('updbtn').click(); // the version in the corner opens Updates
+// Reuse the same controls and unread badge; compact touch menus keep them in More.
+const roomyTitle = matchMedia('(min-width: 1100px) and (min-height: 650px)');
+const extraHome = new Map(['setbtn', 'updbtn'].map(id => { const node = $(id), marker = document.createComment(id); node.before(marker); return [node, marker]; }));
+function arrangeTitleExtras() {
+  const focused = document.activeElement;
+  for (const [node, marker] of extraHome) roomyTitle.matches ? $('desktop-extras').append(node) : marker.after(node);
+  if (extraHome.has(focused)) navFocus(focused);
+}
+roomyTitle.addEventListener('change', arrangeTitleExtras); arrangeTitleExtras();
+
 const recentErrors = [];
 addEventListener('error', (e) => { recentErrors.push(String(e.message || e).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 addEventListener('unhandledrejection', (e) => { recentErrors.push(String(e.reason && e.reason.message || e.reason).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });

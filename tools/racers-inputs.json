@@ -1,6 +1,6 @@
 {
-  "commit": "206910a322155ace0b60e63017a6e844ec41bd54",
-  "implementation": "206910a322155ace0b60e63017a6e844ec41bd54",
+  "commit": "3563da4cc22fbbac64c3abefbad5ff717fcebe45",
+  "implementation": "3563da4cc22fbbac64c3abefbad5ff717fcebe45",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -69,15 +69,15 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-CT3wpkJE.js",
-      "bytes": 733642,
-      "sha256": "ee507171ce685f6e06a22474bc5bf0f7f9da965105e1023e5b23862042ef0202",
+      "path": "assets/index-DGx36-Qb.js",
+      "bytes": 746381,
+      "sha256": "3b2992b839e2a85a694680e9fecbdd2b8058c786065e87d5ae8fbeabe269202f",
       "role": "client"
     },
     {
-      "path": "assets/index-DSWOACtH.css",
-      "bytes": 7531,
-      "sha256": "8ed7db771eb09e9b93dd8f5af1ae29b1bde6b55c881852471b95726f670ee2ce",
+      "path": "assets/index-DVVTPQVr.css",
+      "bytes": 8254,
+      "sha256": "9fd6f4510d7b3ef6169c1074acb6826daed9e16fed8527f794bd71d3b113cab4",
       "role": "stylesheet"
     },
     {
@@ -1774,8 +1774,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 3305,
-      "sha256": "c1dabb44f027d492312a9169f71f9fbdc4f99678a63e21fbcd9e5782754fce47",
+      "bytes": 4348,
+      "sha256": "b663f1ab8e9b2ca452588432cdbca7417727602029faed5e9caf7dcf43670199",
       "role": "entry"
     }
   ],

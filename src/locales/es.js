@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Race your friends": "Compite con tus amigos",
+  "Sanko Racers: create a private World Circuit race for 2–4 players, share its invite link, ready up and start together. Non-blocking karts use the same handling; online results stay separate from solo records.": "Sanko Racers: crea una carrera privada del World Circuit para 2–4 jugadores, comparte la invitación, confirma que estás listo y salid juntos. Los karts no se bloquean y tienen el mismo manejo; los resultados en línea se guardan aparte de los récords individuales.",
+  "V or the View button switches between chase and driver-eye cameras. Drag the mouse to look around; C recentres. Space or Drift is the handbrake.": "V o el botón View alterna entre la cámara de seguimiento y la vista del conductor. Arrastra el ratón para mirar; C centra la cámara. Space o Drift acciona el freno de mano.",
+  "The desert bridge crossing and indoor-floor collision flags are corrected. Building wall edges and water remain solid.": "Se corrigieron el paso del puente del desierto y las marcas de colisión de los suelos interiores. Las paredes y el agua siguen bloqueando el paso.",
+  "Settings and Updates appear directly on the main menu when there is enough desktop space. Compact touch menus keep them in More.": "Ajustes y Novedades aparecen en el menú principal cuando hay suficiente espacio en el escritorio. En los menús táctiles compactos siguen en Más.",
   "CrashOut Karts arrive": "Llegan los karts de CrashOut",
   "Sanko Racers now has 14 original CrashOut stock karts to choose from. Tuner is the default; the Miata stays available.": "Sanko Racers tiene 14 karts originales de serie de CrashOut para elegir. Tuner es la opción inicial; el Miata sigue disponible.",
   "Every vehicle uses the same handling. Changing vehicles restarts your drive.": "Todos los vehículos tienen el mismo manejo. Cambiar de vehículo reinicia la partida.",

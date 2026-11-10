@@ -35,7 +35,7 @@ function menu(mode = 'title') {
       id, parent, tag, handlers, children: [], disabled: false, dataset: {}, textContent: '', onclick: null, value: 50, tabIndex: 0,
       classList: { contains: c => classes.has(c), add: c => classes.add(c), remove: c => classes.delete(c) },
       get offsetParent() { return this.closest('.hidden') ? null : {}; },
-      closest(selector) { if (selector === 'details:not([open]) > :not(summary)') return null; if (selector === '#equipmenthud') return this.id === 'equipmenthud' ? this : this.parent?.closest(selector) || null; assert.equal(selector, '.hidden'); return this.classList.contains('hidden') ? this : this.parent?.closest(selector) || null; },
+      closest(selector) { if (selector === 'details:not([open]) > :not(summary)') return null; if (selector === '#actions') return this.id === 'actions' ? this : this.parent?.closest(selector) || null; if (selector === '#equipmenthud') return this.id === 'equipmenthud' ? this : this.parent?.closest(selector) || null; assert.equal(selector, '.hidden'); return this.classList.contains('hidden') ? this : this.parent?.closest(selector) || null; },
       contains(other) { return other === this || this.children.some(child => child.contains(other)); },
       querySelectorAll() { return this.children; },
       querySelector(selector) { return this.children.find(child=>child.tag===selector)||null; },
