@@ -1,6 +1,6 @@
 {
-  "commit": "b0f108f2f3e476826ecb49345b74da340122c32c",
-  "implementation": "b0f108f2f3e476826ecb49345b74da340122c32c",
+  "commit": "842181deda7f9b899410a52756a3035bab53bf8d",
+  "implementation": "842181deda7f9b899410a52756a3035bab53bf8d",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -75,9 +75,9 @@
       "role": "stylesheet"
     },
     {
-      "path": "assets/index-BsKup3Ur.js",
-      "bytes": 840878,
-      "sha256": "e42cb149883e793b01ffc4015b3b4f190cf40cbe607b12ea3475747569931971",
+      "path": "assets/index-Dl2XjQRY.js",
+      "bytes": 841086,
+      "sha256": "51cac871242b7a03983fc449f2cd69644f31d7624533434cdbb77c695613be3a",
       "role": "client"
     },
     {
@@ -1746,6 +1746,12 @@
       "path": "assets/world/tiles/fences-923b19cc1732.json",
       "bytes": 27870,
       "sha256": "923b19cc1732fbf03e893888e8e256ec6085c36ab457736c53c072ee026c2bef",
+      "role": "omit-unused"
+    },
+    {
+      "path": "assets/world/tiles/fences-d02577f501f9.json",
+      "bytes": 28929,
+      "sha256": "d02577f501f92503c673e5324ece38aa83c14bf598522e231f35b23276cddf8e",
       "role": "unique"
     },
     {
@@ -1811,7 +1817,7 @@
     {
       "path": "index.html",
       "bytes": 6521,
-      "sha256": "a75c92764b2ea0818550d7e425a3c5eb2f9186c6889efb251850ae5b60370a2f",
+      "sha256": "ffce23dfe7540594dba3822fec8d59fba566fbd0fe9b25c51f0f3f98edd1614e",
       "role": "entry"
     }
   ],

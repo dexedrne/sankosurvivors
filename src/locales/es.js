@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Greentown wall clearance": "Colisión de muros en Greentown",
+  "Sanko Racers: more accurate collision along the west Greentown street and court wall. The original walls remain solid.": "Sanko Racers: colisión más precisa en la calle oeste de Greentown y el muro del patio. Los muros originales siguen siendo sólidos.",
   "Sanko Racers: drivers sit upright and reach the steering wheel more naturally. Changing outfits keeps the same pose at every heading.": "Sanko Racers: los pilotos se sientan erguidos y alcanzan el volante de forma más natural. Cambiar de atuendo mantiene la misma postura en todas las direcciones.",
   "Fences and seated drivers": "Vallas y pilotos sentados",
   "Sanko Racers: Apache fence collision follows the original model bounds more closely, reducing invisible edges.": "Sanko Racers: la colisión de las vallas de Apache sigue mejor los límites de los modelos originales y reduce los bordes invisibles.",
