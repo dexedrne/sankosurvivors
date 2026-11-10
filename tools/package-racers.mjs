@@ -30,7 +30,7 @@ const clientChanges=[
  {before:'"cars/miata.glb"',after:'"racers/cars/miata.glb"',count:1},
  {before:'"karts/',after:'"racers/karts/',count:14},
  {before:'"placements.json"',after:'"racers/placements.json"',count:1},
- {before:'"world/tiles/fences-1f98f68b5280.json"',after:'"racers/world/tiles/fences-1f98f68b5280.json"',count:1},
+ {before:'"world/tiles/fences-9f238cc0bd85.json"',after:'"racers/world/tiles/fences-9f238cc0bd85.json"',count:1},
  {before:'"world/tiles/surfaces-ffe7cf27a1ad.bin"',after:'"racers/world/tiles/surfaces-ffe7cf27a1ad.bin"',count:1}
 ];
 function replaceExact(text,{before,after,count=1}) {
@@ -55,6 +55,7 @@ export function packageRacers(dist,preview,publicRoot) {
  const jsName=`racers-${sha256(js).slice(0,16)}.js`,cssName=`racers-${sha256(css).slice(0,16)}.css`;
  let html=source.get('index.html').toString();
  const htmlChanges=[
+  {before:'<title>Sanko Racers · SankoQuest World</title>',after:'<title>Sanko Racers · SankoQuest World</title><meta name="description" content="Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends."><meta property="og:type" content="website"><meta property="og:site_name" content="Sanko Racers"><meta property="og:title" content="Sanko Racers · Public World Hub"><meta property="og:description" content="Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends."><meta property="og:url" content="https://sankosurvivors.quest/fun/racers/?mode=hub"><meta property="og:image" content="https://sankosurvivors.quest/fun/racers/preview.png"><meta property="og:image:alt" content="An original CrashOut kart driving through the SankoQuest world"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Sanko Racers · Public World Hub"><meta name="twitter:description" content="Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends."><meta name="twitter:image" content="https://sankosurvivors.quest/fun/racers/preview.png">'},
   {before:'/'+client,after:`./${jsName}`},
   {before:'/'+stylesheet,after:`./${cssName}`},
   {before:'<div id="return-slot"></div>',after:'<div id="return-slot"><a class="racers-back" href="/?menu=fun">Back to SankoSurvivors</a></div>'}

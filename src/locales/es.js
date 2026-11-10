@@ -1,7 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
   'Back on the road':'De vuelta a la carretera',
-  'Sanko Racers has its own main-menu button beside the logo, below it on phones.':'Sanko Racers tiene su propio botón junto al logotipo del menú principal, y debajo en los teléfonos.',
+  'More and Sanko Racers sit together at the bottom of the main menu.':'Más y Sanko Racers aparecen juntos al final del menú principal.',
   'The Racers hub remembers your parking spot, kart and driver, with distance and completed races saved on this device.':'El punto de encuentro de Racers recuerda dónde aparcaste, tu kart y tu piloto; la distancia y las carreras completadas se guardan en este dispositivo.',
   'The corridor south of Greentown Bank and tavern follows the visible walls more closely.':'Las colisiones del pasillo al sur del banco y la taberna de Greentown se ajustan mejor a las paredes visibles.',
   "Live hub garage": "Garaje en el mundo compartido",

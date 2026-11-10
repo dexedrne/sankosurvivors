@@ -277,9 +277,11 @@ test('Quests opens from More without a background start, and Escape returns focu
  const m=menu();m.$('morebtn').click();m.$('questbtn').click();assert.equal(m.$('more').classList.contains('hidden'),true);assert.equal(m.app.screen(),'quests');assert.equal(m.active,'questclose');m.app.focus('start');m.key('Enter',{native:true});m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);m.open('quests');m.key('Escape');assert.equal(m.$('quests').classList.contains('hidden'),true);assert.equal(m.active,'morebtn');
 });
 
-test('title has five main buttons and More owns Settings and Updates',()=>{
+test('title keeps four main buttons with More and Racers in the final row',()=>{
  const grid=page.match(/<div class="btngrid">(.*?)<\/div>/s)[1];
- assert.deepEqual([...grid.matchAll(/<button id="(.*?)"/g)].map(m=>m[1]),['upgradesbtn','petsbtn','coopbtn','lbbtn','morebtn']);
+ assert.deepEqual([...grid.matchAll(/<button id="(.*?)"/g)].map(m=>m[1]),['upgradesbtn','petsbtn','coopbtn','lbbtn']);
+ const bottom=page.match(/<div id="title-bottom" class="btngrid">(.*?)<\/div>/s)[1];
+ assert.deepEqual([...bottom.matchAll(/<button id="(.*?)"/g)].map(m=>m[1]),['morebtn','racersbtn']);
  const more=page.slice(page.indexOf('<div id="more"'),page.indexOf('<div id="more"')+1600);
  assert.match(more,/id="setbtn"/);assert.doesNotMatch(more,/id="petsbtn"/);assert.match(more,/id="updbtn"[^>]*>Updates</);
 });

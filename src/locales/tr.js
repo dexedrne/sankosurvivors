@@ -1,7 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
   'Back on the road':'Yeniden yollarda',
-  'Sanko Racers has its own main-menu button beside the logo, below it on phones.':'Sanko Racers’ın ana menüde, logonun yanında ve telefonlarda altında kendi düğmesi var.',
+  'More and Sanko Racers sit together at the bottom of the main menu.':'More ve Sanko Racers, ana menünün alt kısmında yan yana.',
   'The Racers hub remembers your parking spot, kart and driver, with distance and completed races saved on this device.':'Racers hub park yerini, kartını ve sürücünü hatırlar; sürülen mesafe ve tamamlanan yarışlar bu cihazda kaydedilir.',
   'The corridor south of Greentown Bank and tavern follows the visible walls more closely.':'Greentown Bank ve tavernanın güneyindeki geçidin çarpışma sınırları artık görünen duvarlara daha yakın.',
   "Live hub garage": "Canlı hub garajı",

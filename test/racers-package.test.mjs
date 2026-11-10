@@ -50,6 +50,12 @@ test('static entry resolves relative code and styles and returns to the Fun menu
   assert.ok(fs.existsSync(new URL(`public/fun/racers/${relative.slice(2)}`,root)),relative);
  assert.match(html,/href="\/\?menu=fun"[^>]*>Back to SankoSurvivors<\/a>/);
  assert.doesNotMatch(html,/<iframe\b/i);
+ assert.match(html, /property="og:title" content="Sanko Racers · Public World Hub"/);
+ assert.match(html, /property="og:url" content="https:\/\/sankosurvivors\.quest\/fun\/racers\/\?mode=hub"/);
+ assert.match(html, /name="twitter:card" content="summary_large_image"/);
+ const image=html.match(/property="og:image" content="([^"]+)"/)[1];
+ assert.equal(image,'https://sankosurvivors.quest/fun/racers/preview.png');
+ assert.equal(hash(read('public/fun/racers/preview.png')),inputs.preview.sha256,'Preview remains the accepted native capture');
  const m=manifest();
  const js=read(`public${m.files.find(f=>f.path.endsWith('.js')).path}`).toString();
  assert.match(js,/"free":"hub"/);
@@ -67,7 +73,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  assert.doesNotMatch(js,/\.\/assets\/|\.\/draco\/|100\.65\.235\.118|127\.0\.0\.1|supabase/i);
  assert(html.includes('id="wallet-connect"'));assert(html.includes('id="owned-use"'));assert(html.includes('https://opensea.io/collection/sanko-crashout-kart'));assert(js.includes('0x70013D4F2c4F81325a6D59f9D3EE11e215e5ea52'));assert(js.includes('Racers only reads wallet accounts.'));assert(js.includes('/assets/racers/crashout/'));
  assert.equal(js.includes('nav.bin'),false);assert.equal(js.includes('world/tiles/fences.json'),false);
- for(const file of ['cars/miata.glb','placements.json','world/tiles/fences-1f98f68b5280.json'])
+ for(const file of ['cars/miata.glb','placements.json','world/tiles/fences-9f238cc0bd85.json'])
   assert.ok(js.includes(`racers/${file}`),file);
 });
 
