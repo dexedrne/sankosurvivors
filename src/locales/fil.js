@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Drive your CrashOut kart": "Imaneho ang iyong CrashOut kart",
+  "Sanko Racers: connect a wallet to drive your owned CrashOut karts with their equipped parts, including WalletConnect on mobile.": "Sanko Racers: ikonekta ang wallet para gamitin ang sarili mong CrashOut kart at mga nakakabit na piyesa, kasama ang WalletConnect sa mobile.",
+  "Read-only connection: no signatures, token approvals or purchases. Equipment is cosmetic and handling stays equal; free stock karts remain available.": "Pagbasa lang ang koneksyon: walang pirma, token approval o pagbili. Pang-itsura lang ang kagamitan at pareho ang pagmamaneho para sa lahat; may libreng stock kart pa rin.",
+
   "Sanko Racers: sideways camera orbit keeps your car in view on narrow screens.": "Sanko Racers: nananatiling kita ang kotse kapag iniikot ang camera sa makitid na screen.",
   "Castle and chapel clearance": "Mga banggaan sa kastilyo at kapilya",
   "Sanko Racers: reduced invisible collision edges near Greentown castle and the chapel while keeping solid walls.": "Sanko Racers: nabawasan ang hindi nakikitang sagabal malapit sa kastilyo ng Greentown at kapilya habang nananatiling harang ang mga pader.",

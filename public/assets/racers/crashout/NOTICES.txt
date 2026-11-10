@@ -1,0 +1,7 @@
+Sanko artwork and assets
+Kart models, equipment, textures, thumbnails and assembly data retain their existing project ownership and permissions. This package is an asset integration delivery for the agreed Sanko ecosystem project, not a public-domain or general open-source artwork release.
+
+Third-party libraries
+The original Three.js MIT licence is retained at public/crashout/assets/LICENSE-MIT.txt. The included Draco decoder licence is retained in full at public/crashout/assets/LICENSE-DRACO.txt. Any engine libraries installed separately retain their respective licences.
+
+The optional integration helper performs asset resolution and scene assembly only. Racing, AI, wallet/authentication, currency and server implementation are not included.

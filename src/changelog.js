@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:"0.44.87",date:"10 Nov 2026",title:"Drive your CrashOut kart",items:["Sanko Racers: connect a wallet to drive your owned CrashOut karts with their equipped parts, including WalletConnect on mobile.","Read-only connection: no signatures, token approvals or purchases. Equipment is cosmetic and handling stays equal; free stock karts remain available."]},
   {"version":"0.44.86","date":"10 Nov 2026","title":"Castle and chapel clearance","items":["Sanko Racers: reduced invisible collision edges near Greentown castle and the chapel while keeping solid walls.","Sanko Racers: sideways camera orbit keeps your car in view on narrow screens."]},
   {"version": "0.44.85", "date": "10 Nov 2026", "title": "Greentown wall clearance", "items": ["Sanko Racers: more accurate collision along the west Greentown street and court wall. The original walls remain solid."]},
   {"version": "0.44.84", "date": "10 Nov 2026", "title": "Fences and seated drivers", "items": ["Sanko Racers: Apache fence collision follows the original model bounds more closely, reducing invisible edges.", "Sanko Racers: drivers sit upright and reach the steering wheel more naturally. Changing outfits keeps the same pose at every heading."]},

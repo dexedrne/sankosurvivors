@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Drive your CrashOut kart": "CrashOut kartını sür",
+  "Sanko Racers: connect a wallet to drive your owned CrashOut karts with their equipped parts, including WalletConnect on mobile.": "Sanko Racers: donanımlı CrashOut kartlarını sürmek için cüzdanını bağla; mobilde WalletConnect de desteklenir.",
+  "Read-only connection: no signatures, token approvals or purchases. Equipment is cosmetic and handling stays equal; free stock karts remain available.": "Salt okunur bağlantı: imza, token onayı veya satın alma yok. Donanım yalnızca görseldir ve sürüş herkes için aynıdır; ücretsiz standart kartlar kullanılabilir.",
+
   "Sanko Racers: sideways camera orbit keeps your car in view on narrow screens.": "Sanko Racers: kamera yana döndürüldüğünde arabanız dar ekranlarda görünür kalır.",
   "Castle and chapel clearance": "Kale ve şapel çarpışmaları",
   "Sanko Racers: reduced invisible collision edges near Greentown castle and the chapel while keeping solid walls.": "Sanko Racers: Greentown kalesi ve şapelin yakınındaki görünmez çarpışma sınırları azaltıldı. Duvarlar sağlam kalır.",
