@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A steadier grip":"Daha sağlam tutuş",
+  "Sanko Racers: the Glock sits higher in the right hand and stays aligned with the wrist when you run, aim or fire.":"Sanko Racers: Glock sağ elde daha yukarıda durur ve koşarken, nişan alırken veya ateş ederken bileği takip eder.",
   "Zombies in Greentown":"Greentown’da zombiler",
   "Customize your Sanko Racers character with saved hair, skin and clothing choices in the Garage.":"Garajda Sanko Racers karakterinin saç, ten ve kıyafet seçimlerini özelleştirip kaydet.",
   "Open Activities → Zombies for solo third-person survival with a Glock and iron shortsword.":"Glock ve demir kısa kılıçla üçüncü şahıs hayatta kalma modu için Etkinlikler → Zombiler’i aç.",

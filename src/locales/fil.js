@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "A steadier grip":"Mas matatag na hawak",
+  "Sanko Racers: the Glock sits higher in the right hand and stays aligned with the wrist when you run, aim or fire.":"Sanko Racers: mas mataas ang hawak ng Glock sa kanang kamay at sumusunod ito sa pulso kapag tumatakbo, tumututok o nagpapaputok.",
   "Zombies in Greentown":"Mga zombie sa Greentown",
   "Customize your Sanko Racers character with saved hair, skin and clothing choices in the Garage.":"I-customize ang karakter mo sa Sanko Racers at i-save ang buhok, balat at damit sa Garage.",
   "Open Activities → Zombies for solo third-person survival with a Glock and iron shortsword.":"Buksan ang Activities → Zombies para sa solo third-person survival na may Glock at bakal na maikling espada.",
