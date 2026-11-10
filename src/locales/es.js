@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  'Park and explore':'Aparca y explora',
+  'Park your kart and walk around the public hub or Free Drive.':'Aparca tu kart y pasea por el centro público o Conducción libre.',
+  'Press E, tap Get out or use controller A. Return near your own kart to get back in.':'Pulsa E, toca Salir o usa A en el mando. Acércate a tu propio kart para volver a subir.',
+  'Other hub players see your native character walking beside your parked kart. Walking keeps driving statistics separate.':'Los demás jugadores ven a tu personaje caminar junto a tu kart aparcado. Caminar no suma a las estadísticas de conducción.',
+
   'Back on the road':'De vuelta a la carretera',
   'More and Sanko Racers sit together at the bottom of the main menu.':'Más y Sanko Racers aparecen juntos al final del menú principal.',
   'The Racers hub remembers your parking spot, kart and driver, with distance and completed races saved on this device.':'El punto de encuentro de Racers recuerda dónde aparcaste, tu kart y tu piloto; la distancia y las carreras completadas se guardan en este dispositivo.',

@@ -29,6 +29,7 @@ test('packaging refuses changed bytes, traversal and symlinks at its input bound
 test('every packaged and shared route dependency matches its recorded bytes', () => {
  const m=manifest();
  assert.equal(m.source.commit,inputs.commit);
+ assert.equal(m.source.rulesVersion,inputs.rulesVersion);assert.match(inputs.rulesVersion,/^[0-9a-f]{12}$/);
  assert.match(m.source.commit,/^[a-f0-9]{40}$/);
  assert.equal(m.shared.length,271);
  for(const item of [...m.files,...m.shared]) {
@@ -60,6 +61,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  const js=read(`public${m.files.find(f=>f.path.endsWith('.js')).path}`).toString();
  assert.match(js,/"free":"hub"/);
  assert(html.includes('id="hubmode"'));assert(html.includes('id="updates"'));assert(html.includes('id="settings"'));
+ assert(js.includes(inputs.rulesVersion),'Client and recorded authority fingerprint agree');
  assert.match(js,/sanko-racers-world-v2/);assert.match(js,/sanko-racers-world-v1/);assert(html.includes('id="surface-state"'));assert(html.includes('id="previous-best"'));
  assert(m.files.some(f=>/^\/assets\/racers\/world\/tiles\/surfaces-[0-9a-f]{12}\.bin$/.test(f.path)));
  assert(js.includes('minX:0,maxX:512,minZ:0,maxZ:512'));

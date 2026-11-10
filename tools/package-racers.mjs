@@ -49,6 +49,8 @@ export function packageRacers(dist,preview,publicRoot) {
  for(const entry of shared)verifiedFile(publicRoot,entry);
  const client=inputs.files.find(e=>e.role==='client').path,stylesheet=inputs.files.find(e=>e.role==='stylesheet').path;
  let js=source.get(client).toString();
+ assert.match(inputs.rulesVersion,/^[0-9a-f]{12}$/,'Accepted rules version required');
+ assert(js.includes(inputs.rulesVersion),'Accepted client must embed its recorded rules version');
  for(const change of clientChanges)js=replaceExact(js,change);
  for(const unused of ['nav.bin','inventory.json','world/tiles/fences.json'])assert.ok(!js.includes(unused),`Referenced omitted file: ${unused}`);
  const css=source.get(stylesheet).toString()+extraCss;
@@ -72,7 +74,7 @@ export function packageRacers(dist,preview,publicRoot) {
  }
  const record=(relative,bytes)=>({path:relative,bytes:bytes.length,sha256:sha256(bytes)});
  const manifest={
-  source:{commit:inputs.commit,implementation:inputs.implementation,clientSha256:inputs.files.find(e=>e.path===client).sha256},
+  source:{commit:inputs.commit,implementation:inputs.implementation,rulesVersion:inputs.rulesVersion,clientSha256:inputs.files.find(e=>e.path===client).sha256},
   adaptations:{client:clientChanges,html:htmlChanges,cssAppend:extraCss},
   files:[...output].map(([relative,bytes])=>record(relative,bytes)),
   shared:shared.map(e=>({path:'/'+e.path,bytes:e.bytes,sha256:e.sha256})),

@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  'Park and explore':'Park et ve keşfet',
+  'Park your kart and walk around the public hub or Free Drive.':'Kartını park et ve herkese açık merkezde veya Serbest Sürüşte yürü.',
+  'Press E, tap Get out or use controller A. Return near your own kart to get back in.':'E tuşuna bas, İn düğmesine dokun veya oyun kumandasında A kullan. Binmek için kendi kartına yaklaş.',
+  'Other hub players see your native character walking beside your parked kart. Walking keeps driving statistics separate.':'Merkezdeki oyuncular karakterini park edilmiş kartının yanında yürürken görür. Yürümek sürüş istatistiklerini artırmaz.',
+
   'Back on the road':'Yeniden yollarda',
   'More and Sanko Racers sit together at the bottom of the main menu.':'More ve Sanko Racers, ana menünün alt kısmında yan yana.',
   'The Racers hub remembers your parking spot, kart and driver, with distance and completed races saved on this device.':'Racers hub park yerini, kartını ve sürücünü hatırlar; sürülen mesafe ve tamamlanan yarışlar bu cihazda kaydedilir.',

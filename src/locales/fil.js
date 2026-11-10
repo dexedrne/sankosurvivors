@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  'Park and explore':'Iparada at maglibot',
+  'Park your kart and walk around the public hub or Free Drive.':'Iparada ang kart at maglakad sa pampublikong hub o Free Drive.',
+  'Press E, tap Get out or use controller A. Return near your own kart to get back in.':'Pindutin ang E, i-tap ang Get out o gamitin ang A sa controller. Lumapit sa sarili mong kart para muling sumakay.',
+  'Other hub players see your native character walking beside your parked kart. Walking keeps driving statistics separate.':'Nakikita ng ibang manlalaro ang karakter mong naglalakad sa tabi ng nakaparadang kart. Hiwalay ang paglalakad sa driving statistics.',
+
   'Back on the road':'Balik sa kalsada',
   'More and Sanko Racers sit together at the bottom of the main menu.':'Magkatabi ang More at Sanko Racers sa ibaba ng pangunahing menu.',
   'The Racers hub remembers your parking spot, kart and driver, with distance and completed races saved on this device.':'Naaalala ng Racers hub ang paradahan, kart at driver mo; naka-save sa device na ito ang distansya at mga natapos na karera.',

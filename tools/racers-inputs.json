@@ -1,6 +1,6 @@
 {
-  "commit": "d8f2347aa24a1c0363160f84168a20d92846c631",
-  "implementation": "d8f2347aa24a1c0363160f84168a20d92846c631",
+  "commit": "d09b8c11b668d125f15d8f9c8ca427c1ad675bc4",
+  "implementation": "d09b8c11b668d125f15d8f9c8ca427c1ad675bc4",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2931,15 +2931,15 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-8ON_ywQU.js",
-      "bytes": 1636715,
-      "sha256": "661d37bfd4a2c29a5e1290718c162e981b869602e7025335ac2aeaede313e8a1",
+      "path": "assets/index-BmPrRkN6.js",
+      "bytes": 1645348,
+      "sha256": "c6c6df480e1b8d63287ba061f3a697787b2efcd7268d7b779f9e91420899b0b0",
       "role": "client"
     },
     {
-      "path": "assets/index-BoRIWMNW.css",
-      "bytes": 18007,
-      "sha256": "3c1c648ebabd2e077134d6efb6bcda04a69a6fc21949ea346d2997ff5ad7ad9c",
+      "path": "assets/index-rotIU9Ji.css",
+      "bytes": 18453,
+      "sha256": "d37c1d49ccda2bdbd653aa39cd5482716cd8eaa3aad5cf5c7e6a1b90adfa490d",
       "role": "stylesheet"
     },
     {
@@ -4696,8 +4696,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 8101,
-      "sha256": "d06c2cbf30eb1c2ff4366c3c6220e2e063759f18c85e6f81f072f03c1236a3ef",
+      "bytes": 8188,
+      "sha256": "d518068ed603fde0e40f93ffaa1a609c5d747724fddea33099218b804d5c67bd",
       "role": "entry"
     }
   ],
@@ -4705,5 +4705,6 @@
     "path": "outside-greentown-start.png",
     "bytes": 277171,
     "sha256": "78ad81f75554aada8f3dfdbbad891eef8e6e405fd00d08a9d46beb4326ab1807"
-  }
+  },
+  "rulesVersion": "c644acfc9d08"
 }
