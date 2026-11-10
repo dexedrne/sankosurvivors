@@ -1,5 +1,9 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Feel the road": "Siente la carretera",
+  "Sanko Racers uses original map materials for grip: firmer stone, looser dirt, grass and sand, and wooden bridge decks. Changes blend smoothly, with the same handling online and offline.": "Sanko Racers usa los materiales originales del mapa para el agarre: piedra más firme, tierra, hierba y arena más sueltas, y tablones de madera en los puentes. Los cambios son suaves, con el mismo manejo en línea y sin conexión.",
+  "The speed display names the surface. Time trial keeps a separate record for the new handling; previous records stay saved.": "El indicador de velocidad muestra la superficie. La contrarreloj tiene un récord separado para el nuevo manejo; los récords anteriores siguen guardados.",
+  "Private races stop queuing controls on stalled connections and resume with current input.": "Las carreras privadas dejan de acumular controles cuando la conexión se atasca y vuelven con la entrada actual.",
   "Meet other drivers in the public hub, race friends, or explore in Free Drive.": "Conoce a otros pilotos en el punto de encuentro público, compite con amigos o explora en Conducción libre.",
   "Public hub": "Punto de encuentro público",
   "Online & solo": "En línea y solo",

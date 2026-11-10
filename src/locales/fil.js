@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Feel the road": "Damhin ang kalsada",
+  "Sanko Racers uses original map materials for grip: firmer stone, looser dirt, grass and sand, and wooden bridge decks. Changes blend smoothly, with the same handling online and offline.": "Ginagamit ng Sanko Racers ang orihinal na mga materyal ng mapa para sa kapit: mas matibay sa bato, mas madulas sa lupa, damo at buhangin, at kahoy sa mga tulay. Dahan-dahan ang pagbabago at pareho ang pagmamaneho online at offline.",
+  "The speed display names the surface. Time trial keeps a separate record for the new handling; previous records stay saved.": "Ipinapakita sa speed display ang uri ng lupa. May hiwalay na rekord ang time trial para sa bagong pagmamaneho; naka-save pa rin ang dating mga rekord.",
+  "Private races stop queuing controls on stalled connections and resume with current input.": "Hindi na naiipon ang mga kontrol sa pribadong karera kapag natigil ang koneksyon. Nagpapatuloy ito gamit ang kasalukuyang input.",
   "Meet other drivers in the public hub, race friends, or explore in Free Drive.": "Kilalanin ang ibang driver sa pampublikong hub, makipagkarera sa mga kaibigan, o mag-explore sa Free Drive.",
   "Public hub": "Pampublikong hub",
   "Online & solo": "Online at solo",

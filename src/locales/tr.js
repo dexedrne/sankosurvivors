@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Feel the road": "Yolu hisset",
+  "Sanko Racers uses original map materials for grip: firmer stone, looser dirt, grass and sand, and wooden bridge decks. Changes blend smoothly, with the same handling online and offline.": "Sanko Racers yol tutuşu için haritanın orijinal malzemelerini kullanır: daha sıkı taş, daha kaygan toprak, çimen ve kum, ayrıca ahşap köprüler. Geçişler yumuşaktır; çevrimiçi ve çevrimdışı sürüş aynıdır.",
+  "The speed display names the surface. Time trial keeps a separate record for the new handling; previous records stay saved.": "Hız göstergesi zemini belirtir. Zamana karşı modunda yeni sürüş için ayrı rekor tutulur; önceki rekorlar kayıtlı kalır.",
+  "Private races stop queuing controls on stalled connections and resume with current input.": "Özel yarışlar bağlantı takıldığında kontrolleri biriktirmez ve güncel girdilerle devam eder.",
   "Meet other drivers in the public hub, race friends, or explore in Free Drive.": "Ortak sürüş alanında diğer sürücülerle tanış, arkadaşlarınla yarış veya Serbest Sürüşte keşfet.",
   "Public hub": "Ortak sürüş alanı",
   "Online & solo": "Çevrimiçi ve tek oyunculu",

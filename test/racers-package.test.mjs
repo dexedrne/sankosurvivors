@@ -54,7 +54,8 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  const js=read(`public${m.files.find(f=>f.path.endsWith('.js')).path}`).toString();
  assert.match(js,/"free":"hub"/);
  assert(html.includes('id="hubmode"'));assert(html.includes('id="updates"'));assert(html.includes('id="settings"'));
- assert.match(js,/sanko-racers-world-v1/);
+ assert.match(js,/sanko-racers-world-v2/);assert.match(js,/sanko-racers-world-v1/);assert(html.includes('id="surface-state"'));assert(html.includes('id="previous-best"'));
+ assert(m.files.some(f=>/^\/assets\/racers\/world\/tiles\/surfaces-[0-9a-f]{12}\.bin$/.test(f.path)));
  assert(js.includes('minX:0,maxX:512,minZ:0,maxZ:512'));
  for(const phrase of ['FREE DRIVE · SANKOQUEST WORLD','WORLD RACE · GUARD & PRIEST','handbrake'])assert(js.includes(phrase),phrase);
  const css=read(`public${m.files.find(f=>f.path.endsWith('.css')).path}`).toString();

@@ -1,6 +1,6 @@
 {
-  "commit": "46073de65b0816a6ed9bbf096b0394180f421ebf",
-  "implementation": "46073de65b0816a6ed9bbf096b0394180f421ebf",
+  "commit": "d2347b9c8d9967131a78c12b7c4d67c22375ef4e",
+  "implementation": "d2347b9c8d9967131a78c12b7c4d67c22375ef4e",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -69,16 +69,16 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-CVV52naA.css",
-      "role": "stylesheet",
-      "bytes": 14663,
-      "sha256": "1dc41851cf07e10f1f2507a42608d3238facd1c59452f944d458369ae5266a3f"
+      "path": "assets/index-BU8iQ8h7.css",
+      "bytes": 14722,
+      "sha256": "700b8d76647ddf93c828b89e6a38d0e90503bd2910c32b8719964ad61c361597",
+      "role": "stylesheet"
     },
     {
-      "path": "assets/index-7RV0O_7o.js",
-      "role": "client",
-      "bytes": 834953,
-      "sha256": "1947fb52666789f3e78c0475ed0ce6cb94bb1b7163e312a8780232aa74f048a7"
+      "path": "assets/index-Cl2cK4x_.js",
+      "bytes": 838670,
+      "sha256": "d8d4985731739327c3e89a6379f0adf0f1ef8f4d1b8e0af71a85ce90e2e2d0a5",
+      "role": "client"
     },
     {
       "path": "assets/inventory.json",
@@ -304,15 +304,15 @@
     },
     {
       "path": "assets/music/Adobe_Fantasy.mp3",
-      "role": "shared",
       "bytes": 2690738,
-      "sha256": "3e97c9ef1d545931afda7c90ec1481c3f8732bcd4db4cfbb7a077481dc303865"
+      "sha256": "3e97c9ef1d545931afda7c90ec1481c3f8732bcd4db4cfbb7a077481dc303865",
+      "role": "shared"
     },
     {
       "path": "assets/music/Fresh_Beginnings.mp3",
-      "role": "shared",
       "bytes": 1764541,
-      "sha256": "c932a22996d2e5a110220aaf859275a89a2e482e5e861dfb53f520f161015129"
+      "sha256": "c932a22996d2e5a110220aaf859275a89a2e482e5e861dfb53f520f161015129",
+      "role": "shared"
     },
     {
       "path": "assets/placements.json",
@@ -358,15 +358,15 @@
     },
     {
       "path": "assets/world/foliage/daisies.glb",
-      "role": "shared",
       "bytes": 68492,
-      "sha256": "629d5371f25d7b993e3ceda8811acd7ecba1f3a0177547c3008bb914c2d87505"
+      "sha256": "629d5371f25d7b993e3ceda8811acd7ecba1f3a0177547c3008bb914c2d87505",
+      "role": "shared"
     },
     {
       "path": "assets/world/foliage/grass1.glb",
-      "role": "shared",
       "bytes": 35400,
-      "sha256": "6b0380b3682aea11e862727cf16dfb7c386c854a38f68402134c74805321f33b"
+      "sha256": "6b0380b3682aea11e862727cf16dfb7c386c854a38f68402134c74805321f33b",
+      "role": "shared"
     },
     {
       "path": "assets/world/nodes/Wheat.glb",
@@ -1773,6 +1773,12 @@
       "role": "shared"
     },
     {
+      "path": "assets/world/tiles/surfaces-ffe7cf27a1ad.bin",
+      "bytes": 1048576,
+      "sha256": "ffe7cf27a1adad15c4cea0da27bf51b3cdf385840ba88010fbc7c643d8049b36",
+      "role": "unique"
+    },
+    {
       "path": "draco/draco_decoder.js",
       "bytes": 512465,
       "sha256": "8625489da79a805f4f2a7d511c3e52d8b4085608a9d2a4d5f4f9de5db0aea04f",
@@ -1798,8 +1804,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 6260,
-      "sha256": "dda957a847c00045292e7811e0bb8dbead68b7a1c9cc9efba7abfa5899b1bce7",
+      "bytes": 6521,
+      "sha256": "2d050d3e1c46a7a4530b0cdd10e2e232b5e4324097240c7846dc83d466696886",
       "role": "entry"
     }
   ],
