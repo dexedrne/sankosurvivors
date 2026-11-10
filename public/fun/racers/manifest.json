@@ -1,8 +1,8 @@
 {
   "source": {
-    "commit": "67df4f11b2009a021c0097188bcc6871cfc0d04e",
-    "implementation": "67df4f11b2009a021c0097188bcc6871cfc0d04e",
-    "clientSha256": "c014c458346f283dc89aa7cd464c8d3de906edfbeeca95bec5dd34820ec91935"
+    "commit": "46073de65b0816a6ed9bbf096b0394180f421ebf",
+    "implementation": "46073de65b0816a6ed9bbf096b0394180f421ebf",
+    "clientSha256": "1947fb52666789f3e78c0475ed0ce6cb94bb1b7163e312a8780232aa74f048a7"
   },
   "adaptations": {
     "client": [
@@ -44,8 +44,8 @@
     ],
     "html": [
       {
-        "before": "/assets/index-Cyc_InlI.js",
-        "after": "./racers-8a52a881a8907aba.js"
+        "before": "/assets/index-7RV0O_7o.js",
+        "after": "./racers-400929ab9fd7c413.js"
       },
       {
         "before": "/assets/index-CVV52naA.css",
@@ -62,12 +62,12 @@
     {
       "path": "/fun/racers/index.html",
       "bytes": 6333,
-      "sha256": "76895778754f43c9659dc4825025c2f78131df60435a86766c043e621a54bc55"
+      "sha256": "636e51ee345994335e8ef8b798d03fcf083e0f1a54d32e219e10960ed9ce32a2"
     },
     {
-      "path": "/fun/racers/racers-8a52a881a8907aba.js",
-      "bytes": 835016,
-      "sha256": "8a52a881a8907abac605b1f3dd8c08f36cc56c16e7a581e636acc3fae2c65227"
+      "path": "/fun/racers/racers-400929ab9fd7c413.js",
+      "bytes": 835067,
+      "sha256": "400929ab9fd7c413ddfbcbe8f11ce6cea9262dd1ae6ab6837a837b1849005b54"
     },
     {
       "path": "/fun/racers/racers-fa7ba66333ef67bd.css",
@@ -82,7 +82,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 2420,
-      "sha256": "ca3738c82e2c0f355186dceb43a94f27c80842a5a9ed87542ae748e4f7df4584"
+      "sha256": "5334cb4a0e8a46706a9f092fc0e4ab55531d38bb340df99c75ecc2145f48f16e"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
