@@ -1,5 +1,11 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Share Sanko Racers with a fresh native image at sankosurvivors.quest/racers/.":"Comparte Sanko Racers con una nueva imagen del juego en sankosurvivors.quest/racers/.",
+  "Wilderness drive-bys":"Disparos desde el kart en Wilderness",
+  "Sanko Racers: fire the native pistol on foot or from your kart with left mouse, Fire on touch or controller RB.":"Sanko Racers: dispara la pistola a pie o desde tu kart con el botón izquierdo, Disparar en pantalla táctil o RB del mando.",
+  "The Wilderness west of the church is marked red on the minimap. Enter to opt into PvP; the rest of the hub is safe. Protected respawns, no item or money loss.":"Wilderness, al oeste de la iglesia, aparece en rojo en el minimapa. Entra para participar en PvP; el resto del centro es seguro. Reapariciones protegidas, sin perder objetos ni dinero.",
+  "Shoot the horde in driving Survivors. Timed and private races keep their original rules.":"Dispara a la horda en Supervivientes al volante. Las carreras privadas y contrarreloj conservan sus reglas.",
+
   'Park and explore':'Aparca y explora',
   'Park your kart and walk around the public hub or Free Drive.':'Aparca tu kart y pasea por el centro público o Conducción libre.',
   'Press E, tap Get out or use controller A. Return near your own kart to get back in.':'Pulsa E, toca Salir o usa A en el mando. Acércate a tu propio kart para volver a subir.',

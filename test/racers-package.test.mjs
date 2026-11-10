@@ -52,10 +52,10 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  assert.match(html,/href="\/\?menu=fun"[^>]*>Back to SankoSurvivors<\/a>/);
  assert.doesNotMatch(html,/<iframe\b/i);
  assert.match(html, /property="og:title" content="Sanko Racers · Public World Hub"/);
- assert.match(html, /property="og:url" content="https:\/\/sankosurvivors\.quest\/fun\/racers\/\?mode=hub"/);
+ assert.match(html, /property="og:url" content="https:\/\/sankosurvivors\.quest\/racers\/"/);
  assert.match(html, /name="twitter:card" content="summary_large_image"/);
  const image=html.match(/property="og:image" content="([^"]+)"/)[1];
- assert.equal(image,'https://sankosurvivors.quest/fun/racers/preview.png');
+ assert.equal(image,'https://sankosurvivors.quest/fun/racers/preview-'+inputs.preview.sha256.slice(0,12)+'.png');
  assert.equal(hash(read('public/fun/racers/preview.png')),inputs.preview.sha256,'Preview remains the accepted native capture');
  const m=manifest();
  const js=read(`public${m.files.find(f=>f.path.endsWith('.js')).path}`).toString();
@@ -69,13 +69,14 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  const css=read(`public${m.files.find(f=>f.path.endsWith('.css')).path}`).toString();
  for(const asset of ['RuneScape-Plain-12.ttf','RuneScape-Quill-8.ttf','frame.png','grey_slot.png','yellow_slot.png'])assert(css.includes(asset),asset);
  assert(html.includes('data-action="handbrake"'));
+ assert(html.includes('id="fire"'));assert(html.includes('id="combat-status"'));assert(js.includes('WILDERNESS'));
  assert(html.includes('id="free-start"'));assert(html.includes('id="vehicle-choice"'));assert(html.includes('CRASHOUT KARTS'));assert(js.includes('Same handling for every vehicle.'));
  for(const key of ['sanko-racers-world-v1','racers-graphics','racers-volume','racers-muted'])assert(js.includes(key),key);
  assert.doesNotMatch(js,/["']sq-|localStorage\.clear\(/);
  assert.doesNotMatch(js,/\.\/assets\/|\.\/draco\/|100\.65\.235\.118|127\.0\.0\.1|supabase/i);
  assert(html.includes('id="wallet-connect"'));assert(html.includes('id="owned-use"'));assert(html.includes('https://opensea.io/collection/sanko-crashout-kart'));assert(js.includes('0x70013D4F2c4F81325a6D59f9D3EE11e215e5ea52'));assert(js.includes('Racers only reads wallet accounts.'));assert(js.includes('/assets/racers/crashout/'));
  assert.equal(js.includes('nav.bin'),false);assert.equal(js.includes('world/tiles/fences.json'),false);
- for(const file of ['cars/miata.glb','placements.json','world/tiles/fences-9f238cc0bd85.json'])
+ for(const file of ['weapons/hand_pistol.glb','cars/miata.glb','placements.json','world/tiles/fences-9f238cc0bd85.json'])
   assert.ok(js.includes(`racers/${file}`),file);
 });
 
@@ -94,4 +95,14 @@ test('adapted client reverses exactly to the accepted source artifact', () => {
  assert.match(read('public/assets/racers/karts/LICENSE-DRACO.txt').toString(),/Apache License/);
  assert.match(credits,/creativecommons.org\/licenses\/by\/4.0/);
  assert.match(read('public/fun/racers/LICENSE.shitbox').toString(),/VIRAL PUBLIC LICENSE[\s\S]*No further restrictions/);
+});
+
+test('clean Racers share link serves the real game with absolute dependencies and a fresh sized native card',()=>{
+ const m=manifest(),alias=m.aliases?.find(a=>a.path==='/racers/index.html');assert(alias,'clean share alias is recorded');
+ const bytes=read('public/racers/index.html'),html=bytes.toString();assert.equal(hash(bytes),alias.sha256);assert.equal(bytes.length,alias.bytes);
+ assert.match(html,/<link rel="canonical" href="https:\/\/sankosurvivors\.quest\/racers\/">/);assert.match(html,/property="og:url" content="https:\/\/sankosurvivors\.quest\/racers\/"/);
+ for(const dimension of [['width','1200'],['height','630'],['type','image/png']])assert(html.includes('property="og:image:'+dimension[0]+'" content="'+dimension[1]+'"'));
+ assert(html.includes('name="twitter:site" content="@dexedrne"'));assert(!/(?:src|href)="\.\//.test(html));
+ for(const [,relative]of html.matchAll(/(?:src|href)="(\/fun\/racers\/[^"?#]+)"/g))assert(fs.existsSync(new URL('public'+relative,root)),relative);
+ const image=html.match(/property="og:image" content="([^"]+)"/)[1];assert.match(image,/preview-[0-9a-f]{12}\.png$/);assert.equal(hash(read('public'+new URL(image).pathname)),inputs.preview.sha256);
 });

@@ -1,0 +1,6 @@
+PISTOL ASSET PROVENANCE
+
+hand_pistol.glb was supplied by the project owner for Sanko Racers on 10 November 2026. Original file bytes, node transforms, scale and materials are retained. No additional authorship or licence grant is asserted.
+
+49,264 bytes
+SHA256 b8152fdaf5ec18d6036e6a54aec7cea88dacc6c5592d590ca8db292f20349982

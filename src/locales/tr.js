@@ -1,5 +1,11 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Share Sanko Racers with a fresh native image at sankosurvivors.quest/racers/.":"Sanko Racers’ı oyundan yeni bir görüntüyle sankosurvivors.quest/racers/ adresinden paylaş.",
+  "Wilderness drive-bys":"Wilderness bölgesinde araçtan ateş",
+  "Sanko Racers: fire the native pistol on foot or from your kart with left mouse, Fire on touch or controller RB.":"Sanko Racers: yürürken veya kartından sol fare tuşu, dokunmatik Ateş ya da kumandada RB ile tabancayı kullan.",
+  "The Wilderness west of the church is marked red on the minimap. Enter to opt into PvP; the rest of the hub is safe. Protected respawns, no item or money loss.":"Kilisenin batısındaki Wilderness mini haritada kırmızı işaretli. PvP için içeri gir; merkezin geri kalanı güvenli. Korumalı yeniden doğuş, eşya veya para kaybı yok.",
+  "Shoot the horde in driving Survivors. Timed and private races keep their original rules.":"Sürüş Survivors modunda sürüye ateş et. Özel ve zamana karşı yarışların kuralları aynı.",
+
   'Park and explore':'Park et ve keşfet',
   'Park your kart and walk around the public hub or Free Drive.':'Kartını park et ve herkese açık merkezde veya Serbest Sürüşte yürü.',
   'Press E, tap Get out or use controller A. Return near your own kart to get back in.':'E tuşuna bas, İn düğmesine dokun veya oyun kumandasında A kullan. Binmek için kendi kartına yaklaş.',

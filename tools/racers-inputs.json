@@ -1,6 +1,6 @@
 {
-  "commit": "d09b8c11b668d125f15d8f9c8ca427c1ad675bc4",
-  "implementation": "d09b8c11b668d125f15d8f9c8ca427c1ad675bc4",
+  "commit": "5c6de5a87fcfc91a464e00c8ebc2c885921ee441",
+  "implementation": "5c6de5a87fcfc91a464e00c8ebc2c885921ee441",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -18,6 +18,12 @@
       "path": "LICENSE.shitbox",
       "bytes": 585,
       "sha256": "9099ee7518047bd5a308b24b6be2727611965adbe823d1f22c3ff99d19b881a2",
+      "role": "notice"
+    },
+    {
+      "path": "PISTOL-NOTICE.txt",
+      "bytes": 326,
+      "sha256": "38739ab25b07cb9a6b7b0cd4a933c0287d88db10585d96fc0288762b3f323440",
       "role": "notice"
     },
     {
@@ -2931,15 +2937,15 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-BmPrRkN6.js",
-      "bytes": 1645348,
-      "sha256": "c6c6df480e1b8d63287ba061f3a697787b2efcd7268d7b779f9e91420899b0b0",
+      "path": "assets/index-C9NHzJLd.js",
+      "bytes": 1655844,
+      "sha256": "266cb2fb51abcea6abf4e48b650c339d3342f0eebadd8d1b07e711d8236207e2",
       "role": "client"
     },
     {
-      "path": "assets/index-rotIU9Ji.css",
-      "bytes": 18453,
-      "sha256": "d37c1d49ccda2bdbd653aa39cd5482716cd8eaa3aad5cf5c7e6a1b90adfa490d",
+      "path": "assets/index-Fr2bNlqc.css",
+      "bytes": 19673,
+      "sha256": "c5b0fc8707629ee1d2a7a21f2bcc59f65c484bd2887dfe6711e7f8763356ec02",
       "role": "stylesheet"
     },
     {
@@ -3217,6 +3223,12 @@
       "bytes": 8171,
       "sha256": "940ef99b01121e53b8559160cb9a3be9b6f0771ee6fdbe032e259ccaebb0a68d",
       "role": "shared"
+    },
+    {
+      "path": "assets/weapons/hand_pistol.glb",
+      "bytes": 49264,
+      "sha256": "b8152fdaf5ec18d6036e6a54aec7cea88dacc6c5592d590ca8db292f20349982",
+      "role": "unique"
     },
     {
       "path": "assets/world/foliage/daisies.glb",
@@ -4696,15 +4708,15 @@
     },
     {
       "path": "index.html",
-      "bytes": 8188,
-      "sha256": "d518068ed603fde0e40f93ffaa1a609c5d747724fddea33099218b804d5c67bd",
+      "bytes": 8612,
+      "sha256": "26bd75db235a60a818c46a2bf0725a8bea8f4c2588db55bb96a505b2c9602dfa",
       "role": "entry"
     }
   ],
   "preview": {
-    "path": "outside-greentown-start.png",
-    "bytes": 277171,
-    "sha256": "78ad81f75554aada8f3dfdbbad891eef8e6e405fd00d08a9d46beb4326ab1807"
+    "path": "racers-social.png",
+    "bytes": 749863,
+    "sha256": "cbe15c670d930714fbce2340b1254bb5f12ef32208dd2306cf5284c01a1a1fe4"
   },
-  "rulesVersion": "c644acfc9d08"
+  "rulesVersion": "80548b2fca69"
 }

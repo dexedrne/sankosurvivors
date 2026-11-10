@@ -1,9 +1,16 @@
 {
+  "aliases": [
+    {
+      "path": "/racers/index.html",
+      "bytes": 10248,
+      "sha256": "5b2cd9d59b04439af801fcba15adb45ebdf6c724183fcd0e92282f5512610682"
+    }
+  ],
   "source": {
-    "commit": "d09b8c11b668d125f15d8f9c8ca427c1ad675bc4",
-    "implementation": "d09b8c11b668d125f15d8f9c8ca427c1ad675bc4",
-    "rulesVersion": "c644acfc9d08",
-    "clientSha256": "c6c6df480e1b8d63287ba061f3a697787b2efcd7268d7b779f9e91420899b0b0"
+    "commit": "5c6de5a87fcfc91a464e00c8ebc2c885921ee441",
+    "implementation": "5c6de5a87fcfc91a464e00c8ebc2c885921ee441",
+    "rulesVersion": "80548b2fca69",
+    "clientSha256": "266cb2fb51abcea6abf4e48b650c339d3342f0eebadd8d1b07e711d8236207e2"
   },
   "adaptations": {
     "client": [
@@ -25,6 +32,11 @@
       {
         "before": "\"./draco/\"",
         "after": "\"/draco/\"",
+        "count": 1
+      },
+      {
+        "before": "\"weapons/hand_pistol.glb\"",
+        "after": "\"racers/weapons/hand_pistol.glb\"",
         "count": 1
       },
       {
@@ -56,15 +68,15 @@
     "html": [
       {
         "before": "<title>Sanko Racers · SankoQuest World</title>",
-        "after": "<title>Sanko Racers · SankoQuest World</title><meta name=\"description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Sanko Racers\"><meta property=\"og:title\" content=\"Sanko Racers · Public World Hub\"><meta property=\"og:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:url\" content=\"https://sankosurvivors.quest/fun/racers/?mode=hub\"><meta property=\"og:image\" content=\"https://sankosurvivors.quest/fun/racers/preview.png\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Sanko Racers · Public World Hub\"><meta name=\"twitter:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta name=\"twitter:image\" content=\"https://sankosurvivors.quest/fun/racers/preview.png\">"
+        "after": "<title>Sanko Racers · SankoQuest World</title><meta name=\"description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Sanko Racers\"><meta property=\"og:title\" content=\"Sanko Racers · Public World Hub\"><meta property=\"og:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:url\" content=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><link rel=\"canonical\" href=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image:secure_url\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Sanko Racers · Public World Hub\"><meta name=\"twitter:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta name=\"twitter:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\">"
       },
       {
-        "before": "/assets/index-BmPrRkN6.js",
-        "after": "./racers-30b95eedfbd26b5e.js"
+        "before": "/assets/index-C9NHzJLd.js",
+        "after": "./racers-7c319d9b89e93202.js"
       },
       {
-        "before": "/assets/index-rotIU9Ji.css",
-        "after": "./racers-1ac065712040d61c.css"
+        "before": "/assets/index-Fr2bNlqc.css",
+        "after": "./racers-f7b642a7b02ed1d2.css"
       },
       {
         "before": "<div id=\"return-slot\"></div>",
@@ -76,28 +88,33 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 9363,
-      "sha256": "596d4ceeccbcb86de1b2cabe3a79eecedbeae4352a4e3a8c3abacc87c15c4a97"
+      "bytes": 10218,
+      "sha256": "e1ba139c52fc85d86defd0a9d57fcbcbea318f314aa556ace67fb33c1de14e3d"
     },
     {
-      "path": "/fun/racers/racers-30b95eedfbd26b5e.js",
-      "bytes": 1645475,
-      "sha256": "30b95eedfbd26b5e65cf1442841a90df635a9f26f2fb49d63077b99ad96f488f"
+      "path": "/fun/racers/racers-7c319d9b89e93202.js",
+      "bytes": 1655978,
+      "sha256": "7c319d9b89e9320266d3410cf98498d2a61a2a3fc62d6c599ae1310d669fc4fa"
     },
     {
-      "path": "/fun/racers/racers-1ac065712040d61c.css",
-      "bytes": 18569,
-      "sha256": "1ac065712040d61cf9a807dae843236d187e753a8816de48fc28d60576a7e2dd"
+      "path": "/fun/racers/racers-f7b642a7b02ed1d2.css",
+      "bytes": 19789,
+      "sha256": "f7b642a7b02ed1d2b26001c3de8f56f9d2922ab8ad6218d0b785d77c8b513817"
     },
     {
       "path": "/fun/racers/preview.png",
-      "bytes": 277171,
-      "sha256": "78ad81f75554aada8f3dfdbbad891eef8e6e405fd00d08a9d46beb4326ab1807"
+      "bytes": 749863,
+      "sha256": "cbe15c670d930714fbce2340b1254bb5f12ef32208dd2306cf5284c01a1a1fe4"
+    },
+    {
+      "path": "/fun/racers/preview-cbe15c670d93.png",
+      "bytes": 749863,
+      "sha256": "cbe15c670d930714fbce2340b1254bb5f12ef32208dd2306cf5284c01a1a1fe4"
     },
     {
       "path": "/fun/racers/INTEGRATION.txt",
-      "bytes": 2918,
-      "sha256": "0b489717800c74fb3b07c02c21edcf4e287ebdd76937d15f26cf350d912e0240"
+      "bytes": 3079,
+      "sha256": "d49c714f8520b7cf324da56fd4cd765d4f06987e5e3d4bfbe1ab1e49ec7fae2b"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -113,6 +130,11 @@
       "path": "/fun/racers/LICENSE.shitbox",
       "bytes": 585,
       "sha256": "9099ee7518047bd5a308b24b6be2727611965adbe823d1f22c3ff99d19b881a2"
+    },
+    {
+      "path": "/fun/racers/PISTOL-NOTICE.txt",
+      "bytes": 326,
+      "sha256": "38739ab25b07cb9a6b7b0cd4a933c0287d88db10585d96fc0288762b3f323440"
     },
     {
       "path": "/fun/racers/THREE-LICENSE.txt",
@@ -2598,6 +2620,11 @@
       "path": "/assets/racers/placements.json",
       "bytes": 708890,
       "sha256": "d61dfeab308ee849c2aad7d256dbc82c4de4f0c79856b9fff32d44b203b12f52"
+    },
+    {
+      "path": "/assets/racers/weapons/hand_pistol.glb",
+      "bytes": 49264,
+      "sha256": "b8152fdaf5ec18d6036e6a54aec7cea88dacc6c5592d590ca8db292f20349982"
     },
     {
       "path": "/assets/racers/world/tiles/fences-071e4322831c.json",

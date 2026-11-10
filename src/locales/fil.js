@@ -1,5 +1,11 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Share Sanko Racers with a fresh native image at sankosurvivors.quest/racers/.":"Ibahagi ang Sanko Racers gamit ang bagong larawan mula sa laro sa sankosurvivors.quest/racers/.",
+  "Wilderness drive-bys":"Pamamaril sa Wilderness",
+  "Sanko Racers: fire the native pistol on foot or from your kart with left mouse, Fire on touch or controller RB.":"Sanko Racers: gamitin ang pistol habang naglalakad o nagmamaneho gamit ang kaliwang mouse, Fire sa touch o RB sa controller.",
+  "The Wilderness west of the church is marked red on the minimap. Enter to opt into PvP; the rest of the hub is safe. Protected respawns, no item or money loss.":"Pula sa minimap ang Wilderness sa kanluran ng simbahan. Pumasok para sumali sa PvP; ligtas ang ibang bahagi ng hub. Protektado sa muling paglitaw, walang mawawalang gamit o pera.",
+  "Shoot the horde in driving Survivors. Timed and private races keep their original rules.":"Barilin ang horde sa driving Survivors. Pareho pa rin ang mga tuntunin ng pribado at timed na karera.",
+
   'Park and explore':'Iparada at maglibot',
   'Park your kart and walk around the public hub or Free Drive.':'Iparada ang kart at maglakad sa pampublikong hub o Free Drive.',
   'Press E, tap Get out or use controller A. Return near your own kart to get back in.':'Pindutin ang E, i-tap ang Get out o gamitin ang A sa controller. Lumapit sa sarili mong kart para muling sumakay.',

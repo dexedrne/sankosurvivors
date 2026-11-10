@@ -139,3 +139,12 @@ test('offline Racers uses its own cached page and never the main-game fallback',
   assert.equal(res?.body,cached?'driving page':undefined);
  }
 });
+
+test('clean Racers aliases keep their absolute-URL document separate from legacy Racers and main caches', async()=>{
+ for(const path of ['/racers','/racers/','/racers/index.html']){
+  const online=worker({network:{[path]:()=>response('share page',{type:'text/html'})}});online.seed(CACHE,'/',response('main'));online.seed(CACHE,'/fun/racers/',response('legacy'));
+  await online.fetchEvent(request(path,{mode:'navigate'}));assert.equal(online.stores.get(CACHE).get(ORIGIN+'/racers/')?.body,'share page');assert.equal(online.stores.get(CACHE).get(ORIGIN+'/').body,'main');assert.equal(online.stores.get(CACHE).get(ORIGIN+'/fun/racers/').body,'legacy');
+  const offline=worker({offline:true});offline.seed(CACHE,'/',response('main'));offline.seed(CACHE,'/fun/racers/',response('legacy'));assert.equal((await offline.fetchEvent(request(path,{mode:'navigate'}))).res,undefined);
+  offline.seed(CACHE,'/racers/',response('share page'));assert.equal((await offline.fetchEvent(request(path,{mode:'navigate'}))).res.body,'share page');
+ }
+});
