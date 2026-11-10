@@ -1,11 +1,11 @@
 {
-  "commit": "ff2424b2cd90b01138d64efb0fe288004278594d",
-  "implementation": "ff2424b2cd90b01138d64efb0fe288004278594d",
+  "commit": "206910a322155ace0b60e63017a6e844ec41bd54",
+  "implementation": "206910a322155ace0b60e63017a6e844ec41bd54",
   "files": [
     {
       "path": "CREDITS.txt",
-      "bytes": 1714,
-      "sha256": "3bc78e026a81ab98ace3ccb434eb9fe7bcb29ceb5c9527b4eef074a9250b6c3f",
+      "bytes": 2331,
+      "sha256": "2305c896a5ab36ac4e4cbfc65796d49f4d1e15c50c3e6ff1b75c0b9c9e1ca1ee",
       "role": "notice"
     },
     {
@@ -69,15 +69,15 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-DJxY_Uuw.js",
-      "bytes": 729362,
-      "sha256": "7982231a87b9c9c329845854e72b8265e4c7c8b4d6e0c20c9119240c5fb0eb65",
+      "path": "assets/index-CT3wpkJE.js",
+      "bytes": 733642,
+      "sha256": "ee507171ce685f6e06a22474bc5bf0f7f9da965105e1023e5b23862042ef0202",
       "role": "client"
     },
     {
-      "path": "assets/index-ZWTP6qJ5.css",
-      "bytes": 7224,
-      "sha256": "24343470437b34c69cde4e5982fb4d310d7c50553f732d340438c37615a994a0",
+      "path": "assets/index-DSWOACtH.css",
+      "bytes": 7531,
+      "sha256": "8ed7db771eb09e9b93dd8f5af1ae29b1bde6b55c881852471b95726f670ee2ce",
       "role": "stylesheet"
     },
     {
@@ -85,6 +85,108 @@
       "bytes": 42875,
       "sha256": "e2f626c787fe91d2c9a4a4d64dbee5ed0b026f6d3f66b99266bf00dc3457a374",
       "role": "omit-unused"
+    },
+    {
+      "path": "assets/karts/01-Tuner-Stock-White.glb",
+      "bytes": 1067660,
+      "sha256": "854a1220a24c5dcbf4e1e9068bfb4a480bb5e864b3dad26aaab05cb455a14817",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/02-Racer-Stock-White.glb",
+      "bytes": 859536,
+      "sha256": "504f4d1c49ea14a7e271bb111efd98577518debaa4861d860e07ea1cc958cdb9",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/03-Formula-Stock-White.glb",
+      "bytes": 833112,
+      "sha256": "1fa2861b6d82deb0d3257011e2b4c05d64b8a281c14f97097b34cc94e498ef4b",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/04-Rookie-Stock-White.glb",
+      "bytes": 838068,
+      "sha256": "672e0f6ded00fa01d09fa56d04330769c74265846812f14423f5590f2f91634a",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/05-2CV-Stock-White.glb",
+      "bytes": 954780,
+      "sha256": "74d11e4281b807a722b4aca257280f63a26064fa389690751a708771ec13e163",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/06-Dingo-Stock-White.glb",
+      "bytes": 1037012,
+      "sha256": "96cffb732524b4d823ec93bd05cf7a8438a6da735a6025117d9b1b07043d9c9a",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/07-GoKart-Stock-White.glb",
+      "bytes": 926888,
+      "sha256": "22d4dfc96db9ca0d8d143404552c694bfca285ae82f40434a66b55959209e2ff",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/08-Lemans-Stock-White.glb",
+      "bytes": 843384,
+      "sha256": "c87cf0d40a31b75bf8e2561770b1099c5167f60e453f9d550010eedf8bfe6394",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/09-Semi-Stock-White.glb",
+      "bytes": 973476,
+      "sha256": "609d3bc70e40137c7b1b6464db50168f7235fa623f36b69a3d9384c94a41beb3",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/10-Eagle-Stock-White.glb",
+      "bytes": 851552,
+      "sha256": "52f4abe437f04509aa3f4789fa9ccb0ff2377816d2a9079342e848a0e4964663",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/11-Forklift-Stock-White.glb",
+      "bytes": 828192,
+      "sha256": "315c46502a648cfa3715028603b81c745c823b0fd3bd2168db0ac957e998abb8",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/12-Bus-Stock-White.glb",
+      "bytes": 891712,
+      "sha256": "1c280dd8504313eda4890a8fd5f5aba91166f62bdaedad9a891878691eae7189",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/13-Hotrod-Stock-White.glb",
+      "bytes": 944372,
+      "sha256": "c85d1e8baa03d074d151d64abcdd4830f54d97aff29ab8f39fed6ee63d8ac63b",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/14-Merc-Stock-White.glb",
+      "bytes": 941984,
+      "sha256": "01f14fd044ce8794e36faf28ed460c5fe909b0f6daa9a45243934fbf6d64df4c",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/LICENSE-DRACO.txt",
+      "bytes": 13898,
+      "sha256": "d3709b0fb4b8a94bbb1d02b8a2e484f258b0d9c5c5a01f940391f3fe662cd1a4",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/LICENSE-MIT.txt",
+      "bytes": 1081,
+      "sha256": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601",
+      "role": "unique"
+    },
+    {
+      "path": "assets/karts/NOTICES.txt",
+      "bytes": 751,
+      "sha256": "d1d1d31026643e85a978c50f499b921e46251b75882589854421d03b72580d68",
+      "role": "unique"
     },
     {
       "path": "assets/models/playerCharacter/Arms/Nude.glb",
@@ -1672,8 +1774,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 3072,
-      "sha256": "ee37a84be2fce7b8b2cea5c387b53c5ab221c9d2a89a4ad1a0d55c0973bf57f8",
+      "bytes": 3305,
+      "sha256": "c1dabb44f027d492312a9169f71f9fbdc4f99678a63e21fbcd9e5782754fce47",
       "role": "entry"
     }
   ],

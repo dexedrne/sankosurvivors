@@ -38,9 +38,10 @@ test('every packaged and shared route dependency matches its recorded bytes', ()
   assert.equal(bytes.length,item.bytes,item.path);
   assert.equal(hash(bytes),item.sha256,item.path);
  }
- assert.deepEqual(m.files.filter(i=>i.path.startsWith('/assets/racers/')).map(i=>i.path).sort(),[
-  '/assets/racers/cars/miata.glb','/assets/racers/placements.json','/assets/racers/world/tiles/fences.json'
- ]);
+ const unique=inputs.files.filter(f=>f.role==='unique').map(f=>'/assets/racers/'+f.path.slice('assets/'.length)).sort();
+ assert.deepEqual(m.files.filter(i=>i.path.startsWith('/assets/racers/')).map(i=>i.path).sort(),unique);
+ const karts=m.files.filter(f=>f.path.startsWith('/assets/racers/karts/')&&f.path.endsWith('.glb'));assert.equal(karts.length,14);
+ for(const notice of ['NOTICES.txt','LICENSE-MIT.txt','LICENSE-DRACO.txt'])assert(m.files.some(f=>f.path==='/assets/racers/karts/'+notice));
 });
 
 test('static entry resolves relative code and styles and returns to the Fun menu', () => {
@@ -58,7 +59,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  const css=read(`public${m.files.find(f=>f.path.endsWith('.css')).path}`).toString();
  for(const asset of ['RuneScape-Plain-12.ttf','RuneScape-Quill-8.ttf','frame.png','grey_slot.png','yellow_slot.png'])assert(css.includes(asset),asset);
  assert(html.includes('data-action="handbrake"'));
- assert(html.includes('id="free-start"'));
+ assert(html.includes('id="free-start"'));assert(html.includes('id="vehicle-choice"'));assert(html.includes('CRASHOUT KARTS'));assert(js.includes('Same handling for every vehicle.'));
  assert.equal((js.match(/localStorage/g)||[]).length,2);
  assert.doesNotMatch(js,/\.\/assets\/|\.\/draco\/|100\.65\.235\.118|127\.0\.0\.1|localhost|walletconnect|supabase|ethereum|\/api\//i);
  assert.equal(js.includes('nav.bin'),false);
@@ -75,7 +76,10 @@ test('adapted client reverses exactly to the accepted source artifact', () => {
  }
  assert.equal(hash(js),inputs.files.find(f=>f.role==='client').sha256);
  const credits=read('public/fun/racers/CREDITS.txt').toString();
- assert.match(credits,/Speedy-Works/);
+ assert.match(credits,/Speedy-Works/);assert.match(credits,/CrashOut Karts/);assert.match(credits,/Sanko retains its artwork rights/);
+ assert.match(read('public/assets/racers/karts/NOTICES.txt').toString(),/not a public-domain/);
+ assert.match(read('public/assets/racers/karts/LICENSE-MIT.txt').toString(),/Permission is hereby granted/);
+ assert.match(read('public/assets/racers/karts/LICENSE-DRACO.txt').toString(),/Apache License/);
  assert.match(credits,/creativecommons.org\/licenses\/by\/4.0/);
  assert.match(read('public/fun/racers/LICENSE.shitbox').toString(),/VIRAL PUBLIC LICENSE[\s\S]*No further restrictions/);
 });

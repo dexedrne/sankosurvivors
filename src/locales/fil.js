@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "CrashOut Karts arrive": "Dumating na ang CrashOut Karts",
+  "Sanko Racers now has 14 original CrashOut stock karts to choose from. Tuner is the default; the Miata stays available.": "May 14 orihinal na CrashOut stock kart na mapagpipilian sa Sanko Racers. Tuner ang default; puwede pa rin ang Miata.",
+  "Every vehicle uses the same handling. Changing vehicles restarts your drive.": "Pare-pareho ang handling ng lahat ng sasakyan. Magsisimula muli ang iyong drive kapag nagpalit ka ng sasakyan.",
+  "The Guard and Priest race in CrashOut karts. Hold Space or Drift to slide through turns.": "Nakarera sa CrashOut kart ang Guard at Priest. Hawakan ang Space o Drift para dumulas sa mga kurbada.",
   "An open road in Apache": "Bukas na daan sa Apache",
   "Sanko Racers starts outside Apache’s fenced enclosure, facing the open road. Restart uses the same safe start.": "Nagsisimula ang Sanko Racers sa labas ng bakod sa Apache, nakaharap sa bukas na daan. Sa pag-restart, ligtas na puntong ito rin ang gamit.",
   "Drive the whole world": "Magmaneho sa buong mundo",

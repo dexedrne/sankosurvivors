@@ -1,5 +1,9 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "CrashOut Karts arrive": "Llegan los karts de CrashOut",
+  "Sanko Racers now has 14 original CrashOut stock karts to choose from. Tuner is the default; the Miata stays available.": "Sanko Racers tiene 14 karts originales de serie de CrashOut para elegir. Tuner es la opción inicial; el Miata sigue disponible.",
+  "Every vehicle uses the same handling. Changing vehicles restarts your drive.": "Todos los vehículos tienen el mismo manejo. Cambiar de vehículo reinicia la partida.",
+  "The Guard and Priest race in CrashOut karts. Hold Space or Drift to slide through turns.": "El Guardia y el Sacerdote compiten en karts de CrashOut. Mantén Espacio o Drift para derrapar en las curvas.",
   "An open road in Apache": "Un camino abierto en Apache",
   "Sanko Racers starts outside Apache’s fenced enclosure, facing the open road. Restart uses the same safe start.": "Sanko Racers empieza fuera del recinto vallado de Apache, mirando al camino abierto. Reiniciar usa el mismo punto seguro.",
   "Drive the whole world": "Conduce por todo el mundo",

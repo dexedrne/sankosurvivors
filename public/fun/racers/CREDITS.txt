@@ -3,6 +3,9 @@ SANKO RACERS — UNOFFICIAL LOCAL FAN PROTOTYPE
 SankoQuest world, terrain, textures, scene placements, modular human models, pixel fonts and UI frames/buttons belong to Sanko GameCorp. Selected files are reused from the owner's local SankoSurvivors native export collection. SankoSurvivors records the original fan game's use as made with Sanko GameCorp's blessing; that statement does not establish a separate public redistribution or commercial licence for Sanko Racers. Confirm permission before publication. This prototype claims no ownership or endorsement.
 Native terrain sampling and modular-character assembly adapted from the owner's SankoSurvivors source; kept local, no public source licence asserted.
 
+CrashOut Karts — original Sanko artwork, models and textures supplied in CrashOut-Partner-Models.zip by the project team for this Sanko ecosystem integration. All14complete stock GLBs are unmodified; game-side uniform scale, grounding, drivers and wheel movement are separate. Sanko retains its artwork rights. This does not relicense the artwork as open-source or assert NFT ownership. Draft ratings/part specifications are not applied. Full partner NOTICES.txt and supplied MIT/Draco texts remain with assets/karts/ in the driving distribution (assets/racers/karts/ inside SankoSurvivors).
+https://crashout.inc/
+
 Shitbox Petal 1.6 / Miata roadster:
 “low poly mazda mx-5 miata na (UPDATE)” by Speedy-Works.
 https://sketchfab.com/3d-models/low-poly-mazda-mx-5-miata-na-update-819982eac6944241be32c62343c4d530

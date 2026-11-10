@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "CrashOut Karts arrive": "CrashOut Kartlar geldi",
+  "Sanko Racers now has 14 original CrashOut stock karts to choose from. Tuner is the default; the Miata stays available.": "Sanko Racers’ta artık seçebileceğin 14 orijinal CrashOut stok kart var. Varsayılan Tuner; Miata da hâlâ kullanılabilir.",
+  "Every vehicle uses the same handling. Changing vehicles restarts your drive.": "Tüm araçların sürüş özellikleri aynıdır. Araç değiştirmek sürüşünü yeniden başlatır.",
+  "The Guard and Priest race in CrashOut karts. Hold Space or Drift to slide through turns.": "Muhafız ve Rahip, CrashOut kartlarla yarışır. Virajlarda kaymak için Boşluk veya Drift düğmesini basılı tut.",
   "An open road in Apache": "Apache’de açık yol",
   "Sanko Racers starts outside Apache’s fenced enclosure, facing the open road. Restart uses the same safe start.": "Sanko Racers artık Apache’nin çitli alanının dışında, açık yola dönük başlıyor. Yeniden başlatma da aynı güvenli noktayı kullanır.",
   "Drive the whole world": "Dünyanın tamamında sür",
