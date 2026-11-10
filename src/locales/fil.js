@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Take to the streets":"Lumabas sa mga lansangan",
+  "Sanko Racers: enter the shared world on foot or in your kart. World, Garage and Activities keep the menu easy to scan.":"Sanko Racers: pumasok sa shared world nang naglalakad o sakay ng kart. Madaling basahin ang World, Garage at Activities.",
+  "Preview your native driver beside the kart, with outfits and your road log together in the Garage.":"Tingnan ang driver sa tabi ng kart, kasama ang mga outfit at road log sa Garage.",
+  "On foot, hold right mouse or LT for shoulder aim, or tap Aim on touch. Drag the world to look. Wilderness PvP stays west of the church.":"Habang naglalakad, hawakan ang right mouse o LT para sa shoulder aim, o i-tap ang Aim. I-drag para tumingin. Nasa Wilderness pa rin ang PvP sa kanluran ng simbahan.",
+
   "Share Sanko Racers with a fresh native image at sankosurvivors.quest/racers/.":"Ibahagi ang Sanko Racers gamit ang bagong larawan mula sa laro sa sankosurvivors.quest/racers/.",
   "Wilderness drive-bys":"Pamamaril sa Wilderness",
   "Sanko Racers: fire the native pistol on foot or from your kart with left mouse, Fire on touch or controller RB.":"Sanko Racers: gamitin ang pistol habang naglalakad o nagmamaneho gamit ang kaliwang mouse, Fire sa touch o RB sa controller.",

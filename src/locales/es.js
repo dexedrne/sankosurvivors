@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Take to the streets":"Sal a las calles",
+  "Sanko Racers: enter the shared world on foot or in your kart. World, Garage and Activities keep the menu easy to scan.":"Sanko Racers: entra al mundo compartido a pie o en tu kart. Mundo, Garaje y Actividades ordenan el menú.",
+  "Preview your native driver beside the kart, with outfits and your road log together in the Garage.":"Mira a tu conductor junto al kart, con atuendos y registro de conducción en el Garaje.",
+  "On foot, hold right mouse or LT for shoulder aim, or tap Aim on touch. Drag the world to look. Wilderness PvP stays west of the church.":"A pie, mantén el botón derecho o LT para apuntar sobre el hombro, o toca Apuntar. Arrastra para mirar. El PvP sigue en Wilderness, al oeste de la iglesia.",
+
   "Share Sanko Racers with a fresh native image at sankosurvivors.quest/racers/.":"Comparte Sanko Racers con una nueva imagen del juego en sankosurvivors.quest/racers/.",
   "Wilderness drive-bys":"Disparos desde el kart en Wilderness",
   "Sanko Racers: fire the native pistol on foot or from your kart with left mouse, Fire on touch or controller RB.":"Sanko Racers: dispara la pistola a pie o desde tu kart con el botón izquierdo, Disparar en pantalla táctil o RB del mando.",

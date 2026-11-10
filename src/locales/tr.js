@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Take to the streets":"Sokaklara çık",
+  "Sanko Racers: enter the shared world on foot or in your kart. World, Garage and Activities keep the menu easy to scan.":"Sanko Racers: ortak dünyaya yürüyerek veya kartınla gir. Dünya, Garaj ve Etkinlikler menüyü düzenler.",
+  "Preview your native driver beside the kart, with outfits and your road log together in the Garage.":"Sürücünü kartın yanında gör; kıyafetler ve sürüş kaydı Garajda.",
+  "On foot, hold right mouse or LT for shoulder aim, or tap Aim on touch. Drag the world to look. Wilderness PvP stays west of the church.":"Yürürken omuzdan nişan almak için sağ fareyi veya LT tuşunu basılı tut ya da dokunmatik Nişan düğmesine dokun. Bakmak için sürükle. PvP kilisenin batısındaki Wilderness bölgesinde kalır.",
+
   "Share Sanko Racers with a fresh native image at sankosurvivors.quest/racers/.":"Sanko Racers’ı oyundan yeni bir görüntüyle sankosurvivors.quest/racers/ adresinden paylaş.",
   "Wilderness drive-bys":"Wilderness bölgesinde araçtan ateş",
   "Sanko Racers: fire the native pistol on foot or from your kart with left mouse, Fire on touch or controller RB.":"Sanko Racers: yürürken veya kartından sol fare tuşu, dokunmatik Ateş ya da kumandada RB ile tabancayı kullan.",
