@@ -21,14 +21,20 @@ export function createWalletConnect(projectId, origin, load = () => import('@wal
   const retire = owner => {
     if (generation !== owner) return;
     generation = null; ready = null; activeTopic = null; selected = []; remember(null);
-    void close(owner);
+    return close(owner);
   };
-  const init = () => ready ||= (async () => {
+  const cancelled = () => Object.assign(new Error('Wallet connection cancelled.'), { code: 4001 });
+  const init = () => {
+    if (ready) return ready;
+    let owner;
+    return ready = (async () => {
     const saved = stored(), prefix = /^sankosurvivors-[\da-f-]{36}$/.test(saved?.prefix || '') ? saved.prefix : 'sankosurvivors-' + crypto.randomUUID();
-    const owner = generation = { prefix, sdk: null };
+    owner = generation = { prefix, sdk: null };
     const { UniversalProvider } = await load();
+    if (generation !== owner) throw cancelled();
     const sdk = owner.sdk = await UniversalProvider.init({ projectId, customStoragePrefix: prefix, telemetryEnabled: false, logger: 'silent',
       metadata: { name: 'SankoSurvivors', description: 'Connect your wallet to SankoSurvivors', url, icons: [url + '/icons/air-shard-512.png'] } });
+    if (generation !== owner) { await close(owner); throw cancelled(); }
     const granted = accounts(sdk);
     if (granted.length && (!saved || saved.topic === sdk.session.topic)) {
       activeTopic = sdk.session.topic;
@@ -50,7 +56,8 @@ export function createWalletConnect(projectId, origin, load = () => import('@wal
     });
     sdk.on('disconnect', () => { if (generation === owner) { retire(owner); emit('accountsChanged', []); } });
     return sdk;
-  })().catch(e => { ready = null; throw e; });
+    })().catch(e => { if (generation === owner) ready = null; throw e; });
+  };
   const denied = () => Object.assign(new Error('Connect your wallet again.'), { code: 4100 });
   const p = {
     get ui() { return ui; },
@@ -59,33 +66,43 @@ export function createWalletConnect(projectId, origin, load = () => import('@wal
     dismiss() { if (ui?.phase === 'request') show(null); },
     cancelConnect() { pairing?.cancel(); },
     async request(args) {
-      const sdk = await init();
-      if (args.method === 'eth_accounts') return activeTopic && sdk.session?.topic === activeTopic ? selected : [];
       if (args.method === 'wallet_revokePermissions') {
         const owner = generation; pairing?.cancel();
-        if (owner) retire(owner);
+        if (owner) retire(owner); else remember(null);
         emit('accountsChanged', []); return null;
       }
       if (args.method === 'eth_requestAccounts') {
-        if (activeTopic && sdk.session?.topic === activeTopic && selected.length) return selected;
         let pending = pairing?.promise;
         if (!pairing) {
-          const attempt = { screen: null, owner: generation }, cancelled = new Promise((_, reject) => {
-            attempt.cancel = () => { if (pairing !== attempt) return; pairing = null; retire(attempt.owner); hide(attempt.screen); reject(Object.assign(new Error('Wallet connection cancelled.'), { code: 4001 })); };
+          const attempt = { screen: null, owner: null }, stopped = new Promise((_, reject) => {
+            attempt.cancel = () => { if (pairing !== attempt) return; pairing = null; if (attempt.owner) retire(attempt.owner); hide(attempt.screen); reject(cancelled()); };
           });
           pairing = attempt;
+          if (!activeTopic || !selected.length) attempt.screen = show({ phase: 'loading' });
           const connecting = (async () => {
-            if (sdk.session) await sdk.disconnect();
+            if (pairing !== attempt) throw cancelled();
+            let starting = init(); attempt.owner = generation;
+            let sdk = await starting;
+            if (pairing !== attempt || generation !== attempt.owner) throw cancelled();
+            if (activeTopic && sdk.session?.topic === activeTopic && selected.length) return selected;
+            if (sdk.session) {
+              await retire(attempt.owner);
+              if (pairing !== attempt) throw cancelled();
+              starting = init(); attempt.owner = generation; sdk = await starting;
+              if (pairing !== attempt || generation !== attempt.owner) throw cancelled();
+            }
             await sdk.connect({ namespaces: { eip155: { chains: [chain], methods: ['personal_sign', 'eth_sendTransaction'], events: ['accountsChanged', 'chainChanged'], rpcMap: { 42161: 'https://arb1.arbitrum.io/rpc' } } } });
-            if (pairing !== attempt) { await close(attempt.owner); throw Object.assign(new Error('Wallet connection cancelled.'), { code: 4001 }); }
+            if (pairing !== attempt || generation !== attempt.owner) { await close(attempt.owner); throw cancelled(); }
             if (!accounts(sdk).length) throw denied();
             activeTopic = sdk.session.topic; selected = accounts(sdk); save(attempt.owner);
             return selected;
           })();
-          pending = attempt.promise = Promise.race([connecting, cancelled]).finally(() => { hide(attempt.screen); if (pairing === attempt) pairing = null; });
+          pending = attempt.promise = Promise.race([connecting, stopped]).finally(() => { hide(attempt.screen); if (pairing === attempt) pairing = null; });
         }
         return await pending;
       }
+      const sdk = await init();
+      if (args.method === 'eth_accounts') return activeTopic && sdk.session?.topic === activeTopic ? selected : [];
       if (!activeTopic || sdk.session?.topic !== activeTopic || !selected.length) throw denied();
       if (args.method === 'eth_chainId') return '0xa4b1';
       if (args.method === 'wallet_switchEthereumChain' || args.method === 'wallet_addEthereumChain') {

@@ -1609,10 +1609,10 @@ function renderWalletConnect(state) {
   $('progressrecovery').inert = !!state;
   canvas.width = canvas.height = 0;
   if (!state) { if (screen.contains(document.activeElement)) navScreen()?.querySelector('button, a[href]')?.focus(); return; }
-  $('walletlinktext').textContent = state.phase === 'pair' ? 'Open your wallet to approve this connection, then switch back to this app. Your game stays here.' : 'Approve the request in your connected wallet, then switch back to this app. Your game stays here.';
-  $('walletlinkapps').innerHTML = walletConnectLinks(state.phase === 'pair' ? state.uri : null).map(([name, url]) => `<a class="btnlink" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open ${name}</a>`).join('');
-  $('walletlinkback').textContent = state.phase === 'pair' ? 'Cancel connection' : 'Back to game';
-  $('walletlinkapps').querySelector('a')?.focus();
+  $('walletlinktext').textContent = state.phase === 'loading' ? 'Preparing wallet connection…' : state.phase === 'pair' ? 'Open your wallet to approve this connection, then switch back to this app. Your game stays here.' : 'Approve the request in your connected wallet, then switch back to this app. Your game stays here.';
+  $('walletlinkapps').innerHTML = (state.phase === 'loading' ? [] : walletConnectLinks(state.phase === 'pair' ? state.uri : null)).map(([name, url]) => `<a class="btnlink" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open ${name}</a>`).join('');
+  $('walletlinkback').textContent = state.phase === 'request' ? 'Back to game' : 'Cancel connection';
+  if (state.phase === 'loading') $('walletlinkback').focus(); else $('walletlinkapps').querySelector('a')?.focus();
   if (state.phase === 'pair') {
     $('walletlinkqrtext').textContent = 'Scan with any WalletConnect wallet';
     import('qrcode').then(({default: encoder}) => {
@@ -1622,7 +1622,7 @@ function renderWalletConnect(state) {
 }
 
 watchWalletConnect(renderWalletConnect);
-$('walletlinkback').onclick = () => { if (walletConnectState()?.phase === 'pair') cancelWalletConnect(); else dismissWalletConnect(); };
+$('walletlinkback').onclick = () => { if (walletConnectState()?.phase === 'request') dismissWalletConnect(); else cancelWalletConnect(); };
 renderWalletChip(); walletRestore();
 watchWallets(refreshWalletChoices);
 resumeWalletHandoff(walletHandoff);

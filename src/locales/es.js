@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Live hub garage": "Garaje en el mundo compartido",
+  "Sanko Racers: a cleaner garage with a live driver list, multiplayer up front and solo drives folded away.": "Sanko Racers: un garaje más limpio con lista de pilotos en vivo, multijugador al frente y modos en solitario plegados.",
+  "WalletConnect now shows a cancellable loading screen before the QR appears. Cancelled startups cannot open a hidden pairing later.": "WalletConnect ahora muestra una pantalla de carga cancelable antes del QR. Una conexión cancelada no puede iniciar un emparejamiento oculto después.",
+
+  "Preparing wallet connection…": "Preparando la conexión con la cartera…",
   "Drive your CrashOut kart": "Conduce tu kart de CrashOut",
   "Sanko Racers: connect a wallet to drive your owned CrashOut karts with their equipped parts, including WalletConnect on mobile.": "Sanko Racers: conecta una cartera para conducir tus karts de CrashOut con sus piezas equipadas, también con WalletConnect en móviles.",
   "Read-only connection: no signatures, token approvals or purchases. Equipment is cosmetic and handling stays equal; free stock karts remain available.": "Conexión de solo lectura: sin firmas, aprobaciones de tokens ni compras. El equipo es cosmético y el manejo es igual para todos; los karts gratuitos siguen disponibles.",

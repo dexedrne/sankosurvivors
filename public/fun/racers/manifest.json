@@ -1,8 +1,8 @@
 {
   "source": {
-    "commit": "07a964b7d27b31dc0bcc9b3cd83a45df99c0aaeb",
-    "implementation": "07a964b7d27b31dc0bcc9b3cd83a45df99c0aaeb",
-    "clientSha256": "385de2731d9543788cb6ce05b0fd429173b8261a5180d73b4fbaa8a00879112b"
+    "commit": "0207b7302f40670322eeee72e7f4cd2cf6cf9012",
+    "implementation": "0207b7302f40670322eeee72e7f4cd2cf6cf9012",
+    "clientSha256": "9fb53003f12d499e1207c031b33af681d3404dc6811f832080e8295111e7c79a"
   },
   "adaptations": {
     "client": [
@@ -54,12 +54,12 @@
     ],
     "html": [
       {
-        "before": "/assets/index-2d62kHSB.js",
-        "after": "./racers-16da0d13fff3c2d3.js"
+        "before": "/assets/index-Ck7Q6YVN.js",
+        "after": "./racers-30dea5318995a2cf.js"
       },
       {
-        "before": "/assets/index-CHSqAXCa.css",
-        "after": "./racers-b6a1d3f4744ec0ed.css"
+        "before": "/assets/index-DpBHaJCO.css",
+        "after": "./racers-24b29ca988dc8aae.css"
       },
       {
         "before": "<div id=\"return-slot\"></div>",
@@ -71,18 +71,18 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 7325,
-      "sha256": "50ca23056a0af2c4d8f25fb6dbbd940d1a940e9cec15ea21fc4b6931049ef90f"
+      "bytes": 7912,
+      "sha256": "60f8a7a79799fea086a5a83a2ff09c8cd9e1ddb8449ce799a0410796ef0c1dc7"
     },
     {
-      "path": "/fun/racers/racers-16da0d13fff3c2d3.js",
-      "bytes": 1628942,
-      "sha256": "16da0d13fff3c2d37d0a35aba9286a617ed36dac8ebed8ffbd53867089ef1b6c"
+      "path": "/fun/racers/racers-30dea5318995a2cf.js",
+      "bytes": 1630933,
+      "sha256": "30dea5318995a2cf67b028b997c0169bfc9cebf2d2778aa47559d5372ecabf6d"
     },
     {
-      "path": "/fun/racers/racers-b6a1d3f4744ec0ed.css",
-      "bytes": 15494,
-      "sha256": "b6a1d3f4744ec0ed9bee204b992e81514e5223b88df303fc99514fe425898d49"
+      "path": "/fun/racers/racers-24b29ca988dc8aae.css",
+      "bytes": 17505,
+      "sha256": "24b29ca988dc8aaee242e63816cde91852d9071eff18cda5abbfaab9da5439a0"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -92,7 +92,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 2918,
-      "sha256": "9d502dc5eeb6e2433616e6da97ec1c9f7a192aa295eb37a622e0ab6568c64ced"
+      "sha256": "a1cb12d87116e49b075d1727e397d1d159bf2e2683aef5adc654d908e2c9b36f"
     },
     {
       "path": "/fun/racers/CREDITS.txt",

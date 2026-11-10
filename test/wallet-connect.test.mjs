@@ -50,7 +50,7 @@ test('Back during an approval hides UI but never cancels or retries a submitted 
  const f=setup({restored:true}),gate=deferred();f.sdk.request=async()=>gate.promise;const sending=f.w.p.request({method:'eth_sendTransaction',params:[{}]});for(let i=0;i<5;i++)await Promise.resolve();assert.equal(f.w.p.ui.phase,'request');f.w.p.dismiss();gate.resolve('0x'+'d'.repeat(64));assert.equal(await sending,'0x'+'d'.repeat(64));assert.equal(f.w.p.ui,null);
 });
 test('Disconnect clears an approved session and account selection',async()=>{
- const f=setup({restored:true});await f.w.p.request({method:'wallet_revokePermissions'});assert.equal(f.disconnections(),1);assert.deepEqual(await f.w.p.request({method:'eth_accounts'}),[]);
+ const f=setup({restored:true});assert.deepEqual(await f.w.p.request({method:'eth_accounts'}),[A]);await f.w.p.request({method:'wallet_revokePermissions'});assert.equal(f.disconnections(),1);assert.deepEqual(await f.w.p.request({method:'eth_accounts'}),[]);
 });
 test('failed initialization can retry',async()=>{
  const f=setup();let n=0;const w=createWalletConnect(ID,'https://sankosurvivors.quest',async()=>{if(++n===1)throw Error('fixture offline');return{UniversalProvider:{init:async()=>f.sdk}};});await assert.rejects(w.p.request({method:'eth_accounts'}),/fixture offline/);assert.deepEqual(await w.p.request({method:'eth_accounts'}),[]);
@@ -112,4 +112,39 @@ test('Rabby approval resumes the WalletConnect route without starting a new pair
  const url=new URL(href);
  // Rabby Mobile's universal-link handler recognizes /mobile/walletconnect as an approval redirect.
  assert.equal(url.protocol,'rabbygo:');assert.equal(url.hostname,'go.rabby.io');assert.equal(url.pathname,'/mobile/walletconnect');assert.equal(url.search,'');
+});
+
+
+test('connection shows cancellable loading before the SDK import finishes',async()=>{
+ const gate=deferred();let inits=0;const f=setup();const w=createWalletConnect(ID,'https://sankosurvivors.quest',()=>gate.promise);
+ const pending=w.p.request({method:'eth_requestAccounts'});let error=null;const result=pending.catch(e=>{error=e;});
+ await tick();assert.equal(w.p.ui?.phase,'loading');w.p.cancelConnect();await tick();assert.equal(error?.code,4001);assert.equal(w.p.ui,null);
+ gate.resolve({UniversalProvider:{init:async()=>{inits++;return f.sdk;}}});await result;await tick();assert.equal(inits,0);assert.equal(f.connections.length,0);
+});
+test('cancel during SDK initialization closes late restored accounts and never pairs',async()=>{
+ const gate=deferred();const f=setup({restored:true});let started=false,closed=0;f.sdk.client={core:{relayer:{transportClose:async()=>closed++}}};
+ const w=createWalletConnect(ID,'https://sankosurvivors.quest',async()=>({UniversalProvider:{init:async()=>{started=true;return gate.promise;}}}));
+ let error=null;const pending=w.p.request({method:'eth_requestAccounts'}).catch(e=>{error=e;});await tick();assert.equal(started,true);w.p.cancelConnect();await tick();assert.equal(error?.code,4001);
+ gate.resolve(f.sdk);await pending;await tick();assert.equal(f.connections.length,0);assert.equal(f.disconnections(),1);assert.equal(closed,1);assert.equal(w.p.ui,null);
+});
+test('immediate retry survives the cancelled import failing late',async()=>{
+ const loads=[],f=setup();const w=createWalletConnect(ID,'https://sankosurvivors.quest',()=>{const gate=deferred();loads.push(gate);return gate.promise;});
+ let firstError=null;const first=w.p.request({method:'eth_requestAccounts'}).catch(e=>{firstError=e;});await tick();w.p.cancelConnect();await tick();assert.equal(firstError?.code,4001);
+ const second=w.p.request({method:'eth_requestAccounts'});await tick();assert.equal(loads.length,2);loads[1].resolve({UniversalProvider:{init:async()=>f.sdk}});assert.deepEqual(await second,[A]);
+ loads[0].reject(Error('old import rejected'));await first;await tick();assert.deepEqual(await w.p.request({method:'eth_accounts'}),[A]);assert.equal(loads.length,2);assert.equal(f.connections.length,1);
+});
+test('Cancel after a successful connection preserves the selected account and session',async()=>{
+ const f=setup();await f.w.p.request({method:'eth_requestAccounts'});f.w.p.cancelConnect();assert.deepEqual(await f.w.p.request({method:'eth_accounts'}),[A]);assert.equal(f.disconnections(),0);assert.equal(f.w.p.ui,null);
+});
+test('revoke during initialization cancels promptly without constructing a replacement SDK',async()=>{
+ const gate=deferred(),f=setup();let imports=0,inits=0;const w=createWalletConnect(ID,'https://sankosurvivors.quest',()=>{imports++;return gate.promise;});
+ let error=null;const first=w.p.request({method:'eth_requestAccounts'}).catch(e=>{error=e;});await tick();await w.p.request({method:'wallet_revokePermissions',params:[{eth_accounts:{}}]});await tick();assert.equal(error?.code,4001);assert.equal(imports,1);
+ gate.resolve({UniversalProvider:{init:async()=>{inits++;return f.sdk;}}});await first;await tick();assert.equal(inits,0);assert.equal(w.p.ui,null);
+});
+
+test('disconnecting an unused relay never imports the SDK',async()=>{const f=setup();await f.w.p.request({method:'wallet_revokePermissions'});assert.equal(f.imports(),0);assert.equal(f.disconnections(),0);});
+test('a removed account reconnects with a fresh SDK rather than reusing retired session state',async t=>{
+ const f=lifecycle(t),w=f.make(),first=w.p.request({method:'eth_requestAccounts'});await tick();f.clients[0].gate.resolve(session());await first;
+ f.clients[0].handlers.get('session_event')({topic:TOPIC,params:{chainId:CHAIN,event:{name:'accountsChanged',data:[]}}});assert.deepEqual(await w.p.request({method:'eth_accounts'}),[]);
+ const next=w.p.request({method:'eth_requestAccounts'});await tick();assert.equal(f.clients.length,2);assert.equal(f.clients[0].closed,true);f.clients[1].gate.resolve({topic:'e'.repeat(64),namespaces:{eip155:{accounts:[CHAIN+':'+B]}}});assert.deepEqual(await next,[B]);assert.deepEqual(await w.p.request({method:'eth_accounts'}),[B]);
 });

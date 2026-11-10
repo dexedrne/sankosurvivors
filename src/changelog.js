@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.44.88", "date": "10 Nov 2026", "title": "Live hub garage", "items": ["Sanko Racers: a cleaner garage with a live driver list, multiplayer up front and solo drives folded away.", "WalletConnect now shows a cancellable loading screen before the QR appears. Cancelled startups cannot open a hidden pairing later."]},
   {version:"0.44.87",date:"10 Nov 2026",title:"Drive your CrashOut kart",items:["Sanko Racers: connect a wallet to drive your owned CrashOut karts with their equipped parts, including WalletConnect on mobile.","Read-only connection: no signatures, token approvals or purchases. Equipment is cosmetic and handling stays equal; free stock karts remain available."]},
   {"version":"0.44.86","date":"10 Nov 2026","title":"Castle and chapel clearance","items":["Sanko Racers: reduced invisible collision edges near Greentown castle and the chapel while keeping solid walls.","Sanko Racers: sideways camera orbit keeps your car in view on narrow screens."]},
   {"version": "0.44.85", "date": "10 Nov 2026", "title": "Greentown wall clearance", "items": ["Sanko Racers: more accurate collision along the west Greentown street and court wall. The original walls remain solid."]},

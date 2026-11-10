@@ -7,7 +7,7 @@ const code=main.slice(main.indexOf('function renderWalletConnect('),main.indexOf
 const tick=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
 function fixture(){
  const nodes=new Map(),drawn=[];let state=null,resolve;
- const ready=new Promise(r=>resolve=r),$=id=>{if(!nodes.has(id)){const classes=new Set();nodes.set(id,{textContent:'',innerHTML:'',width:0,height:0,contains:()=>false,querySelector:()=>({focus(){}}),classList:{toggle:(n,on)=>on?classes.add(n):classes.delete(n),contains:n=>classes.has(n)}});}return nodes.get(id);};
+ const ready=new Promise(r=>resolve=r),$=id=>{if(!nodes.has(id)){const classes=new Set();nodes.set(id,{focus(){this.focused=true;},textContent:'',innerHTML:'',width:0,height:0,contains:()=>false,querySelector:()=>({focus(){}}),classList:{toggle:(n,on)=>on?classes.add(n):classes.delete(n),contains:n=>classes.has(n)}});}return nodes.get(id);};
  const render=Function('$','walletConnectLinks','walletConnectState','esc','navScreen','document','loadQr',code+';return renderWalletConnect;')($,walletConnectLinks,()=>state,s=>s,()=>null,{},()=>ready);
  return{$,drawn,show:s=>{state=s;render(s);},ready:()=>resolve({default:{toCanvas:async(...args)=>drawn.push(args)}})};
 }
@@ -21,3 +21,5 @@ test('late QR encoder cannot paint a cancelled or replacement pairing',async()=>
  const f=fixture();f.show({phase:'pair',uri:'wc:old-fixture@2?fixture-only'});f.show(null);f.ready();await tick();assert.deepEqual(f.drawn,[]);
  assert.equal(f.$('walletlinkqr').classList.contains('hidden'),true);
 });
+
+test('SDK loading has a visible Cancel button without wallet app links or QR',async()=>{const f=fixture();f.show({phase:'loading'});assert.equal(f.$('walletlink').classList.contains('hidden'),false);assert.equal(f.$('walletlinktext').textContent,'Preparing wallet connection…');assert.equal(f.$('walletlinkback').textContent,'Cancel connection');assert.equal(f.$('walletlinkapps').innerHTML,'');assert.equal(f.$('walletlinkback').focused,true);assert.equal(f.$('walletlinkqr').classList.contains('hidden'),true);assert.equal(f.$('progressrecovery').inert,true);f.ready();await tick();assert.deepEqual(f.drawn,[]);f.show(null);assert.equal(f.$('progressrecovery').inert,false);});
