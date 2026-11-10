@@ -1,5 +1,17 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Meet other drivers in the public hub, race friends, or explore in Free Drive.": "Ortak sürüş alanında diğer sürücülerle tanış, arkadaşlarınla yarış veya Serbest Sürüşte keşfet.",
+  "Public hub": "Ortak sürüş alanı",
+  "Online & solo": "Çevrimiçi ve tek oyunculu",
+
+  "Controller menus: D-pad or left stick moves, A selects, B goes back and Start pauses. LB, RB, X and Y use belt slots 1–4.": "Kontrolcü menüleri: yön tuşları veya sol çubuk hareket ettirir, A seçer, B geri gider ve Start duraklatır. LB, RB, X ve Y kemerin 1–4 yuvalarını kullanır.",
+  "Meet on the road": "Yolda buluşalım",
+  "Sanko Racers has a public driving hub for up to 16 drivers, with public text chat. Private invite races stay separate.": "Sanko Racers artık herkese açık yazılı sohbetle 16 sürücüye kadar ortak bir sürüş alanı sunuyor. Davetli özel yarışlar ayrı kalıyor.",
+  "The garage previews your real kart and driver. Choose Casual, Iron Guard or Priest; driver view shows native arms and hands. Middle mouse rotates the camera.": "Garajda gerçek kartın ve sürücün gösterilir. Günlük, Demir Muhafız veya Rahip seç; sürücü görünümünde orijinal kollar ve eller görünür. Orta fare tuşu kamerayı döndürür.",
+  "Racers now has native music, grouped graphics settings, its own Updates log and standard controller controls.": "Racers artık orijinal müzik, gruplandırılmış grafik ayarları, kendi Güncellemeler kaydı ve standart kontrolcü desteği sunuyor.",
+  "Desert bridge collision follows the visible planks; extra building-wall padding is removed.": "Çöl köprüsünün çarpışması görünen tahtaları takip eder; bina duvarlarındaki fazladan çarpışma payı kaldırıldı.",
+  "Survivors controller polling handles blocked browser access, disconnects and held buttons on reconnect or focus return.": "Survivors kontrolcü okuması tarayıcı erişim engelini, bağlantı kopmasını ve yeniden bağlanırken veya pencereye dönerken basılı kalan düğmeleri yönetir.",
+
   "Race your friends": "Arkadaşlarınla yarış",
   "Sanko Racers: create a private World Circuit race for 2–4 players, share its invite link, ready up and start together. Non-blocking karts use the same handling; online results stay separate from solo records.": "Sanko Racers: 2–4 oyunculuk özel bir World Circuit yarışı oluştur, davet bağlantısını paylaş, hazır ol ve birlikte başla. Kartlar birbirini engellemez ve aynı sürüş özelliklerini kullanır; çevrimiçi sonuçlar solo rekorlardan ayrıdır.",
   "V or the View button switches between chase and driver-eye cameras. Drag the mouse to look around; C recentres. Space or Drift is the handbrake.": "V veya View düğmesiyle takip kamerası ve sürücü görüşü arasında geçiş yap. Etrafa bakmak için fareyi sürükle; C kamerayı ortalar. Space veya Drift el frenidir.",

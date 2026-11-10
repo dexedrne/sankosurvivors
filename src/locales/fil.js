@@ -1,5 +1,17 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Meet other drivers in the public hub, race friends, or explore in Free Drive.": "Kilalanin ang ibang driver sa pampublikong hub, makipagkarera sa mga kaibigan, o mag-explore sa Free Drive.",
+  "Public hub": "Pampublikong hub",
+  "Online & solo": "Online at solo",
+
+  "Controller menus: D-pad or left stick moves, A selects, B goes back and Start pauses. LB, RB, X and Y use belt slots 1–4.": "Mga menu ng controller: D-pad o kaliwang stick ang gumagalaw, A ang pumipili, B ang bumabalik at Start ang nagpa-pause. Ginagamit ng LB, RB, X at Y ang belt slots 1–4.",
+  "Meet on the road": "Magkita sa kalsada",
+  "Sanko Racers has a public driving hub for up to 16 drivers, with public text chat. Private invite races stay separate.": "May pampublikong lugar sa pagmamaneho ang Sanko Racers para sa hanggang 16 na driver, na may pampublikong text chat. Hiwalay pa rin ang mga pribadong karera sa imbitasyon.",
+  "The garage previews your real kart and driver. Choose Casual, Iron Guard or Priest; driver view shows native arms and hands. Middle mouse rotates the camera.": "Ipinapakita ng garahe ang tunay mong kart at driver. Pumili ng Casual, Iron Guard o Priest; makikita ang orihinal na mga braso at kamay sa driver view. Iikot ang camera gamit ang gitnang mouse button.",
+  "Racers now has native music, grouped graphics settings, its own Updates log and standard controller controls.": "May orihinal na musika, nakapangkat na graphics settings, sariling Updates log at suporta sa standard controller na ang Racers.",
+  "Desert bridge collision follows the visible planks; extra building-wall padding is removed.": "Sumusunod sa nakikitang mga tabla ang collision ng tulay sa disyerto; inalis ang sobrang palugit sa mga pader ng gusali.",
+  "Survivors controller polling handles blocked browser access, disconnects and held buttons on reconnect or focus return.": "Hinahawakan ng controller polling ng Survivors ang access na hinarang ng browser, pagkaputol ng koneksyon at mga button na nakapindot habang kumokonekta muli o bumabalik sa window.",
+
   "Race your friends": "Makipagkarera sa mga kaibigan",
   "Sanko Racers: create a private World Circuit race for 2–4 players, share its invite link, ready up and start together. Non-blocking karts use the same handling; online results stay separate from solo records.": "Sanko Racers: gumawa ng pribadong World Circuit race para sa 2–4 manlalaro, ibahagi ang invite link, mag-ready at sabay-sabay magsimula. Hindi nagbabanggaan ang mga kart at pareho ang handling; hiwalay ang online results sa solo records.",
   "V or the View button switches between chase and driver-eye cameras. Drag the mouse to look around; C recentres. Space or Drift is the handbrake.": "Gamitin ang V o View button para lumipat sa chase camera o pananaw ng driver. I-drag ang mouse para tumingin; C ang panggitna ng camera. Space o Drift ang handbrake.",

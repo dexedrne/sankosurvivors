@@ -13,7 +13,7 @@ function setup(){
 }
 test('Fun is a category with Slimer Invasion and a real same-site driving game',()=>{
  for(const id of ['modemenu','modebtn','modecategories','modemenutitle','modemenublurb','racersplay','modemenuclose'])assert(html.includes('id="'+id+'"'),id);
- assert.match(html,/<a[^>]*id="racersplay"[^>]*href="\.\/fun\/racers\/\?mode=free"/);
+ assert.match(html,/<a[^>]*id="racersplay"[^>]*href="\.\/fun\/racers\/\?mode=hub"/);
  assert(html.includes('Boss &amp; Raid'));assert(html.includes('Slimer Invasion'));
 });
 test('browsing Fun shows its four experiences without selecting or starting a survival run',()=>{
@@ -33,5 +33,5 @@ test('Racers navigation refuses a busy or unreadable title without navigating or
   const fn=invoke(mode,()=>manual,()=>progress,coop,()=>cancelled++,{assign(){navigated++;}},()=>{});fn({preventDefault(){prevented++;}});
  }
  assert.equal(prevented,4);assert.equal(cancelled,0);assert.equal(navigated,0);
- const fn=invoke('title',()=>true,()=>true,null,()=>cancelled++,{assign(path){assert.equal(path,'./fun/racers/?mode=free');navigated++;}},()=>{});fn({preventDefault(){prevented++;}});assert.equal(cancelled,1);assert.equal(navigated,1);
+ const fn=invoke('title',()=>true,()=>true,null,()=>cancelled++,{assign(path){assert.equal(path,'./fun/racers/?mode=hub');navigated++;}},()=>{});fn({preventDefault(){prevented++;}});assert.equal(cancelled,1);assert.equal(navigated,1);
 });

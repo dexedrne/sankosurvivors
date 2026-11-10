@@ -1,8 +1,8 @@
 {
   "source": {
-    "commit": "3563da4cc22fbbac64c3abefbad5ff717fcebe45",
-    "implementation": "3563da4cc22fbbac64c3abefbad5ff717fcebe45",
-    "clientSha256": "3b2992b839e2a85a694680e9fecbdd2b8058c786065e87d5ae8fbeabe269202f"
+    "commit": "67df4f11b2009a021c0097188bcc6871cfc0d04e",
+    "implementation": "67df4f11b2009a021c0097188bcc6871cfc0d04e",
+    "clientSha256": "c014c458346f283dc89aa7cd464c8d3de906edfbeeca95bec5dd34820ec91935"
   },
   "adaptations": {
     "client": [
@@ -10,6 +10,11 @@
         "before": "\"./assets/\"",
         "after": "\"/assets/\"",
         "count": 3
+      },
+      {
+        "before": "\"./assets/music/\"",
+        "after": "\"/assets/music/\"",
+        "count": 1
       },
       {
         "before": "\"./draco/\"",
@@ -39,35 +44,35 @@
     ],
     "html": [
       {
-        "before": "/assets/index-DGx36-Qb.js",
-        "after": "./racers-7f9de90a5ce9ccfa.js"
+        "before": "/assets/index-Cyc_InlI.js",
+        "after": "./racers-8a52a881a8907aba.js"
       },
       {
-        "before": "/assets/index-DVVTPQVr.css",
-        "after": "./racers-c8284805406168dd.css"
+        "before": "/assets/index-CVV52naA.css",
+        "after": "./racers-fa7ba66333ef67bd.css"
       },
       {
-        "before": "<a href=\"./CREDITS.txt\"",
-        "after": "<a class=\"racers-back\" href=\"/?menu=fun\">Back to SankoSurvivors</a><a href=\"./CREDITS.txt\""
+        "before": "<div id=\"return-slot\"></div>",
+        "after": "<div id=\"return-slot\"><a class=\"racers-back\" href=\"/?menu=fun\">Back to SankoSurvivors</a></div>"
       }
     ],
-    "cssAppend": "\n.racers-back{display:flex;align-items:center;justify-content:center;min-height:44px;margin:12px 0;font-weight:700}.panel-inner{max-height:calc(100dvh - 40px);overflow-y:auto}\n"
+    "cssAppend": "\n.racers-back{display:flex;align-items:center;justify-content:center;min-height:44px;margin:12px 0;font-weight:700}\n"
   },
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 4421,
-      "sha256": "974af56c2b688b020193c6c15b94b1deada9d76627d25f0ac86807474fab5c04"
+      "bytes": 6333,
+      "sha256": "76895778754f43c9659dc4825025c2f78131df60435a86766c043e621a54bc55"
     },
     {
-      "path": "/fun/racers/racers-7f9de90a5ce9ccfa.js",
-      "bytes": 746496,
-      "sha256": "7f9de90a5ce9ccfa262e06d267a7055e3c1467faf381626189ce1c529c66f87e"
+      "path": "/fun/racers/racers-8a52a881a8907aba.js",
+      "bytes": 835016,
+      "sha256": "8a52a881a8907abac605b1f3dd8c08f36cc56c16e7a581e636acc3fae2c65227"
     },
     {
-      "path": "/fun/racers/racers-c8284805406168dd.css",
-      "bytes": 8430,
-      "sha256": "c8284805406168ddadcaead7256ac1d880fbff84cb268d089275bbc9bb52283c"
+      "path": "/fun/racers/racers-fa7ba66333ef67bd.css",
+      "bytes": 14779,
+      "sha256": "fa7ba66333ef67bd0b648bfdfc9cdadd4f12050ac4f32e14e376e49f6c8c5e64"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -76,8 +81,8 @@
     },
     {
       "path": "/fun/racers/INTEGRATION.txt",
-      "bytes": 2400,
-      "sha256": "9c9ae27689b093945ebeebed2fe9a7a65e51cf3cba91108a447b525f6f16ab8b"
+      "bytes": 2420,
+      "sha256": "ca3738c82e2c0f355186dceb43a94f27c80842a5a9ed87542ae748e4f7df4584"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -327,6 +332,16 @@
       "sha256": "ff0bb672ca030ac73553217ff042496af559b1cd0aca47a6f222c0172c2bfdf3"
     },
     {
+      "path": "/assets/music/Adobe_Fantasy.mp3",
+      "bytes": 2690738,
+      "sha256": "3e97c9ef1d545931afda7c90ec1481c3f8732bcd4db4cfbb7a077481dc303865"
+    },
+    {
+      "path": "/assets/music/Fresh_Beginnings.mp3",
+      "bytes": 1764541,
+      "sha256": "c932a22996d2e5a110220aaf859275a89a2e482e5e861dfb53f520f161015129"
+    },
+    {
       "path": "/assets/ui/sq/accept_button.png",
       "bytes": 6662,
       "sha256": "10108e50107fca10e59da433d68844d4f4315aad61ab397eed1126af59a27379"
@@ -355,6 +370,16 @@
       "path": "/assets/ui/sq/yellow_slot.png",
       "bytes": 8171,
       "sha256": "940ef99b01121e53b8559160cb9a3be9b6f0771ee6fdbe032e259ccaebb0a68d"
+    },
+    {
+      "path": "/assets/world/foliage/daisies.glb",
+      "bytes": 68492,
+      "sha256": "629d5371f25d7b993e3ceda8811acd7ecba1f3a0177547c3008bb914c2d87505"
+    },
+    {
+      "path": "/assets/world/foliage/grass1.glb",
+      "bytes": 35400,
+      "sha256": "6b0380b3682aea11e862727cf16dfb7c386c854a38f68402134c74805321f33b"
     },
     {
       "path": "/assets/world/nodes/Wheat.glb",

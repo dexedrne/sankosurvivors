@@ -1,5 +1,17 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Meet other drivers in the public hub, race friends, or explore in Free Drive.": "Conoce a otros pilotos en el punto de encuentro público, compite con amigos o explora en Conducción libre.",
+  "Public hub": "Punto de encuentro público",
+  "Online & solo": "En línea y solo",
+
+  "Controller menus: D-pad or left stick moves, A selects, B goes back and Start pauses. LB, RB, X and Y use belt slots 1–4.": "Menús con mando: la cruceta o el stick izquierdo mueve, A selecciona, B vuelve y Start pausa. LB, RB, X e Y usan las ranuras 1–4 del cinturón.",
+  "Meet on the road": "Nos vemos en la carretera",
+  "Sanko Racers has a public driving hub for up to 16 drivers, with public text chat. Private invite races stay separate.": "Sanko Racers tiene un punto de encuentro público para hasta 16 pilotos, con chat de texto público. Las carreras privadas por invitación siguen separadas.",
+  "The garage previews your real kart and driver. Choose Casual, Iron Guard or Priest; driver view shows native arms and hands. Middle mouse rotates the camera.": "El garaje muestra tu kart y piloto reales. Elige Casual, Guardia de hierro o Sacerdote; la vista del conductor muestra brazos y manos originales. El botón central del ratón gira la cámara.",
+  "Racers now has native music, grouped graphics settings, its own Updates log and standard controller controls.": "Racers ahora incluye música original, ajustes gráficos agrupados, su propio registro de actualizaciones y controles para mandos estándar.",
+  "Desert bridge collision follows the visible planks; extra building-wall padding is removed.": "La colisión del puente del desierto sigue los tablones visibles; se elimina el margen adicional de las paredes de los edificios.",
+  "Survivors controller polling handles blocked browser access, disconnects and held buttons on reconnect or focus return.": "Los controles con mando de Survivors gestionan el acceso bloqueado por el navegador, las desconexiones y los botones mantenidos al reconectar o volver a la ventana.",
+
   "Race your friends": "Compite con tus amigos",
   "Sanko Racers: create a private World Circuit race for 2–4 players, share its invite link, ready up and start together. Non-blocking karts use the same handling; online results stay separate from solo records.": "Sanko Racers: crea una carrera privada del World Circuit para 2–4 jugadores, comparte la invitación, confirma que estás listo y salid juntos. Los karts no se bloquean y tienen el mismo manejo; los resultados en línea se guardan aparte de los récords individuales.",
   "V or the View button switches between chase and driver-eye cameras. Drag the mouse to look around; C recentres. Space or Drift is the handbrake.": "V o el botón View alterna entre la cámara de seguimiento y la vista del conductor. Arrastra el ratón para mirar; C centra la cámara. Space o Drift acciona el freno de mano.",

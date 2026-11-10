@@ -243,7 +243,7 @@ async function chooseRunMode(value) {
 function enterRacers(event) {
   event.preventDefault();
   if (mode !== 'title' || !canManuallyReload() || !progressCanLoad() || coop) { banner('Finish the current action before opening another game.', 3500); return; }
-  cancelPendingLoads(); location.assign('./fun/racers/?mode=free');
+  cancelPendingLoads(); location.assign('./fun/racers/?mode=hub');
 }
 function updateModePicker() {
   const special = selVariant !== 'normal', fixed = ['boss', 'fun', 'wizard', 'castle'].includes(selVariant);
@@ -2025,8 +2025,8 @@ addEventListener('keydown', (e) => {
   if ((k === 'enter' || k === ' ') && (mode === 'title' && !$('start').disabled || mode === 'end') && MENU_SCREENS.every((id) => $(id).classList.contains('hidden'))) startRun();
 });
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-addEventListener('blur', () => { keys.clear(); clearTouch(); pendingUse = null; if (mode === 'play' && (document.hidden || !keepPlayingUnfocused())) pause(true); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); pendingUse = null; if (mode === 'play') pause(true); } });
+addEventListener('blur', () => { keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play' && (document.hidden || !keepPlayingUnfocused())) pause(true); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play') pause(true); } });
 function pause(on) { clearTouch(); if (on) coop?.run?.resetInput(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (rankedRun) updateRankedPause(); }
 $('start').onclick = startRun; $('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
 $('quit').onclick = () => { if (rankedPlaying()) return; if (coop) { coop.close(); return; } pause(false); sim.over = 'dead'; };
@@ -2118,7 +2118,7 @@ const hop = () => {
 $('tumblebtn').onclick = hop;
 
 
-let padPrev = [], pendingUse = null, slowmo = 0, stickDir = null, stickNext = 0; // belt slot to use on the next tick (1-4, a tap, or LB/RB/X/Y)
+let padPrev = [], padId = null, pendingUse = null, slowmo = 0, stickDir = null, stickNext = 0; // belt slot to use on the next tick (1-4, a tap, or LB/RB/X/Y)
 function readInput() {
   let mx = 0, mz = 0;
   if (keys.has('w') || keys.has('arrowup')) mz -= 1;
@@ -2126,7 +2126,10 @@ function readInput() {
   if (keys.has('a') || keys.has('arrowleft')) mx -= 1;
   if (keys.has('d') || keys.has('arrowright')) mx += 1;
   if (touch.id !== null && Math.hypot(touch.x, touch.y) > 0.18) { mx += touch.x; mz += touch.y; }
-  const pad = (navigator.getGamepads && [...navigator.getGamepads()].find(Boolean)) || null;
+  let pad = null;
+  try {
+    if (!document.hidden && document.hasFocus?.() !== false) pad = [...(navigator.getGamepads?.() || [])].find(p => p && p.connected !== false && p.mapping === 'standard') || null;
+  } catch { /* Browser policy can deny gamepads; keyboard and touch still work. */ }
   if (pad) {
     const ax = pad.axes[0] || 0, ay = pad.axes[1] || 0;
     if (Math.hypot(ax, ay) > 0.2) { mx += ax; mz += ay; }
@@ -2139,6 +2142,9 @@ function readInput() {
 }
 function padEdges(pad) {
   const now = pad ? pad.buttons.map((b) => b.pressed) : [];
+  const id = pad ? `${pad.index}:${pad.id}` : null;
+  // A held connect/refocus button must release before it can activate a menu or run.
+  if (id !== padId) { padPrev = now; padId = id; stickDir = null; stickNext = 0; }
   const edge = (i) => now[i] && !padPrev[i];
   const out = { a: edge(0), b: edge(1), x: edge(2), y: edge(3), lb: edge(4), rb: edge(5), up: edge(12), down: edge(13), left: edge(14), right: edge(15), start: edge(9) };
   // the left stick also steps through menus (with a repeat delay)
