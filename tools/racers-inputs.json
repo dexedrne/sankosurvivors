@@ -1,6 +1,6 @@
 {
-  "commit": "0207b7302f40670322eeee72e7f4cd2cf6cf9012",
-  "implementation": "0207b7302f40670322eeee72e7f4cd2cf6cf9012",
+  "commit": "db56f2394129505d212d6fcfc30b80ed0ec183d9",
+  "implementation": "db56f2394129505d212d6fcfc30b80ed0ec183d9",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2931,16 +2931,16 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-Ck7Q6YVN.js",
-      "bytes": 1630806,
-      "sha256": "9fb53003f12d499e1207c031b33af681d3404dc6811f832080e8295111e7c79a",
-      "role": "client"
+      "path": "assets/index-BoRIWMNW.css",
+      "bytes": 18007,
+      "sha256": "3c1c648ebabd2e077134d6efb6bcda04a69a6fc21949ea346d2997ff5ad7ad9c",
+      "role": "stylesheet"
     },
     {
-      "path": "assets/index-DpBHaJCO.css",
-      "bytes": 17389,
-      "sha256": "a36daae1a6970e3374367e9990c5cbd921efd2ccb4a168644713b189d9146d28",
-      "role": "stylesheet"
+      "path": "assets/index-KdRLHflM.js",
+      "bytes": 1635244,
+      "sha256": "75fbc8795f4d3c3ce8e965dde91da44996cf611c6ef621c7741631032982759a",
+      "role": "client"
     },
     {
       "path": "assets/inventory.json",
@@ -4611,6 +4611,12 @@
       "role": "unique"
     },
     {
+      "path": "assets/world/tiles/fences-1f98f68b5280.json",
+      "bytes": 32270,
+      "sha256": "1f98f68b5280867daa6068b02acb4ed20c5b05dda7dd0608750d6a30fd29a3d4",
+      "role": "unique"
+    },
+    {
       "path": "assets/world/tiles/fences-923b19cc1732.json",
       "bytes": 27870,
       "sha256": "923b19cc1732fbf03e893888e8e256ec6085c36ab457736c53c072ee026c2bef",
@@ -4684,8 +4690,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 7839,
-      "sha256": "fa378f28c17f41a739fc0c03e3f6eab5f21adde318e5e693a20e386e47d89cb3",
+      "bytes": 8101,
+      "sha256": "ba3227b5f460a922d4b5be0bea2883eca611d808e4232b61c94ad53c8c1065ee",
       "role": "entry"
     }
   ],

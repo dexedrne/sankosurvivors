@@ -281,6 +281,7 @@ for (const button of $('modecategories').children) button.onclick = () => showMo
 $('modemenuclose').onclick = closeModeMenu;
 $('modemenu').addEventListener('click', event => { if (event.target.id === 'modemenu') closeModeMenu(); });
 $('racersplay').onclick = enterRacers;
+$('racersbtn').onclick = enterRacers;
 $('trialboss').innerHTML = TRIAL_BOSSES.map(id => `<option value="${id}">${ENEMIES[id].name}</option>`).join('');
 $('trialboss').onchange = e => { if (TRIAL_BOSSES.includes(e.target.value)) trialBoss = e.target.value; };
 $('hard').onchange = (e) => { hardOn = e.target.checked; showBest(); };

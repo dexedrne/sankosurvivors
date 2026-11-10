@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  'Back on the road':'Yeniden yollarda',
+  'Sanko Racers has its own main-menu button beside the logo, below it on phones.':'Sanko Racers’ın ana menüde, logonun yanında ve telefonlarda altında kendi düğmesi var.',
+  'The Racers hub remembers your parking spot, kart and driver, with distance and completed races saved on this device.':'Racers hub park yerini, kartını ve sürücünü hatırlar; sürülen mesafe ve tamamlanan yarışlar bu cihazda kaydedilir.',
+  'The corridor south of Greentown Bank and tavern follows the visible walls more closely.':'Greentown Bank ve tavernanın güneyindeki geçidin çarpışma sınırları artık görünen duvarlara daha yakın.',
   "Live hub garage": "Canlı hub garajı",
   "Sanko Racers: a cleaner garage with a live driver list, multiplayer up front and solo drives folded away.": "Sanko Racers: canlı sürücü listesiyle daha düzenli garaj, önde çok oyunculu seçenekler ve katlanabilir tek oyunculu modlar.",
   "WalletConnect now shows a cancellable loading screen before the QR appears. Cancelled startups cannot open a hidden pairing later.": "WalletConnect artık QR görünmeden önce iptal edilebilir bir yükleme ekranı gösterir. İptal edilen başlangıç daha sonra gizli bir eşleştirme açamaz.",

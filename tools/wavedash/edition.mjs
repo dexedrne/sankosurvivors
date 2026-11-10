@@ -74,6 +74,7 @@ export function transformMain(source) {
   s = once(s, "$('petbunrefresh').onclick = () => bunCompanions.refresh();\n");
   s = between(s, 'function enterRacers(', 'function updateModePicker()');
   s = once(s, "$('racersplay').onclick = enterRacers;\n");
+  s = once(s, "$('racersbtn').onclick = enterRacers;\n");
   s = once(s, "  $('racersplay')?.classList.toggle('hidden', category !== 'fun');\n");
   s = once(s, '  if (!document.hidden) bunCompanions.sync(!!bunChoice(selectedPet));\n');
   s = once(s, ' && (!sim.coop || !!coop?.run && !coop.run.held && !coop.run.closed)');
@@ -200,7 +201,7 @@ export function transformHtml(source) {
   let s = source;
   s = s.replace(/^.*(?:rel="manifest"|apple-touch-icon|og:|twitter:|rel="canonical").*\n/gm, '');
   s = s.replaceAll('href="/assets/', 'href="./assets/');
-  for (const id of ['coopbtn', 'coopwait', 'cooppause', 'walletchip', 'dmtchip', 'rankedbtn', 'tipwrap', 'updatebtn', 'bugbtn2', 'dmtbtn', 'bugbtn', 'installbtn', 'endlb', 'rankedresult', 'rankedretry', 'sharex', ...excluded.filter(id => id !== 'cloudpick'), 'walletlink', 'cloudpick', 'guide-ranked', 'guide-cloud', 'petbuns', 'racersplay']) s = removeElement(s, id);
+  for (const id of ['coopbtn', 'coopwait', 'cooppause', 'walletchip', 'dmtchip', 'rankedbtn', 'tipwrap', 'updatebtn', 'bugbtn2', 'dmtbtn', 'bugbtn', 'installbtn', 'endlb', 'rankedresult', 'rankedretry', 'sharex', ...excluded.filter(id => id !== 'cloudpick'), 'walletlink', 'cloudpick', 'guide-ranked', 'guide-cloud', 'petbuns', 'racersplay', 'racersbtn']) s = removeElement(s, id);
   s = s.replaceAll('<p class="rankedpause dim hidden" role="timer" aria-live="off"></p>', '');
   s = s.replace(/<p class="rankedmovement dim">[^<]*<\/p>/g, '<p class="dim">Tumble with Space, controller A, or the Tumble button. Cross reachable low fences; buildings stay solid.</p>');
   s = s.replaceAll('Submit score &amp; continue as Endless', 'Continue as Endless').replaceAll('Continue without confirmed score', 'Continue as Endless');

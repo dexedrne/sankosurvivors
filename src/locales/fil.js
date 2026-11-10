@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  'Back on the road':'Balik sa kalsada',
+  'Sanko Racers has its own main-menu button beside the logo, below it on phones.':'May sariling button na ang Sanko Racers sa tabi ng logo sa pangunahing menu, at sa ilalim nito sa mga phone.',
+  'The Racers hub remembers your parking spot, kart and driver, with distance and completed races saved on this device.':'Naaalala ng Racers hub ang paradahan, kart at driver mo; naka-save sa device na ito ang distansya at mga natapos na karera.',
+  'The corridor south of Greentown Bank and tavern follows the visible walls more closely.':'Mas tugma na sa nakikitang mga pader ang collision sa daanan sa timog ng bangko at tavern ng Greentown.',
   "Live hub garage": "Garahe sa live na hub",
   "Sanko Racers: a cleaner garage with a live driver list, multiplayer up front and solo drives folded away.": "Sanko Racers: mas maayos na garahe na may listahan ng mga kasalukuyang driver, madaling mahanap na multiplayer at nakatiklop na solo mode.",
   "WalletConnect now shows a cancellable loading screen before the QR appears. Cancelled startups cannot open a hidden pairing later.": "May loading screen na puwedeng kanselahin bago lumabas ang WalletConnect QR. Hindi na makapagsisimula ng nakatagong pairing ang kinanselang koneksyon.",

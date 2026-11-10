@@ -66,6 +66,7 @@ test('QA success and intentional request exemptions stay green, assertion failur
 
 test('casual entry excludes all account/network services and preserves actual game/reward controls', () => {
   const code = transformMain(main);
+  assert.doesNotMatch(code, /enterRacers|racersbtn/);
   assert.doesNotMatch(code, /from ['"].*(?:wallet|ranked|cloud|swap|dmt|prize|config)/);
   assert.doesNotMatch(code, /fetch\(|serviceWorker|caches\.|savedPass|walletNow|createCloud|api\/|TIP_ETH|rankedApi|openRanked|submitScore/);
   for (const part of ['createSim(', 'saveRunProgress(localStorage, receipt.data)', 'recoverRunProgress(localStorage)', 'prepareRunRewards(', 'createScreenLayout(', 'function doReroll(', 'const hop = () =>', 'function showLevelUp(']) assert.ok(code.includes(part), part);
@@ -84,6 +85,7 @@ test('source drift aborts preparation rather than shipping the default paid entr
 });
 test('casual HTML removes account/payment/PWA/backend UI and legacy redirects', () => {
   const result = transformHtml(html);
+  assert.doesNotMatch(result, /id="racers(?:btn|play)"/);
   assert.doesNotMatch(result, /wallet|ranked|DMT|ethereum|manifest|sankosurvivors\.quest|id="bug|id="lbname|id="sharex/i);
   for (const id of ['start', 'gearbtn', 'skillsbtn', 'questbtn', 'lbbtn', 'setbtn', 'xferbtn', 'progressrecovery', 'levelup', 'tumblebtn']) assert.ok(result.includes(`id="${id}"`), id);
   assert.match(result, /Best run/);

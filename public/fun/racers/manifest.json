@@ -1,8 +1,8 @@
 {
   "source": {
-    "commit": "0207b7302f40670322eeee72e7f4cd2cf6cf9012",
-    "implementation": "0207b7302f40670322eeee72e7f4cd2cf6cf9012",
-    "clientSha256": "9fb53003f12d499e1207c031b33af681d3404dc6811f832080e8295111e7c79a"
+    "commit": "db56f2394129505d212d6fcfc30b80ed0ec183d9",
+    "implementation": "db56f2394129505d212d6fcfc30b80ed0ec183d9",
+    "clientSha256": "75fbc8795f4d3c3ce8e965dde91da44996cf611c6ef621c7741631032982759a"
   },
   "adaptations": {
     "client": [
@@ -42,8 +42,8 @@
         "count": 1
       },
       {
-        "before": "\"world/tiles/fences-071e4322831c.json\"",
-        "after": "\"racers/world/tiles/fences-071e4322831c.json\"",
+        "before": "\"world/tiles/fences-1f98f68b5280.json\"",
+        "after": "\"racers/world/tiles/fences-1f98f68b5280.json\"",
         "count": 1
       },
       {
@@ -54,12 +54,12 @@
     ],
     "html": [
       {
-        "before": "/assets/index-Ck7Q6YVN.js",
-        "after": "./racers-30dea5318995a2cf.js"
+        "before": "/assets/index-KdRLHflM.js",
+        "after": "./racers-f616721297b12f0c.js"
       },
       {
-        "before": "/assets/index-DpBHaJCO.css",
-        "after": "./racers-24b29ca988dc8aae.css"
+        "before": "/assets/index-BoRIWMNW.css",
+        "after": "./racers-95e0c5ae57f5cd30.css"
       },
       {
         "before": "<div id=\"return-slot\"></div>",
@@ -71,18 +71,18 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 7912,
-      "sha256": "60f8a7a79799fea086a5a83a2ff09c8cd9e1ddb8449ce799a0410796ef0c1dc7"
+      "bytes": 8174,
+      "sha256": "029beaf1a4d2b299051ccaa33936bf85ebc5bd9842efc6faf350b053be45cfeb"
     },
     {
-      "path": "/fun/racers/racers-30dea5318995a2cf.js",
-      "bytes": 1630933,
-      "sha256": "30dea5318995a2cf67b028b997c0169bfc9cebf2d2778aa47559d5372ecabf6d"
+      "path": "/fun/racers/racers-f616721297b12f0c.js",
+      "bytes": 1635371,
+      "sha256": "f616721297b12f0c7e0e7ef736f45acc68d863f2107d9a52c8104297c655bd83"
     },
     {
-      "path": "/fun/racers/racers-24b29ca988dc8aae.css",
-      "bytes": 17505,
-      "sha256": "24b29ca988dc8aaee242e63816cde91852d9071eff18cda5abbfaab9da5439a0"
+      "path": "/fun/racers/racers-95e0c5ae57f5cd30.css",
+      "bytes": 18123,
+      "sha256": "95e0c5ae57f5cd30b9561cb9e3028164ca3066c5b6bda44c5d71706e3ed0f476"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -92,7 +92,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 2918,
-      "sha256": "a1cb12d87116e49b075d1727e397d1d159bf2e2683aef5adc654d908e2c9b36f"
+      "sha256": "cc7a2290915d9ede7878f701bf739aefec680b768154da26cff403907020fa59"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -2598,6 +2598,11 @@
       "path": "/assets/racers/world/tiles/fences-071e4322831c.json",
       "bytes": 29698,
       "sha256": "071e4322831c5eb97c1a90b6d140172ac151e9211f2ef7ac962b57a14d1ea378"
+    },
+    {
+      "path": "/assets/racers/world/tiles/fences-1f98f68b5280.json",
+      "bytes": 32270,
+      "sha256": "1f98f68b5280867daa6068b02acb4ed20c5b05dda7dd0608750d6a30fd29a3d4"
     },
     {
       "path": "/assets/racers/world/tiles/surfaces-ffe7cf27a1ad.bin",

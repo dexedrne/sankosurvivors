@@ -17,7 +17,7 @@ const chrome = spawn('nice', ['-n','19','/usr/bin/chromium','--headless=new','--
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const issues = [], notes = [], frames = []; let ws, context, frameSession, id = 0, capture = false;
 const pending = new Map();
-let failed = false;
+let failed = false, phoneAgent = null;
 try {
   let pages;
   for (let i=0;i<60&&!pages;i++) { try { pages = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json(); } catch { await sleep(250); } }
@@ -32,6 +32,7 @@ try {
       if(m.params.targetInfo.type==='iframe') {
         frameSession=session;context=null;
         await send('Runtime.enable',{},session);await send('Page.enable',{},session);await send('Network.enable',{},session);
+        if(phoneAgent)await send('Network.setUserAgentOverride',phoneAgent,session);
         await send('Page.addScriptToEvaluateOnNewDocument',{source:readFileSync(resolve(root,'tools/wavedash/qa-init.js'),'utf8')},session);
       }
       await send('Runtime.runIfWaitingForDebugger',{},session);
@@ -89,7 +90,7 @@ try {
   await evaluate("__sq.toMenu();document.getElementById('lbbtn').click()");assert.ok(await evaluate("document.getElementById('lblist').textContent.includes('none yet')"));await click('#lbclose');
   await assertNoServices();
   await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5},frameSession);await send('Emulation.setDeviceMetricsOverride',{width:393,height:852,deviceScaleFactor:1,mobile:true});
-  const phoneAgent={userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 27_1 like Mac OS X) AppleWebKit/605.1.15 Version/27.1 Mobile/15E148 Safari/604.1'};
+  phoneAgent={userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 27_1 like Mac OS X) AppleWebKit/605.1.15 Version/27.1 Mobile/15E148 Safari/604.1'};
   await send('Network.setUserAgentOverride',phoneAgent);await send('Network.setUserAgentOverride',phoneAgent,frameSession);
   await evaluate('location.reload()');context=null;await wait("__wavedashFixture.loads===2&&"+health);
   await evaluate("document.getElementById('setbtn').click();Array.from(document.querySelectorAll('#setlist button')).find(b=>b.dataset.id==='layout'&&JSON.parse(b.dataset.v)==='ds').click();document.getElementById('setclose').click()");
@@ -97,14 +98,15 @@ try {
   await evaluate('location.reload()');context=null;await wait("__wavedashFixture.loads===3&&"+health);
   assert.equal(await evaluate('document.documentElement.lang'), 'fil');
   assert.equal(await evaluate("document.body.classList.contains('touch')"),true);
+  assert.match(await evaluate('navigator.userAgent'),/iPhone/);
   for(const lang of ['tr','es','fil','en']){
     await evaluate(`(()=>{const e=document.querySelector('[data-language]');e.value='${lang}';e.dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('morebtn').click();})()`);await sleep(100);
     assert.ok(await evaluate("(()=>{const r=document.querySelector('#more .panel').getBoundingClientRect();return r.x>=0&&r.right<=393&&r.y>=0&&r.bottom<=852;})()"));
     assert.ok(!await evaluate("/wallet|DMT|Ranked/.test(document.getElementById('more').textContent)"));await shot('mobile-more-'+lang);await click('#moreclose');
-    await click('#setbtn');
+    await click('#morebtn');await click('#setbtn');
     const flexLabel={en:'Flex mode',tr:'Flex modu',es:'Modo Flex',fil:'Flex mode'}[lang];
     await wait(`Array.from(document.querySelectorAll('#setlist button')).find(b=>b.dataset.id==='layout'&&JSON.parse(b.dataset.v)==='ds')?.textContent===${JSON.stringify(flexLabel)}`);
-    assert.equal(await evaluate("document.body.classList.contains('ds-layout')"),true);await shot('mobile-flex-'+lang);await click('#setclose');
+    assert.equal(await evaluate("document.body.classList.contains('ds-layout')"),true);await shot('mobile-flex-'+lang);await click('#setclose');await click('#moreclose');
     await click('#morebtn');await click('#updbtn');
     const translated = text => lang === 'en' ? text : catalogue[lang].text[text];
     await wait(`document.querySelector('#updlist .upd b').textContent===${JSON.stringify(translated(CHANGELOG[0].title))}`);
@@ -115,8 +117,9 @@ try {
       assert.equal(await evaluate(`document.querySelectorAll('#updlist .updhead span')[${i}].textContent`), `${entry.date} · v${entry.version}`);
     }
     assert.ok(await evaluate("(()=>{const p=document.querySelector('#updates .panel').getBoundingClientRect(),b=document.getElementById('updclose').getBoundingClientRect();return p.x>=0&&p.right<=393&&p.y>=0&&p.bottom<=852&&b.bottom<=852&&document.body.scrollWidth<=393;})()"));
-    await shot('mobile-updates-'+lang);await click('#updclose');
+    await shot('mobile-updates-'+lang);await click('#updclose');await click('#moreclose');
     const scalingStart = {en:'Each skill rank',tr:'Her beceri kademesi',es:'Cada rango de habilidad',fil:'Bawat antas ng kasanayan'}[lang];
+    await click('#upgradesbtn');
     for (const [button,panel,close] of [['skillsbtn','skills','skillsclose'],['gearbtn','gear','gearclose']]) {
       await click('#'+button);await sleep(100);
       const note=await evaluate(`document.querySelector('#${panel} .progression-note small').textContent`);
@@ -124,6 +127,7 @@ try {
       assert.ok(note.includes('1.5')&&/75%|%75/.test(note));
       await shot('mobile-'+panel+'-'+lang);await click('#'+close);
     }
+    await click('#upgradesclose');
   }
   await evaluate("document.getElementById('start').click()");await wait("['play','pause'].includes(__sq.mode)");
   await sleep(300);if(await evaluate("__sq.mode==='pause'"))await click('#resume');
