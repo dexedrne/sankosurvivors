@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Sanko Racers: drivers sit upright and reach the steering wheel more naturally. Changing outfits keeps the same pose at every heading.": "Sanko Racers: tuwid na nakaupo ang mga driver at mas natural na naaabot ang manibela. Pareho ang pose kapag nagpapalit ng damit sa anumang direksyon.",
+  "Fences and seated drivers": "Mga bakod at nakaupong driver",
+  "Sanko Racers: Apache fence collision follows the original model bounds more closely, reducing invisible edges.": "Sanko Racers: mas tugma na ang collision ng mga bakod sa Apache sa orihinal na modelo, kaya mas kaunti ang hindi nakikitang harang.",
   "Feel the road": "Damhin ang kalsada",
   "Sanko Racers uses original map materials for grip: firmer stone, looser dirt, grass and sand, and wooden bridge decks. Changes blend smoothly, with the same handling online and offline.": "Ginagamit ng Sanko Racers ang orihinal na mga materyal ng mapa para sa kapit: mas matibay sa bato, mas madulas sa lupa, damo at buhangin, at kahoy sa mga tulay. Dahan-dahan ang pagbabago at pareho ang pagmamaneho online at offline.",
   "The speed display names the surface. Time trial keeps a separate record for the new handling; previous records stay saved.": "Ipinapakita sa speed display ang uri ng lupa. May hiwalay na rekord ang time trial para sa bagong pagmamaneho; naka-save pa rin ang dating mga rekord.",

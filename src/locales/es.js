@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Sanko Racers: drivers sit upright and reach the steering wheel more naturally. Changing outfits keeps the same pose at every heading.": "Sanko Racers: los pilotos se sientan erguidos y alcanzan el volante de forma más natural. Cambiar de atuendo mantiene la misma postura en todas las direcciones.",
+  "Fences and seated drivers": "Vallas y pilotos sentados",
+  "Sanko Racers: Apache fence collision follows the original model bounds more closely, reducing invisible edges.": "Sanko Racers: la colisión de las vallas de Apache sigue mejor los límites de los modelos originales y reduce los bordes invisibles.",
   "Feel the road": "Siente la carretera",
   "Sanko Racers uses original map materials for grip: firmer stone, looser dirt, grass and sand, and wooden bridge decks. Changes blend smoothly, with the same handling online and offline.": "Sanko Racers usa los materiales originales del mapa para el agarre: piedra más firme, tierra, hierba y arena más sueltas, y tablones de madera en los puentes. Los cambios son suaves, con el mismo manejo en línea y sin conexión.",
   "The speed display names the surface. Time trial keeps a separate record for the new handling; previous records stay saved.": "El indicador de velocidad muestra la superficie. La contrarreloj tiene un récord separado para el nuevo manejo; los récords anteriores siguen guardados.",

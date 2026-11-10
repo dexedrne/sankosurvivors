@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Sanko Racers: drivers sit upright and reach the steering wheel more naturally. Changing outfits keeps the same pose at every heading.": "Sanko Racers: sürücüler dik oturur ve direksiyona daha doğal uzanır. Kıyafet değiştirirken her yönde aynı poz korunur.",
+  "Fences and seated drivers": "Çitler ve oturan sürücüler",
+  "Sanko Racers: Apache fence collision follows the original model bounds more closely, reducing invisible edges.": "Sanko Racers: Apache çitlerinin çarpışması orijinal model sınırlarını daha yakından izler ve görünmez kenarları azaltır.",
   "Feel the road": "Yolu hisset",
   "Sanko Racers uses original map materials for grip: firmer stone, looser dirt, grass and sand, and wooden bridge decks. Changes blend smoothly, with the same handling online and offline.": "Sanko Racers yol tutuşu için haritanın orijinal malzemelerini kullanır: daha sıkı taş, daha kaygan toprak, çimen ve kum, ayrıca ahşap köprüler. Geçişler yumuşaktır; çevrimiçi ve çevrimdışı sürüş aynıdır.",
   "The speed display names the surface. Time trial keeps a separate record for the new handling; previous records stay saved.": "Hız göstergesi zemini belirtir. Zamana karşı modunda yeni sürüş için ayrı rekor tutulur; önceki rekorlar kayıtlı kalır.",

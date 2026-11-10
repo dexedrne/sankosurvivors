@@ -65,8 +65,8 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  for(const key of ['sanko-racers-world-v1','racers-graphics','racers-volume','racers-muted'])assert(js.includes(key),key);
  assert.doesNotMatch(js,/["']sq-|localStorage\.clear\(/);
  assert.doesNotMatch(js,/\.\/assets\/|\.\/draco\/|100\.65\.235\.118|127\.0\.0\.1|localhost|walletconnect|supabase|ethereum|\/api\//i);
- assert.equal(js.includes('nav.bin'),false);
- for(const file of ['cars/miata.glb','placements.json','world/tiles/fences.json'])
+ assert.equal(js.includes('nav.bin'),false);assert.equal(js.includes('world/tiles/fences.json'),false);
+ for(const file of ['cars/miata.glb','placements.json','world/tiles/fences-923b19cc1732.json'])
   assert.ok(js.includes(`racers/${file}`),file);
 });
 
