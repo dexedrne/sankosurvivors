@@ -69,7 +69,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  const css=read(`public${m.files.find(f=>f.path.endsWith('.css')).path}`).toString();
  for(const asset of ['RuneScape-Plain-12.ttf','RuneScape-Quill-8.ttf','frame.png','grey_slot.png','yellow_slot.png'])assert(css.includes(asset),asset);
  assert(html.includes('data-action="handbrake"'));
- for(const id of ['garage-tabs','world-tab','garage-tab','activities-tab','start-walk','aim'])assert(html.includes('id="'+id+'"'),id);
+ for(const id of ['garage-tabs','world-tab','garage-tab','activities-tab','start-walk','aim','wardrobe','zombiemode','slash'])assert(html.includes('id="'+id+'"'),id);
  assert(html.includes('id="fire"'));assert(html.includes('id="combat-status"'));assert(js.includes('WILDERNESS'));
  assert(html.includes('id="free-start"'));assert(html.includes('id="vehicle-choice"'));assert(html.includes('CRASHOUT KARTS'));assert(js.includes('Same handling for every vehicle.'));
  for(const key of ['sanko-racers-world-v1','racers-graphics','racers-volume','racers-muted'])assert(js.includes(key),key);

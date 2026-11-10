@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Zombies in Greentown":"Mga zombie sa Greentown",
+  "Customize your Sanko Racers character with saved hair, skin and clothing choices in the Garage.":"I-customize ang karakter mo sa Sanko Racers at i-save ang buhok, balat at damit sa Garage.",
+  "Open Activities → Zombies for solo third-person survival with a Glock and iron shortsword.":"Buksan ang Activities → Zombies para sa solo third-person survival na may Glock at bakal na maikling espada.",
   "Take to the streets":"Lumabas sa mga lansangan",
   "Sanko Racers: enter the shared world on foot or in your kart. World, Garage and Activities keep the menu easy to scan.":"Sanko Racers: pumasok sa shared world nang naglalakad o sakay ng kart. Madaling basahin ang World, Garage at Activities.",
   "Preview your native driver beside the kart, with outfits and your road log together in the Garage.":"Tingnan ang driver sa tabi ng kart, kasama ang mga outfit at road log sa Garage.",

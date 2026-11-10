@@ -2,15 +2,15 @@
   "aliases": [
     {
       "path": "/racers/index.html",
-      "bytes": 11311,
-      "sha256": "1bbc06f5b83698257a22275e4ff512972b27edbc6903d6d6456d10d2c6195a17"
+      "bytes": 11848,
+      "sha256": "8424c308e256f41a4d2a5beb357e4b4ef4ecd0495b913adb6649462665e26080"
     }
   ],
   "source": {
-    "commit": "baf17b68d57ac7b18bd2cdea40278f839ee12c0f",
-    "implementation": "baf17b68d57ac7b18bd2cdea40278f839ee12c0f",
+    "commit": "957631225425e6a4990819c0f1a15c6dbb64e5f1",
+    "implementation": "957631225425e6a4990819c0f1a15c6dbb64e5f1",
     "rulesVersion": "80548b2fca69",
-    "clientSha256": "f1ab774784806fba43371decd07cf86a1e2bd736b7a586c28edfaf1b27793fe6"
+    "clientSha256": "bbff0683f64d10390e92d86078fb2d69a13786256d1b7d8fab92f5b461a5e163"
   },
   "adaptations": {
     "client": [
@@ -71,12 +71,12 @@
         "after": "<title>Sanko Racers · SankoQuest World</title><meta name=\"description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Sanko Racers\"><meta property=\"og:title\" content=\"Sanko Racers · Public World Hub\"><meta property=\"og:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:url\" content=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><link rel=\"canonical\" href=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image:secure_url\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Sanko Racers · Public World Hub\"><meta name=\"twitter:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta name=\"twitter:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\">"
       },
       {
-        "before": "/assets/index-CiyUxLIe.js",
-        "after": "./racers-f616af402868a060.js"
+        "before": "/assets/index-V6L0Z-yI.js",
+        "after": "./racers-350b05161a3addd3.js"
       },
       {
-        "before": "/assets/index-zuftv-hD.css",
-        "after": "./racers-23d7b8c8b8c459fd.css"
+        "before": "/assets/index-aKa548qE.css",
+        "after": "./racers-bcfe6dadced3adfe.css"
       },
       {
         "before": "<div id=\"return-slot\"></div>",
@@ -88,18 +88,18 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 11281,
-      "sha256": "8b7aee23ad1d0e70179ea78e8388060ae0404fd290a1bbd75d3baa007823b530"
+      "bytes": 11818,
+      "sha256": "eb1da829571dc5e1dfff5bc7367f8e13bc6abecdf79b8c17f4597a72e2c04b31"
     },
     {
-      "path": "/fun/racers/racers-f616af402868a060.js",
-      "bytes": 1659404,
-      "sha256": "f616af402868a060bc9ccb7306642c63990e623496b317d6d1b86cbcd1ed66df"
+      "path": "/fun/racers/racers-350b05161a3addd3.js",
+      "bytes": 1666156,
+      "sha256": "350b05161a3addd31e59aeeee28b90edafd2074fce7ab896db041ec90ce61742"
     },
     {
-      "path": "/fun/racers/racers-23d7b8c8b8c459fd.css",
-      "bytes": 21202,
-      "sha256": "23d7b8c8b8c459fd2e2e663b51d171475c2db00d3aea5dcd7abcb4070a6849f5"
+      "path": "/fun/racers/racers-bcfe6dadced3adfe.css",
+      "bytes": 22059,
+      "sha256": "bcfe6dadced3adfe40ade81e6fbb9d9f6a646b2ad5e57529f88ef44c6a0753e9"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -113,8 +113,8 @@
     },
     {
       "path": "/fun/racers/INTEGRATION.txt",
-      "bytes": 3079,
-      "sha256": "f73ffedf1b09564d4087514c5581050803b1ab401e57605bb45fdefec758dadf"
+      "bytes": 3087,
+      "sha256": "34af0cba56f8c447ba5c2cf66edbb650d24b51e6af7e1b34ad9e6f99eb007ee9"
     },
     {
       "path": "/fun/racers/CREDITS.txt",

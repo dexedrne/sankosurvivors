@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Zombies in Greentown":"Zombis en Greentown",
+  "Customize your Sanko Racers character with saved hair, skin and clothing choices in the Garage.":"Personaliza tu personaje de Sanko Racers en el Garaje y guarda sus opciones de pelo, piel y ropa.",
+  "Open Activities → Zombies for solo third-person survival with a Glock and iron shortsword.":"Abre Actividades → Zombis para sobrevivir en solitario en tercera persona con una Glock y una espada corta de hierro.",
   "Take to the streets":"Sal a las calles",
   "Sanko Racers: enter the shared world on foot or in your kart. World, Garage and Activities keep the menu easy to scan.":"Sanko Racers: entra al mundo compartido a pie o en tu kart. Mundo, Garaje y Actividades ordenan el menú.",
   "Preview your native driver beside the kart, with outfits and your road log together in the Garage.":"Mira a tu conductor junto al kart, con atuendos y registro de conducción en el Garaje.",
