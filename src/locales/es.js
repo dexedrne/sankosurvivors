@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Sanko Racers: sideways camera orbit keeps your car in view on narrow screens.": "Sanko Racers: al girar la cámara hacia un lado, el coche sigue visible en pantallas estrechas.",
+  "Castle and chapel clearance": "Colisiones del castillo y la capilla",
+  "Sanko Racers: reduced invisible collision edges near Greentown castle and the chapel while keeping solid walls.": "Sanko Racers: menos bordes de colisión invisibles cerca del castillo de Greentown y la capilla, manteniendo los muros sólidos.",
   "Greentown wall clearance": "Colisión de muros en Greentown",
   "Sanko Racers: more accurate collision along the west Greentown street and court wall. The original walls remain solid.": "Sanko Racers: colisión más precisa en la calle oeste de Greentown y el muro del patio. Los muros originales siguen siendo sólidos.",
   "Sanko Racers: drivers sit upright and reach the steering wheel more naturally. Changing outfits keeps the same pose at every heading.": "Sanko Racers: los pilotos se sientan erguidos y alcanzan el volante de forma más natural. Cambiar de atuendo mantiene la misma postura en todas las direcciones.",

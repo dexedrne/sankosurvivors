@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Sanko Racers: sideways camera orbit keeps your car in view on narrow screens.": "Sanko Racers: nananatiling kita ang kotse kapag iniikot ang camera sa makitid na screen.",
+  "Castle and chapel clearance": "Mga banggaan sa kastilyo at kapilya",
+  "Sanko Racers: reduced invisible collision edges near Greentown castle and the chapel while keeping solid walls.": "Sanko Racers: nabawasan ang hindi nakikitang sagabal malapit sa kastilyo ng Greentown at kapilya habang nananatiling harang ang mga pader.",
   "Greentown wall clearance": "Mas tumpak na mga pader sa Greentown",
   "Sanko Racers: more accurate collision along the west Greentown street and court wall. The original walls remain solid.": "Sanko Racers: mas tumpak na collision sa kanlurang kalsada ng Greentown at pader ng court. Solid pa rin ang mga orihinal na pader.",
   "Sanko Racers: drivers sit upright and reach the steering wheel more naturally. Changing outfits keeps the same pose at every heading.": "Sanko Racers: tuwid na nakaupo ang mga driver at mas natural na naaabot ang manibela. Pareho ang pose kapag nagpapalit ng damit sa anumang direksyon.",
