@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as content from '../src/content.js';
 import {createSim,playerStats} from '../src/sim.js';
+import {captureRunBuild} from '../src/run-build.js';
 import {createCloud,betterRun,SAVE_KEYS} from '../src/cloud.js';
 import {profileValue,profileBest,finiteNumber} from '../src/progress-values.js';
 import {writeRanked} from '../src/ranked-client.js';
@@ -13,7 +14,7 @@ import {saveRunProgress,recoverRunProgress,recoverProgressImport} from '../src/p
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),J=JSON.stringify;
 const profile=main.slice(main.indexOf('const load = '),main.indexOf('// ---- icons:'));
 const best=main.slice(main.indexOf('const bestKey = '),main.indexOf('function showBest()'));
-const finish=main.slice(main.indexOf('function runCoinOptions('),main.indexOf('function toMenu()'));
+const finish=main.slice(main.indexOf('function runCoinOptions('),main.indexOf('function cardImage('))+main.slice(main.indexOf('function endRun()'),main.indexOf('function toMenu()'));
 const persist=main.slice(main.indexOf('function persistRanked()'),main.indexOf('setInterval(() => { if (rankedPlaying())'));
 const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
 function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',responses=[],storageFault=null,continuePlay=false}={}){
@@ -29,7 +30,7 @@ function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',respo
  });
  const $=id=>{if(!nodes.has(id)){const classes=new Set(['hidden']);nodes.set(id,{textContent:'',innerHTML:'',disabled:false,focus(){},classList:{contains:c=>classes.has(c),add:c=>classes.add(c),remove:c=>classes.delete(c),toggle:(c,on)=>on?classes.add(c):classes.delete(c)}});}return nodes.get(id);};
  const sim=createSim({seed:7,map:content.MAP_BY_ID.greentown,...(coopPlay?{coop:true,players:[{id:'p1'},{id:'p2'}]}:{})});Object.assign(sim,{over:outcome,t:600,kills:6,bossKills:0,evolves:0,loot:['Bronze Helmet','Iron Helmet'],alched:[],killsByType:{goblin:6}});Object.assign(sim.players[0],{coins:2,alch:7});if(coopPlay)Object.assign(sim.players[1],{kills:3,killsByType:{goblin:3},loot:['Iron Helmet'],alched:[],coins:4,alch:9});
- const app=Function('content','sim','$','createCloud','betterRun','profileValue','profileBest','finiteNumber','playerStats','writeRanked','SAVE_KEYS','note','submit','prepareRunRewards','saveRunProgress','recoverRunProgress','recoverProgressImport','continuation',`
+ const app=Function('content','sim','$','captureRunBuild','createCloud','betterRun','profileValue','profileBest','finiteNumber','playerStats','writeRanked','SAVE_KEYS','note','submit','prepareRunRewards','saveRunProgress','recoverRunProgress','recoverProgressImport','continuation',`
   const {MAPS,MAP_BY_ID,ADVENTURER_BY_ID,GEAR,GEAR_SLOTS,GEAR_MAX_LV,clampSkills,ADVENTURERS,QUESTS,WEAPONS,isWeaponItem}=content,params=new URLSearchParams();
   ${profile}
   ${best}
@@ -37,6 +38,7 @@ function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',respo
   let rankedRun=${ranked?"{week:0,mode:'normal',run:'fixture-run'}":'null'},rankedRec=${ranked?"{log:()=>({runs:[]})}":'null'};
   const {canContinueCasual,captureRewardBaseline,continueCasual,phaseCoins,phaseAlch}=continuation;
   let casualRun=${continuePlay?"{sim,normalCommitted:false,baseline:null,endlessTicket:'child',phase:'playing'}":'null'};
+  const finishedBuilds=new WeakMap(),renderEndBuild=()=>{};
   const LATEST='fixture-version',savedPass=()=>null,DMT_COIN_BONUS=.25;let runTicket='fixture-ticket';
   const keys=new Set(),clearTouch=()=>{},audio={duck(){}},showLevelUp=()=>{},resumeAfterReward=()=>{};let pendingUse=null,slowmo=0,acc=0,shownPending=false,runBest=null,passedBest=false;
   const fmtT=t=>String(t),imgTag=()=>'',buildMaps=()=>{},buildAdventurers=()=>{},showBest=()=>{},stepOf=()=>null,iconHTML=()=>'',weaponDisplay=()=>({name:'Sword'});
@@ -49,8 +51,8 @@ function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',respo
   onSaved=k=>{if(SAVE_KEYS.includes(k))cloud.changed();};
   ${finish}
   ${main.slice(main.indexOf('async function startRun('),main.indexOf('let bannerT ='))}
-  return{startRun,endRun,continueAfterScore,cloud,save,setBusy(v){rankedBusy=v;},lock(fn){navigator.locks={request:fn};},wallet(v){walletOpen=v;},forgetRanked(){rankedRun=rankedRec=null;},state:()=>({mode,lastRun,casualRun}),mode:v=>mode=v};
- `)(content,sim,$,createCloud,betterRun,profileValue,profileBest,finiteNumber,playerStats,writeRanked,SAVE_KEYS,text=>notes.push(text),()=>submissions++,prepareRunRewards,saveRunProgress,recoverRunProgress,recoverProgressImport,continuation);
+  return{startRun,endRun,continueAfterScore,cloud,save,setBusy(v){rankedBusy=v;},lock(fn){navigator.locks={request:fn};},wallet(v){walletOpen=v;},forgetRanked(){rankedRun=rankedRec=null;},state:()=>({mode,lastRun,casualRun,build:finishedBuilds.get(lastRun)}),mode:v=>mode=v};
+ `)(content,sim,$,captureRunBuild,createCloud,betterRun,profileValue,profileBest,finiteNumber,playerStats,writeRanked,SAVE_KEYS,text=>notes.push(text),()=>submissions++,prepareRunRewards,saveRunProgress,recoverRunProgress,recoverProgressImport,continuation);
  return{app,store,sim,$,calls,notes,submissions:()=>submissions,flush,arm:()=>armed=true,restore:()=>armed=false,end:()=>app.endRun()};
 }
 for(const key of ['sq-coins','sq-bank','sq-stats','sq-quests'])test(`failed completed-run ${key} write cannot silently upload partial rewards`,async t=>{
@@ -67,6 +69,9 @@ for(const key of ['sq-coins','sq-bank','sq-stats','sq-quests','sq-run-save-v1'])
 });
 test('ranked submission proceeds once while local rewards wait; retry keeps ranked context after acknowledgement',async t=>{
  const f=fixture(t,{ranked:true,storageFault:(action,k)=>action==='write'&&k==='sq-coins'});f.arm();f.end();await f.flush();assert.equal(f.app.state().mode,'recovery');assert.equal(f.submissions(),1);assert.equal(JSON.parse(f.store.get('sq-ranked-live')).ended,true);f.app.forgetRanked();f.restore();await f.$('progressretry').onclick();await f.flush();assert.equal(f.submissions(),1);assert.equal(f.app.state().lastRun.ranked,true);assert.equal(f.store.has('sq-bests'),false);assert.equal(f.calls.length,1);assert.equal(f.store.get('sq-coins'),'609');
+});
+test('actual ranked end captures its own full build without adding fields to the submitted result',async t=>{
+ const f=fixture(t,{ranked:true,outcome:'dead'});f.sim.players[0].weapons={bow:6};f.sim.players[0].wm={bow:2,arrow:3};f.end();await f.flush();const state=f.app.state();assert.equal(state.mode,'end');assert.equal(state.lastRun.ranked,true);assert.equal(state.build.mode,'Ranked');assert.equal(state.build.sections[0].rows.length,1);assert(!('build'in state.lastRun));assert(!('sections'in state.lastRun));assert.equal(f.submissions(),1);
 });
 test('failed completion checkpoint never submits a stale ranked log',async t=>{
  const f=fixture(t,{ranked:true,storageFault:(action,k)=>action==='write'&&k==='sq-ranked-live'});f.arm();f.end();await f.flush();assert.equal(f.submissions(),0);assert.equal(f.app.state().mode,'recovery');assert.equal(f.store.get('sq-coins'),'100');f.restore();await f.$('progressretry').onclick();await f.flush();assert.equal(f.submissions(),1);assert.equal(f.store.get('sq-coins'),'609');

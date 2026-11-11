@@ -1,3 +1,5 @@
+import { captureRunBuild } from './run-build.js';
+import { drawRunCard } from './run-card.js';
 import { skillQuote, prepareSkills } from './skill-purchases.js';
 import { armouryQuote, prepareArmoury } from './armoury.js';
 import { createCoopClient } from './coop-client.js';
@@ -66,6 +68,8 @@ phoneMenu.addEventListener('change', event => { for (const id of ['adventurerpic
 let PLAYER = 'p1';
 let coop = null, coopResult = null, coopDecision = -1, coopHomeMap = null, coopLoading = false;
 
+const finishedBuilds = new WeakMap(), cardImages = new Map();
+let readyRunCard = null, cardGeneration = 0;
 let sim = null, renderer = null, rendererDefaults = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0, banishMode = false;
 const keys = new Set();
 const audio = createAudio();
@@ -293,7 +297,7 @@ $('endless').onchange = (e) => { endlessOn = e.target.checked; showBest(); };
 // ---- ranked: paid tickets, recovery and the holder-style panel ----
 const SIM_ID = import.meta.env.VITE_SIM;
 let rankedWeek = null, rankedRun = null, rankedRec = null, rankedBusy = false;
-let rankedClock = null, rankedAckDeadline = null, rankedWeekOffset = 0, rankedRefreshing = false;
+let rankedClock = null, rankedAckDeadline = null, rankedWeekOffset = 0, rankedRefreshing = false, rankedKnownClosed = false;
 // Standard is the only entry option; saved historical tickets keep their own race.
 let rankedMode = 'normal';
 const RACE = RANKED.races;
@@ -436,13 +440,14 @@ setInterval(rankedTime, 1000);
 async function refreshRanked() {
   if (rankedRefreshing) return;
   rankedRefreshing = true;
+  if (rankedWeek) rankedKnownClosed = rankedWeek.open === false;
   try {
     const next = await rankedApi(BASE, 'week');
     if (next.endsAt !== rankedWeek?.endsAt) { rankedAckDeadline = null; $('rankedack').checked = false; }
-    rankedWeek = next; rankedWeekOffset = Number.isFinite(next.serverNow) ? next.serverNow - Date.now() : 0;
-    $('rankedbtn').classList.toggle('hidden', !rankedWeek.open); renderRanked();
+    rankedWeek = next; rankedKnownClosed = next.open === false; rankedWeekOffset = Number.isFinite(next.serverNow) ? next.serverNow - Date.now() : 0;
+    $('rankedbtn').classList.toggle('hidden', !rankedWeek.open); $('rankedrefresh').classList.add('hidden'); renderRanked();
   } catch {
-    rankedWeek = null; $('rankedbtn').classList.add('hidden');
+    rankedWeek = null; $('rankedbtn').classList.toggle('hidden', rankedKnownClosed); $('rankedrefresh').classList.remove('hidden');
     $('rankedpool').textContent = 'Could not refresh ranked standings. Try again shortly.';
     $('rankedstandings').replaceChildren(); renderRanked();
   } finally { rankedRefreshing = false; }
@@ -453,6 +458,7 @@ async function openRanked() {
   $('ranked').classList.remove('hidden'); renderRanked(); $('rankedclose').focus(); refreshBalances(true); await refreshRanked();
 }
 $('rankedbtn').onclick = openRanked;
+$('rankedrefresh').onclick = refreshRanked;
 $('rankedupdate').onclick = () => $('updatebtn').click();
 $('rankedclose').onclick = () => { $('ranked').classList.add('hidden'); $('rankedbtn').focus(); };
 $('ranked').addEventListener('click', (e) => { if (e.target.id === 'ranked') $('rankedclose').click(); });
@@ -1299,10 +1305,10 @@ $('sharex').onclick = () => {
   const stats = `${fmtT(lastRun.t)}, level ${lastRun.level}, ${lastRun.kills} monsters slain`;
   const race = lastRun.race === 'hard' ? 'Hard ' : '';
   const text = lastRun.ranked && lastRun.rank && lastRun.points != null ? `I'm #${lastRun.rank} in this week's SankoSurvivors ${race}ranked race on ${m}: ${lastRun.points.toLocaleString()} points (${lastRun.kills} slain + ${Math.floor(lastRun.t)} seconds survived). Top 5 split the ${race}$DMT pot. Can you knock me off?`
-    : lastRun.ranked && lastRun.rank && lastRun.kpm != null ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ${race}ranked race on ${m}: ${lastRun.kpm.toFixed(2)} kills per minute (${lastRun.kills} slain in ${fmtT(lastRun.t)}). Top 5 split the ${race}$DMT pot. Can you knock me off?`
-    : lastRun.ranked && lastRun.rank ? `I'm #${lastRun.rank} in this week's SankoQuest Survivors ranked on ${m} (${stats}). Top 5 split the $DMT pot. Can you knock me off?`
-    : lastRun.won ? `I cleared ${m} in SankoQuest Survivors in ${fmtT(lastRun.t)} (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you beat it?`
-    : `I survived ${fmtT(lastRun.t)} in ${m} in SankoQuest Survivors (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you last longer?`;
+    : lastRun.ranked && lastRun.rank && lastRun.kpm != null ? `I'm #${lastRun.rank} in this week's SankoSurvivors ${race}ranked race on ${m}: ${lastRun.kpm.toFixed(2)} kills per minute (${lastRun.kills} slain in ${fmtT(lastRun.t)}). Top 5 split the ${race}$DMT pot. Can you knock me off?`
+    : lastRun.ranked && lastRun.rank ? `I'm #${lastRun.rank} in this week's SankoSurvivors ranked on ${m} (${stats}). Top 5 split the $DMT pot. Can you knock me off?`
+    : lastRun.won ? `I cleared ${m} in SankoSurvivors in ${fmtT(lastRun.t)} (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you beat it?`
+    : `I survived ${fmtT(lastRun.t)} in ${m} in SankoSurvivors (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you last longer?`;
   const url = location.origin + '/';
   window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'noopener');
 };
@@ -1900,6 +1906,62 @@ function runCoinOptions(s) {
 }
 function runCoins(s, won = false) { return phaseCoins(s, { ...runCoinOptions(s), won }); }
 
+function cardImage(path) {
+  if (cardImages.has(path)) return cardImages.get(path);
+  const request = new Promise((resolve, reject) => {
+    const image = new Image(); image.crossOrigin = 'anonymous';
+    const timer = setTimeout(() => { image.onload = image.onerror = null; image.src = ''; reject(Error('Image unavailable')); }, 8000);
+    image.onload = () => { clearTimeout(timer); image.onload = image.onerror = null; resolve(image); };
+    image.onerror = () => { clearTimeout(timer); image.onload = image.onerror = null; reject(Error('Image unavailable')); };
+    image.src = asset(path);
+  }).catch(error => { cardImages.delete(path); throw error; });
+  cardImages.set(path, request); return request;
+}
+function renderEndBuild(result) {
+  const build = finishedBuilds.get(result);
+  if (!build) { ++cardGeneration; readyRunCard = null; $('savecard').disabled = true; $('sharecard').classList.add('hidden'); $('endbuildbody').textContent = 'Build details unavailable. Your run result is kept.'; $('cardstatus').textContent = ''; return; }
+  $('endbuildbody').innerHTML = build.sections.map(section => `<section class="runbuild-section"><h4>${esc(section.title)}</h4><div class="runbuild-items">${section.rows.length ? section.rows.map(row => `<div class="runbuild-item"><img src="${esc(asset(row.icon))}" alt=""><div><b>${esc(row.name)}</b><small>${row.details.map(esc).join(' · ')}</small></div></div>`).join('') : '<p class="dim">None</p>'}</div></section>`).join('') + `<div class="runbuild-stats">${build.stats.map(stat => `<div><small>${esc(stat.name)}</small><b>${stat.value.toLocaleString()}${esc(stat.suffix)}</b></div>`).join('')}</div>`;
+  void prepareEndCard(result);
+}
+async function prepareEndCard(result) {
+  const build = finishedBuilds.get(result); if (!build) return;
+  const generation = ++cardGeneration, language = document.documentElement.lang;
+  const current = () => generation === cardGeneration && lastRun === result && mode === 'end' && language === document.documentElement.lang;
+  readyRunCard = null; $('savecard').disabled = true; $('savecard').textContent = 'Save build card'; $('sharecard').classList.add('hidden'); $('cardstatus').textContent = 'Preparing build card…';
+  try {
+    const paths = [...new Set(['ui/sq/frame.png', ...build.sections.flatMap(section => section.rows.map(row => row.icon))])];
+    const images = await Promise.all(paths.map(async path => [path, await cardImage(path)]));
+    let fontTimer;
+    try { await Promise.race([document.fonts.ready, new Promise((_, reject) => { fontTimer = setTimeout(() => reject(Error('Font unavailable')), 8000); })]); }
+    finally { clearTimeout(fontTimer); }
+    if (!current()) return;
+    const canvas = document.createElement('canvas');
+    drawRunCard(canvas, { ...build, points: result.points }, new Map(images), text => translateText(text, language), location.host);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!current()) return;
+    if (!blob) throw Error('Image export unavailable');
+    const filename = `SankoSurvivors-${String(result.map).replace(/[^a-z0-9_-]/gi, '')}-${build.t}s.png`, file = new File([blob], filename, { type: 'image/png' });
+    readyRunCard = { result, blob, file }; $('savecard').disabled = false; $('cardstatus').textContent = 'Save the image to attach it to your post.';
+    let share = false; try { share = !!navigator.canShare?.({ files: [file] }); } catch { /* download remains available */ }
+    $('sharecard').classList.toggle('hidden', !share);
+  } catch {
+    if (!current()) return;
+    $('savecard').disabled = false; $('savecard').textContent = 'Retry build card'; $('cardstatus').textContent = 'Could not prepare the image. Check your connection and retry; your run is kept.';
+  }
+}
+$('savecard').onclick = () => {
+  if (mode !== 'end' || !lastRun) return;
+  if (readyRunCard?.result !== lastRun) { void prepareEndCard(lastRun); return; }
+  const link = document.createElement('a'), url = URL.createObjectURL(readyRunCard.blob); link.href = url; link.download = readyRunCard.file.name; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+};
+$('sharecard').onclick = async () => {
+  if (mode !== 'end' || readyRunCard?.result !== lastRun) return;
+  const card = readyRunCard;
+  try { await navigator.share({ title: 'SankoSurvivors', files: [card.file] }); }
+  catch (error) { if (lastRun === card.result && error.name !== 'AbortError') $('cardstatus').textContent = 'Could not share. Save the build card instead.'; }
+};
+for (const control of document.querySelectorAll('[data-language]')) control.addEventListener('change', () => { if (mode === 'end' && lastRun) void prepareEndCard(lastRun); });
+
 function endRun() {
   if (sim.coop && coopResult !== 'complete') return;
   mode = 'end';
@@ -1909,6 +1971,8 @@ function endRun() {
   const won = sim.over === 'win';
   const p = sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0];
   lastRun = { map: sim.map.id, t: Math.floor(sim.t), kills: sim.kills, level: sim.level, adv: p.adv, won, hard: !!sim.hard, endless: !!sim.endless, v: LATEST, sent: !!sim.coop, ticket: sim.coop ? null : runTicket, coop: !!sim.coop };
+  try { finishedBuilds.set(lastRun, captureRunBuild(sim, p, { name: rankedRun?.name || $('lbname')?.value || p.name, ranked: !!rankedRun, version: LATEST })); }
+  catch { finishedBuilds.set(lastRun, null); } // display failures must never prevent saving or submitting a run
   if (sim.variant) { lastRun.variant = sim.variant; lastRun.sent = true; lastRun.ticket = null; }
   const result = lastRun, session = casualRun?.sim === sim ? casualRun : null;
   if (session) session.result = result;
@@ -1974,6 +2038,7 @@ function endRun() {
     $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${kpmNote}${bestNote}${unlockNote}`;
     $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
     if (sim.variant === 'boss') $('endcoins').textContent = 'Practice run: no GP or gear saved.';
+    renderEndBuild(result);
     $('end').classList.remove('hidden');
     cloud.push(true);
   };
@@ -2096,6 +2161,7 @@ $('installbtn').onclick = async () => {
 // a newer version on the site: offer to load it (the page itself is never cached for long, but an open tab or the
 // installed app can sit on an old build for hours)
 const BUILD = import.meta.env.VITE_BUILD || 'dev';
+$('buildinfo').textContent = 'v' + LATEST + ' · ' + BUILD;
 async function checkForUpdate() {
   if (BUILD === 'dev' || !canManuallyReload()) return;
   try {

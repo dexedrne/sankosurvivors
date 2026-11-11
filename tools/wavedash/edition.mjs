@@ -106,6 +106,7 @@ export function transformMain(source) {
   s = once(s, '  const cutoff = !!rankedRun?.cutoff;\n');
   s = once(s, "cutoff ? 'The ranked week has ended. Your earned score is being checked.' : ");
   s = once(s, ', sent: !!sim.coop, ticket: sim.coop ? null : runTicket, coop: !!sim.coop', '');
+  s = once(s, "rankedRun?.name || $('lbname')?.value || p.name", 'p.name');
   s = between(s, "  $('lbsubmit').disabled = wasRanked || !!sim.coop;", '  const dmtOn =', "  $('again').textContent = 'Run it back';\n");
   s = once(s, '  const dmtOn = !!savedPass(), alchCoins', '  const alchCoins');
   s = once(s, 'let receipt = null, rankedSaved = !wasRanked, submitted = false;', 'let receipt = null;');

@@ -1,54 +1,85 @@
-<p align="center">
-  <img src="public/og.jpg" alt="SankoQuest Survivors" width="720">
-</p>
+<p align="center"><img src="public/og.jpg" alt="SankoSurvivors gameplay" width="720"></p>
 
-<h1 align="center">SankoQuest Survivors</h1>
+# SankoSurvivors
 
-<p align="center">
-  A survivors-style fan game set in the real SankoQuest world.<br>
-  Hold out for 15 minutes, or slay the boss.<br><br>
-  <a href="https://sankosurvivors.quest"><b>▶ Play at sankosurvivors.quest</b></a>
-</p>
+Survive the SankoQuest world, build a ridiculous loadout, and take on the weekly ranked board.
 
-<p align="center">
-  Made by <a href="https://x.com/dexedrne">@dexedrne</a> for the Sanko community ·
-  <a href="https://t.me/sankogamecorp">Telegram</a> · <a href="https://x.com/SankoGameCorp">X</a>
-</p>
+**[Play SankoSurvivors](https://sankosurvivors.quest)** · **[Enter Sanko Racers](https://sankosurvivors.quest/racers/)** · [@dexedrne](https://x.com/dexedrne)
 
----
+## Play
 
-Hey Sanko team 👋 thanks for checking it out. Here's what's in it:
+- **Adventure:** choose an adventurer and map, collect experience, pick upgrades and combine weapons with passives to evolve them. Casual upgrades have rarity and quality; weapon metal tiers and casket equipment are explained separately in the in-game Guide.
+- **Endless:** keep the same live build after a normal casual victory, or start an Endless run. After normal upgrades are exhausted, level-ups can keep adding small stat boosts. Continuing a finished map requires the same open tab; a reload does not restore the running simulation.
+- **Progress:** earn GP, equip gear, improve skills, complete quests and achievements, and bring a cosmetic pet. Connected eligible wallets can load owned Bun companions. Pets do not add ranked power.
+- **Co-op:** invite a friend into a shared survival run. Both players use the shared run state; casual progress and rewards remain tied to the local player.
+- **Boss / Raid and Fun:** practice Boss Trials, take on a Survival Raid, or try Slimer Invasion, Wizard Invasion and endless Castle Defence. These modes have their own rules and reward eligibility.
+- **Weekly Ranked:** everyone starts from the week's standard loadout. Paid entries use DMT on Arbitrum; the server replays recorded inputs against the matching archived rules. The Ranked panel shows the current map, fee, scoring, cutoff, pause allowance, prize rules and reward transactions. Read those before paying; historical weeks can use different rules. The developer wallet is excluded from prizes.
+- **Results:** inspect your full final build and save a native-styled PNG card. File sharing appears where the browser supports it; exporting an image does not submit a score or post anything.
 
-- **The real world.** SankoQuest's own map, buildings, trees, NPCs, gear and sounds, taken from the game itself.
-- **9 maps** with their own monsters, bosses and events. There are 25 monsters and 5 bosses in all.
-- **10 weapons, 13 passives and 10 evolutions.** One passive, the Pumpkin Head, is a curse: more and tougher monsters, for more kills (casual only). Weapons climb the metal tiers from Bronze to Runite.
-- **Ranked weekly runs** for $DMT on Arbitrum. One map a week, everyone starts equal, and every run is replayed on the server so only real play counts.
-- Leaderboards, quests, gear from reward caskets, and permanent upgrades bought with coins.
-- It plays on desktop and phones, and installs like an app.
+The menu's **Guide** explains weapons, evolutions, caskets, gear, skills, food and controls. **Updates** lists changes with copy buttons. Use **More → Report a bug** to send feedback.
 
-## Run it
+## Controls and devices
+
+| Action | Desktop |
+| --- | --- |
+| Move | WASD / arrow keys |
+| Tumble | Space; current rules clear eligible low fences, buildings stay solid |
+| Use belt item | 1–4 |
+| Choose upgrade | 1–3 or arrows and Enter |
+| Reroll / skip / banish | R / X / B on the upgrade screen |
+| Enlarge map | Hold Tab during play |
+| Pause | Escape |
+| Mute | M |
+
+Touch controls and standard-mapped controllers are supported. Settings includes separate sound/music volume, graphics presets and detailed options. The installable PWA supports phone layouts and an optional Flex layout. Browser emulation does not guarantee every device's fullscreen, safe-area, audio or controller behavior.
+
+## Saves and wallets
+
+Casual progress is kept on the device. Optional wallet sign-in enables cloud progress synchronization; a wallet connection alone is not proof of a successful upload. The wallet panel shows cloud status and offers a manual save. Keep the current tab open if the game reports an unconfirmed upload or recoverable ranked submission.
+
+WalletConnect and supported injected wallets connect from the original game page. Ranked payments, the optional DMT holder check, and Buy DMT are explicit separate actions. Buy DMT compares Arbitrum quotes and estimated gas; displayed estimates can change before a transaction. The calculator does not automatically split purchases. An Ethereum-to-Arbitrum bridge service is under investigation and is **not included**.
+
+Sanko Racers keeps its own device-local Road Log and settings. Its public hub has no ranked prizes and does not share Survivors progression. The separate Wavedash casual edition omits wallets, blockchain features and the website's ranked/cloud systems.
+
+## Development
+
+Use Node.js and the pinned npm dependencies. In a development checkout:
 
 ```sh
-npm install
-npm run dev     # http://127.0.0.1:5174
-npm test
+npm ci
+npm run dev
 ```
 
-## Where things live
+The public mirror excludes the supplied native asset collection and internal QA tools. A working development game needs those runtime assets and the Draco decoder; installing npm packages alone does not supply the world. Full verification uses a prepared owner checkout.
 
-| | |
-|---|---|
-| `src/sim.js` | The game rules. They're deterministic, so a ranked run replays exactly. |
-| `src/render.js` | Everything you see (three.js). |
-| `src/main.js` | Menus, HUD and the game loop. |
-| `src/content.js` | Weapons, passives, monsters, maps and gear. |
-| `src/ranked.js` | Ranked weeks, run recording and replay. |
-| `tools/vercel-api/` | The server: leaderboard, bug reports, DMT holder check and ranked. |
-| `tools/supabase/` | Database functions. |
-| `tools/deploy.sh` | Builds and deploys to Vercel. |
+The owner handoff requires builds, tests and browser rendering on the `alexbl` build host. Follow the private handoff and QA guide, including the disposable database fixtures needed for the complete suite. Never copy secrets into a checkout or test output.
 
-## Say hi
+```sh
+# On the build host, in a prepared isolated checkout:
+nice -n 10 python3 qa-kit/full-tests.py
+```
 
-Found a bug? Use **More → Report a bug** in the game, or ping [@dexedrne](https://x.com/dexedrne).
+Authorized website releases use the prescribed independent build/verification hosts:
 
-<sub>An unofficial fan game, made with Sanko GameCorp's blessing. SankoQuest and its art, models, music and characters belong to Sanko GameCorp.</sub>
+```sh
+BUILD_HOST=alexbl VERIFY_HOST=t490 bash tools/deploy.sh
+```
+
+Changes to simulation/content/ranked rules or ground data require a new simulation archive. Existing paid runs must keep replaying on their original bundle. Database migrations are applied by the owner; money actions require explicit approval.
+
+| Path | Purpose |
+| --- | --- |
+| `src/sim.js`, `src/content.js` | Deterministic combat and content |
+| `src/render.js`, `src/main.js` | Native world rendering, menus and game loop |
+| `src/run-build.js`, `src/run-card.js` | Detached final-build display and PNG drawing |
+| `src/ranked.js`, `tools/vercel-api/sims/` | Recording, replay and historical rules |
+| `src/game-modes.js` | Special mode definitions |
+| `tools/vercel-api/` | Website APIs and admission checks |
+| `tools/supabase/` | Owner-applied database functions |
+| `tools/wavedash/` | Separate wallet-free casual edition |
+
+## Credits
+
+Made by [@dexedrne](https://x.com/dexedrne) for the Sanko community. SankoQuest art, models, music, sounds and characters belong to their respective creators and Sanko GameCorp; CrashOut kart assets retain their own notices. This repository does not grant ownership of those assets. Use original supplied assets and actual in-engine captures; generated artwork is not permitted in this project.
+
+[Sanko Telegram](https://t.me/sankogamecorp) · [Sanko on X](https://x.com/SankoGameCorp)

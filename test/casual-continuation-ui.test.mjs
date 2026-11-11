@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {transformMain} from '../tools/wavedash/edition.mjs';
 import {createSim} from '../src/sim.js';
+import {captureRunBuild} from '../src/run-build.js';
 import {canContinueCasual,captureRewardBaseline,continueCasual} from '../src/casual-continuation.js';
 const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 function setup(send=async()=>({ok:true}),code=source) {
@@ -68,7 +69,7 @@ test('actual score retry keeps the displayed submitted name after an uncertain r
 
 async function delayedTicketFixture({endless=false}={}) {
  const {submitCasualResult}=await import('../src/casual-continuation.js'),c=setup(),requests=[];
- Object.assign(c,{BASE:'/',URLSearchParams,submitCasualResult,save(){},savedPass:()=>null,MAP_BY_ID:{greentown:{name:'Greentown'}},LATEST:'fixture',rankedRun:null,coopResult:null});
+ Object.assign(c,{BASE:'/',URLSearchParams,submitCasualResult,save(){},savedPass:()=>null,MAP_BY_ID:{greentown:{name:'Greentown'}},LATEST:'fixture',rankedRun:null,coopResult:null,finishedBuilds:new WeakMap(),captureRunBuild});
  c.sim.endless=endless;c.casualRun.phase='playing';c.casualRun.normalResult=null;c.casualRun.endlessTicket=null;c.runTicket=null;c.$('lbname').value='';
  let deliver;
  c.fetch=async(url,options)=>{
@@ -106,3 +107,5 @@ test('native casketOf fixture preserves exact occurrence alch top-ups and legacy
  const old=createSim({pace:1});old.players[0].gear.head='Iron Helmet';make(old)('Iron Helmet');assert.equal(Object.hasOwn(old.players[0],'casketLootIndices'),false);assert.equal(Object.hasOwn(old.pending.p1,'lootIndex'),false);
  for(const [ranked,coop]of[[{},null],[null,{}]]){const s=createSim({pace:2});make(s,ranked,coop)('Iron Helmet');assert.equal(s.loot.length,0);}
 });
+
+test('a build-display error cannot prevent capture of the finished score',async()=>{const {c}=await delayedTicketFixture();c.captureRunBuild=()=>{throw Error('Display unavailable');};assert.doesNotThrow(()=>c.endRun());assert.equal(c.lastRun.t,Math.floor(c.sim.t));assert.equal(c.finishedBuilds.get(c.lastRun),null);assert(!Object.hasOwn(c.lastRun,'build'));});

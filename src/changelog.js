@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.45", "date": "11 Nov 2026", "title": "Your final build", "items": ["Casual and ranked results show your complete final loadout. Save a SankoSurvivors build card using the original item icons, fonts and frame, or share the image from a supported device.", "A temporary standings error keeps Ranked accessible with a retry. DMT quote fields match the game menus.", "A simpler release number: this update starts 0.45. Technical build details are in Settings."]},
   {"version": "0.44.103", "date": "11 Nov 2026", "title": "Sit back and drive", "items": ["Sanko Racers: drivers sit back with their hands on the wheel. Online corrections stay continuous, aiming holds the shoulder camera steady, and Garage choices are readable. The hub timer and on-foot speedometer are hidden."]},
   {"version": "0.44.102", "date": "11 Nov 2026", "title": "Keep your bearings", "items": ["Sanko Racers: your view keeps its direction when you get in or out of a kart or switch views on foot. Recentre still resets your view."]},
   {"version": "0.44.101", "date": "11 Nov 2026", "title": "Keep moving on foot", "items": ["Sanko Racers: brush against a wall or your parked kart and keep walking along clear ground. Solid walls, posts and water still stop you."]},
