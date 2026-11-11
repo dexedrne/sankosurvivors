@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.45.10',date:'11 Nov 2026',title:'A quicker road in',items:['Grand Theft Sanko has a quicker world loader. The full map, vehicles and game rules stay the same.']},
   {version:'0.45.9',date:'11 Nov 2026',title:"Grand Theft Sanko & Need for Sanko",items:["The open world is Grand Theft Sanko. Racing is Need for Sanko. Open Fun for the direct racing link; existing links and saved progress still work."]},
   {version:'0.45.8',date:'11 Nov 2026',title:'Quick shots on the road',items:['Sanko Racers: Glock shots have small moving bullets, brief trails and softer muzzle flashes. Pausing or restarting clears old shot effects.']},
   {version:'0.45.7',date:'11 Nov 2026',title:'A stitched baseball',items:['Baseball projectiles use the original SankoQuest item art, with both stitched seams visible. Their spin pauses with the run; size and combat rules stay the same.']},

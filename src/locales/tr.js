@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A quicker road in": "Yola daha hızlı çık",
+  "Grand Theft Sanko has a quicker world loader. The full map, vehicles and game rules stay the same.": "Grand Theft Sanko dünyası artık daha hızlı yükleniyor. Haritanın tamamı, araçlar ve oyun kuralları aynı kalıyor.",
  "Grand Theft Sanko & Need for Sanko": "Grand Theft Sanko ve Need for Sanko",
  "The open world is Grand Theft Sanko. Racing is Need for Sanko. Open Fun for the direct racing link; existing links and saved progress still work.": "Açık dünya artık Grand Theft Sanko. Yarışların adı Need for Sanko. Doğrudan yarış bağlantısı için Eğlence menüsünü açın; mevcut bağlantılar ve kayıtlı ilerleme çalışmaya devam eder.",
  "Drive, walk and explore the SankoQuest world. Race in Need for Sanko.": "SankoQuest dünyasında sürün, yürüyün ve keşfe çıkın. Need for Sanko yarışlarına katılın.",

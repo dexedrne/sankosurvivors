@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "A quicker road in": "Mas mabilis sa daan",
+  "Grand Theft Sanko has a quicker world loader. The full map, vehicles and game rules stay the same.": "Mas mabilis nang mag-load ang mundo sa Grand Theft Sanko. Pareho pa rin ang buong mapa, mga sasakyan at mga tuntunin ng laro.",
  "Grand Theft Sanko & Need for Sanko": "Grand Theft Sanko at Need for Sanko",
  "The open world is Grand Theft Sanko. Racing is Need for Sanko. Open Fun for the direct racing link; existing links and saved progress still work.": "Grand Theft Sanko ang pangalan ng open world. Need for Sanko ang karera. Buksan ang Saya para sa direktang link sa karera; gumagana pa rin ang mga dating link at naka-save na progreso.",
  "Drive, walk and explore the SankoQuest world. Race in Need for Sanko.": "Magmaneho, maglakad at tuklasin ang mundo ng SankoQuest. Makipagkarera sa Need for Sanko.",
