@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Keep your bearings": "Yönünü koru",
+ "Sanko Racers: your view keeps its direction when you get in or out of a kart or switch views on foot. Recentre still resets your view.": "Sanko Racers: karta binerken, inerken veya yaya kamera görünümünü değiştirirken baktığın yön korunur. Yeniden ortalama görünümü sıfırlar.",
   "Keep moving on foot": "Yaya hareketi daha akıcı",
   "Sanko Racers: brush against a wall or your parked kart and keep walking along clear ground. Solid walls, posts and water still stop you.": "Sanko Racers: duvara veya park ettiğin kartına hafifçe çarptığında açık zemin boyunca yürümeye devam et. Sağlam duvarlar, direkler ve su seni durdurur.",
   "Steadier online driving": "Daha kararlı çevrimiçi sürüş",

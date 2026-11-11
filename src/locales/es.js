@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Keep your bearings": "Mantén la orientación",
+ "Sanko Racers: your view keeps its direction when you get in or out of a kart or switch views on foot. Recentre still resets your view.": "Sanko Racers: la cámara conserva su dirección al subir o bajar del kart y al cambiar de vista a pie. Recentrar sigue restableciendo la vista.",
   "Keep moving on foot": "Muévete mejor a pie",
   "Sanko Racers: brush against a wall or your parked kart and keep walking along clear ground. Solid walls, posts and water still stop you.": "Sanko Racers: al rozar una pared o tu kart aparcado, puedes seguir andando por el terreno despejado. Los muros, postes y el agua siguen bloqueando el paso.",
   "Steadier online driving": "Conducción online más estable",

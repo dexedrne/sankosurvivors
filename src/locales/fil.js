@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "Keep your bearings": "Panatilihin ang direksyon",
+ "Sanko Racers: your view keeps its direction when you get in or out of a kart or switch views on foot. Recentre still resets your view.": "Sanko Racers: nananatili ang direksyon ng tingin kapag sumasakay o bumababa sa kart at nagpapalit ng view habang naglalakad. Nire-reset pa rin ng recentre ang tingin.",
   "Keep moving on foot": "Mas tuloy-tuloy na paglalakad",
   "Sanko Racers: brush against a wall or your parked kart and keep walking along clear ground. Solid walls, posts and water still stop you.": "Sanko Racers: kapag sumagi sa pader o sa nakaparada mong kart, makakalakad ka pa rin sa malinaw na daan sa tabi nito. Nakaharang pa rin ang mga pader, poste at tubig.",
   "Steadier online driving": "Mas maayos na pagmamaneho online",
