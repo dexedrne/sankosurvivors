@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "Room beside the west houses": "Mas maluwag sa tabi ng mga bahay sa kanluran",
+ "Sanko Racers: the narrow path beside the houses west of Greentown castle follows the visible walls more closely. House corners stay solid for driving, walking and shots.": "Sanko Racers: mas tugma na sa nakikitang mga pader ang makitid na daan sa tabi ng mga bahay sa kanluran ng kastilyo ng Greentown. Hinaharangan pa rin ng mga sulok ng bahay ang mga sasakyan, naglalakad at putok.",
  "Smoother Racers movement": "Mas maayos na galaw sa Racers",
  "Sanko Racers: your kart, walking character and camera move together between physics steps, online and offline. NPC rivals move smoothly too. Pausing clears old movement; handling and solid walls are unchanged.": "Sanko Racers: sabay at maayos na gumagalaw ang kart, naglalakad na karakter at camera sa pagitan ng mga hakbang ng physics, online man o offline. Maayos na rin ang galaw ng mga NPC na kalaban. Nililinis ng pag-pause ang lumang galaw; hindi nagbago ang pagmamaneho at mga solidong pader.",
  "Room for wallet controls": "Espasyo para sa mga kontrol ng wallet",

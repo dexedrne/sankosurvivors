@@ -3,14 +3,14 @@
     {
       "path": "/racers/index.html",
       "bytes": 12928,
-      "sha256": "8714cbfbff0548eabfbc231cd36f512d3770ae9f43f318cb01fbc5c28d741a01"
+      "sha256": "336fe4818910e28c6b69d1efb1f55348d74d1cd69705a09ee518d18a2f6f5879"
     }
   ],
   "source": {
-    "commit": "bcdf76db9ec3c156e60d05bf748e772afe959434",
-    "implementation": "bcdf76db9ec3c156e60d05bf748e772afe959434",
-    "rulesVersion": "1c7a49b9608c",
-    "clientSha256": "d771bacd76cc85cd5877dc303cfb0b1ca3f9da3e6a9ede4942dd4093e3fd3d80"
+    "commit": "17db565074b019e1331f6fc528969f1b68636100",
+    "implementation": "17db565074b019e1331f6fc528969f1b68636100",
+    "rulesVersion": "0115c254e974",
+    "clientSha256": "122a8fc2f0708be31c1f3c0b1a4d32da8dc91597d54d20151e6eb8264d4c732f"
   },
   "adaptations": {
     "client": [
@@ -60,8 +60,8 @@
         "count": 1
       },
       {
-        "before": "\"world/tiles/fences-b0312bb6a4dc.json\"",
-        "after": "\"racers/world/tiles/fences-b0312bb6a4dc.json\"",
+        "before": "\"world/tiles/fences-bdb2335d6b32.json\"",
+        "after": "\"racers/world/tiles/fences-bdb2335d6b32.json\"",
         "count": 1
       },
       {
@@ -76,8 +76,8 @@
         "after": "<title>Sanko Racers · SankoQuest World</title><meta name=\"description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Sanko Racers\"><meta property=\"og:title\" content=\"Sanko Racers · Public World Hub\"><meta property=\"og:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:url\" content=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><link rel=\"canonical\" href=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image:secure_url\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Sanko Racers · Public World Hub\"><meta name=\"twitter:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta name=\"twitter:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\">"
       },
       {
-        "before": "/assets/index-M1hv7j2w.js",
-        "after": "./racers-9cc3c8848a805b1c.js"
+        "before": "/assets/index-CIlNA-CV.js",
+        "after": "./racers-88a352df29d25d39.js"
       },
       {
         "before": "/assets/index-yojoASE1.css",
@@ -94,12 +94,12 @@
     {
       "path": "/fun/racers/index.html",
       "bytes": 12898,
-      "sha256": "00a82a318dea69a9d0f18864906e83360ba4174e268e24df9c02c4fdbbda9503"
+      "sha256": "69c4556d521190164398785c7cb6a8758f3edcb8a95c7884fe6cbdedb92fd950"
     },
     {
-      "path": "/fun/racers/racers-9cc3c8848a805b1c.js",
-      "bytes": 1695326,
-      "sha256": "9cc3c8848a805b1c891b5a3207e88f3d19ac54f8e4e2e1d7e0f90af2017dacc0"
+      "path": "/fun/racers/racers-88a352df29d25d39.js",
+      "bytes": 1695566,
+      "sha256": "88a352df29d25d3941e9a1006472932362c8c937f38549712b820147f2318a7b"
     },
     {
       "path": "/fun/racers/racers-92c250ecc3a64292.css",
@@ -119,7 +119,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 3102,
-      "sha256": "771d6f5af11223120e9daf73b2255394fe654afb63d18b24311a8cd446a02c67"
+      "sha256": "81195944e8fa394d931ad1f86655f0b020a4c2862ef567bf26504677b423e6d2"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -2652,6 +2652,11 @@
       "sha256": "b0312bb6a4dc49418a25459208722e0832f8601d311d25050bf31035d9d0a150"
     },
     {
+      "path": "/assets/racers/world/tiles/fences-bdb2335d6b32.json",
+      "bytes": 33143,
+      "sha256": "bdb2335d6b327eeae7d0baa7bf7c9364347afd925f66518ce1d447e33db7c68b"
+    },
+    {
       "path": "/assets/racers/world/tiles/surfaces-ffe7cf27a1ad.bin",
       "bytes": 1048576,
       "sha256": "ffe7cf27a1adad15c4cea0da27bf51b3cdf385840ba88010fbc7c643d8049b36"
@@ -4048,7 +4053,7 @@
     {
       "path": "assets/inventory.json",
       "reason": "No runtime reference (asserted before packaging)",
-      "sha256": "e2f626c787fe91d2c9a4a4d64dbee5ed0b026f6d3f66b99266bf00dc3457a374"
+      "sha256": "1e9bf3cf1830262841005c06b1ce289cd33ecb349eaaf2d5cf9ad81e4f0353dd"
     },
     {
       "path": "assets/world/tiles/fences-923b19cc1732.json",

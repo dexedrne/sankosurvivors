@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.45.5',date:'11 Nov 2026',title:'Room beside the west houses',items:['Sanko Racers: the narrow path beside the houses west of Greentown castle follows the visible walls more closely. House corners stay solid for driving, walking and shots.']},
   {version:'0.45.4',date:'11 Nov 2026',title:'Smoother Racers movement',items:['Sanko Racers: your kart, walking character and camera move together between physics steps, online and offline. NPC rivals move smoothly too. Pausing clears old movement; handling and solid walls are unchanged.']},
   {version:'0.45.3',date:'11 Nov 2026',title:'Room for wallet controls',items:['Desktop menus keep wallet and language controls clear. Longer panels scroll within the menu, and small windows keep every control reachable.']},
   {version:'0.45.2',date:'11 Nov 2026',title:'Racers frame pacing',items:['Sanko Racers: the frame cap keeps its timing on faster displays instead of dropping extra frames. Stalls skip missed frames without a catch-up burst.']},
