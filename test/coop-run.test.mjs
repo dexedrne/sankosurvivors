@@ -113,3 +113,16 @@ test('storms retain canonical time across hold and retained-frame recovery',()=>
  const frame=p.host.frame;p.host.begin(frame);p.guest.begin(frame);for(let i=0;i<60;i++)p.host.advance();assert(p.guest.recover(p.host.frame));p.deliver();assert.equal(p.guest.frame,p.host.frame);assert.equal(p.host.hash(),p.guest.hash());
  p.host.hold();p.deliver();p.host.begin(p.host.frame);p.guest.begin(p.guest.frame);p.tick(30);assert.equal(p.host.hash(),p.guest.hash());assert.deepEqual(snapshot(p.host.sim).storm,snapshot(p.guest.sim).storm);assert.equal(snapshot(p.host.sim).storm.left,15);assert.deepEqual(p.ended,[]);
 });
+test('co-op gold mining produces one reward and matching host/guest state through collection',()=>{
+ const p=pair();
+ for(const d of [p.host,p.guest]){
+  const s=d.sim,a=s.players[0];
+  s.shrines.push({id:s.nextId++,kind:'gold',x:a.x,z:a.z,charge:0,life:75});
+  for(const member of s.players){member.x=a.x;member.z=a.z;member.weapons={};}
+ }
+ p.tick(150);
+ assert.equal(p.host.hash(),p.guest.hash());
+ assert.equal(p.host.sim.shrines.length,0);
+ assert.equal(p.host.sim.pickups.filter(k=>k.kind==='coin').length+p.host.sim.players.reduce((sum,a)=>sum+a.coins,0),24);
+ assert.deepEqual(p.ended,[]);
+});

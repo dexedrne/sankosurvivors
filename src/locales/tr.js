@@ -1,5 +1,11 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Gold nodes in casual Adventure":"Gündelik Macera’da altın yatakları",
+  "Find a Gold node, hold its circle for 3.5 seconds, then collect the 24 coins. Gold nodes can appear in solo and co-op Adventure.":"Bir altın yatağı bul, çemberinde 3,5 saniye dur ve çıkan 24 altını topla. Altın yatakları tek kişilik ve eşli Macera’da belirebilir.",
+  "Gold nodes can appear during casual Adventure. Stand in the circle for 3.5 seconds to mine 24 coins, then collect them.":"Gündelik Macera’da altın yatakları belirebilir. Çemberinde 3,5 saniye durarak 24 altın çıkar, ardından bunları topla.",
+  "Gold node: 24 coins":"Altın yatağı: 24 altın",
+  "Gold node":"Altın yatağı",
+  "24 coins":"24 altın",
   "Controller menu fixes":"Kontrolcü menüsü düzeltmeleri",
   "Back closes the current menu without confirming a choice underneath. Confirm only activates available controls.":"Geri tuşu, arkadaki menüde bir seçimi onaylamadan açık menüyü kapatır. Onay tuşu yalnızca kullanılabilir denetimleri etkinleştirir.",
   "A new Racers menu":"Yeni Racers menüsü",

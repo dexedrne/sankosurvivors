@@ -1090,9 +1090,11 @@ export const SHRINES = {
   agility: { name: 'Shrine of Agility', text: '+25% speed for 40 seconds', color: 0x7be06a },
   fortune: { name: 'Shrine of Fortune', text: 'a treasure chest', color: 0xffd34d },
   wealth: { name: 'Shrine of Wealth', text: 'a ring of coins', color: 0xffb03a },
+  gold: { name: 'Gold node', text: '24 coins', color: 0xffd34d },
 };
 export const SHRINE = { first: 75, every: 110, charge: 3.5, r: 2.6, life: 75 };
-const SHRINE_KINDS = Object.keys(SHRINES);
+const SHRINE_KINDS = Object.keys(SHRINES).filter(kind => kind !== 'gold');
+const CASUAL_SHRINE_KINDS = [...SHRINE_KINDS, 'gold'];
 function shrineTick(sim, dt) {
   if (sim.pace < 2) return;
   const alive = sim.players.filter((q) => q.alive); if (!alive.length) return;
@@ -1114,7 +1116,8 @@ function shrineTick(sim, dt) {
           }
         }
         if (!clear) continue;
-        const kind = SHRINE_KINDS[Math.floor(sim.rng() * SHRINE_KINDS.length)];
+        const kinds = sim.ranked || sim.variant ? SHRINE_KINDS : CASUAL_SHRINE_KINDS;
+        const kind = kinds[Math.floor(sim.rng() * kinds.length)];
         sim.shrines.push({ id: sim.nextId++, x, z, kind, charge: 0, life: SHRINE.life }); sim.fx.push({ k: 'shrine', kind, x, z });
         break;
       }
@@ -1136,7 +1139,10 @@ function shrineReward(sim, p, s) {
   else if (k === 'magic') { for (const g of sim.gems) g.pulled = true; p.buffs.wisdom = 40; }
   else if (k === 'agility') p.buffs.agility = 40;
   else if (k === 'fortune') sim.pickups.push({ id: sim.nextId++, x: s.x, z: s.z, kind: 'chest' });
-  else for (let i = 0; i < 12; i++) { const a = (i / 12) * 6.283; sim.pickups.push({ id: sim.nextId++, x: s.x + dcos(a) * 1.8, z: s.z + dsin(a) * 1.8, kind: 'coin' }); }
+  else {
+    const coins = k === 'gold' ? 24 : 12;
+    for (let i = 0; i < coins; i++) { const a = (i / coins) * 6.283; sim.pickups.push({ id: sim.nextId++, x: s.x + dcos(a) * 1.8, z: s.z + dsin(a) * 1.8, kind: 'coin' }); }
+  }
 }
 
 // ---- random events: every few minutes something happens ---------------------------------------------------------

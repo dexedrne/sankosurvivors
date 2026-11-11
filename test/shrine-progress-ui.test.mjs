@@ -18,3 +18,8 @@ test('nearest shrine wins; depleted, distant and absent shrines never leave stal
  const f=fixture();f.update(view(0,[[1,'magic',2,0,.5],[2,'prayer',1,0,0]]));assert.equal(f.$('shrinename').textContent,SHRINES.prayer.name);assert.equal(f.$('shrineprogress').value,0);
  for(const v of[view(20,[[1,'magic',0,0,.4]]),view(0,[]),view(0,[[1,'magic',0,0,.4]],0)]){f.update(v);assert.equal(f.$('shrinecharge').classList.hidden,true);}
 });
+test('a nearby Gold node displays its mining progress through the existing charging HUD',()=>{
+ const f=fixture(),nodes=[[1,'gold',0,0,.64,70]];
+ f.update(view(0,nodes));assert.equal(f.$('shrinename').textContent,'Gold node');assert.equal(f.$('shrinestate').textContent,'Mining');assert.equal(f.$('shrineprogress').value,64);
+ f.update(view(SHRINE.r+.5,nodes));assert.equal(f.$('shrinestate').textContent,'Step into circle');
+});

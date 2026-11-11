@@ -2394,7 +2394,7 @@ function updateShrineHud(view) {
   if (!nearest) return;
   const percent = Math.round(Math.max(0, Math.min(1, nearest[4])) * 100);
   $('shrinename').textContent = SHRINES[nearest[1]].name;
-  $('shrinestate').textContent = distance < SHRINE.r ? 'Charging' : 'Step into circle';
+  $('shrinestate').textContent = distance < SHRINE.r ? nearest[1] === 'gold' ? 'Mining' : 'Charging' : 'Step into circle';
   $('shrineprogress').value = percent; $('shrinepct').textContent = percent + '%';
 }
 function updateTumbleHud(me) {

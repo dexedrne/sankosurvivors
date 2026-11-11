@@ -21,6 +21,6 @@ for(const lang of ['tr','es','fil'])test(`${lang} current/default/casual notes t
  const {CHANGELOG:casualNotes}=await import('data:text/javascript,'+encodeURIComponent(changelog));
  for(const entry of casualNotes)for(const text of [entry.title,...entry.items])assert.ok(casual.text[text],text);
  const old=CHANGELOG.find(entry=>entry.version==='0.1');assert.equal(translateText(old.title,lang),old.title,'unknown old title stays readable English');
- const amounts=text=>text.match(/\d+(?:\.\d+)?|DMT|ETH/g)||[];
+ const amounts=text=>(text.match(/\d+(?:[.,]\d+)?|DMT|ETH/g)||[]).map(value=>value.replace(',','.'));
  for(const entry of CHANGELOG)for(const text of [entry.title,...entry.items])assert.deepEqual(amounts(translateText(text,lang)).sort(),amounts(text).sort(),`${entry.version}: ${text}`);
 });

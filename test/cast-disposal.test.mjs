@@ -18,6 +18,7 @@ function harness() {
     const dyn = new THREE.Group(), entGroup = new THREE.Group(), camera = new THREE.PerspectiveCamera();
     let merchantActor=null; const castleMarker=new THREE.Group(), folkProto=()=>null;
     const projObjs = new Map(), eprojObjs = new Map(), shrineObjs = new Map(), shieldObjs = new Map();
+    const iconTex = () => modelMap;
     const groundAt = () => 0, fxOnly = o => o, colorOut = s => s, emit = () => {}, A = s => s;
     const meleeFx = createMeleeVfx({group:dyn,camera,groundAt,fxOnly,colorOut});
     const petRenderer = createPetRenderer({group:dyn,groundAt,load:async()=>null,spawn:()=>{throw Error('No companion selected in this cast fixture');}});
@@ -120,3 +121,12 @@ test('reset purges active casts, enemy shots, bursts and shrines with disposal e
 });
 
 test('merchant retirement and reset dispose their owned ring without touching cached assets',()=>{const h=harness();h.frame({merchant:{id:17,x:1,z:1},players:[{id:'p1',x:0,z:0}]});const root=h.merchant().root,owned=watch(uniqueResources(root,h.shared())),cached=watch(h.shared());h.frame();assert.equal(h.merchant(),null);assert.equal(root.parent,null);assert.ok(owned.every(x=>x.disposals===1));assert.ok(cached.every(x=>x.disposals===0));h.frame({merchant:{id:18,x:2,z:1},players:[{id:'p1',x:0,z:0}]});const next=watch(uniqueResources(h.merchant().root,h.shared()));h.reset();assert.equal(h.merchant(),null);assert.ok(next.every(x=>x.disposals===1));});
+
+
+test('a Gold node releases its sprite and effect materials while retaining cached native resources',async()=>{
+ const h=harness();h.frame({shrines:[[777,'gold',0,0,.5]]});await settleModels();
+ const root=h.shrineObjs.get(777);assert.equal(root.name,'gold-node');
+ const own=watch(uniqueResources(root,h.shared())),cached=watch(h.shared());
+ h.reset();assert.equal(h.shrineObjs.size,0);
+ assert(own.every(r=>r.disposals===1));assert(cached.every(r=>r.disposals===0));
+});

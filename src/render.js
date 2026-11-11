@@ -1302,7 +1302,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   castleFlag.position.set(0.3, 2.1, 0); castleMarker.add(castleFlag);
   const castlePole = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.3, 0.05), protestWood); castlePole.position.y = 1.15; castleMarker.add(castlePole);
   castleMarker.visible = false; dyn.add(castleMarker);
-  const shrineObjs = new Map(), SHRINE_COLORS = { strength: 0xff5a3c, prayer: 0xbfe8ff, magic: 0xb06aff, agility: 0x7be06a, fortune: 0xffd34d, wealth: 0xffb03a }; // as SHRINES in sim.js
+  const shrineObjs = new Map(), SHRINE_COLORS = { strength: 0xff5a3c, prayer: 0xbfe8ff, magic: 0xb06aff, agility: 0x7be06a, fortune: 0xffd34d, wealth: 0xffb03a, gold: 0xffd34d }; // as SHRINES in sim.js
   const PICKUP_ICON = { coin: 'Gold', cheese: 'Cheese', crawdad: 'Cooked Crawdad', trout: 'Cooked Brown Trout', catfish: 'Cooked Catfish', bass: 'Cooked Bubba Bass', beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', chest: 'Gold Bar' };
   const PICKUP_SIZE = { chest: 1.5, coin: 0.855, cheese: 0.8, crawdad: 0.8, trout: 0.95, catfish: 1.0, bass: 1.1 };
   function removePickup(sp) {
@@ -2068,7 +2068,17 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       seenS.add(id); let o = shrineObjs.get(id);
       if (!o) {
         const col = SHRINE_COLORS[kind] || 0xffffff; o = new THREE.Group();
-        loadGLB(A('world/scene-models/Altar.glb')).then((g) => { const m = g.scene.clone(true), b = boxOf(m), sz = b.getSize(new THREE.Vector3()), k = 1.3 / Math.max(sz.y, 1e-3); m.scale.setScalar(k); m.position.set(-(b.min.x + b.max.x) / 2 * k, -b.min.y * k, -(b.min.z + b.max.z) / 2 * k); m.traverse((c) => { if (c.isMesh) c.castShadow = true; }); o.add(m); }).catch(() => {});
+        o.name = kind === 'gold' ? 'gold-node' : 'shrine-' + kind;
+        loadGLB(A(kind === 'gold' ? 'world/nodes/rocks.glb' : 'world/scene-models/Altar.glb')).then((g) => {
+          if (shrineObjs.get(id) !== o) return;
+          const m = g.scene.clone(true), b = boxOf(m), sz = b.getSize(new THREE.Vector3()), k = (kind === 'gold' ? 1.1 : 1.3) / Math.max(sz.y, 1e-3);
+          m.scale.setScalar(k); m.position.set(-(b.min.x + b.max.x) / 2 * k, -b.min.y * k, -(b.min.z + b.max.z) / 2 * k);
+          m.traverse(c => { if (c.isMesh) c.castShadow = true; }); o.add(m);
+        }).catch(() => {});
+        if (kind === 'gold') {
+          const icon = new THREE.Sprite(ownActorResource(new THREE.SpriteMaterial({ map: iconTex('Gold Ore'), alphaTest: 0.3, depthWrite: false, toneMapped: false })));
+          icon.position.y = 1.8; icon.scale.setScalar(0.9); o.add(icon);
+        }
         const beam = fxOnly(new THREE.Mesh(ownActorResource(new THREE.CylinderGeometry(0.5, 0.9, 9, 14, 1, true)), ownActorResource(new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }))));
         beam.position.y = 4.5;
         const edge = softRing(col, 2.35, 2.75, { opacity: 0.85, arcs: 4 }), fill = softRing(col, 0, 2.5, { opacity: 0.15, fill: 0.9 });

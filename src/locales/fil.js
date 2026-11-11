@@ -1,5 +1,11 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Gold nodes in casual Adventure":"Mga minahan ng ginto sa casual Adventure",
+  "Find a Gold node, hold its circle for 3.5 seconds, then collect the 24 coins. Gold nodes can appear in solo and co-op Adventure.":"Maghanap ng minahan ng ginto, manatili sa bilog nang 3.5 segundo at kolektahin ang 24 na barya. Maaari itong lumitaw sa solo at co-op Adventure.",
+  "Gold nodes can appear during casual Adventure. Stand in the circle for 3.5 seconds to mine 24 coins, then collect them.":"Maaaring lumitaw ang minahan ng ginto sa casual Adventure. Manatili sa bilog nang 3.5 segundo para makakuha ng 24 na barya, at kolektahin ang mga ito.",
+  "Gold node: 24 coins":"Minahan ng ginto: 24 na barya",
+  "Gold node":"Minahan ng ginto",
+  "24 coins":"24 na barya",
   "Controller menu fixes":"Mga ayos sa menu para sa controller",
   "Back closes the current menu without confirming a choice underneath. Confirm only activates available controls.":"Isinasara ng Back ang kasalukuyang menu. Ang Confirm ay gumagana lamang sa mga kontrol na maaaring gamitin.",
   "A new Racers menu":"Bagong menu ng Racers",

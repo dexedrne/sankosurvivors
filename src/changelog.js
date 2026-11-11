@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.44.98", "date": "11 Nov 2026", "title": "Gold nodes in casual Adventure", "items": ["Find a Gold node, hold its circle for 3.5 seconds, then collect the 24 coins. Gold nodes can appear in solo and co-op Adventure."]},
   {"version": "0.44.97", "date": "11 Nov 2026", "title": "Controller menu fixes", "items": ["Back closes the current menu without confirming a choice underneath. Confirm only activates available controls."]},
   {"version": "0.44.96", "date": "11 Nov 2026", "title": "A new Racers menu", "items": ["The Racers menu gives the live driver and kart preview more room. Find Courier, Zombies, Free Drive and races under Activities."]},
   {"version": "0.44.95", "date": "11 Nov 2026", "title": "Greentown Courier", "items": ["The Survivors Fun menu links directly to the Racers public world, Greentown Courier and Zombies."]},

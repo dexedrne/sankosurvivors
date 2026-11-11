@@ -1,5 +1,11 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Gold nodes in casual Adventure":"Nodos de oro en Aventura casual",
+  "Find a Gold node, hold its circle for 3.5 seconds, then collect the 24 coins. Gold nodes can appear in solo and co-op Adventure.":"Encuentra un nodo de oro, permanece en su círculo durante 3,5 segundos y recoge las 24 monedas. Pueden aparecer en Aventura en solitario y cooperativa.",
+  "Gold nodes can appear during casual Adventure. Stand in the circle for 3.5 seconds to mine 24 coins, then collect them.":"Pueden aparecer nodos de oro en Aventura casual. Permanece en el círculo durante 3,5 segundos para extraer 24 monedas y luego recógelas.",
+  "Gold node: 24 coins":"Nodo de oro: 24 monedas",
+  "Gold node":"Nodo de oro",
+  "24 coins":"24 monedas",
   "Controller menu fixes":"Correcciones de los menús con mando",
   "Back closes the current menu without confirming a choice underneath. Confirm only activates available controls.":"Atrás cierra el menú actual sin confirmar una opción del menú anterior. Confirmar solo activa los controles disponibles.",
   "A new Racers menu":"Nuevo menú de Racers",
