@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.45.12", "date": "11 Nov 2026", "title": "Armed karts", "items": ["Grand Theft Sanko: fit a native Auto Rifle, Gatling or Heavy Cannon in the Garage. Your weapon choice saves locally; mounted guns share the existing damage and firing speed. Getting out keeps your Glock. Safe hub and Wilderness rules still apply."]},
   {"version": "0.45.11", "date": "11 Nov 2026", "title": "Room for the karts", "items": ["Grand Theft Sanko: south Greentown fence ends and house-wall corners follow the visible models more closely. Cars have a slightly smaller collision body for easier clearance. Buildings and water stay solid."]},
   {version:'0.45.10',date:'11 Nov 2026',title:'A quicker road in',items:['Grand Theft Sanko has a quicker world loader. The full map, vehicles and game rules stay the same.']},
   {version:'0.45.9',date:'11 Nov 2026',title:"Grand Theft Sanko & Need for Sanko",items:["The open world is Grand Theft Sanko. Racing is Need for Sanko. Open Fun for the direct racing link; existing links and saved progress still work."]},

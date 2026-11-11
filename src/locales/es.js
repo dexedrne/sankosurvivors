@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Armed karts": "Karts armados",
+  "Grand Theft Sanko: fit a native Auto Rifle, Gatling or Heavy Cannon in the Garage. Your weapon choice saves locally; mounted guns share the existing damage and firing speed. Getting out keeps your Glock. Safe hub and Wilderness rules still apply.": "Grand Theft Sanko: equipa el Auto Rifle, Gatling o Heavy Cannon original en el Garaje. La elección se guarda en este dispositivo; las armas montadas usan el daño y la cadencia actuales. Al bajar conservas tu Glock. Siguen vigentes las reglas de la zona segura y Wilderness.",
   "Room for the karts": "Más espacio para los karts",
   "Grand Theft Sanko: south Greentown fence ends and house-wall corners follow the visible models more closely. Cars have a slightly smaller collision body for easier clearance. Buildings and water stay solid.": "Grand Theft Sanko: los extremos de las vallas y las esquinas de las casas del sur de Greentown se ajustan mejor a los modelos visibles. Los vehículos tienen una zona de colisión un poco más pequeña para pasar con más facilidad. Los edificios y el agua siguen bloqueando el paso.",
 

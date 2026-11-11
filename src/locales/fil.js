@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Armed karts": "Mga kart na may armas",
+  "Grand Theft Sanko: fit a native Auto Rifle, Gatling or Heavy Cannon in the Garage. Your weapon choice saves locally; mounted guns share the existing damage and firing speed. Getting out keeps your Glock. Safe hub and Wilderness rules still apply.": "Grand Theft Sanko: ikabit ang orihinal na Auto Rifle, Gatling o Heavy Cannon sa Garahe. Naka-save sa device ang napiling armas; pareho ang kasalukuyang pinsala at bilis ng pagpapaputok. May Glock ka pa rin paglabas. Nananatili ang mga patakaran ng ligtas na hub at Wilderness.",
   "Room for the karts": "Mas maluwag para sa mga kart",
   "Grand Theft Sanko: south Greentown fence ends and house-wall corners follow the visible models more closely. Cars have a slightly smaller collision body for easier clearance. Buildings and water stay solid.": "Grand Theft Sanko: mas tugma na sa nakikitang mga modelo ang mga dulo ng bakod at sulok ng bahay sa timog Greentown. Bahagyang mas maliit na ang banggaan ng mga sasakyan para mas madaling makadaan. Hindi pa rin madadaanan ang mga gusali at tubig.",
 

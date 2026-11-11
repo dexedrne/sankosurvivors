@@ -85,3 +85,5 @@ Made by [@dexedrne](https://x.com/dexedrne) for the Sanko community. SankoQuest 
 [Sanko Telegram](https://t.me/sankogamecorp) · [Sanko on X](https://x.com/SankoGameCorp)
 
 Grand Theft Sanko now has more accurate south Greentown fence and house-wall clearance, with the same slightly smaller collision body for every kart. Need for Sanko uses matching server collision rules.
+
+Grand Theft Sanko Garage includes the supplied CrashOut Auto Rifle, Gatling and Heavy Cannon for all fourteen stock karts. The local selection persists; mounted weapons use the existing combat rules and on-foot play keeps the Glock.
