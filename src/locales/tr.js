@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Smoother Racers movement": "Racers'ta daha akıcı hareket",
+ "Sanko Racers: your kart, walking character and camera move together between physics steps, online and offline. NPC rivals move smoothly too. Pausing clears old movement; handling and solid walls are unchanged.": "Sanko Racers: kartınız, yürüyen karakteriniz ve kamera, çevrimiçi ve çevrimdışı oyunda fizik adımları arasında birlikte akıcı hareket eder. NPC rakipler de akıcı hareket eder. Duraklatma eski hareketi temizler; sürüş ve sağlam duvarlar değişmedi.",
  "Room for wallet controls": "Cüzdan kontrollerine yer",
  "Desktop menus keep wallet and language controls clear. Longer panels scroll within the menu, and small windows keep every control reachable.": "Masaüstü menüleri cüzdan ve dil kontrollerini açıkta tutar. Uzun paneller menünün içinde kaydırılır ve küçük pencerelerde tüm kontrollere erişilebilir.",
  "Racers frame pacing": "Racers kare zamanlaması",

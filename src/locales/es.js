@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Smoother Racers movement": "Movimiento más fluido en Racers",
+ "Sanko Racers: your kart, walking character and camera move together between physics steps, online and offline. NPC rivals move smoothly too. Pausing clears old movement; handling and solid walls are unchanged.": "Sanko Racers: tu kart, personaje a pie y cámara se mueven juntos entre pasos de física, con y sin conexión. Los rivales NPC también se mueven con fluidez. Pausar elimina el movimiento anterior; la conducción y las paredes sólidas no cambian.",
  "Room for wallet controls": "Espacio para los controles de la cartera",
  "Desktop menus keep wallet and language controls clear. Longer panels scroll within the menu, and small windows keep every control reachable.": "Los menús de escritorio dejan libres los controles de cartera e idioma. Los paneles largos se desplazan dentro del menú y todos los controles siguen accesibles en ventanas pequeñas.",
  "Racers frame pacing": "Ritmo de fotogramas de Racers",

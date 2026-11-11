@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "Smoother Racers movement": "Mas maayos na galaw sa Racers",
+ "Sanko Racers: your kart, walking character and camera move together between physics steps, online and offline. NPC rivals move smoothly too. Pausing clears old movement; handling and solid walls are unchanged.": "Sanko Racers: sabay at maayos na gumagalaw ang kart, naglalakad na karakter at camera sa pagitan ng mga hakbang ng physics, online man o offline. Maayos na rin ang galaw ng mga NPC na kalaban. Nililinis ng pag-pause ang lumang galaw; hindi nagbago ang pagmamaneho at mga solidong pader.",
  "Room for wallet controls": "Espasyo para sa mga kontrol ng wallet",
  "Desktop menus keep wallet and language controls clear. Longer panels scroll within the menu, and small windows keep every control reachable.": "Hindi natatakpan ng mga desktop menu ang mga kontrol ng wallet at wika. Maaaring i-scroll ang mahahabang panel sa loob ng menu at naaabot pa rin ang lahat ng kontrol sa maliliit na window.",
  "Racers frame pacing": "Timing ng mga frame sa Racers",
