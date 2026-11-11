@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "A proper driving dashboard": "Mas maayos na dashboard sa pagmamaneho",
+ "Sanko Racers: your kart gets a framed dashboard with a speed dial, digital readout and gas/brake input bars. It hides when you get out.": "Sanko Racers: may dashboard na may frame ang kart mo, kasama ang karayom ng bilis, digital na numero at mga bar para sa gas at preno. Nakatago ito kapag bumaba ka sa sasakyan.",
  "Room beside the west houses": "Mas maluwag sa tabi ng mga bahay sa kanluran",
  "Sanko Racers: the narrow path beside the houses west of Greentown castle follows the visible walls more closely. House corners stay solid for driving, walking and shots.": "Sanko Racers: mas tugma na sa nakikitang mga pader ang makitid na daan sa tabi ng mga bahay sa kanluran ng kastilyo ng Greentown. Hinaharangan pa rin ng mga sulok ng bahay ang mga sasakyan, naglalakad at putok.",
  "Smoother Racers movement": "Mas maayos na galaw sa Racers",

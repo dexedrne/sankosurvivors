@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "A proper driving dashboard": "Yeni sürüş gösterge paneli",
+ "Sanko Racers: your kart gets a framed dashboard with a speed dial, digital readout and gas/brake input bars. It hides when you get out.": "Sanko Racers: kartınızda ibreli hız göstergesi, dijital hız ve gaz/fren çubukları olan çerçeveli bir panel var. Araçtan indiğinizde gizlenir.",
  "Room beside the west houses": "Batıdaki evlerin yanında daha fazla alan",
  "Sanko Racers: the narrow path beside the houses west of Greentown castle follows the visible walls more closely. House corners stay solid for driving, walking and shots.": "Sanko Racers: Greentown kalesinin batısındaki evlerin yanındaki dar yolun çarpışma sınırları artık görünen duvarlara daha yakın. Ev köşeleri araçları, yayaları ve mermileri engellemeye devam eder.",
  "Smoother Racers movement": "Racers'ta daha akıcı hareket",
