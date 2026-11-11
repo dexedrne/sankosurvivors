@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Greentown Courier":"Greentown Kuryesi",
+  "The Survivors Fun menu links directly to the Racers public world, Greentown Courier and Zombies.":"Survivors Eğlence menüsünden Racers ortak dünyasına, Greentown Kuryesi’ne ve Zombiler’e doğrudan geçebilirsin.",
+  "Drive or explore Greentown on foot.":"Greentown’u araçla veya yürüyerek keşfet.",
+  "Public world":"Ortak dünya",
+  "Zombies":"Zombiler",
   "A steadier grip":"Daha sağlam tutuş",
   "Sanko Racers: the Glock sits higher in the right hand and stays aligned with the wrist when you run, aim or fire.":"Sanko Racers: Glock sağ elde daha yukarıda durur ve koşarken, nişan alırken veya ateş ederken bileği takip eder.",
   "Zombies in Greentown":"Greentown’da zombiler",

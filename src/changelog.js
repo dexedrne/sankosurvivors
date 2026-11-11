@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.44.95", "date": "11 Nov 2026", "title": "Greentown Courier", "items": ["The Survivors Fun menu links directly to the Racers public world, Greentown Courier and Zombies."]},
   {"version": "0.44.94", "date": "10 Nov 2026", "title": "A steadier grip", "items": ["Sanko Racers: the Glock sits higher in the right hand and stays aligned with the wrist when you run, aim or fire."]},
   {"version": "0.44.93", "date": "10 Nov 2026", "title": "Zombies in Greentown", "items": ["Customize your Sanko Racers character with saved hair, skin and clothing choices in the Garage.", "Open Activities → Zombies for solo third-person survival with a Glock and iron shortsword."]},
   {"version": "0.44.92", "date": "10 Nov 2026", "title": "Take to the streets", "items": ["Sanko Racers: enter the shared world on foot or in your kart. World, Garage and Activities keep the menu easy to scan.", "Preview your native driver beside the kart, with outfits and your road log together in the Garage.", "On foot, hold right mouse or LT for shoulder aim, or tap Aim on touch. Drag the world to look. Wilderness PvP stays west of the church."]},

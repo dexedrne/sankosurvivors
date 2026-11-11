@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Greentown Courier":"Mensajero de Greentown",
+  "The Survivors Fun menu links directly to the Racers public world, Greentown Courier and Zombies.":"El menú Diversión de Survivors enlaza al mundo público de Racers, al Mensajero de Greentown y a Zombis.",
+  "Drive or explore Greentown on foot.":"Conduce o explora Greentown a pie.",
+  "Public world":"Mundo público",
+  "Zombies":"Zombis",
   "A steadier grip":"Un agarre más firme",
   "Sanko Racers: the Glock sits higher in the right hand and stays aligned with the wrist when you run, aim or fire.":"Sanko Racers: la Glock queda más alta en la mano derecha y sigue la muñeca al correr, apuntar o disparar.",
   "Zombies in Greentown":"Zombis en Greentown",

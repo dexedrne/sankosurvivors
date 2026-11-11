@@ -1,6 +1,6 @@
 {
-  "commit": "ccb7735dd5ac2327414196ce4dfaec51dd56abef",
-  "implementation": "ccb7735dd5ac2327414196ce4dfaec51dd56abef",
+  "commit": "60235ae89c3139f73856fe276488ee45b7d68824",
+  "implementation": "60235ae89c3139f73856fe276488ee45b7d68824",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2937,9 +2937,9 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-DQ5MBHz1.js",
-      "bytes": 1666180,
-      "sha256": "71f3b08dc968200032621560f009a294c6b6b2bd853e3c86a4ef49b860d90ee8",
+      "path": "assets/index-CoPrcbED.js",
+      "bytes": 1671472,
+      "sha256": "2d82b3e83ad727da78b572ae6f341cbd5d92711e0dd13cf0c1ca61454f6923ac",
       "role": "client"
     },
     {
@@ -4708,8 +4708,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 10212,
-      "sha256": "190499afc7675a40e57ba571ff8ea4baf6ebd02a13739c39d7920e0f7153bc8a",
+      "bytes": 10482,
+      "sha256": "46afc4aa44a094a1e50110bc8a2745ecbc42b5f3ef8681e306141d698e5b28e2",
       "role": "entry"
     }
   ],

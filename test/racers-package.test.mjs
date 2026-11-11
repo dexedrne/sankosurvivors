@@ -59,7 +59,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  assert.equal(hash(read('public/fun/racers/preview.png')),inputs.preview.sha256,'Preview remains the accepted native capture');
  const m=manifest();
  const js=read(`public${m.files.find(f=>f.path.endsWith('.js')).path}`).toString();
- assert.match(js,/"free":"hub"/);
+ assert.match(js,/\["free","courier"\]\.includes\(/);
  assert(html.includes('id="hubmode"'));assert(html.includes('id="updates"'));assert(html.includes('id="settings"'));
  assert(js.includes(inputs.rulesVersion),'Client and recorded authority fingerprint agree');
  assert.match(js,/sanko-racers-world-v2/);assert.match(js,/sanko-racers-world-v1/);assert(html.includes('id="surface-state"'));assert(html.includes('id="previous-best"'));
@@ -69,7 +69,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  const css=read(`public${m.files.find(f=>f.path.endsWith('.css')).path}`).toString();
  for(const asset of ['RuneScape-Plain-12.ttf','RuneScape-Quill-8.ttf','frame.png','grey_slot.png','yellow_slot.png'])assert(css.includes(asset),asset);
  assert(html.includes('data-action="handbrake"'));
- for(const id of ['garage-tabs','world-tab','garage-tab','activities-tab','start-walk','aim','wardrobe','zombiemode','slash'])assert(html.includes('id="'+id+'"'),id);
+ for(const id of ['garage-tabs','world-tab','garage-tab','activities-tab','start-walk','aim','wardrobe','zombiemode','slash','couriermode','road-deliveries','road-delivery-best'])assert(html.includes('id="'+id+'"'),id);
  assert(html.includes('id="fire"'));assert(html.includes('id="combat-status"'));assert(js.includes('WILDERNESS'));
  assert(html.includes('id="free-start"'));assert(html.includes('id="vehicle-choice"'));assert(html.includes('CRASHOUT KARTS'));assert(js.includes('Same handling for every vehicle.'));
  for(const key of ['sanko-racers-world-v1','racers-graphics','racers-volume','racers-muted'])assert(js.includes(key),key);

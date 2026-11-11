@@ -944,6 +944,11 @@ body.ds-layout #tradebtn { position:fixed; bottom:calc(112px + env(safe-area-ins
 .modecard-art > img { width:86px; height:86px; object-fit:contain; image-rendering:pixelated; }
 .adventure-art { background:#344d29; } .boss-art { background:#453239; } .raid-art { background:#4a3a20; } .slimer-art { background:#284b2b; }
 .slimer-art > img:first-child { width:104px; height:104px; } .modecard-art .eventbeer { position:absolute; width:44px; height:44px; right:22px; bottom:6px; transform:rotate(14deg); }
+#modemenu #racersportal { cursor:default; }
+#racersportal .modecard-copy { margin:0; }
+.racers-launch { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:auto; }
+.racers-launch a { display:grid; place-items:center; min-height:44px; padding:5px 4px; color:var(--cream); background:#413623; border:1px solid #88754a; text-align:center; text-decoration:none; font-size:16px; line-height:1.15; }
+.racers-launch a:hover, .racers-launch a:focus-visible { outline:2px solid var(--gold); outline-offset:-2px; }
 .racers-art > img { width:100%; height:100%; object-fit:cover; object-position:50% 59%; image-rendering:auto; }
 .modecard-body { display:flex; flex-direction:column; gap:9px; padding:12px 14px; flex:1; }
 .modecard-title { font-family:RSQuill8,sans-serif; font-size:28px; font-weight:400; line-height:1.1; color:var(--gold); }

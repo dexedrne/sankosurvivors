@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Greentown Courier":"Tagahatid sa Greentown",
+  "The Survivors Fun menu links directly to the Racers public world, Greentown Courier and Zombies.":"Sa Fun menu ng Survivors, direktang mabubuksan ang pampublikong mundo ng Racers, Tagahatid sa Greentown at mga Zombie.",
+  "Drive or explore Greentown on foot.":"Magmaneho o maglakad sa Greentown.",
+  "Public world":"Pampublikong mundo",
+  "Zombies":"Mga Zombie",
   "A steadier grip":"Mas matatag na hawak",
   "Sanko Racers: the Glock sits higher in the right hand and stays aligned with the wrist when you run, aim or fire.":"Sanko Racers: mas mataas ang hawak ng Glock sa kanang kamay at sumusunod ito sa pulso kapag tumatakbo, tumututok o nagpapaputok.",
   "Zombies in Greentown":"Mga zombie sa Greentown",
