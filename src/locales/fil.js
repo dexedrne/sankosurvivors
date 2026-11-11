@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "Grand Theft Sanko & Need for Sanko": "Grand Theft Sanko at Need for Sanko",
+ "The open world is Grand Theft Sanko. Racing is Need for Sanko. Open Fun for the direct racing link; existing links and saved progress still work.": "Grand Theft Sanko ang pangalan ng open world. Need for Sanko ang karera. Buksan ang Saya para sa direktang link sa karera; gumagana pa rin ang mga dating link at naka-save na progreso.",
+ "Drive, walk and explore the SankoQuest world. Race in Need for Sanko.": "Magmaneho, maglakad at tuklasin ang mundo ng SankoQuest. Makipagkarera sa Need for Sanko.",
  "Quick shots on the road": "Mabibilis na putok sa kalsada",
  "Sanko Racers: Glock shots have small moving bullets, brief trails and softer muzzle flashes. Pausing or restarting clears old shot effects.": "Sanko Racers: may maliliit na gumagalaw na bala, maiikling bakas at mas banayad na kislap sa dulo ng Glock. Inaalis ang mga lumang epekto ng putok kapag nag-pause o nag-restart.",
  "A stitched baseball": "Baseball na may tahi",

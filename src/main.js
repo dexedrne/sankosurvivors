@@ -250,7 +250,7 @@ function enterRacers(event) {
   if (mode !== 'title' || !canManuallyReload() || !progressCanLoad() || coop) { banner('Finish the current action before opening another game.', 3500); return; }
   const activity = event.currentTarget?.dataset.racersMode;
   cancelPendingLoads();
-  location.assign('./fun/racers/?mode=' + (activity === 'courier' || activity === 'zombies' ? activity : 'hub'));
+  location.assign('./fun/racers/?mode=' + (['courier', 'zombies', 'online'].includes(activity) ? activity : 'hub'));
 }
 function updateModePicker() {
   const special = selVariant !== 'normal', fixed = ['boss', 'fun', 'wizard', 'castle'].includes(selVariant);
@@ -287,7 +287,7 @@ $('modebtn').onclick = () => openModeMenu();
 for (const button of $('modecategories').children) button.onclick = () => showModeCategory(button.dataset.category);
 $('modemenuclose').onclick = closeModeMenu;
 $('modemenu').addEventListener('click', event => { if (event.target.id === 'modemenu') closeModeMenu(); });
-for (const id of ['racersplay', 'racerscourier', 'racerszombies']) $(id).onclick = enterRacers;
+for (const id of ['racersplay', 'racersrace', 'racerscourier', 'racerszombies']) $(id).onclick = enterRacers;
 $('racersbtn').onclick = enterRacers;
 $('trialboss').innerHTML = TRIAL_BOSSES.map(id => `<option value="${id}">${ENEMIES[id].name}</option>`).join('');
 $('trialboss').onchange = e => { if (TRIAL_BOSSES.includes(e.target.value)) trialBoss = e.target.value; };
@@ -2609,7 +2609,7 @@ function updateHud(view) {
 
 // ---- menus with a controller or the arrow keys: spatial focus, A/Enter picks, B/Esc goes back -----------------------
 const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
-const NAV_ITEMS = '#trialboss, #coop input, #racersplay, #racerscourier, #racerszombies, summary, [data-milestone][tabindex="0"], .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
+const NAV_ITEMS = '#trialboss, #coop input, #racersplay, #racersrace, #racerscourier, #racerszombies, summary, [data-milestone][tabindex="0"], .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { if (walletModalOpen()) return null; if (mode === 'recovery') return $('progressrecovery'); return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
 function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => !el.disabled && el.offsetParent !== null && !el.closest('.hidden') && !el.closest('details:not([open]) > :not(summary)')); }

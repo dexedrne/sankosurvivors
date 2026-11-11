@@ -50,6 +50,8 @@ cat > .vercel/output/config.json <<'JSON'
   {"src":"/(.*)","headers":{"X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","Permissions-Policy":"camera=(), microphone=(), geolocation=(), payment=()","X-Frame-Options":"DENY","Content-Security-Policy":"frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'"},"continue":true},
   {"src":"^/assets/[^/]+-[A-Za-z0-9_-]{8,}\\.(js|css)$","headers":{"Cache-Control":"public, max-age=31536000, immutable"},"continue":true},
   {"src":"^/assets/(models|world|music|sound|anim|ui|draco)/.*$","headers":{"Cache-Control":"public, max-age=86400, stale-while-revalidate=604800"},"continue":true},
+  {"src":"^/fun/racers/(racers-[0-9a-f]{16}\\.(js|css)|preview-[0-9a-f]{12}\\.png)$","headers":{"Cache-Control":"public, max-age=31536000, immutable"},"continue":true},
+  {"src":"^/assets/racers/world/tiles/(fences-[0-9a-f]{12}\\.json|surfaces-[0-9a-f]{12}\\.bin)$","headers":{"Cache-Control":"public, max-age=31536000, immutable"},"continue":true},
   {"src":"^/(index\\.html)?$","has":[{"type":"header","key":"user-agent","value":".*(TelegramBot|Twitterbot|facebookexternalhit|Discordbot|Slackbot|WhatsApp).*"}],"dest":"/preview"},
   {"src":"^/api/(scores|score|report|run|nonce|holder|ranked-week|ranked-version|ranked-nonce|ranked-enter|ranked-start|ranked-clock|ranked-submit|ranked-void|save-nonce|save-login|save-get|save-put)$","dest":"/api?route=$1"},
   {"handle":"filesystem"}

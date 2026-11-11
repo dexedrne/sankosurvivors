@@ -1,6 +1,6 @@
-SANKO RACERS — SANKOSURVIVORS FUN INTEGRATION
+GRAND THEFT SANKO — SANKOSURVIVORS FUN INTEGRATION
 
-Accepted original Racers source: 63f9d0b17841ab68bb981b32cffd484836592237 (accepted driving build).
+Accepted original Racers source: 6432e39a9747aa842a1e097172bcba784193832d (accepted driving build).
 The existing fan game's owner requested this packaged Fun route on 9 November 2026. That scope does not establish a new licence grant, endorsement, or authorization for unrelated standalone publication.
 
 The owner supplied the CrashOut partner Models/Specs handoffs for this Sanko ecosystem integration. Fourteen original complete stock GLBs are used without modifying their bytes; Sanko retains its artwork rights. The partner NOTICES.txt and supplied full MIT/Draco texts are retained under /assets/racers/karts/. These cosmetic choices use the same existing physics; draft ratings are not applied. Wallet connection can read CrashOut ownership and equipped parts on Arbitrum and assemble the supplied native modular assets. No signing, purchases or token approvals. Other players’ cosmetic appearances remain unverified; wallet addresses and token IDs are not broadcast. Partner assembly helpers remain unchanged. Native modular notices are retained under /assets/racers/crashout/.
@@ -13,4 +13,4 @@ Client adaptations: exact, hash-pinned asset/decoder URLs; private Racers car, p
 
 Reproduce: node tools/package-racers.mjs <accepted-dist> <accepted-desktop-survivors.png> [SQS-public-root]. Input hashes are in tools/racers-inputs.json; served hashes and URL adaptations are in manifest.json. Reused shared files must match the accepted inputs byte-for-byte. The accepted inventory, nav.bin and original provenance-only fences.json are omitted from this package: none is referenced by the runtime client. Collision uses the accepted nav.png and content-hashed Racers fence data.
 
-Preview: unedited racers-social.png from the accepted native social-card capture, SHA256 cbe15c670d930714fbce2340b1254bb5f12ef32208dd2306cf5284c01a1a1fe4. No generated or redesigned models/art.
+Preview: unedited grand-theft-sanko-social.png from the accepted native social-card capture, SHA256 f3f8905a5df838a07e9d5801c2c0a4a53f4895a27455969d93c7c988b491f8cb. No generated or redesigned models/art.

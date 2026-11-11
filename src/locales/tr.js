@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Grand Theft Sanko & Need for Sanko": "Grand Theft Sanko ve Need for Sanko",
+ "The open world is Grand Theft Sanko. Racing is Need for Sanko. Open Fun for the direct racing link; existing links and saved progress still work.": "Açık dünya artık Grand Theft Sanko. Yarışların adı Need for Sanko. Doğrudan yarış bağlantısı için Eğlence menüsünü açın; mevcut bağlantılar ve kayıtlı ilerleme çalışmaya devam eder.",
+ "Drive, walk and explore the SankoQuest world. Race in Need for Sanko.": "SankoQuest dünyasında sürün, yürüyün ve keşfe çıkın. Need for Sanko yarışlarına katılın.",
  "Quick shots on the road": "Yolda hızlı atışlar",
  "Sanko Racers: Glock shots have small moving bullets, brief trails and softer muzzle flashes. Pausing or restarting clears old shot effects.": "Sanko Racers: Glock atışlarında küçük hareketli mermiler, kısa izler ve daha yumuşak namlu parlamaları var. Duraklatma veya yeniden başlatma eski atış efektlerini temizler.",
  "A stitched baseball": "Dikişli beyzbol topu",

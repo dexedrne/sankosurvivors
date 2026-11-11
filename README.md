@@ -4,7 +4,7 @@
 
 Survive the SankoQuest world, build a ridiculous loadout, and take on the weekly ranked board.
 
-**[Play SankoSurvivors](https://sankosurvivors.quest)** · **[Enter Sanko Racers](https://sankosurvivors.quest/racers/)** · [@dexedrne](https://x.com/dexedrne)
+**[Play SankoSurvivors](https://sankosurvivors.quest)** · **[Enter Grand Theft Sanko](https://sankosurvivors.quest/racers/)** · [Need for Sanko races](https://sankosurvivors.quest/fun/racers/?mode=online) · [@dexedrne](https://x.com/dexedrne)
 
 ## Play
 
@@ -39,7 +39,7 @@ Casual progress is kept on the device. Optional wallet sign-in enables cloud pro
 
 WalletConnect and supported injected wallets connect from the original game page. Ranked payments, the optional DMT holder check, and Buy DMT are explicit separate actions. Buy DMT compares Arbitrum quotes and estimated gas; displayed estimates can change before a transaction. The calculator does not automatically split purchases. An Ethereum-to-Arbitrum bridge service is under investigation and is **not included**.
 
-Sanko Racers keeps its own device-local Road Log and settings. Its public hub has no ranked prizes and does not share Survivors progression. The separate Wavedash casual edition omits wallets, blockchain features and the website's ranked/cloud systems.
+Grand Theft Sanko and its Need for Sanko racing modes keep their own device-local Road Log and settings. Its public hub has no ranked prizes and does not share Survivors progression. The separate Wavedash casual edition omits wallets, blockchain features and the website's ranked/cloud systems.
 
 ## Development
 

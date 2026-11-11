@@ -51,7 +51,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
   assert.ok(fs.existsSync(new URL(`public/fun/racers/${relative.slice(2)}`,root)),relative);
  assert.match(html,/href="\/\?menu=fun"[^>]*>Back to SankoSurvivors<\/a>/);
  assert.doesNotMatch(html,/<iframe\b/i);
- assert.match(html, /property="og:title" content="Sanko Racers · Public World Hub"/);
+ assert.match(html, /property="og:title" content="Grand Theft Sanko · Public World Hub"/);
  assert.match(html, /property="og:url" content="https:\/\/sankosurvivors\.quest\/racers\/"/);
  assert.match(html, /name="twitter:card" content="summary_large_image"/);
  const image=html.match(/property="og:image" content="([^"]+)"/)[1];
@@ -75,7 +75,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  for(const key of ['sanko-racers-world-v1','racers-graphics','racers-volume','racers-muted'])assert(js.includes(key),key);
  assert.doesNotMatch(js,/["']sq-|localStorage\.clear\(/);
  assert.doesNotMatch(js,/\.\/assets\/|\.\/draco\/|100\.65\.235\.118|127\.0\.0\.1|supabase/i);
- assert(html.includes('id="wallet-connect"'));assert(html.includes('id="owned-use"'));assert(html.includes('https://opensea.io/collection/sanko-crashout-kart'));assert(js.includes('0x70013D4F2c4F81325a6D59f9D3EE11e215e5ea52'));assert(js.includes('Racers only reads wallet accounts.'));assert(js.includes('/assets/racers/crashout/'));
+ assert(html.includes('id="wallet-connect"'));assert(html.includes('id="owned-use"'));assert(html.includes('https://opensea.io/collection/sanko-crashout-kart'));assert(js.includes('0x70013D4F2c4F81325a6D59f9D3EE11e215e5ea52'));assert(js.includes('Wallet access is read-only.'));assert(js.includes('/assets/racers/crashout/'));
  assert.equal(js.includes('nav.bin'),false);assert.equal(js.includes('world/tiles/fences.json'),false);
  for(const file of ['weapons/hand_pistol.glb','cars/miata.glb','placements.json','world/tiles/fences-bdb2335d6b32.json'])
   assert.ok(js.includes(`racers/${file}`),file);

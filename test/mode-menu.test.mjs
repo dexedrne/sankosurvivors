@@ -13,11 +13,12 @@ function setup(){
  return{$,show:fn};
 }
 test('Fun is a category with Slimer Invasion and a real same-site driving game',()=>{
- for(const id of ['modemenu','modebtn','modecategories','modemenutitle','modemenublurb','racersportal','racersplay','racerscourier','racerszombies','modemenuclose'])assert(html.includes('id="'+id+'"'),id);
+ for(const id of ['racersrace','modemenu','modebtn','modecategories','modemenutitle','modemenublurb','racersportal','racersplay','racerscourier','racerszombies','modemenuclose'])assert(html.includes('id="'+id+'"'),id);
  assert.match(html,/<a[^>]*id="racersplay"[^>]*href="\.\/fun\/racers\/\?mode=hub"/);
  assert.match(html,/<a[^>]*id="racerscourier"[^>]*href="\.\/fun\/racers\/\?mode=courier"/);
  assert.match(html,/<a[^>]*id="racerszombies"[^>]*href="\.\/fun\/racers\/\?mode=zombies"/);
- assert.doesNotMatch(transformHtml(html),/racersportal|racerscourier|racerszombies|fun\/racers\//);
+ assert.match(html,/<a[^>]*id="racersrace"[^>]*href="\.\/fun\/racers\/\?mode=online"[^>]*>Need for Sanko<\/a>/);
+ assert.doesNotMatch(transformHtml(html),/racersrace|racersportal|racerscourier|racerszombies|fun\/racers\//);
  assert(html.includes('Boss &amp; Raid'));assert(html.includes('Slimer Invasion'));
 });
 test('browsing Fun shows its four experiences without selecting or starting a survival run',()=>{
@@ -39,7 +40,7 @@ test('Racers navigation refuses a busy or unreadable title without navigating or
  assert.equal(prevented,4);assert.equal(cancelled,0);assert.equal(navigated,0);
  const paths=[];
  const fn=invoke('title',()=>true,()=>true,null,()=>cancelled++,{assign(path){paths.push(path);}},()=>{});
- for(const racersMode of [undefined,'courier','zombies','https://example.invalid'])fn({currentTarget:{dataset:{racersMode}},preventDefault(){}});
- assert.deepEqual(paths,['hub','courier','zombies','hub'].map(mode=>'./fun/racers/?mode='+mode));
- assert.equal(cancelled,4);
+ for(const racersMode of [undefined,'courier','zombies','online','https://example.invalid'])fn({currentTarget:{dataset:{racersMode}},preventDefault(){}});
+ assert.deepEqual(paths,['hub','courier','zombies','online','hub'].map(mode=>'./fun/racers/?mode='+mode));
+ assert.equal(cancelled,5);
 });

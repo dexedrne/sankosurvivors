@@ -1,6 +1,6 @@
 {
-  "commit": "63f9d0b17841ab68bb981b32cffd484836592237",
-  "implementation": "63f9d0b17841ab68bb981b32cffd484836592237",
+  "commit": "6432e39a9747aa842a1e097172bcba784193832d",
+  "implementation": "6432e39a9747aa842a1e097172bcba784193832d",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2943,9 +2943,9 @@
       "role": "stylesheet"
     },
     {
-      "path": "assets/index-ClbD0JXX.js",
-      "bytes": 1712334,
-      "sha256": "cc9666a40f0cb7f1abba39154202b1afcdecf2028163b33550dc5ff75749e924",
+      "path": "assets/index-DvLwp9N8.js",
+      "bytes": 1712793,
+      "sha256": "065171a44baf569f264fd1136502538d5469519e93cf580deec5ea89af55bdfb",
       "role": "client"
     },
     {
@@ -4756,15 +4756,15 @@
     },
     {
       "path": "index.html",
-      "bytes": 12179,
-      "sha256": "ae55c4c6e3d24fb07dd0005a00082fd2abc44089ec6f6141a7023aefffcb236f",
+      "bytes": 12267,
+      "sha256": "a1d90bf3c6c0773aa63ed849d48913ae17bcdf57dff72828887a0445ec4e47ee",
       "role": "entry"
     }
   ],
   "preview": {
-    "path": "racers-social.png",
-    "bytes": 749863,
-    "sha256": "cbe15c670d930714fbce2340b1254bb5f12ef32208dd2306cf5284c01a1a1fe4"
+    "path": "grand-theft-sanko-social.png",
+    "bytes": 704975,
+    "sha256": "f3f8905a5df838a07e9d5801c2c0a4a53f4895a27455969d93c7c988b491f8cb"
   },
   "rulesVersion": "0115c254e974"
 }

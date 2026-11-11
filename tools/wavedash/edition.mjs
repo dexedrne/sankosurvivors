@@ -73,7 +73,7 @@ export function transformMain(source) {
   s = once(s, "  if (bunChoice(selectedPet) && !currentPetChoice()) $('petloadtext').textContent = 'BUN ownership must be verified before this companion can appear.';\n");
   s = once(s, "$('petbunrefresh').onclick = () => bunCompanions.refresh();\n");
   s = between(s, 'function enterRacers(', 'function updateModePicker()');
-  s = once(s, "for (const id of ['racersplay', 'racerscourier', 'racerszombies']) $(id).onclick = enterRacers;\n");
+  s = once(s, "for (const id of ['racersplay', 'racersrace', 'racerscourier', 'racerszombies']) $(id).onclick = enterRacers;\n");
   s = once(s, "$('racersbtn').onclick = enterRacers;\n");
   s = once(s, "  $('racersportal')?.classList.toggle('hidden', category !== 'fun');\n");
   s = once(s, '  if (!document.hidden) bunCompanions.sync(!!bunChoice(selectedPet));\n');
