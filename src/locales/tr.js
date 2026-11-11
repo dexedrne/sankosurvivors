@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Sit back and drive": "Arkaya yaslan ve sür",
+ "Sanko Racers: drivers sit back with their hands on the wheel. Online corrections stay continuous, aiming holds the shoulder camera steady, and Garage choices are readable. The hub timer and on-foot speedometer are hidden.": "Sanko Racers: sürücüler elleri direksiyondayken arkaya yaslanır. Çevrimiçi düzeltmeler akıcı kalır, nişan kamerası omuzda sabit durur ve Garaj seçenekleri okunaklıdır. Merkezdeki süre ve yaya hız göstergesi gizlidir.",
  "Keep your bearings": "Yönünü koru",
  "Sanko Racers: your view keeps its direction when you get in or out of a kart or switch views on foot. Recentre still resets your view.": "Sanko Racers: karta binerken, inerken veya yaya kamera görünümünü değiştirirken baktığın yön korunur. Yeniden ortalama görünümü sıfırlar.",
   "Keep moving on foot": "Yaya hareketi daha akıcı",

@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Sit back and drive": "Siéntate y conduce",
+ "Sanko Racers: drivers sit back with their hands on the wheel. Online corrections stay continuous, aiming holds the shoulder camera steady, and Garage choices are readable. The hub timer and on-foot speedometer are hidden.": "Sanko Racers: los conductores se sientan hacia atrás con las manos en el volante. Las correcciones en línea son continuas, la cámara al apuntar queda fija al hombro y las opciones del Garaje se leen bien. Se ocultan el tiempo del mundo público y el velocímetro a pie.",
  "Keep your bearings": "Mantén la orientación",
  "Sanko Racers: your view keeps its direction when you get in or out of a kart or switch views on foot. Recentre still resets your view.": "Sanko Racers: la cámara conserva su dirección al subir o bajar del kart y al cambiar de vista a pie. Recentrar sigue restableciendo la vista.",
   "Keep moving on foot": "Muévete mejor a pie",

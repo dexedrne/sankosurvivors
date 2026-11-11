@@ -1,6 +1,6 @@
 SANKO RACERS — SANKOSURVIVORS FUN INTEGRATION
 
-Accepted original Racers source: b454d84bd7cb3db0c0433e76d2f48ea85321f96c (accepted driving build).
+Accepted original Racers source: 1586e7f2c6949c64eeb9596a780d0e2334f08b03 (accepted driving build).
 The existing fan game's owner requested this packaged Fun route on 9 November 2026. That scope does not establish a new licence grant, endorsement, or authorization for unrelated standalone publication.
 
 The owner supplied the CrashOut partner Models/Specs handoffs for this Sanko ecosystem integration. Fourteen original complete stock GLBs are used without modifying their bytes; Sanko retains its artwork rights. The partner NOTICES.txt and supplied full MIT/Draco texts are retained under /assets/racers/karts/. These cosmetic choices use the same existing physics; draft ratings are not applied. Wallet connection can read CrashOut ownership and equipped parts on Arbitrum and assemble the supplied native modular assets. No signing, purchases or token approvals. Other players’ cosmetic appearances remain unverified; wallet addresses and token IDs are not broadcast. Partner assembly helpers remain unchanged. Native modular notices are retained under /assets/racers/crashout/.

@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "Sit back and drive": "Umupo at magmaneho",
+ "Sanko Racers: drivers sit back with their hands on the wheel. Online corrections stay continuous, aiming holds the shoulder camera steady, and Garage choices are readable. The hub timer and on-foot speedometer are hidden.": "Sanko Racers: nakasandal ang mga driver at nasa manibela ang mga kamay. Tuloy-tuloy ang online correction, nakapirmi sa balikat ang camera sa pag-aim, at malinaw ang mga pagpipilian sa Garage. Nakatago ang oras sa hub at speedometer kapag naglalakad.",
  "Keep your bearings": "Panatilihin ang direksyon",
  "Sanko Racers: your view keeps its direction when you get in or out of a kart or switch views on foot. Recentre still resets your view.": "Sanko Racers: nananatili ang direksyon ng tingin kapag sumasakay o bumababa sa kart at nagpapalit ng view habang naglalakad. Nire-reset pa rin ng recentre ang tingin.",
   "Keep moving on foot": "Mas tuloy-tuloy na paglalakad",
