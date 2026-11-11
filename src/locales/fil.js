@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Keep moving on foot": "Mas tuloy-tuloy na paglalakad",
+  "Sanko Racers: brush against a wall or your parked kart and keep walking along clear ground. Solid walls, posts and water still stop you.": "Sanko Racers: kapag sumagi sa pader o sa nakaparada mong kart, makakalakad ka pa rin sa malinaw na daan sa tabi nito. Nakaharang pa rin ang mga pader, poste at tubig.",
   "Steadier online driving": "Mas maayos na pagmamaneho online",
   "Sanko Racers: more responsive online steering and steadier drifting when updates arrive late or rendering slows. Getting in or out, reconnecting and rematches clear old movement.": "Sanko Racers: mas mabilis tumugon ang manibela online at mas maayos ang drift kapag nahuhuli ang mga update o bumabagal ang rendering. Nililinis ang lumang galaw sa pagsakay, pagbaba, muling pagkonekta at rematch.",
   "Street life and DMT quotes": "Buhay sa lansangan at presyo ng DMT",

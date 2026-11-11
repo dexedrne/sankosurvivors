@@ -3,14 +3,14 @@
     {
       "path": "/racers/index.html",
       "bytes": 12928,
-      "sha256": "3b275a45ce6f7dab78815c339bc0901e8ea0a0cdc4e8556a29e7e5b7a59592f3"
+      "sha256": "3d1fa95fae2f121fd72c71f960a19331c065368ed0aeb39886b950a1dbdcf449"
     }
   ],
   "source": {
-    "commit": "8301d4da8e7295fa4d7a06d66663747c7f79ad2d",
-    "implementation": "8301d4da8e7295fa4d7a06d66663747c7f79ad2d",
-    "rulesVersion": "8f09d2299bdf",
-    "clientSha256": "56c60fe7411df6e3af2996ef28fd5151b5da62427d12f6ddd5280b822726631b"
+    "commit": "6c601fde2b3bcb787164777f367fe5ec576c79d0",
+    "implementation": "6c601fde2b3bcb787164777f367fe5ec576c79d0",
+    "rulesVersion": "1c7a49b9608c",
+    "clientSha256": "86f0a5d59a09c7ce0b6ca7cdf877d2b7dd138783ed07fd3141161103b22ac4d5"
   },
   "adaptations": {
     "client": [
@@ -76,8 +76,8 @@
         "after": "<title>Sanko Racers · SankoQuest World</title><meta name=\"description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Sanko Racers\"><meta property=\"og:title\" content=\"Sanko Racers · Public World Hub\"><meta property=\"og:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:url\" content=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><link rel=\"canonical\" href=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image:secure_url\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Sanko Racers · Public World Hub\"><meta name=\"twitter:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta name=\"twitter:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\">"
       },
       {
-        "before": "/assets/index-CV1nfMk-.js",
-        "after": "./racers-04f1bfd1ad509fd6.js"
+        "before": "/assets/index-Dyg6N1CO.js",
+        "after": "./racers-06ffd7ec2abb0d37.js"
       },
       {
         "before": "/assets/index-DmJscb27.css",
@@ -94,12 +94,12 @@
     {
       "path": "/fun/racers/index.html",
       "bytes": 12898,
-      "sha256": "7df43a9d8ea2a0c8ef48930e29c5a4ac833ebe0cadd07dbc925a903e58f29bc6"
+      "sha256": "46cb776394c800ea431e79aa77c02f57f6c15700715e13543dbc961b5bb049ce"
     },
     {
-      "path": "/fun/racers/racers-04f1bfd1ad509fd6.js",
-      "bytes": 1691912,
-      "sha256": "04f1bfd1ad509fd65e749e3824a6466167bdb5d94726ce8eaff36012075e9a09"
+      "path": "/fun/racers/racers-06ffd7ec2abb0d37.js",
+      "bytes": 1692280,
+      "sha256": "06ffd7ec2abb0d37b28c37abbbee484c9ecebc08654b0530030c5bf86bc4643c"
     },
     {
       "path": "/fun/racers/racers-a9f73f457b14b1b1.css",
@@ -119,7 +119,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 3102,
-      "sha256": "43889e031e11273a10152d22045cad1967fefb5425058b8092b53f2799f8de7c"
+      "sha256": "77c2fbaae6fbd744f1198ee5e0ed8b92d885b5c8c9946344ca5b1a9ed2f6305a"
     },
     {
       "path": "/fun/racers/CREDITS.txt",

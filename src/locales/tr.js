@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Keep moving on foot": "Yaya hareketi daha akıcı",
+  "Sanko Racers: brush against a wall or your parked kart and keep walking along clear ground. Solid walls, posts and water still stop you.": "Sanko Racers: duvara veya park ettiğin kartına hafifçe çarptığında açık zemin boyunca yürümeye devam et. Sağlam duvarlar, direkler ve su seni durdurur.",
   "Steadier online driving": "Daha kararlı çevrimiçi sürüş",
   "Sanko Racers: more responsive online steering and steadier drifting when updates arrive late or rendering slows. Getting in or out, reconnecting and rematches clear old movement.": "Sanko Racers: güncellemeler geciktiğinde veya görüntüleme yavaşladığında daha hızlı tepki veren çevrimiçi direksiyon ve daha kararlı drift. Binme, inme, yeniden bağlanma ve yeni yarışlar eski hareketleri temizler.",
   "Street life and DMT quotes": "Sokak hayatı ve DMT fiyatları",
