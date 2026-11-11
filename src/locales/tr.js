@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Room for the karts": "Kartlara daha fazla alan",
+  "Grand Theft Sanko: south Greentown fence ends and house-wall corners follow the visible models more closely. Cars have a slightly smaller collision body for easier clearance. Buildings and water stay solid.": "Grand Theft Sanko: Greentown’un güneyindeki çit uçları ve ev köşeleri görünen modellere daha iyi uyuyor. Araçların çarpışma sınırları biraz küçültüldü. Binalar ve su geçişe kapalı kalıyor.",
+
   "A quicker road in": "Yola daha hızlı çık",
   "Grand Theft Sanko has a quicker world loader. The full map, vehicles and game rules stay the same.": "Grand Theft Sanko dünyası artık daha hızlı yükleniyor. Haritanın tamamı, araçlar ve oyun kuralları aynı kalıyor.",
  "Grand Theft Sanko & Need for Sanko": "Grand Theft Sanko ve Need for Sanko",

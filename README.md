@@ -83,3 +83,5 @@ Changes to simulation/content/ranked rules or ground data require a new simulati
 Made by [@dexedrne](https://x.com/dexedrne) for the Sanko community. SankoQuest art, models, music, sounds and characters belong to their respective creators and Sanko GameCorp; CrashOut kart assets retain their own notices. This repository does not grant ownership of those assets. Use original supplied assets and actual in-engine captures; generated artwork is not permitted in this project.
 
 [Sanko Telegram](https://t.me/sankogamecorp) · [Sanko on X](https://x.com/SankoGameCorp)
+
+Grand Theft Sanko now has more accurate south Greentown fence and house-wall clearance, with the same slightly smaller collision body for every kart. Need for Sanko uses matching server collision rules.

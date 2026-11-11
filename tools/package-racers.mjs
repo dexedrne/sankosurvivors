@@ -32,7 +32,7 @@ const clientChanges=[
  {before:'"cars/miata.glb"',after:'"racers/cars/miata.glb"',count:1},
  {before:'"karts/',after:'"racers/karts/',count:14},
  {before:'"placements.json"',after:'"racers/placements.json"',count:1},
- {before:'"world/tiles/fences-bdb2335d6b32.json"',after:'"racers/world/tiles/fences-bdb2335d6b32.json"',count:1},
+ {before:'"world/tiles/fences-5b408e07155e.json"',after:'"racers/world/tiles/fences-5b408e07155e.json"',count:1},
  {before:'"world/tiles/surfaces-ffe7cf27a1ad.bin"',after:'"racers/world/tiles/surfaces-ffe7cf27a1ad.bin"',count:1}
 ];
 function replaceExact(text,{before,after,count=1}) {

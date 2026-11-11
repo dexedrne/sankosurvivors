@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Room for the karts": "Mas maluwag para sa mga kart",
+  "Grand Theft Sanko: south Greentown fence ends and house-wall corners follow the visible models more closely. Cars have a slightly smaller collision body for easier clearance. Buildings and water stay solid.": "Grand Theft Sanko: mas tugma na sa nakikitang mga modelo ang mga dulo ng bakod at sulok ng bahay sa timog Greentown. Bahagyang mas maliit na ang banggaan ng mga sasakyan para mas madaling makadaan. Hindi pa rin madadaanan ang mga gusali at tubig.",
+
   "A quicker road in": "Mas mabilis sa daan",
   "Grand Theft Sanko has a quicker world loader. The full map, vehicles and game rules stay the same.": "Mas mabilis nang mag-load ang mundo sa Grand Theft Sanko. Pareho pa rin ang buong mapa, mga sasakyan at mga tuntunin ng laro.",
  "Grand Theft Sanko & Need for Sanko": "Grand Theft Sanko at Need for Sanko",
