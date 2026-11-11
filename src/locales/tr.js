@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Room for wallet controls": "Cüzdan kontrollerine yer",
+ "Desktop menus keep wallet and language controls clear. Longer panels scroll within the menu, and small windows keep every control reachable.": "Masaüstü menüleri cüzdan ve dil kontrollerini açıkta tutar. Uzun paneller menünün içinde kaydırılır ve küçük pencerelerde tüm kontrollere erişilebilir.",
  "Racers frame pacing": "Racers kare zamanlaması",
  "Sanko Racers: the frame cap keeps its timing on faster displays instead of dropping extra frames. Stalls skip missed frames without a catch-up burst.": "Sanko Racers: FPS sınırı, daha hızlı ekranlarda fazladan kare düşürmeden zamanlamasını korur. Takılma sonrasında kaçırılan kareler art arda çizilmek yerine atlanır.",
  "Warnings follow the ground": "Uyarılar araziyi izler",

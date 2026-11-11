@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "Room for wallet controls": "Espasyo para sa mga kontrol ng wallet",
+ "Desktop menus keep wallet and language controls clear. Longer panels scroll within the menu, and small windows keep every control reachable.": "Hindi natatakpan ng mga desktop menu ang mga kontrol ng wallet at wika. Maaaring i-scroll ang mahahabang panel sa loob ng menu at naaabot pa rin ang lahat ng kontrol sa maliliit na window.",
  "Racers frame pacing": "Timing ng mga frame sa Racers",
  "Sanko Racers: the frame cap keeps its timing on faster displays instead of dropping extra frames. Stalls skip missed frames without a catch-up burst.": "Sanko Racers: pinapanatili ng limitasyon sa FPS ang timing sa mas mabilis na mga screen nang hindi nagsasayang ng dagdag na frame. Pagkatapos ng pagbagal, nilalaktawan ang mga napalampas na frame sa halip na iguhit ang mga ito nang sunod-sunod para humabol.",
  "Warnings follow the ground": "Babala na sumusunod sa lupa",

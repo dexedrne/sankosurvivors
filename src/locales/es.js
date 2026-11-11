@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Room for wallet controls": "Espacio para los controles de la cartera",
+ "Desktop menus keep wallet and language controls clear. Longer panels scroll within the menu, and small windows keep every control reachable.": "Los menús de escritorio dejan libres los controles de cartera e idioma. Los paneles largos se desplazan dentro del menú y todos los controles siguen accesibles en ventanas pequeñas.",
  "Racers frame pacing": "Ritmo de fotogramas de Racers",
  "Sanko Racers: the frame cap keeps its timing on faster displays instead of dropping extra frames. Stalls skip missed frames without a catch-up burst.": "Sanko Racers: el límite de FPS mantiene su ritmo en pantallas más rápidas sin perder fotogramas adicionales. Tras un bloqueo, se omiten los fotogramas perdidos sin una ráfaga para recuperarlos.",
  "Warnings follow the ground": "Avisos que siguen el terreno",

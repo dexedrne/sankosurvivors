@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.45.3',date:'11 Nov 2026',title:'Room for wallet controls',items:['Desktop menus keep wallet and language controls clear. Longer panels scroll within the menu, and small windows keep every control reachable.']},
   {version:'0.45.2',date:'11 Nov 2026',title:'Racers frame pacing',items:['Sanko Racers: the frame cap keeps its timing on faster displays instead of dropping extra frames. Stalls skip missed frames without a catch-up burst.']},
   {version:'0.45.1',date:'11 Nov 2026',title:'Warnings follow the ground',items:['Boss slam and meteor warning circles follow uneven ground so uphill terrain no longer hides the danger zone. Damage radius and charge timing are unchanged.']},
   {"version": "0.45", "date": "11 Nov 2026", "title": "Your final build", "items": ["Casual and ranked results show your complete final loadout. Save a SankoSurvivors build card using the original item icons, fonts and frame, or share the image from a supported device.", "A temporary standings error keeps Ranked accessible with a retry. DMT quote fields match the game menus.", "A simpler release number: this update starts 0.45. Technical build details are in Settings."]},
