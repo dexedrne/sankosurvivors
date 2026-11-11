@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Quick shots on the road": "Yolda hızlı atışlar",
+ "Sanko Racers: Glock shots have small moving bullets, brief trails and softer muzzle flashes. Pausing or restarting clears old shot effects.": "Sanko Racers: Glock atışlarında küçük hareketli mermiler, kısa izler ve daha yumuşak namlu parlamaları var. Duraklatma veya yeniden başlatma eski atış efektlerini temizler.",
  "A stitched baseball": "Dikişli beyzbol topu",
  "Baseball projectiles use the original SankoQuest item art, with both stitched seams visible. Their spin pauses with the run; size and combat rules stay the same.": "Fırlatılan beyzbol topları, iki dikiş çizgisi de görünen özgün SankoQuest eşya görselini kullanır. Oyun duraklatıldığında dönüşleri de durur; boyutları ve savaş kuralları değişmez.",
  "A proper driving dashboard": "Yeni sürüş gösterge paneli",

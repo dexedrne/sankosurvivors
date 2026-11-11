@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "Quick shots on the road": "Mabibilis na putok sa kalsada",
+ "Sanko Racers: Glock shots have small moving bullets, brief trails and softer muzzle flashes. Pausing or restarting clears old shot effects.": "Sanko Racers: may maliliit na gumagalaw na bala, maiikling bakas at mas banayad na kislap sa dulo ng Glock. Inaalis ang mga lumang epekto ng putok kapag nag-pause o nag-restart.",
  "A stitched baseball": "Baseball na may tahi",
  "Baseball projectiles use the original SankoQuest item art, with both stitched seams visible. Their spin pauses with the run; size and combat rules stay the same.": "Ginagamit ng mga baseball projectile ang orihinal na larawan ng item mula sa SankoQuest, na kita ang dalawang tahi. Humihinto rin ang pag-ikot kapag naka-pause ang laro; pareho pa rin ang laki at mga patakaran ng labanan.",
  "A proper driving dashboard": "Mas maayos na dashboard sa pagmamaneho",

@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.45.8',date:'11 Nov 2026',title:'Quick shots on the road',items:['Sanko Racers: Glock shots have small moving bullets, brief trails and softer muzzle flashes. Pausing or restarting clears old shot effects.']},
   {version:'0.45.7',date:'11 Nov 2026',title:'A stitched baseball',items:['Baseball projectiles use the original SankoQuest item art, with both stitched seams visible. Their spin pauses with the run; size and combat rules stay the same.']},
   {version:'0.45.6',date:'11 Nov 2026',title:'A proper driving dashboard',items:['Sanko Racers: your kart gets a framed dashboard with a speed dial, digital readout and gas/brake input bars. It hides when you get out.']},
   {version:'0.45.5',date:'11 Nov 2026',title:'Room beside the west houses',items:['Sanko Racers: the narrow path beside the houses west of Greentown castle follows the visible walls more closely. House corners stay solid for driving, walking and shots.']},

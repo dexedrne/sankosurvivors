@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Quick shots on the road": "Disparos rápidos en la carretera",
+ "Sanko Racers: Glock shots have small moving bullets, brief trails and softer muzzle flashes. Pausing or restarting clears old shot effects.": "Sanko Racers: los disparos de Glock muestran pequeñas balas en movimiento, estelas breves y destellos más suaves. Al pausar o reiniciar se borran los efectos de disparos anteriores.",
  "A stitched baseball": "Una pelota con costuras",
  "Baseball projectiles use the original SankoQuest item art, with both stitched seams visible. Their spin pauses with the run; size and combat rules stay the same.": "Los proyectiles de béisbol usan el arte original de SankoQuest, con ambas costuras visibles. Su giro se detiene al pausar la partida; el tamaño y las reglas de combate no cambian.",
  "A proper driving dashboard": "Un cuadro de conducción completo",
