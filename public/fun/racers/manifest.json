@@ -2,15 +2,15 @@
   "aliases": [
     {
       "path": "/racers/index.html",
-      "bytes": 12399,
-      "sha256": "a89570f87f780152f3f79e81fc49559cd5f558b68ee81ae504fe2493a1530f05"
+      "bytes": 12928,
+      "sha256": "06063ffc9c0b322de45cfd21ef587be6d0cc5fd66850300d6d165be4437e3c26"
     }
   ],
   "source": {
-    "commit": "0c444549721431af595c97aef33098bc85780435",
-    "implementation": "0c444549721431af595c97aef33098bc85780435",
-    "rulesVersion": "80548b2fca69",
-    "clientSha256": "033b94063fd96cd16b8cfb2019eb0d3ded2fdf77654d1372947100d94f8fbdfb"
+    "commit": "4672dbe5782ee5daf56ccbbcc22433510c875717",
+    "implementation": "4672dbe5782ee5daf56ccbbcc22433510c875717",
+    "rulesVersion": "0872ef1f4ae4",
+    "clientSha256": "fe57b40f3bf62a4727bd51cbc9f2e82f37b5769745467a6ebd0bac5220184bfa"
   },
   "adaptations": {
     "client": [
@@ -22,6 +22,11 @@
       {
         "before": "\"./assets/crashout/\"",
         "after": "\"/assets/racers/crashout/\"",
+        "count": 1
+      },
+      {
+        "before": "\"./assets/sound/soundEffects/\"",
+        "after": "\"/assets/sound/soundEffects/\"",
         "count": 1
       },
       {
@@ -55,8 +60,8 @@
         "count": 1
       },
       {
-        "before": "\"world/tiles/fences-9f238cc0bd85.json\"",
-        "after": "\"racers/world/tiles/fences-9f238cc0bd85.json\"",
+        "before": "\"world/tiles/fences-b0312bb6a4dc.json\"",
+        "after": "\"racers/world/tiles/fences-b0312bb6a4dc.json\"",
         "count": 1
       },
       {
@@ -71,12 +76,12 @@
         "after": "<title>Sanko Racers · SankoQuest World</title><meta name=\"description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Sanko Racers\"><meta property=\"og:title\" content=\"Sanko Racers · Public World Hub\"><meta property=\"og:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta property=\"og:url\" content=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><link rel=\"canonical\" href=\"https://sankosurvivors.quest/racers/\"><meta property=\"og:image:secure_url\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Sanko Racers · Public World Hub\"><meta name=\"twitter:description\" content=\"Drive the SankoQuest world in CrashOut karts. Join the public hub, meet other drivers and race with friends.\"><meta name=\"twitter:image\" content=\"https://sankosurvivors.quest/fun/racers/preview-cbe15c670d93.png\">"
       },
       {
-        "before": "/assets/index-C99B5XHV.js",
-        "after": "./racers-cb2dc71e40353c8a.js"
+        "before": "/assets/index-CHKEOBFx.js",
+        "after": "./racers-6fcdb9992ad1df26.js"
       },
       {
-        "before": "/assets/index-CxuoL_Sf.css",
-        "after": "./racers-459ff35022a19b47.css"
+        "before": "/assets/index-DmJscb27.css",
+        "after": "./racers-a9f73f457b14b1b1.css"
       },
       {
         "before": "<div id=\"return-slot\"></div>",
@@ -88,18 +93,18 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 12369,
-      "sha256": "bd6c0d5e4529ab94c9dee5b2265e0a79fb9d4debd7f8c2ec60203de463be4bc4"
+      "bytes": 12898,
+      "sha256": "4b0c4fc9f283de51ed473162c67e0f543e0f4c3ad77f0092d44f8078ee8b4123"
     },
     {
-      "path": "/fun/racers/racers-cb2dc71e40353c8a.js",
-      "bytes": 1672875,
-      "sha256": "cb2dc71e40353c8a08ffc35b3d317cb838f56456dc3d866da2c61bad117b61fe"
+      "path": "/fun/racers/racers-6fcdb9992ad1df26.js",
+      "bytes": 1688540,
+      "sha256": "6fcdb9992ad1df26ad660bfc95763aa67dcac952c7396bae2c5d38f1e09822a8"
     },
     {
-      "path": "/fun/racers/racers-459ff35022a19b47.css",
-      "bytes": 26416,
-      "sha256": "459ff35022a19b476ffa2c1d1adbf6218660d68bdde358aa786b83522a78214c"
+      "path": "/fun/racers/racers-a9f73f457b14b1b1.css",
+      "bytes": 28045,
+      "sha256": "a9f73f457b14b1b12baaeb6c98ff342ab06fe81ade2f7ffad74aebba4fbb65c2"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -114,7 +119,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 3102,
-      "sha256": "48a14a8ebca26d1adc91963dd3d95fc47affd6a33ec93fffd56b07410aecb787"
+      "sha256": "6803d80b725383c41cbcad9049d7215916db7dcc82a9bc803135ab6a2b761b82"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -2642,6 +2647,11 @@
       "sha256": "9f238cc0bd8595aa526a28d192171103365727b1eae0557db6333d101cbee991"
     },
     {
+      "path": "/assets/racers/world/tiles/fences-b0312bb6a4dc.json",
+      "bytes": 32302,
+      "sha256": "b0312bb6a4dc49418a25459208722e0832f8601d311d25050bf31035d9d0a150"
+    },
+    {
       "path": "/assets/racers/world/tiles/surfaces-ffe7cf27a1ad.bin",
       "bytes": 1048576,
       "sha256": "ffe7cf27a1adad15c4cea0da27bf51b3cdf385840ba88010fbc7c643d8049b36"
@@ -2687,6 +2697,11 @@
       "path": "/assets/models/playerCharacter/Chest/Clothing/Iron Chestplate.glb",
       "bytes": 53640,
       "sha256": "50bdba0858e347257d26b4ad0221c94227b8bbbbfb6d8f786902aa596ff123ba"
+    },
+    {
+      "path": "/assets/models/playerCharacter/Chest/Clothing/Wizard Robe.glb",
+      "bytes": 30204,
+      "sha256": "a8661ff527330f5cd3cf7da0f167e85a49ce2d7ff5307e2cce150bca2adf2ebb"
     },
     {
       "path": "/assets/models/playerCharacter/Chest/Styles/Shoulders.glb",
@@ -2769,6 +2784,11 @@
       "sha256": "f2dd33562cbabcf5496ec4f64792270951fe9a857cd2f4a3258fd1701f358add"
     },
     {
+      "path": "/assets/models/playerCharacter/Legs/Clothing/Wizard Skirt.glb",
+      "bytes": 15312,
+      "sha256": "33bff432da354cd236d2238af62e6f7d81e0bc461f7e5002275b27db63406330"
+    },
+    {
       "path": "/assets/models/playerCharacter/Legs/Styles/Pants.glb",
       "bytes": 25480,
       "sha256": "ff0bb672ca030ac73553217ff042496af559b1cd0aca47a6f222c0172c2bfdf3"
@@ -2782,6 +2802,21 @@
       "path": "/assets/music/Fresh_Beginnings.mp3",
       "bytes": 1764541,
       "sha256": "c932a22996d2e5a110220aaf859275a89a2e482e5e861dfb53f520f161015129"
+    },
+    {
+      "path": "/assets/sound/soundEffects/Metal_Smith2.mp3",
+      "bytes": 25389,
+      "sha256": "740472b7019050863bc472f56475c3527cbe4e5472c6162ab23c75b2195b56ed"
+    },
+    {
+      "path": "/assets/sound/soundEffects/Sword_Hit1.mp3",
+      "bytes": 25389,
+      "sha256": "9fe2303f0b41b714c7bcee06b0c8ed1e8e0353982380ee84db8d408d2e72aeae"
+    },
+    {
+      "path": "/assets/sound/soundEffects/poppop.mp3",
+      "bytes": 100927,
+      "sha256": "4d3a42bbc1c32a06e0e3a6742c7f8110f40adbbcb7a39bcad9f3f09e0c769caa"
     },
     {
       "path": "/assets/ui/sq/accept_button.png",
@@ -2812,6 +2847,11 @@
       "path": "/assets/ui/sq/yellow_slot.png",
       "bytes": 8171,
       "sha256": "940ef99b01121e53b8559160cb9a3be9b6f0771ee6fdbe032e259ccaebb0a68d"
+    },
+    {
+      "path": "/assets/world/entities.json",
+      "bytes": 15516,
+      "sha256": "54e9baf188068f3d48de119573aa2360c07ce01f17e850a037db57169b14c46c"
     },
     {
       "path": "/assets/world/foliage/daisies.glb",

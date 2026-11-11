@@ -30,14 +30,14 @@ for(const ranked of[false,true])for(const hard of[false,true])for(const seconds 
 test('pace1 movement retains its original opening speed',()=>{
  const s=createSim({seed:1106,pace:1,ranked:true});s.spawnAcc=-1e9;s.bossIndex=99;s.eventT=s.shrineT=1e9;const p=s.players[0];p.x=p.z=0;p.weapons={};spawnEnemy(s,'goblin',10,0);const e=s.enemies[0];e.rise=0;const x=e.x;step(s,{p1:{}},TICK);assert.ok(Math.abs((x-e.x)/(e.speed*TICK)-1)<1e-10);
 });
-for(const amount of[0,.5,.999999,10.000001,11,NaN,Infinity,'1'])test(`buy target ${String(amount)} is rejected before any quote request`,async()=>{
+for(const amount of[0,.5,.999999,10000.000001,10001,NaN,Infinity,'1'])test(`buy target ${String(amount)} is rejected before any quote request`,async()=>{
  let calls=0;await assert.rejects(quoteDmt(amount,async()=>{calls++;return new Response('{}');}));assert.equal(calls,0);
 });
-for(const amount of[1,10])test(`buy target boundary ${amount} is retained on the quote`,async()=>{
- const q=await quoteDmt(amount,async url=>{const amountIn=BigInt(new URL(url).searchParams.get('amountIn'));return new Response(JSON.stringify({code:0,data:{routeSummary:{amountIn:String(amountIn),amountOut:String(amountIn*1800n)}}}));});assert.equal(q.requestedDmt,amount);
+for(const amount of[1,10,10000])test(`buy target boundary ${amount} is retained on the quote`,async()=>{
+ const q=await quoteDmt(amount,async url=>{const amountIn=BigInt(new URL(url).searchParams.get('amountIn'));return new Response(JSON.stringify({code:0,data:{routeSummary:{amountIn:String(amountIn),amountOut:String(amountIn*18000n)}}}));});assert.equal(q.requestedDmt,amount);
 });
 const captured=JSON.parse(readFileSync(new URL('./fixtures/kyber-build.json',import.meta.url),'utf8'));
-for(const requestedDmt of[.5,11,undefined])test(`a swap build cannot bypass requested target bounds (${requestedDmt})`,()=>{
+for(const requestedDmt of[.5,10001,undefined])test(`a swap build cannot bypass requested target bounds (${requestedDmt})`,()=>{
  const q={amountIn:captured.summary.amountIn,summary:captured.summary,requestedDmt};assert.throws(()=>checkBuilt(captured.build,q,me),/1.*10|amount/i);
 });
 test('an invalid buy target stops before wallet prompts or route building',async()=>{

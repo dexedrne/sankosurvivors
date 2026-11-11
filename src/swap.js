@@ -7,7 +7,22 @@ import { DMT_TOKEN, current, walletRevision } from './wallet.js';
 export const KYBER = 'https://aggregator-api.kyberswap.com/arbitrum/api/v1';
 export const KYBER_ROUTER = '0x6131b5fae19ea4f9d964eac0408e4408b66337b5'; // MetaAggregationRouterV2, the same on every chain
 export const SLIPPAGE_BPS = 1000; // 10% (owner 3 Nov: the DMT pool is thin), with the minimum rounded down to six decimals
-export const MIN_BUY_DMT = 1, MAX_BUY_DMT = 10;
+export const MIN_BUY_DMT = 1, MAX_BUY_DMT = 10000;
+export const MAX_BUY_WEI = 1000000000000000000n;
+export const QUOTE_MAX_AGE_MS = 60000;
+export function ethWei(value) {
+  if (typeof value !== 'string' || !/^(?:0|[1-9]\d*)?(?:\.\d{1,18})?$/.test(value) || !value.replace('.', '')) throw Error('Enter an ETH amount up to 1 ETH.');
+  const [whole, fraction = ''] = value.split('.');
+  const wei = BigInt(whole || '0') * 10n ** 18n + BigInt(fraction.padEnd(18, '0'));
+  if (wei <= 0n || wei > MAX_BUY_WEI) throw Error('Enter an ETH amount greater than zero and up to 1 ETH.');
+  return wei;
+}
+function validRequest(q) {
+  if (q && Object.hasOwn(q, 'requestedEth')) {
+    try { return ethWei(q.requestedEth).toString() === q.amountIn; } catch { return false; }
+  }
+  return validAmount(q?.requestedDmt);
+}
 const validAmount = n => typeof n === 'number' && Number.isFinite(n) && n >= MIN_BUY_DMT && n <= MAX_BUY_DMT;
 const ETH = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', HEAD = { 'x-client-id': 'sankosurvivors' };
 const ARB = { chainId: '0xa4b1' };
@@ -24,21 +39,32 @@ async function route(amountInWei, f = fetch) {
 }
 /** A quote for about `dmt` DMT: what it costs in ETH, what you get, and how much is lost to the pool's price and fees. */
 export async function quoteDmt(dmt, f = fetch) {
-  if (!validAmount(dmt)) throw new Error('Pick an amount from 1 to 10 DMT.');
+  if (!validAmount(dmt)) throw new Error('Pick an amount from 1 to 10000 DMT or an ETH budget up to 1 ETH.');
   const probe = 2000000000000000n; // 0.002 ETH, to read the price first
   const s0 = await route(probe.toString(), f);
   const want = BigInt(Math.round(dmt * 1e6)) * 10n ** 12n; // DMT in wei (18 decimals)
   // ETH for that much at the probe's price, plus 2% for the pool moving on a bigger buy
   const amountIn = (want * probe * 102n) / (BigInt(s0.amountOut) * 100n) + 1n;
+  if (amountIn > MAX_BUY_WEI) throw Error('That quote exceeds 1 ETH. Try an ETH budget or a smaller DMT amount.');
   const s = await route(amountIn.toString(), f);
+  return quoteFromRoute(s, { requestedDmt: dmt });
+}
+function quoteFromRoute(s, requested) {
+  if (BigInt(s.amountIn) > MAX_BUY_WEI) throw Error('That quote exceeds 1 ETH. Try an ETH budget or a smaller DMT amount.');
   const usdIn = Number(s.amountInUsd) || 0, usdOut = Number(s.amountOutUsd) || 0;
   const minimum = minimumMicros(s);
+  if (minimum <= 0n) throw Error('That output is too small to guarantee a DMT minimum. Try a larger order.');
   return {
-    requestedDmt: dmt,
+    ...requested,
     amountIn: String(s.amountIn), ethIn: Number(s.amountIn) / 1e18, dmtOut: Number(BigInt(s.amountOut) / 10n ** 12n) / 1e6,
     minOut: `${minimum / 1000000n}.${(minimum % 1000000n).toString().padStart(6, '0')}`.replace(/\.?0+$/, ''),
-    usdIn, usdOut, loss: usdIn > 0 && usdOut > 0 ? Math.max(0, 1 - usdOut / usdIn) : null, summary: s,
+    usdIn, usdOut, loss: usdIn > 0 && usdOut > 0 ? Math.max(0, 1 - usdOut / usdIn) : null, summary: s, quotedAt: Date.now(),
   };
+}
+export async function quoteEth(amount, f = fetch) {
+  const wei = ethWei(amount), summary = await route(wei.toString(), f);
+  if (BigInt(summary.amountIn) !== wei) throw Error('The price response did not match the ETH budget.');
+  return quoteFromRoute(summary, { requestedEth: amount });
 }
 /** Check a built KyberSwap transaction before the wallet ever sees it. Returns the value to send, or throws.
  *  It decodes the router's swap(SwapExecutionParams) call and checks the swap itself, not just that the address appears
@@ -46,16 +72,15 @@ export async function quoteDmt(dmt, f = fetch) {
  *  ETH in, DMT out, the DMT to the player's own wallet, the quoted ETH, at least the quote less the slippage (the router reverts
  *  below that), no fee receivers and no permit. Owner 3 Nov: "security is number one". */
 const SWAP_SELECTOR = 'e21fd0e9'; // MetaAggregationRouterV2.swap((address,address,bytes,(address,address,address[],uint256[],address[],uint256[],address,uint256,uint256,uint256,bytes),bytes))
-export const MAX_BUY_WEI = 100000000000000000n; // 0.1 ETH a buy: plenty for entries, and caps what a lying price can cost
 export function checkBuilt(b, q, address) {
-  if (!validAmount(q?.requestedDmt)) throw new Error('Pick an amount from 1 to 10 DMT.');
+  if (!validRequest(q)) throw new Error('Pick an amount from 1 to 10000 DMT or an ETH budget up to 1 ETH.');
   const bad = () => new Error('The swap could not be prepared. Try again.');
   if (!b || typeof b.data !== 'string' || !/^0x(?:[0-9a-f]{2})+$/i.test(b.data)) throw bad();
   if (String(b.routerAddress || '').toLowerCase() !== KYBER_ROUTER) throw new Error('That swap was not going to KyberSwap: stopped for your safety.');
   if (!/^\d+$/.test(String(b.transactionValue ?? ''))) throw bad();
   const value = BigInt(b.transactionValue);
   if (value !== BigInt(q.amountIn)) throw new Error('The price moved. Get a new quote.');
-  if (value <= 0n || value > MAX_BUY_WEI) throw new Error('That buy is bigger than this page allows (0.1 ETH at a time).');
+  if (value <= 0n || value > MAX_BUY_WEI) throw new Error('That buy is bigger than this page allows (1 ETH at a time).');
   const h = b.data.slice(2).toLowerCase();
   if (h.slice(0, 8) !== SWAP_SELECTOR) throw new Error('That was not a plain KyberSwap swap: stopped for your safety.');
   const word = (at) => { if (!(at >= 8 && at + 64 <= h.length)) throw bad(); return h.slice(at, at + 64); };
@@ -65,6 +90,7 @@ export function checkBuilt(b, q, address) {
   // Partial fills enforce a proportional price, not the absolute DMT minimum shown to the player.
   if (num(d + 9 * 64) & 1n) throw new Error('That swap allowed a partial fill: stopped for your safety.');
   const minOut = minimumMicros(q.summary) * 10n ** 12n;
+  if (minOut <= 0n) throw Error('That output is too small to guarantee a DMT minimum. Get a new quote.');
   if (addr(d) !== ETH.toLowerCase() || addr(d + 64) !== DMT_TOKEN.toLowerCase() || addr(d + 6 * 64) !== address.toLowerCase()
     || num(d + 7 * 64) !== value || num(d + 8 * 64) < minOut || len(4) !== 0n || len(5) !== 0n || len(10) !== 0n)
     throw new Error('That swap did not pay your own wallet: stopped for your safety.');
@@ -72,7 +98,11 @@ export function checkBuilt(b, q, address) {
 }
 /** Swap: switch to Arbitrum, build, check, send, wait for it. wallet: { p } (an EIP-1193 provider). */
 export async function buyDmt(wallet, address, q, onStep = () => {}, f = fetch) {
-  if (!validAmount(q?.requestedDmt)) throw new Error('Pick an amount from 1 to 10 DMT.');
+  if (!validRequest(q)) throw new Error('Pick an amount from 1 to 10000 DMT or an ETH budget up to 1 ETH.');
+  const checkQuote = () => {
+    if (!Number.isSafeInteger(q.quotedAt) || q.quotedAt > Date.now() || Date.now() - q.quotedAt > QUOTE_MAX_AGE_MS) throw Error('This quote expired. Get a new quote before buying.');
+  };
+  checkQuote();
   const p = wallet.p, revision = walletRevision();
   const checkWallet = () => {
     const c = current();
@@ -104,13 +134,15 @@ export async function buyDmt(wallet, address, q, onStep = () => {}, f = fetch) {
   } catch { /* below */ }
   checkWallet();
   if (!ok || d.code !== 0) throw new Error('The swap could not be prepared. Get a new quote.');
+  checkQuote();
   const value = checkBuilt(d.data, q, address);
-  onStep(`Confirm the swap in your wallet: ${q.ethIn.toFixed(5)} ETH for at least ${q.minOut} DMT…`);
+  onStep(`Confirm the swap in your wallet: ${q.requestedEth ?? String(q.ethIn)} ETH for at least ${q.minOut} DMT…`);
   const accounts = await request({ method: 'eth_accounts' });
   checkWallet();
   if (!Array.isArray(accounts) || typeof accounts[0] !== 'string' || accounts[0].toLowerCase() !== address.toLowerCase()) throw new Error('Wallet changed. Get a new quote before buying.');
   if (String(await request({ method: 'eth_chainId' })).toLowerCase() !== ARB.chainId) throw new Error('Switch to Arbitrum One first.');
   checkWallet();
+  checkQuote();
   let tx, reverted = false;
   try {
     const result = await p.request({ method: 'eth_sendTransaction', params: [{ from: address, to: KYBER_ROUTER, chainId: ARB.chainId, data: d.data.data, value: '0x' + value.toString(16) }] });

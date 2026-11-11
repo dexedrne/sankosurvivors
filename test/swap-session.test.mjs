@@ -28,7 +28,7 @@ async function fixture() {
     }
   } };
   await W.connect(wallet); calls.length=0;
-  const q={requestedDmt:1,amountIn:captured.summary.amountIn,summary:captured.summary,ethIn:Number(captured.summary.amountIn)/1e18,minOut:1};
+  const q={quotedAt:Date.now(),requestedDmt:1,amountIn:captured.summary.amountIn,summary:captured.summary,ethIn:Number(captured.summary.amountIn)/1e18,minOut:1};
   const build=async()=>new Response(JSON.stringify({code:0,data:captured.build}));
   return {wallet,state,calls,q,build,accounts(a){state.accounts=a;handlers.get('accountsChanged')(a);},sends:()=>calls.filter(c=>c.method==='eth_sendTransaction').length,
     buy:(f=build,step=()=>{})=>buyDmt(wallet,A,q,step,f)};
@@ -135,4 +135,16 @@ test('a send already submitted keeps its original hash when the selected wallet 
     return swapReceipt();
   };
   assert.deepEqual(await f.buy(),{tx:TX}); assert.equal(f.sends(),1); assert.equal(W.current().address,B);
+});
+
+test('expired quotes stop before requesting a wallet action',async()=>{
+ const f=await fixture();f.q.quotedAt=Date.now()-61000;await assert.rejects(f.buy(),/expired|fresh|new quote/i);assert.deepEqual(f.calls,[]);
+});
+test('a quote that expires during the build cannot reach send',async()=>{
+ const f=await fixture();await assert.rejects(f.buy(async()=>{f.q.quotedAt=Date.now()-61000;return f.build();}),/expired|fresh|new quote/i);assert.equal(f.sends(),0);
+});
+
+test('ETH budget buys bind the exact amount and refuse a changed budget before any wallet action',async()=>{
+ const f=await fixture();delete f.q.requestedDmt;f.q.requestedEth='0.002';assert.equal((await f.buy()).tx,TX);assert.equal(f.sends(),1);
+ const g=await fixture();delete g.q.requestedDmt;g.q.requestedEth='0.003';await assert.rejects(g.buy(),/ETH|amount|budget/i);assert.deepEqual(g.calls,[]);
 });

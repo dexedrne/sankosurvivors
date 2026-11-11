@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.44.99", "date": "11 Nov 2026", "title": "Street life and DMT quotes", "items": ["Sanko Racers: nearby map zoom, lower walking camera, quiet sound effects, Miata pop-up lights, Priest robes, town conversations and smoother online turns. Zombies adds ammo, reloading and jumping; the church graveyard gate is clear.", "Compare current single-order DMT prices for a budget up to 1 ETH, or request 1\u201310000 DMT. Each purchase needs your wallet confirmation. Later orders need fresh quotes.", "The casual leaderboard opens on All maps and keeps your chosen filter."]},
   {"version": "0.44.98", "date": "11 Nov 2026", "title": "Gold nodes in casual Adventure", "items": ["Find a Gold node, hold its circle for 3.5 seconds, then collect the 24 coins. Gold nodes can appear in solo and co-op Adventure."]},
   {"version": "0.44.97", "date": "11 Nov 2026", "title": "Controller menu fixes", "items": ["Back closes the current menu without confirming a choice underneath. Confirm only activates available controls."]},
   {"version": "0.44.96", "date": "11 Nov 2026", "title": "A new Racers menu", "items": ["The Racers menu gives the live driver and kart preview more room. Find Courier, Zombies, Free Drive and races under Activities."]},

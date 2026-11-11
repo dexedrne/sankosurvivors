@@ -20,11 +20,11 @@ test('a cached Hard selection enters Standard at 1 DMT instead',async()=>{
 test('an asynchronous refresh cannot replace the week selected before payment',async()=>{
  const info={week:0},f=fixture(info,'normal',{dmt:10,eth:1},()=>{info.week=1;});await f.run();assert.equal(f.calls.length,1);assert.equal(f.calls[0][5],0);
 });
-test('buy presets and suggested quantities remain inside 1–10 without old entry-count labels',()=>{
+test('buy presets stay small while custom DMT and ETH budgets support larger purchases',()=>{
  const globals=main.slice(main.indexOf('let buyWant ='),main.indexOf('function bindBuy('));
- const f=Function('MIN_BUY_DMT','MAX_BUY_DMT','buyNoticeHTML','ETH_FOR_GAS','BRIDGE',globals+';return {html:()=>buyHTML(null),want:x=>{buyWant=x;}};')(MIN_BUY_DMT,MAX_BUY_DMT,()=>'',.000005,'fixture');
+ const f=Function('MIN_BUY_DMT','MAX_BUY_DMT','buyNoticeHTML','ETH_FOR_GAS','BRIDGE','esc',globals+';return {html:()=>buyHTML(null),want:x=>{buyWant=x;}};')(MIN_BUY_DMT,MAX_BUY_DMT,()=>'',.000005,'fixture',s=>String(s));
  const amounts=()=>Array.from(f.html().matchAll(/data-dmt="([^"]+)"/g),m=>Number(m[1]));assert.deepEqual(amounts(),[1,2,5,10]);
- for(const wanted of[.5,11,1.1]){f.want(wanted);assert.ok(amounts().every(n=>n>=1&&n<=10));}assert.doesNotMatch(f.html(),/1 entry|Hard entry/);assert.match(f.html(),/approximate output and guaranteed minimum/);
+ for(const wanted of[.5,10001,1.1,10000]){f.want(wanted);assert.ok(amounts().every(n=>n>=MIN_BUY_DMT&&n<=MAX_BUY_DMT));}assert.doesNotMatch(f.html(),/1 entry|Hard entry/);assert.match(f.html(),/approximate output and guaranteed minimum/);assert.match(f.html(),/ETH budget/);assert.match(f.html(),/max="10000"/);
 });
 
 for(const[mode,shown]of[['normal','0.5'],['hard','1.5'],['normal',undefined],['hard',undefined]])test(`same-week ${mode} displayed fee ${shown} cannot start a different-priced payment`,async()=>{

@@ -989,3 +989,8 @@ body.ds-layout #tradebtn { position:fixed; bottom:calc(112px + env(safe-area-ins
 
 #actions #title-bottom { order: 6; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 #title-bottom button { min-height: 44px; }
+
+.wlbuy label { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.wlbuy input { width: 170px; max-width: 100%; }
+.wlbuy .lurow { margin-top: 8px; }
+.wlbuyorderrow { margin: 8px 0; padding: 6px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }

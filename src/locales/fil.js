@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Street life and DMT quotes": "Buhay sa lansangan at presyo ng DMT",
+  "Sanko Racers: nearby map zoom, lower walking camera, quiet sound effects, Miata pop-up lights, Priest robes, town conversations and smoother online turns. Zombies adds ammo, reloading and jumping; the church graveyard gate is clear.": "Sanko Racers: zoom ng kalapit na mapa, mas mababang camera habang naglalakad, mahinang tunog, ilaw ng Miata, robe ng Priest, usapan sa bayan at mas maayos na liko online. May bala, reload at talon sa Zombies; maluwag na ang gate ng sementeryo.",
+  "Compare current single-order DMT prices for a budget up to 1 ETH, or request 1\u201310000 DMT. Each purchase needs your wallet confirmation. Later orders need fresh quotes.": "Ihambing ang kasalukuyang presyo ng isang pagbili ng DMT sa budget na hanggang 1 ETH, o humiling ng 1–10000 DMT. Kailangan ang kumpirmasyon ng wallet sa bawat pagbili. Kailangan ng bagong quote para sa susunod.",
+  "The casual leaderboard opens on All maps and keeps your chosen filter.": "Nagbubukas ang casual leaderboard sa All maps at pinapanatili ang napili mong filter.",
+
   "Gold nodes in casual Adventure":"Mga minahan ng ginto sa casual Adventure",
   "Find a Gold node, hold its circle for 3.5 seconds, then collect the 24 coins. Gold nodes can appear in solo and co-op Adventure.":"Maghanap ng minahan ng ginto, manatili sa bilog nang 3.5 segundo at kolektahin ang 24 na barya. Maaari itong lumitaw sa solo at co-op Adventure.",
   "Gold nodes can appear during casual Adventure. Stand in the circle for 3.5 seconds to mine 24 coins, then collect them.":"Maaaring lumitaw ang minahan ng ginto sa casual Adventure. Manatili sa bilog nang 3.5 segundo para makakuha ng 24 na barya, at kolektahin ang mga ito.",

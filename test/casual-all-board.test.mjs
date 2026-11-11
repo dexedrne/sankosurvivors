@@ -10,10 +10,10 @@ const deferred = () => { let resolve, reject; const promise = new Promise((a, b)
 const response = (rows = []) => ({ ok: true, status: 200, json: async () => ({ rows }) });
 const rows = (prefix) => Array.from({ length: 7 }, (_, i) => ({ name: `${prefix}${i}`, adv: 'adventurer', t: 900 - i, level: i + 1, kills: 700 - i, hard: i === 0, holder: i === 0, won: i === 0 }));
 function board(fetch, overrides={}) {
-  const nodes = Object.fromEntries(['lbtabs', 'lblist', 'lbmapsel', 'rankedbtn'].map(id => [id, { innerHTML: '', querySelectorAll: () => [], classList: { contains: () => false } }]));
+  const nodes = Object.fromEntries(['lbtabs', 'lblist', 'lbmapsel', 'rankedbtn', 'lbbtn', 'board'].map(id => [id, { innerHTML: '', querySelectorAll: () => [], classList: { contains: () => false, remove() {} } }]));
   const env = { $: id => nodes[id], fetch, MAPS, MAP_BY_ID, ADVENTURER_BY_ID, BASE: '/', selMap: MAPS[0].id, load: () => 'me', fmtT: t => `${t}s`, localBest: () => 'best', rankedMode: 'normal', raceList: () => ['normal'], raceOf: d => ({ rows: d.rows || [] }), kpmRules: () => false, prizePlaces: () => [], prizeEstimate: () => null, poolReadout: () => 'ranked pot', prizeNotes: () => [],walletPrize,dmtText,noPrize:()=>false,completedRunText:()=> '1 completed run this week',...overrides };
-  const api = Function('env', `with (env) { ${source}; return { showBoard, showRankedBoard }; }`)(env);
-  return { ...api, nodes, html: () => nodes.lblist.innerHTML };
+  const api = Function('env', `with (env) { ${source}; ${main.split('\n').find(line => line.startsWith("$('lbbtn').onclick"))}; return { showBoard, showRankedBoard, open: () => $('lbbtn').onclick() }; }`)(env);
+  return { ...api, nodes, setRunMap: id => { env.selMap = id; }, html: () => nodes.lblist.innerHTML };
 }
 
 test('ranked board exposes six immutable week-0 receipts conserving 57.5 DMT',async()=>{
@@ -127,4 +127,13 @@ test('ranked totals include participation and disclose rewards outside visible s
  const wallet='0x'+ '1'.repeat(40),outside='0x'+'2'.repeat(40),row={wallet,name:'<first>',adv:'adventurer',t:180,kills:1};
  const b=board(async()=>({ok:true,json:async()=>({week:1,rows:[row]})}),{prizePlaces:()=>[0],prizeEstimate:()=>({prizes:['1000000000000000000'],participation:[{wallet,amount:'2000000000000000000'},{wallet:outside,amount:'3000000000000000000'}],rollover:'0'})});
  await b.showRankedBoard();assert.match(b.html(),/class="prizeamt">3 DMT/);assert.match(b.html(),/Participation rewards/);assert(b.html().includes(outside));assert.match(b.html(),/80% placing, 10% qualifying runs, 10% active playtime/);assert(!b.html().includes('<first>'));
+});
+
+test('casual defaults to All maps and retains that filter when reopening after the run map changes',async()=>{
+ const calls=[],b=board(async url=>{calls.push(url);return response();});
+ await b.showBoard(null,'casual');assert.equal(calls.length,MAPS.length);assert.match(b.nodes.lbtabs.innerHTML,/value="all" selected/);
+ b.nodes.rankedbtn.classList.contains=()=>true;b.setRunMap(MAPS[1].id);calls.length=0;b.open();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(calls.length,MAPS.length);assert.match(b.nodes.lbtabs.innerHTML,/value="all" selected/);
+ await b.showBoard(MAPS[2].id,'casual');calls.length=0;b.setRunMap(MAPS[0].id);b.open();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(calls.length,1);assert.match(calls[0],new RegExp('map='+MAPS[2].id));
 });

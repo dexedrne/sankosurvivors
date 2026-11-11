@@ -1,6 +1,6 @@
 {
-  "commit": "0c444549721431af595c97aef33098bc85780435",
-  "implementation": "0c444549721431af595c97aef33098bc85780435",
+  "commit": "4672dbe5782ee5daf56ccbbcc22433510c875717",
+  "implementation": "4672dbe5782ee5daf56ccbbcc22433510c875717",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2937,15 +2937,15 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-C99B5XHV.js",
-      "bytes": 1672741,
-      "sha256": "033b94063fd96cd16b8cfb2019eb0d3ded2fdf77654d1372947100d94f8fbdfb",
+      "path": "assets/index-CHKEOBFx.js",
+      "bytes": 1688407,
+      "sha256": "fe57b40f3bf62a4727bd51cbc9f2e82f37b5769745467a6ebd0bac5220184bfa",
       "role": "client"
     },
     {
-      "path": "assets/index-CxuoL_Sf.css",
-      "bytes": 26300,
-      "sha256": "3d79a6676feb1f537a86e97f5a7423e9636dc3572d47a28a053062dfcbdfde04",
+      "path": "assets/index-DmJscb27.css",
+      "bytes": 27929,
+      "sha256": "b43a1f7fa41fab41a7bf7c6d11eeb7b8497ff490fdf824668d2f8ca29440f5f4",
       "role": "stylesheet"
     },
     {
@@ -3069,6 +3069,12 @@
       "role": "shared"
     },
     {
+      "path": "assets/models/playerCharacter/Chest/Clothing/Wizard Robe.glb",
+      "bytes": 30204,
+      "sha256": "a8661ff527330f5cd3cf7da0f167e85a49ce2d7ff5307e2cce150bca2adf2ebb",
+      "role": "shared"
+    },
+    {
       "path": "assets/models/playerCharacter/Chest/Styles/Shoulders.glb",
       "bytes": 32164,
       "sha256": "7dbb45ca499e87d4bd90838d5b213f41201976d82089b1d974356b89f46db633",
@@ -3165,6 +3171,12 @@
       "role": "shared"
     },
     {
+      "path": "assets/models/playerCharacter/Legs/Clothing/Wizard Skirt.glb",
+      "bytes": 15312,
+      "sha256": "33bff432da354cd236d2238af62e6f7d81e0bc461f7e5002275b27db63406330",
+      "role": "shared"
+    },
+    {
       "path": "assets/models/playerCharacter/Legs/Styles/Pants.glb",
       "bytes": 25480,
       "sha256": "ff0bb672ca030ac73553217ff042496af559b1cd0aca47a6f222c0172c2bfdf3",
@@ -3187,6 +3199,24 @@
       "bytes": 708890,
       "sha256": "d61dfeab308ee849c2aad7d256dbc82c4de4f0c79856b9fff32d44b203b12f52",
       "role": "unique"
+    },
+    {
+      "path": "assets/sound/soundEffects/Metal_Smith2.mp3",
+      "bytes": 25389,
+      "sha256": "740472b7019050863bc472f56475c3527cbe4e5472c6162ab23c75b2195b56ed",
+      "role": "shared"
+    },
+    {
+      "path": "assets/sound/soundEffects/Sword_Hit1.mp3",
+      "bytes": 25389,
+      "sha256": "9fe2303f0b41b714c7bcee06b0c8ed1e8e0353982380ee84db8d408d2e72aeae",
+      "role": "shared"
+    },
+    {
+      "path": "assets/sound/soundEffects/poppop.mp3",
+      "bytes": 100927,
+      "sha256": "4d3a42bbc1c32a06e0e3a6742c7f8110f40adbbcb7a39bcad9f3f09e0c769caa",
+      "role": "shared"
     },
     {
       "path": "assets/ui/sq/accept_button.png",
@@ -3229,6 +3259,12 @@
       "bytes": 49264,
       "sha256": "b8152fdaf5ec18d6036e6a54aec7cea88dacc6c5592d590ca8db292f20349982",
       "role": "unique"
+    },
+    {
+      "path": "assets/world/entities.json",
+      "bytes": 15516,
+      "sha256": "54e9baf188068f3d48de119573aa2360c07ce01f17e850a037db57169b14c46c",
+      "role": "shared"
     },
     {
       "path": "assets/world/foliage/daisies.glb",
@@ -4641,6 +4677,12 @@
       "role": "unique"
     },
     {
+      "path": "assets/world/tiles/fences-b0312bb6a4dc.json",
+      "bytes": 32302,
+      "sha256": "b0312bb6a4dc49418a25459208722e0832f8601d311d25050bf31035d9d0a150",
+      "role": "unique"
+    },
+    {
       "path": "assets/world/tiles/fences-d02577f501f9.json",
       "bytes": 28929,
       "sha256": "d02577f501f92503c673e5324ece38aa83c14bf598522e231f35b23276cddf8e",
@@ -4708,8 +4750,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 10763,
-      "sha256": "b2025cb45b4a54ce60b807b31ba44bd0048c0d51c90fec6165a9b7744b4a988e",
+      "bytes": 11292,
+      "sha256": "21191b9bc851bc92ccba74346bcaa4587115c1407c3ba510c534a5e086d25e52",
       "role": "entry"
     }
   ],
@@ -4718,5 +4760,5 @@
     "bytes": 749863,
     "sha256": "cbe15c670d930714fbce2340b1254bb5f12ef32208dd2306cf5284c01a1a1fe4"
   },
-  "rulesVersion": "80548b2fca69"
+  "rulesVersion": "0872ef1f4ae4"
 }

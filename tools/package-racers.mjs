@@ -25,13 +25,14 @@ export function verifiedFile(root,entry) {
 const clientChanges=[
  {before:'"./assets/"',after:'"/assets/"',count:3},
  {before:'"./assets/crashout/"',after:'"/assets/racers/crashout/"',count:1},
+ {before:'"./assets/sound/soundEffects/"',after:'"/assets/sound/soundEffects/"',count:1},
  {before:'"./assets/music/"',after:'"/assets/music/"',count:1},
  {before:'"./draco/"',after:'"/draco/"',count:1},
  {before:'"weapons/hand_pistol.glb"',after:'"racers/weapons/hand_pistol.glb"',count:1},
  {before:'"cars/miata.glb"',after:'"racers/cars/miata.glb"',count:1},
  {before:'"karts/',after:'"racers/karts/',count:14},
  {before:'"placements.json"',after:'"racers/placements.json"',count:1},
- {before:'"world/tiles/fences-9f238cc0bd85.json"',after:'"racers/world/tiles/fences-9f238cc0bd85.json"',count:1},
+ {before:'"world/tiles/fences-b0312bb6a4dc.json"',after:'"racers/world/tiles/fences-b0312bb6a4dc.json"',count:1},
  {before:'"world/tiles/surfaces-ffe7cf27a1ad.bin"',after:'"racers/world/tiles/surfaces-ffe7cf27a1ad.bin"',count:1}
 ];
 function replaceExact(text,{before,after,count=1}) {

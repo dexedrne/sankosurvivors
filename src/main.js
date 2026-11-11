@@ -38,7 +38,8 @@ import { createCloud, betterRun, SAVE_KEYS as CLOUD_KEYS } from './cloud.js';
 import { TRANSFER_KEYS as XFER_KEYS, IMPORT_BACKUP_KEY, RUN_SAVE_KEY, importProgress, recoverProgressImport, saveRunProgress, recoverRunProgress } from './progress-import.js';
 import { prepareRunRewards } from './run-rewards.js';
 import { canContinueCasual, captureRewardBaseline, continueCasual, phaseCoins, phaseAlch, submitCasualResult } from './casual-continuation.js';
-import { quoteDmt, buyDmt, MIN_BUY_DMT, MAX_BUY_DMT } from './swap.js';
+import { quoteDmt, quoteEth, buyDmt, MIN_BUY_DMT, MAX_BUY_DMT } from './swap.js';
+import { compareEthBuys } from './swap-planner.js';
 import { walletConnectLinks } from './wallet-connect.js';
 import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
@@ -1139,12 +1140,12 @@ const recentErrors = [];
 addEventListener('error', (e) => { recentErrors.push(String(e.message || e).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 addEventListener('unhandledrejection', (e) => { recentErrors.push(String(e.reason && e.reason.message || e.reason).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 const ADV_NAME = (id) => (ADVENTURER_BY_ID[id] || {}).name || id;
-let lbMap = null, lbMode = 'casual', lbEndless = false, lbRequest = 0;
+let lbMap = 'all', lbMode = 'casual', lbEndless = false, lbRequest = 0;
 const rankedIsOpen = () => !$('rankedbtn').classList.contains('hidden');
 // the leaderboard: Ranked standings or Casual, for one map or the top five on every map
 async function showBoard(mapId, mode) {
   const request = ++lbRequest;
-  if (mode) lbMode = mode; if (mapId && mapId !== 'ranked') lbMap = mapId; lbMap = lbMap || selMap;
+  if (mode) lbMode = mode; if (mapId && mapId !== 'ranked') lbMap = mapId; lbMap = lbMap || 'all';
   if (mapId === 'ranked') lbMode = 'ranked';
   if (lbMode === 'ranked' && !rankedIsOpen()) lbMode = 'casual';
   $('lbtabs').innerHTML = (rankedIsOpen() ? `<div class="lbmode"><button class="${lbMode === 'ranked' ? 'on' : 'ghost'} rankedtab" data-mode="ranked">Ranked</button><button class="${lbMode === 'casual' ? 'on' : 'ghost'}" data-mode="casual">Casual</button></div>` : '')
@@ -1254,7 +1255,7 @@ function chaseText(t, kills) {
   return ` · ${where} · ${fmtT(Math.max(1, next.t - t))} to ${to}`;
 }
 const localBest = () => { const b = load('sq-best', null); return b ? `${fmtT(Number(b.t) || 0)}, level ${Number(b.level) || 0}, ${Number(b.kills) || 0} slain` : 'none yet'; };
-$('lbbtn').onclick = () => { $('board').classList.remove('hidden'); showBoard(selMap, rankedIsOpen() ? 'ranked' : 'casual'); };
+$('lbbtn').onclick = () => { $('board').classList.remove('hidden'); showBoard(null, rankedIsOpen() ? 'ranked' : 'casual'); };
 $('lbclose').onclick = () => $('board').classList.add('hidden');
 $('board').addEventListener('click', (e) => { if (e.target.id === 'board') $('board').classList.add('hidden'); });
 let lastRun = null;
@@ -1379,8 +1380,8 @@ function renderWallet() {
   const c = walletNow(), body = $('walletbody'), msg = (t) => { $('walletmsg').textContent = t; };
   if (!c) {
     const ch = walletChoices((w) => pickWallet(w, msg));
-    body.innerHTML = buyNoticeHTML() + `<p>Connect once and the game remembers it. Connecting only shares your address: nothing is signed or sent.</p>${ch.html}`;
-    ch.bind(body); return;
+    body.innerHTML = `<p>Connect once and the game remembers it. Connecting only shares your address: nothing is signed or sent.</p>${ch.html}` + buyHTML(null);
+    ch.bind(body); bindBuy(null, null, msg); return;
   }
   const pass = savedPass(), mine = pass && pass.address.toLowerCase() === c.address.toLowerCase();
   const b = walletBal && walletBal.address.toLowerCase() === c.address.toLowerCase() ? walletBal : null;
@@ -1523,15 +1524,19 @@ const cloudPull = async () => { if (!cloud.state() || !progressCanLoad()) return
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudPull(); else if (cloud.state()) cloud.push(true); });
 setTimeout(cloudPull, 1500);
 // ---- buy DMT with ETH without leaving the game (src/swap.js: KyberSwap, checked before the wallet sees it) -------------
-let buyWant = 0, buyQuote = null, buyBusy = null, buyPriceRequest = 0, buyNotice = null; // requested DMT, visible quote and this page's swap state
+let buyWant = 0, buyQuote = null, buyBusy = null, buyPriceRequest = 0, buyNotice = null, buyBudget = '1', buyCustom = ''; // requested DMT, visible quote and this page's swap state
 const BUY_AMOUNTS = [1, 2, 5, 10];
 function buyHTML(b) {
   const amts = buyWant && !BUY_AMOUNTS.includes(buyWant) && buyWant >= MIN_BUY_DMT && buyWant <= MAX_BUY_DMT ? [buyWant, ...BUY_AMOUNTS] : BUY_AMOUNTS;
-  return `<div class="wlbuy"><p><b>Buy DMT</b> <span class="dim">with ETH on Arbitrum, in one step</span></p><p class="dim">Choose 1–10 DMT. The quote shows the approximate output and guaranteed minimum.</p><div class="lurow">${amts.map(d => `<button class="ghost wlbuyamt${d === buyWant ? ' on' : ''}" data-dmt="${d}">${d} DMT</button>`).join('')}</div><div id="wlbuyq" class="dim">${buyNoticeHTML() || (b && b.eth < ETH_FOR_GAS ? `You need ETH on Arbitrum to buy with. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a>` : 'Swaps through KyberSwap at the best DMT price. The game takes no fee.')}</div></div>`;
+  return `<div class="wlbuy"><p><b>Buy DMT</b> <span class="dim">with ETH on Arbitrum</span></p><p class="dim">Choose 1–10000 DMT or compare an ETH budget up to 1 ETH. The quote shows the approximate output and guaranteed minimum.</p><div class="lurow">${amts.map(d => `<button class="ghost wlbuyamt${d === buyWant ? ' on' : ''}" data-dmt="${d}">${d} DMT</button>`).join('')}</div>
+    <div class="lurow"><label>DMT amount <input id="wlbuycustom" type="number" min="1" max="10000" step="any" inputmode="decimal" value="${esc(buyCustom)}"></label><button id="wlbuycustomquote" class="ghost">Get DMT quote</button></div>
+    <div class="lurow"><label>ETH budget <input id="wlbuybudget" type="text" inputmode="decimal" value="${esc(buyBudget)}" maxlength="20"></label><button id="wlbuycompare" class="ghost">Compare order sizes</button></div>
+    <p class="dim">KyberSwap can split across pools in one transaction. These are single-order prices; later orders move the price and need fresh quotes. No automatic purchases.</p><div id="wlbuyplan" aria-live="polite"></div>
+    <div id="wlbuyq" class="dim" aria-live="polite">${buyNoticeHTML() || (b && b.eth < ETH_FOR_GAS ? `You need ETH on Arbitrum to buy with. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a>` : 'Quotes work without a wallet. Connect to buy; the game takes no fee.')}</div></div>`;
 }
 function bindBuy(c, b, msg) {
   const box = $('wlbuyq'); if (!box) return;
-  if (buyQuote && (buyQuote.p !== c.w.p || buyQuote.address !== c.address.toLowerCase() || buyQuote.revision !== walletRevision() || buyQuote.request !== buyPriceRequest)) buyQuote = null;
+  if (buyQuote && (buyQuote.p !== c?.w.p || buyQuote.address !== (c?.address.toLowerCase() ?? null) || buyQuote.revision !== walletRevision() || buyQuote.request !== buyPriceRequest)) buyQuote = null;
   const live = (revision) => $('wlbuyq') === box && walletNow() === c && walletRevision() === revision;
   const report = (text, tx) => {
     const hash = typeof tx === 'string' && /^0x[\da-f]{64}$/i.test(tx) ? tx : null;
@@ -1543,13 +1548,14 @@ function bindBuy(c, b, msg) {
     if (!live(revision)) return;
     if (buyBusy) { box.textContent = `Swap for ${short(buyBusy.address)}: A swap is already pending. Check your wallet activity.`; return; }
     const short2 = b && b.eth < q.ethIn + ETH_FOR_GAS;
-    box.className = ''; box.innerHTML = buyNoticeHTML() + `<p>About <b>${q.dmtOut} DMT</b> for ${q.ethIn.toFixed(5)} ETH${q.usdIn ? ` (about $${q.usdIn.toFixed(2)})` : ''}${q.loss != null ? ` · ${(q.loss * 100).toFixed(1)}% to the pool and fees` : ''}. You get at least ${q.minOut} DMT, or the swap does not happen.</p>`
-      + (short2 ? `<p class="rkwarn">Not enough ETH on Arbitrum for that. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a></p>` : `<button id="wlbuygo">Buy ${q.dmtOut} DMT</button>`);
+    box.className = ''; box.innerHTML = buyNoticeHTML() + `<p>About <b>${q.dmtOut} DMT</b> for ${esc(q.requestedEth ?? String(q.ethIn))} ETH${q.usdIn ? ` (about $${q.usdIn.toFixed(2)})` : ''}${q.loss != null ? ` · ${(q.loss * 100).toFixed(1)}% to the pool and fees` : ''}. You get at least ${q.minOut} DMT, or the swap does not happen. Slippage tolerance: 10%. Begin wallet confirmation within 60 seconds; gas is extra.</p>`
+      + (!c ? '<p>Connect a wallet above to buy. Then get a new quote.</p>' : short2 ? `<p class="rkwarn">Not enough ETH on Arbitrum for that. <a href="${BRIDGE}" target="_blank" rel="noopener">Bridge ETH</a></p>` : `<button id="wlbuygo">Buy ${q.dmtOut} DMT</button>`);
     const go = $('wlbuygo');
     if (go) go.onclick = async () => {
       if (buyBusy) return;
       if ($('wlbuygo') !== go || buyQuote?.q !== q || buyQuote.request !== buyPriceRequest) return;
       if (!live(revision)) { msg('Wallet changed. Get a new quote before buying.'); return; }
+      if (Date.now() - q.quotedAt > 60000) { msg('Quote expired. Review the fresh quote before buying.'); await price(q.requestedEth ? 'eth' : 'dmt', q.requestedEth ?? q.requestedDmt); return; }
       cancelPendingLoads(); buyBusy = c;
       go.disabled = true;
       let submitted = false;
@@ -1565,17 +1571,50 @@ function bindBuy(c, b, msg) {
       } finally { buyBusy = null; if (!live(revision) && !submitted) renderWallet(); }
     };
   };
-  for (const btn of document.querySelectorAll('.wlbuyamt')) btn.onclick = async () => {
-    if (buyBusy) { msg(`Swap for ${short(buyBusy.address)}: A swap is already pending. Check your wallet activity.`); return; }
-    if (walletNow() !== c || $('wlbuyq') !== box) return;
+  const invalidate = () => { ++buyPriceRequest; buyQuote = null; box.textContent = ''; };
+  const available = () => {
+    if (buyBusy) { msg(`Swap for ${short(buyBusy.address)}: A swap is already pending. Check your wallet activity.`); return false; }
+    return walletNow() === c && $('wlbuyq') === box;
+  };
+  const price = async (kind, amount) => {
+    if (!available()) return;
+    const comparison = $('wlbuyplan'); if (comparison) comparison.innerHTML = '';
     const request = ++buyPriceRequest, revision = walletRevision();
-    buyQuote = null; buyWant = Number(btn.dataset.dmt);
-    for (const o of document.querySelectorAll('.wlbuyamt')) o.classList.toggle('on', o === btn);
+    buyQuote = null; buyWant = kind === 'dmt' ? amount : 0;
+    for (const o of document.querySelectorAll('.wlbuyamt')) o.classList.toggle('on', Number(o.dataset.dmt) === buyWant);
     box.className = 'dim'; box.textContent = 'Getting a price…';
-    try { const quote = await quoteDmt(Number(btn.dataset.dmt)); if (request === buyPriceRequest && live(revision)) { buyQuote = { q: quote, p: c.w.p, address: c.address.toLowerCase(), revision, request }; show(quote, revision); } }
+    try { const quote = await (kind === 'eth' ? quoteEth(amount) : quoteDmt(amount)); if (request === buyPriceRequest && live(revision)) { buyQuote = { q: quote, p: c?.w.p, address: c?.address.toLowerCase() ?? null, revision, request }; show(quote, revision); } }
     catch (e) { if (request === buyPriceRequest && live(revision)) box.textContent = e.message; }
   };
-  if (buyWant) { const pre = document.querySelector(`.wlbuyamt[data-dmt="${buyWant}"]`); if (pre && !buyQuote) pre.click(); else if (buyQuote) show(buyQuote.q, buyQuote.revision); }
+  for (const btn of document.querySelectorAll('.wlbuyamt')) btn.onclick = () => price('dmt', Number(btn.dataset.dmt));
+  const custom = $('wlbuycustom'), budget = $('wlbuybudget'), customGo = $('wlbuycustomquote'), compare = $('wlbuycompare'), planBox = $('wlbuyplan');
+  if (custom) custom.oninput = () => { if (!available() || $('wlbuycustom') !== custom) return; buyCustom = custom.value; buyWant = 0; invalidate(); planBox.innerHTML = ''; };
+  if (budget) budget.oninput = () => { if (!available() || $('wlbuybudget') !== budget) return; buyBudget = budget.value; buyWant = 0; invalidate(); planBox.innerHTML = ''; };
+  if (customGo) customGo.onclick = () => { if ($('wlbuycustomquote') !== customGo) return; buyCustom = custom.value; return price('dmt', Number(custom.value)); };
+  if (compare) compare.onclick = async () => {
+    if (!available() || $('wlbuycompare') !== compare) return;
+    invalidate(); buyWant = 0; buyBudget = budget.value;
+    const request = buyPriceRequest, revision = walletRevision();
+    planBox.textContent = 'Comparing current single-order prices…';
+    try {
+      const plan = await compareEthBuys(buyBudget);
+      if (request !== buyPriceRequest || !live(revision)) return;
+      planBox.innerHTML = '<p>One order at each size — estimated gas included in the rate. Select a size for a fresh quote.</p>'
+        + plan.orders.map((order, i) => {
+          if (!order.quote) return `<p>${order.parts === 1 ? 'Full budget' : '1/' + order.parts + ' of budget'}: ${esc(order.error)}</p>`;
+          const q = order.quote, pools = [...new Set((q.summary.route || []).flat().map(pool => pool.exchange).filter(v => typeof v === 'string'))];
+          return `<div class="wlbuyorderrow"><p><b>${q.requestedEth} ETH → about ${q.dmtOut} DMT</b>${plan.bestIndex === i ? ' · Best estimated rate' : ''}<br>Estimated gas: ${order.gasWei === null ? 'unavailable' : (Number(order.gasWei) / 1e18).toPrecision(3) + ' ETH'} · DMT per ETH including gas: ${order.netRate === null ? 'unknown' : order.netRate.toFixed(2)}<br>Route: ${esc(pools.join(', ') || 'KyberSwap')}</p><button class="ghost wlbuyorder" data-order="${i}">Quote this order</button></div>`;
+        }).join('')
+        + `<p class="dim">${plan.bestIndex === null ? 'Best rate unknown: a quote or gas estimate is missing. ' : ''}Prices can change. Smaller-order output is not a promised total for the whole budget. Each order needs your wallet confirmation.</p>`;
+      for (const btn of document.querySelectorAll('.wlbuyorder')) btn.onclick = () => {
+        if (request !== buyPriceRequest || !live(revision) || $('wlbuyplan') !== planBox) return;
+        planBox.innerHTML = '';
+        return price('eth', plan.orders[Number(btn.dataset.order)].quote.requestedEth);
+      };
+    } catch (e) { if (request === buyPriceRequest && live(revision)) planBox.textContent = e.message; }
+  };
+  if (buyQuote) show(buyQuote.q, buyQuote.revision);
+  else if (buyWant) { const pre = document.querySelector(`.wlbuyamt[data-dmt="${buyWant}"]`); if (pre) pre.click(); }
 }
 function buyNoticeHTML() {
   if (!buyNotice) return '';

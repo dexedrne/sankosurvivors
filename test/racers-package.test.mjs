@@ -31,7 +31,7 @@ test('every packaged and shared route dependency matches its recorded bytes', ()
  assert.equal(m.source.commit,inputs.commit);
  assert.equal(m.source.rulesVersion,inputs.rulesVersion);assert.match(inputs.rulesVersion,/^[0-9a-f]{12}$/);
  assert.match(m.source.commit,/^[a-f0-9]{40}$/);
- assert.equal(m.shared.length,271);
+ assert.equal(m.shared.length,277);
  for(const item of [...m.files,...m.shared]) {
   assert.match(item.path,/^\/(?:fun\/racers|assets|draco)\//);
   assert.ok(!item.path.includes('..'));
@@ -77,7 +77,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  assert.doesNotMatch(js,/\.\/assets\/|\.\/draco\/|100\.65\.235\.118|127\.0\.0\.1|supabase/i);
  assert(html.includes('id="wallet-connect"'));assert(html.includes('id="owned-use"'));assert(html.includes('https://opensea.io/collection/sanko-crashout-kart'));assert(js.includes('0x70013D4F2c4F81325a6D59f9D3EE11e215e5ea52'));assert(js.includes('Racers only reads wallet accounts.'));assert(js.includes('/assets/racers/crashout/'));
  assert.equal(js.includes('nav.bin'),false);assert.equal(js.includes('world/tiles/fences.json'),false);
- for(const file of ['weapons/hand_pistol.glb','cars/miata.glb','placements.json','world/tiles/fences-9f238cc0bd85.json'])
+ for(const file of ['weapons/hand_pistol.glb','cars/miata.glb','placements.json','world/tiles/fences-b0312bb6a4dc.json'])
   assert.ok(js.includes(`racers/${file}`),file);
 });
 

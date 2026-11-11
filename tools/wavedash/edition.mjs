@@ -53,7 +53,7 @@ function queuePageReload(text, delay) {
 
 export function transformMain(source) {
   let s = source;
-  for (const file of ['coop-client', 'ranked', 'ranked-play', 'ranked-client', 'ranked-clock', 'ranked-clock-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'wallet-connect', 'wallet', 'bun-companions']) {
+  for (const file of ['coop-client', 'ranked', 'ranked-play', 'ranked-client', 'ranked-clock', 'ranked-clock-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'swap-planner', 'wallet-connect', 'wallet', 'bun-companions']) {
     const re = new RegExp(`^import .+ from './${file}\\.js';\\n`, 'm');
     assert.ok(re.test(s), `Expected import ${file}`); s = s.replace(re, '');
   }
@@ -248,7 +248,7 @@ export function wavedashEdition() {
       if (locale) return { code: localeSource(locale[1]), map: null };
     },
     generateBundle(_, bundle) {
-      for (const id of this.getModuleIds()) assert.doesNotMatch(id, /\/(?:wallet(?:-connect)?|dmt|ranked(?:-client|-play)?|cloud|swap|prize-display|config|carry-(?:progress|gate))\.js$|node_modules\/(?:@walletconnect|qrcode|@reown)/, `Forbidden module in casual build: ${id}`);
+      for (const id of this.getModuleIds()) assert.doesNotMatch(id, /\/(?:wallet(?:-connect)?|dmt|ranked(?:-client|-play)?|cloud|swap(?:-planner)?|prize-display|config|carry-(?:progress|gate))\.js$|node_modules\/(?:@walletconnect|qrcode|@reown)/, `Forbidden module in casual build: ${id}`);
       for (const entry of Object.values(bundle)) if (entry.type === 'chunk') assertCasualBundle(entry.code, [entry.fileName]);
     },
   };

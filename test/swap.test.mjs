@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { quoteDmt, checkBuilt, buyDmt, KYBER_ROUTER, SLIPPAGE_BPS } from '../src/swap.js';
+import { quoteDmt, quoteEth, checkBuilt, buyDmt, KYBER_ROUTER, SLIPPAGE_BPS } from '../src/swap.js';
 import { rankedSim } from '../src/ranked.js';
 import { createSim } from '../src/sim.js';
 import { connect } from '../src/wallet.js';
@@ -35,7 +35,7 @@ for (const [amountOut, shown, minimum] of [
   ['1111111111112', 0.000001, 1000000000000n],
 ]) test(`buy DMT enforces the shown ${shown} minimum for output ${amountOut}`, async () => {
   const summary = { ...real.summary, amountOut };
-  const q = await quoteDmt(1, async () => new Response(JSON.stringify({ code: 0, data: { routeSummary: summary } })));
+  const q = await quoteEth('0.002', async () => new Response(JSON.stringify({ code: 0, data: { routeSummary: summary } })));
   assert.equal(q.minOut, String(shown));
   const h = real.build.data.slice(2), at = descAt(h) + 8 * 64;
   const built = (n) => ({ ...real.build, data: '0x' + put(h, at, n.toString(16).padStart(64, '0')) });
@@ -55,7 +55,7 @@ test('buy DMT formats the minimum exactly even when an API output exceeds number
     ['1111111111112', '0.000001'],
   ]) {
     const summary = { ...real.summary, amountOut };
-    const q = await quoteDmt(1, async () => new Response(JSON.stringify({ code: 0, data: { routeSummary: summary } })));
+    const q = await quoteEth('0.002', async () => new Response(JSON.stringify({ code: 0, data: { routeSummary: summary } })));
     assert.equal(String(q.minOut), minimum);
   }
 });
@@ -92,7 +92,7 @@ test('buy DMT: the game decodes the swap and refuses one that pays anyone else, 
   assert.throws(() => checkBuilt({ ...b, data: '0x1234' + me.slice(2) + 'ff' }, q, me), /not a plain KyberSwap swap/);
   assert.throws(() => checkBuilt({ ...b, routerAddress: '0x' + '9'.repeat(40) }, q, me), /not going to KyberSwap/);
   assert.throws(() => checkBuilt({ ...b, transactionValue: String(BigInt(q.amountIn) + 1n) }, q, me), /price moved/);
-  assert.throws(() => checkBuilt({ ...b, transactionValue: '200000000000000000' }, { ...q, amountIn: '200000000000000000' }, me), /bigger than this page allows/);
+  assert.throws(() => checkBuilt({ ...b, transactionValue: '2000000000000000000' }, { ...q, amountIn: '2000000000000000000' }, me), /bigger than this page allows/);
   assert.throws(() => checkBuilt({ ...b, data: 'nope' }, q, me), /could not be prepared/);
   assert.throws(() => checkBuilt({ ...b, data: b.data.slice(0, 600) }, q, me), /could not be prepared/, 'cut short');
   assert.throws(() => checkBuilt(null, q, me), /could not be prepared/);
@@ -108,7 +108,7 @@ test('buy DMT refuses a chain switch while its build is pending', async () => {
     if (method === 'eth_getTransactionReceipt') return { status: '0x1' };
   } } };
   await connect(wallet);
-  const q = { requestedDmt: 1, amountIn: real.summary.amountIn, summary: real.summary, ethIn: Number(real.summary.amountIn) / 1e18, minOut: 1 };
+  const q = { quotedAt: Date.now(), requestedDmt: 1, amountIn: real.summary.amountIn, summary: real.summary, ethIn: Number(real.summary.amountIn) / 1e18, minOut: 1 };
   await assert.rejects(buyDmt(wallet, me, q, () => {}, async () => {
     chain = '0x1';
     return new Response(JSON.stringify({ code: 0, data: real.build }));

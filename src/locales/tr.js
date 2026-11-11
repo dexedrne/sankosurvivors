@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Street life and DMT quotes": "Sokak hayatı ve DMT fiyatları",
+  "Sanko Racers: nearby map zoom, lower walking camera, quiet sound effects, Miata pop-up lights, Priest robes, town conversations and smoother online turns. Zombies adds ammo, reloading and jumping; the church graveyard gate is clear.": "Sanko Racers: yakın harita yakınlaştırma, daha alçak yaya kamerası, hafif sesler, Miata farları, rahip cübbesi, kasaba konuşmaları ve daha akıcı çevrimiçi dönüşler. Zombilerde mermi, doldurma ve zıplama var; mezarlık kapısı açık.",
+  "Compare current single-order DMT prices for a budget up to 1 ETH, or request 1\u201310000 DMT. Each purchase needs your wallet confirmation. Later orders need fresh quotes.": "En fazla 1 ETH bütçeyle tek bir DMT alımının güncel fiyatlarını karşılaştır veya 1–10000 DMT iste. Her alım cüzdan onayı gerektirir. Sonraki alımlar için yeni fiyat teklifi gerekir.",
+  "The casual leaderboard opens on All maps and keeps your chosen filter.": "Gündelik skor tablosu Tüm haritalarda açılır ve seçtiğin filtreyi korur.",
+
   "Gold nodes in casual Adventure":"Gündelik Macera’da altın yatakları",
   "Find a Gold node, hold its circle for 3.5 seconds, then collect the 24 coins. Gold nodes can appear in solo and co-op Adventure.":"Bir altın yatağı bul, çemberinde 3,5 saniye dur ve çıkan 24 altını topla. Altın yatakları tek kişilik ve eşli Macera’da belirebilir.",
   "Gold nodes can appear during casual Adventure. Stand in the circle for 3.5 seconds to mine 24 coins, then collect them.":"Gündelik Macera’da altın yatakları belirebilir. Çemberinde 3,5 saniye durarak 24 altın çıkar, ardından bunları topla.",

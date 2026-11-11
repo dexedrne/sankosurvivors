@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Street life and DMT quotes": "Vida en las calles y cotizaciones de DMT",
+  "Sanko Racers: nearby map zoom, lower walking camera, quiet sound effects, Miata pop-up lights, Priest robes, town conversations and smoother online turns. Zombies adds ammo, reloading and jumping; the church graveyard gate is clear.": "Sanko Racers: zoom del mapa cercano, cámara a pie más baja, efectos suaves, faros del Miata, túnicas, conversaciones y giros online más fluidos. Zombis añade munición, recarga y salto; la entrada del cementerio está despejada.",
+  "Compare current single-order DMT prices for a budget up to 1 ETH, or request 1\u201310000 DMT. Each purchase needs your wallet confirmation. Later orders need fresh quotes.": "Compara precios actuales de una sola compra de DMT con un presupuesto de hasta 1 ETH, o solicita entre 1 y 10000 DMT. Cada compra requiere confirmación en tu cartera. Las siguientes necesitan una nueva cotización.",
+  "The casual leaderboard opens on All maps and keeps your chosen filter.": "La clasificación casual se abre en Todos los mapas y conserva tu filtro.",
+
   "Gold nodes in casual Adventure":"Nodos de oro en Aventura casual",
   "Find a Gold node, hold its circle for 3.5 seconds, then collect the 24 coins. Gold nodes can appear in solo and co-op Adventure.":"Encuentra un nodo de oro, permanece en su círculo durante 3,5 segundos y recoge las 24 monedas. Pueden aparecer en Aventura en solitario y cooperativa.",
   "Gold nodes can appear during casual Adventure. Stand in the circle for 3.5 seconds to mine 24 coins, then collect them.":"Pueden aparecer nodos de oro en Aventura casual. Permanece en el círculo durante 3,5 segundos para extraer 24 monedas y luego recógelas.",
