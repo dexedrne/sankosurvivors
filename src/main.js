@@ -2507,7 +2507,7 @@ const NAV_SCREENS = [...MENU_SCREENS, 'pause', 'end', 'title'];
 const NAV_ITEMS = '#trialboss, #coop input, #racersplay, #racerscourier, #racerszombies, summary, [data-milestone][tabindex="0"], .aopt:not(.locked), .mopt:not(.locked), button:not([disabled]), .gslot, .gitem:not(.locked), #hardwrap:not(.hidden):not(.locked), #endlesswrap:not(.hidden):not(.locked), input[data-vol]';
 let navEl = null;
 function navScreen() { if (walletModalOpen()) return null; if (mode === 'recovery') return $('progressrecovery'); return NAV_SCREENS.map((id) => $(id)).find((el) => el && !el.classList.contains('hidden')); }
-function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => el.offsetParent !== null && !el.closest('.hidden') && !el.closest('details:not([open]) > :not(summary)')); }
+function navItems(scr) { return [...scr.querySelectorAll(NAV_ITEMS)].filter((el) => !el.disabled && el.offsetParent !== null && !el.closest('.hidden') && !el.closest('details:not([open]) > :not(summary)')); }
 function navFocus(el) { if (navEl) navEl.classList.remove('navfocus'); navEl = el; if (el) { el.classList.add('navfocus'); if (el.tabIndex < 0) el.tabIndex = -1; el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
 function navMove(dir) {
   const scr = navScreen(); if (!scr) return;
@@ -2528,7 +2528,7 @@ function navMove(dir) {
 }
 function navPress() {
   const scr = navScreen(); if (!scr) return false;
-  if (!navEl || !scr.contains(navEl) || navEl.offsetParent === null) return false;
+  if (!navEl || !navItems(scr).includes(navEl)) return false;
   if (navEl.id === 'hardwrap' || navEl.id === 'endlesswrap') { const cb = navEl.querySelector('input'); cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); return true; }
   if (navEl.id === 'trialboss') { navEl.selectedIndex = (navEl.selectedIndex + 1) % navEl.options.length; navEl.dispatchEvent(new Event('change')); return true; }
   navEl.click(); return true;
@@ -2651,8 +2651,8 @@ function loop(ts) {
   const dt = Math.min(0.1, (ts - last) / 1000 || 0.016); last = ts; frame++;
   const inp = readInput(); const edges = padEdges(inp.pad);
   if (mode !== 'play' && mode !== 'levelup' && mode !== 'casket') {
+    if (edges.b && navBack()) return;
     for (const d of ['up', 'down', 'left', 'right']) if (edges[d]) navMove(d);
-    if (edges.b) navBack();
     if (edges.a && navPress()) edges.a = false;
     if (edges.start && mode === 'title' && !$('start').disabled && navScreen()?.id === 'title') edges.a = true;
   }

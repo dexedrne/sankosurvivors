@@ -35,3 +35,22 @@ test('collapsed settings content cannot steal controller focus from a visible co
  app.focus(on);app.move('right');assert.equal(active,off,'closed descendants can retain layout rectangles but must not be selectable');
  app.focus(summary);app.move('right');assert.equal(active,on,'the closed section summary remains a visible navigation control');
 });
+
+test('controller confirm ignores a selected control that closes or disables before activation',()=>{
+ const nav=source.slice(source.indexOf('const NAV_SCREENS'),source.indexOf('function navBack()'));
+ let activations=0;
+ const control={
+  tabIndex:0,offsetParent:{},disabled:false,closed:false,classList:{add(){},remove(){}},
+  closest:selector=>selector.startsWith('details')&&control.closed?{}:null,
+  focus(){},scrollIntoView(){},click(){activations++;},
+ };
+ const panel={id:'settings',classList:{contains:()=>false},querySelectorAll:()=>[control],contains:e=>e===control};
+ const app=Function('$',`const MENU_SCREENS=['settings'],mode='title',walletModalOpen=()=>false;${nav};return{focus:navFocus,press:navPress};`)(()=>panel);
+ app.focus(control);
+ assert.equal(app.press(),true);
+ control.closed=true;
+ assert.equal(app.press(),false);
+ control.closed=false;control.disabled=true;
+ assert.equal(app.press(),false);
+ assert.equal(activations,1);
+});

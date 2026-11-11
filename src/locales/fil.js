@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Controller menu fixes":"Mga ayos sa menu para sa controller",
+  "Back closes the current menu without confirming a choice underneath. Confirm only activates available controls.":"Isinasara ng Back ang kasalukuyang menu. Ang Confirm ay gumagana lamang sa mga kontrol na maaaring gamitin.",
   "A new Racers menu":"Bagong menu ng Racers",
   "The Racers menu gives the live driver and kart preview more room. Find Courier, Zombies, Free Drive and races under Activities.":"Mas malaki na ang live na preview ng drayber at kart sa menu ng Racers. Makikita sa Activities ang Tagahatid, mga Zombie, Free Drive at mga karera.",
   "Greentown Courier":"Tagahatid sa Greentown",

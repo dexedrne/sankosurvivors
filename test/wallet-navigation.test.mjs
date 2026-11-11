@@ -306,3 +306,11 @@ test('Upgrades backdrop uses its Back handler and children paint above their ret
  const m=menu();m.$('upgradesbtn').click();m.$('upgrades').click();assert.equal(m.app.screen(),'title');assert.equal(m.active,'upgradesbtn');
  for(const child of ['gear','skills'])assert(page.indexOf('id="upgrades"')<page.indexOf('id="'+child+'"'));
 });
+
+test('controller Back consumes simultaneous confirm or Start before returning to the title',()=>{
+ for(const press of ['a','start']){
+  const m=menu();m.open('updates');m.app.frame({b:true,[press]:true});
+  assert.equal(m.app.screen(),'title');
+  assert.equal(m.app.state().started,0,press+' cannot start underneath a closing menu');
+ }
+});

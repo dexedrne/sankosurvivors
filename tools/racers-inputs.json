@@ -1,6 +1,6 @@
 {
-  "commit": "b15f7370f9b87b53514d157b4a97de57b3c784d8",
-  "implementation": "b15f7370f9b87b53514d157b4a97de57b3c784d8",
+  "commit": "0c444549721431af595c97aef33098bc85780435",
+  "implementation": "0c444549721431af595c97aef33098bc85780435",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2937,9 +2937,9 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-8bkjs27x.js",
-      "bytes": 1672180,
-      "sha256": "930d76a4a194f01f3123f41c831c352e7ba805bdafe6a91cc26c0273472a7bc0",
+      "path": "assets/index-C99B5XHV.js",
+      "bytes": 1672741,
+      "sha256": "033b94063fd96cd16b8cfb2019eb0d3ded2fdf77654d1372947100d94f8fbdfb",
       "role": "client"
     },
     {
@@ -4709,7 +4709,7 @@
     {
       "path": "index.html",
       "bytes": 10763,
-      "sha256": "451f75ac2ee4aa9f69dc00d7163c86bb4e0eb6ca788fe96c079c9ff94312e9b8",
+      "sha256": "b2025cb45b4a54ce60b807b31ba44bd0048c0d51c90fec6165a9b7744b4a988e",
       "role": "entry"
     }
   ],

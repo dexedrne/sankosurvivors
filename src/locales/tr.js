@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Controller menu fixes":"Kontrolcü menüsü düzeltmeleri",
+  "Back closes the current menu without confirming a choice underneath. Confirm only activates available controls.":"Geri tuşu, arkadaki menüde bir seçimi onaylamadan açık menüyü kapatır. Onay tuşu yalnızca kullanılabilir denetimleri etkinleştirir.",
   "A new Racers menu":"Yeni Racers menüsü",
   "The Racers menu gives the live driver and kart preview more room. Find Courier, Zombies, Free Drive and races under Activities.":"Yeni Racers menüsü sürücünün ve kartın canlı önizlemesine daha fazla yer açıyor. Kurye, Zombiler, Serbest Sürüş ve yarışları Etkinlikler bölümünde bulabilirsin.",
   "Greentown Courier":"Greentown Kuryesi",
