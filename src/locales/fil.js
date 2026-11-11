@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "A stitched baseball": "Baseball na may tahi",
+ "Baseball projectiles use the original SankoQuest item art, with both stitched seams visible. Their spin pauses with the run; size and combat rules stay the same.": "Ginagamit ng mga baseball projectile ang orihinal na larawan ng item mula sa SankoQuest, na kita ang dalawang tahi. Humihinto rin ang pag-ikot kapag naka-pause ang laro; pareho pa rin ang laki at mga patakaran ng labanan.",
  "A proper driving dashboard": "Mas maayos na dashboard sa pagmamaneho",
  "Sanko Racers: your kart gets a framed dashboard with a speed dial, digital readout and gas/brake input bars. It hides when you get out.": "Sanko Racers: may dashboard na may frame ang kart mo, kasama ang karayom ng bilis, digital na numero at mga bar para sa gas at preno. Nakatago ito kapag bumaba ka sa sasakyan.",
  "Room beside the west houses": "Mas maluwag sa tabi ng mga bahay sa kanluran",

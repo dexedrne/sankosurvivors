@@ -12,7 +12,10 @@ export function spellFixture(){
  return Function('THREE','ownActorResource','disposeActor','ENEMIES','createMeleeVfx','createSpellMaterials',`'use strict';
   let merchantActor=null;
   const dyn=new THREE.Group(),camera=new THREE.PerspectiveCamera(),actors=new Map(),playerActors=new Map(),corpses=[],projObjs=new Map(),eprojObjs=new Map();
-  const fxOnly=o=>o,colorOut=s=>s,groundAt=()=>0,meleeTrail=()=>{},emit=()=>{};const meleeFx=createMeleeVfx({group:dyn,camera,groundAt,colorOut,fxOnly});let wallNow=0;const performance={now:()=>wallNow};
+  const fxOnly=o=>{o.traverse(c=>c.layers.set(1));return o},colorOut=s=>s,groundAt=()=>0,meleeTrail=()=>{},emit=()=>{};const meleeFx=createMeleeVfx({group:dyn,camera,groundAt,colorOut,fxOnly});let wallNow=0;const performance={now:()=>wallNow};
+  const iconCache=new Map(),A=path=>'assets/'+path,glowTex=new THREE.Texture();
+  ${slice('  function iconTex(name)', '  const dummy =')}
+  ${slice('  const glowSprite =', "  // the Lighter's ring")}
   const ringMat=col=>new THREE.MeshBasicMaterial({color:col}),addEffect=o=>dyn.add(o),arrowOf=()=>{throw Error('Only magic is requested by this fixture')};
   ${slice('  const SPELL_ELEMENT =','  const lin =')}
   ${slice('  const msQ =','  // ---- spell flight')}
@@ -25,7 +28,7 @@ export function spellFixture(){
    clock:(v,dt=0,frozen=false)=>spellClock(v,dt,frozen),sphere:(col=SPELL_ELEMENT.air,tier='missile')=>{const o=magicSphere(col,tier);dyn.add(o);return o},
    step:stepMagicSphere,stepBursts:stepMagicBursts,burst:magicBurst,stray:spellStray,land:spellLand,dispose:disposeActor,glow:msGlowMat,clockNode:msClock,
    syncHeads:typeof syncSpellHeads==='undefined'?undefined:syncSpellHeads,heads:()=>typeof msBatch==='undefined'?undefined:msBatch};
- `)(THREE,ownActorResource,disposeActor,ENEMIES,createMeleeVfx,createSpellMaterials);
+ `)({...THREE,TextureLoader:class {load(url){const t=new THREE.Texture();t.name=url;return t;}}},ownActorResource,disposeActor,ENEMIES,createMeleeVfx,createSpellMaterials);
 }
 export function piece(o,i){const m=new THREE.Matrix4(),p=new THREE.Vector3();o.updateWorldMatrix(true,true);o.userData.ms.parts.getMatrixAt(i,m);return p.setFromMatrixPosition(m).applyMatrix4(o.matrixWorld)}
 export function fly(f,o,t,x=14*t/1000,z=0){f.now(t);o.position.set(x,1,z);f.step(o,t)}

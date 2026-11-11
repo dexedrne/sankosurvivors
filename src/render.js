@@ -2012,12 +2012,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           Object.assign(o.userData, evo ? { trail: 0x9fe6ff, every: 0.5 } : { trail: 0xb89a6a, every: 0.7 }); // the glacial bow's frost, or a little dust
         } else if (art === 'sword') { // a thrown short sword, point first, with a bright streak
           item(weaponModelPath('shortsword', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) o.add(orientedItem(p, 1.1)); });
-        } else if (art === 'ball') { // a baseball, stitches and all, spinning as it flies
-          // owner 3 Nov: "baseball projectile is pretty huge": 0.64 across was 40% of a person; now 0.3 (its hit size is unchanged)
-          const ball = new THREE.Mesh(ownActorResource(new THREE.SphereGeometry(0.15, 14, 10)), ownActorResource(new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.7 })));
-          const seam = new THREE.Mesh(ownActorResource(new THREE.TorusGeometry(0.152, 0.012, 6, 24)), ownActorResource(new THREE.MeshBasicMaterial({ color: 0xc8322a }))); seam.rotation.x = 0.6; ball.add(seam);
-          if (evo) o.add(glowSprite(0xffd34d, 0.8, 0.5));
-          o.add(ball); Object.assign(o.userData, { spinner: ball, trail: evo ? 0xffd34d : 0xfff6dc, every: 0.45 });
+        } else if (art === 'ball') {
+          if (evo) o.add(glowSprite(0xffd34d, 0.8, 0.5)); // Equal-depth transparent sprites draw in creation order: glow behind the seams.
+          const ball = new THREE.Sprite(ownActorResource(new THREE.SpriteMaterial({ map: iconTex('Baseball'), transparent: true, alphaTest: 0.3, depthWrite: false })));
+          ball.scale.setScalar(0.45); // The native 54px icon's 36px ball keeps its existing 0.3 visible diameter.
+          fxOnly(ball);
+          o.add(ball); Object.assign(o.userData, { spinner: ball, spinBorn: spellTime, trail: evo ? 0xffd34d : 0xfff6dc, every: 0.45 });
         } else if (art === 'axe') {
           item(weaponModelPath('axe', lvl, 'model', mt >= 0 ? mt : null)).then((p) => { if (p) { const m = orientedItem(p, 1.25); o.userData.spinner2 = m; o.add(m); } });
 
@@ -2031,7 +2031,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         if (art === 'axe') { if (o.userData.spinner2) o.userData.spinner2.rotation.y = spin; o.rotation.y = 0; } else o.rotation.y = ang;
       }
       meleeTrail(o, art, x, z, ang, spin, evo, view.t);
-      if (o.userData.spinner) o.userData.spinner.rotation.z += dt * 12;
+      if (o.userData.spinner) o.userData.spinner.material.rotation = (spellTime - o.userData.spinBorn) * 0.012;
       if (o.userData.trail && Math.random() < o.userData.every) emit(x, o.position.y, z, 1, 0.3, { s: art === 'bolt' ? 0.7 : 0.45, life: 0.35, color: o.userData.trail, up: 0.25, g: 0 });
     }
     for (const [id, o] of projObjs) if (!seenPr.has(id) && !(o.userData.spell && spellLand(o, vt, true))) { disposeActor(o); projObjs.delete(id); }

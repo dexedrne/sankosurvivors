@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "A stitched baseball": "Dikişli beyzbol topu",
+ "Baseball projectiles use the original SankoQuest item art, with both stitched seams visible. Their spin pauses with the run; size and combat rules stay the same.": "Fırlatılan beyzbol topları, iki dikiş çizgisi de görünen özgün SankoQuest eşya görselini kullanır. Oyun duraklatıldığında dönüşleri de durur; boyutları ve savaş kuralları değişmez.",
  "A proper driving dashboard": "Yeni sürüş gösterge paneli",
  "Sanko Racers: your kart gets a framed dashboard with a speed dial, digital readout and gas/brake input bars. It hides when you get out.": "Sanko Racers: kartınızda ibreli hız göstergesi, dijital hız ve gaz/fren çubukları olan çerçeveli bir panel var. Araçtan indiğinizde gizlenir.",
  "Room beside the west houses": "Batıdaki evlerin yanında daha fazla alan",

@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "A stitched baseball": "Una pelota con costuras",
+ "Baseball projectiles use the original SankoQuest item art, with both stitched seams visible. Their spin pauses with the run; size and combat rules stay the same.": "Los proyectiles de béisbol usan el arte original de SankoQuest, con ambas costuras visibles. Su giro se detiene al pausar la partida; el tamaño y las reglas de combate no cambian.",
  "A proper driving dashboard": "Un cuadro de conducción completo",
  "Sanko Racers: your kart gets a framed dashboard with a speed dial, digital readout and gas/brake input bars. It hides when you get out.": "Sanko Racers: tu kart tiene un cuadro enmarcado con velocímetro de aguja, lectura digital y barras de acelerador y freno. Se oculta cuando sales del vehículo.",
  "Room beside the west houses": "Más espacio junto a las casas del oeste",

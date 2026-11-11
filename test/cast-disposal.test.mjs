@@ -76,7 +76,7 @@ function uniqueResources(root, shared) {
   return resources;
 }
 
-for (const [art, evo, count] of [['sword', false, 0], ['ball', false, 4], ['ball', true, 5], ['axe', false, 0], ['bolt', false, 1], ['bolt', true, 1]]) {
+for (const [art, evo, count] of [['sword', false, 0], ['ball', false, 1], ['ball', true, 2], ['axe', false, 0], ['bolt', false, 1], ['bolt', true, 1]]) {
   test(`${evo ? 'evolved ' : ''}${art} expiry releases its own resources and preserves a live cast and shared cache`, async () => {
     const h = harness(), first = projectile(1, art, evo), second = projectile(2, art, evo);
     h.frame({ proj: [first, second] }); await settleModels();
@@ -115,7 +115,7 @@ test('shrine retirement releases beam and ring resources while preserving the ca
 test('reset purges active casts, enemy shots, bursts and shrines with disposal exactly once', async () => {
   const h = harness(); h.frame({ proj: [projectile(1, 'ball', true)], eproj: [enemyShot(2)], shrines: [shrine(3)] }); h.burst(); await settleModels();
   const own = watch(uniqueResources(h.dyn, h.shared())), cached = watch(h.shared());
-  assert.equal(own.length, 13); h.reset(); h.reset();
+  assert.equal(own.length, 10); h.reset(); h.reset();
   assert.deepEqual(h.dyn.children.filter(o=>o.name!=='spell-heads'), [h.meleeFx.mesh]); assert.equal(h.dyn.getObjectByName('spell-heads')?.count,0); assert.equal(h.meleeFx.mesh.count,0); assert.equal(h.shrineObjs.size, 0);
   assert.ok(own.every(x => x.disposals === 1)); assert.ok(cached.every(x => x.disposals === 0));
 });
