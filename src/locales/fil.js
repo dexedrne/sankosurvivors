@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Steadier online driving": "Mas maayos na pagmamaneho online",
+  "Sanko Racers: more responsive online steering and steadier drifting when updates arrive late or rendering slows. Getting in or out, reconnecting and rematches clear old movement.": "Sanko Racers: mas mabilis tumugon ang manibela online at mas maayos ang drift kapag nahuhuli ang mga update o bumabagal ang rendering. Nililinis ang lumang galaw sa pagsakay, pagbaba, muling pagkonekta at rematch.",
   "Street life and DMT quotes": "Buhay sa lansangan at presyo ng DMT",
   "Sanko Racers: nearby map zoom, lower walking camera, quiet sound effects, Miata pop-up lights, Priest robes, town conversations and smoother online turns. Zombies adds ammo, reloading and jumping; the church graveyard gate is clear.": "Sanko Racers: zoom ng kalapit na mapa, mas mababang camera habang naglalakad, mahinang tunog, ilaw ng Miata, robe ng Priest, usapan sa bayan at mas maayos na liko online. May bala, reload at talon sa Zombies; maluwag na ang gate ng sementeryo.",
   "Compare current single-order DMT prices for a budget up to 1 ETH, or request 1\u201310000 DMT. Each purchase needs your wallet confirmation. Later orders need fresh quotes.": "Ihambing ang kasalukuyang presyo ng isang pagbili ng DMT sa budget na hanggang 1 ETH, o humiling ng 1–10000 DMT. Kailangan ang kumpirmasyon ng wallet sa bawat pagbili. Kailangan ng bagong quote para sa susunod.",

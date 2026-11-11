@@ -1,6 +1,6 @@
 {
-  "commit": "4672dbe5782ee5daf56ccbbcc22433510c875717",
-  "implementation": "4672dbe5782ee5daf56ccbbcc22433510c875717",
+  "commit": "8301d4da8e7295fa4d7a06d66663747c7f79ad2d",
+  "implementation": "8301d4da8e7295fa4d7a06d66663747c7f79ad2d",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2937,9 +2937,9 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-CHKEOBFx.js",
-      "bytes": 1688407,
-      "sha256": "fe57b40f3bf62a4727bd51cbc9f2e82f37b5769745467a6ebd0bac5220184bfa",
+      "path": "assets/index-CV1nfMk-.js",
+      "bytes": 1691779,
+      "sha256": "56c60fe7411df6e3af2996ef28fd5151b5da62427d12f6ddd5280b822726631b",
       "role": "client"
     },
     {
@@ -4751,7 +4751,7 @@
     {
       "path": "index.html",
       "bytes": 11292,
-      "sha256": "21191b9bc851bc92ccba74346bcaa4587115c1407c3ba510c534a5e086d25e52",
+      "sha256": "4f892771b8b3a9890b818588a03ec9bb2c66694c9edd6b4c888cc34d21755f48",
       "role": "entry"
     }
   ],
@@ -4760,5 +4760,5 @@
     "bytes": 749863,
     "sha256": "cbe15c670d930714fbce2340b1254bb5f12ef32208dd2306cf5284c01a1a1fe4"
   },
-  "rulesVersion": "0872ef1f4ae4"
+  "rulesVersion": "8f09d2299bdf"
 }
