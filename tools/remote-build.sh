@@ -10,11 +10,14 @@ H="${1:?usage: remote-build.sh <ssh host>}"; R=work/sqs-build
 # fail closed (security pass 3 review): the client builds every DMT payment, so a client built on one box alone needs an
 # explicit SQS_TRUST_BUILD_HOST=1
 [ -n "${VERIFY_HOST:-}" ] || [ "${SQS_TRUST_BUILD_HOST:-}" = 1 ] || { echo "remote build: set VERIFY_HOST=<a second box> (or SQS_TRUST_BUILD_HOST=1 to ship a client built only on $H)"; exit 1; }
+# An empty resolution followed by '/' would copy the filesystem root.
+DEPS=$(readlink -e node_modules) || { echo "remote build: dependency directory is missing or broken: not building"; exit 1; }
+[ "$DEPS" != / ] && [ -f "$DEPS/vite/package.json" ] && [ -f "$DEPS/three/package.json" ] && [ -x "$DEPS/.bin/vite" ] || { echo "remote build: dependency directory is invalid: not building"; exit 1; }
 BUILD=$(git rev-parse --short HEAD)$(git diff --quiet || echo "+$(date +%s)")
 ssh "$H" "mkdir -p $R"
 # --checksum: a file changed on the job box but with the same size and time is put back too (security pass, 3 Nov)
 rsync -a --checksum --delete --exclude .git --exclude node_modules --exclude dist --exclude .vercel --exclude qa-out ./ "$H:$R/"
-rsync -a --checksum --delete "$(readlink -f node_modules)/" "$H:$R/node_modules/"
+rsync -a --checksum --delete "$DEPS/" "$H:$R/node_modules/"
 ssh "$H" "cd $R && BUILD='$BUILD' VITE_ASSET_BASE_1='${VITE_ASSET_BASE_1:-}' VITE_ASSET_BASE_2='${VITE_ASSET_BASE_2:-}' nice -n 5 bash tools/build-vercel.sh"
 rm -rf .vercel/output dist
 # only the browser files come back from the job box, as plain files; everything the server runs (fences, walk data, the
@@ -25,7 +28,7 @@ V=$(mktemp -d); trap 'rm -rf "$V"' EXIT
 if [ -n "${VERIFY_HOST:-}" ]; then # a second, independent box must build a byte-identical client
   ssh "$VERIFY_HOST" "mkdir -p $R"
   rsync -a --checksum --delete --exclude .git --exclude node_modules --exclude dist --exclude .vercel --exclude qa-out ./ "$VERIFY_HOST:$R/"
-  rsync -a --checksum --delete "$(readlink -f node_modules)/" "$VERIFY_HOST:$R/node_modules/"
+  rsync -a --checksum --delete "$DEPS/" "$VERIFY_HOST:$R/node_modules/"
   ssh "$VERIFY_HOST" "cd $R && BUILD='$BUILD' VITE_ASSET_BASE_1='${VITE_ASSET_BASE_1:-}' VITE_ASSET_BASE_2='${VITE_ASSET_BASE_2:-}' nice -n 5 bash tools/build-vercel.sh"
   rsync -r --no-links --no-devices --no-specials "$VERIFY_HOST:$R/dist" "$V/"
   diff -rq dist "$V/dist" >/dev/null || { echo "remote build: $H and $VERIFY_HOST built different clients: not deploying"; exit 1; }
