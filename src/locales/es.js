@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Racers frame pacing": "Ritmo de fotogramas de Racers",
+ "Sanko Racers: the frame cap keeps its timing on faster displays instead of dropping extra frames. Stalls skip missed frames without a catch-up burst.": "Sanko Racers: el límite de FPS mantiene su ritmo en pantallas más rápidas sin perder fotogramas adicionales. Tras un bloqueo, se omiten los fotogramas perdidos sin una ráfaga para recuperarlos.",
  "Warnings follow the ground": "Avisos que siguen el terreno",
  "Boss slam and meteor warning circles follow uneven ground so uphill terrain no longer hides the danger zone. Damage radius and charge timing are unchanged.": "Los círculos de aviso de golpes de jefes y meteoros siguen el terreno irregular para que las pendientes no oculten la zona de peligro. El radio de daño y el tiempo de preparación no cambian.",
  "Luck multiplier": "Multiplicador de suerte",

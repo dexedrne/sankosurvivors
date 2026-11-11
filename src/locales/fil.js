@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "Racers frame pacing": "Timing ng mga frame sa Racers",
+ "Sanko Racers: the frame cap keeps its timing on faster displays instead of dropping extra frames. Stalls skip missed frames without a catch-up burst.": "Sanko Racers: pinapanatili ng limitasyon sa FPS ang timing sa mas mabilis na mga screen nang hindi nagsasayang ng dagdag na frame. Pagkatapos ng pagbagal, nilalaktawan ang mga napalampas na frame sa halip na iguhit ang mga ito nang sunod-sunod para humabol.",
  "Warnings follow the ground": "Babala na sumusunod sa lupa",
  "Boss slam and meteor warning circles follow uneven ground so uphill terrain no longer hides the danger zone. Damage radius and charge timing are unchanged.": "Sumusunod sa hindi pantay na lupa ang mga babalang bilog ng boss slam at meteor para hindi matakpan ng paakyat na lupa ang danger zone. Pareho pa rin ang lawak ng pinsala at oras ng paghahanda.",
  "Luck multiplier": "Multiplier ng suwerte",

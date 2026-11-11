@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Racers frame pacing": "Racers kare zamanlaması",
+ "Sanko Racers: the frame cap keeps its timing on faster displays instead of dropping extra frames. Stalls skip missed frames without a catch-up burst.": "Sanko Racers: FPS sınırı, daha hızlı ekranlarda fazladan kare düşürmeden zamanlamasını korur. Takılma sonrasında kaçırılan kareler art arda çizilmek yerine atlanır.",
  "Warnings follow the ground": "Uyarılar araziyi izler",
  "Boss slam and meteor warning circles follow uneven ground so uphill terrain no longer hides the danger zone. Damage radius and charge timing are unchanged.": "Boss darbesi ve meteor uyarı daireleri engebeli araziyi izler; yokuşlar artık tehlike alanını gizlemez. Hasar yarıçapı ve hazırlık süresi aynı kalır.",
  "Luck multiplier": "Şans çarpanı",
