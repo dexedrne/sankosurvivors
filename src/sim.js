@@ -957,6 +957,7 @@ function stepProjectiles(sim, dt) {
       pr.hit.push(e.id);
       damageEnemy(sim, e, pr.dmg, pr.owner, pr.kb || 0.8, pr.x - pr.vx, pr.z - pr.vz);
       if (pr.art === 'bolt') {
+        if (sim.pace >= 2) sim.fx.push({ k: 'spell-hit', projectile: pr.id, target: e.id, x: e.x, z: e.z, owner: pr.owner, lvl: pr.lvl, evo: pr.evo ? 1 : 0, r: pr.burst || 0 });
         if (pr.burst) {
           sim.fx.push({ k: 'burst', x: pr.x, z: pr.z, r: pr.burst, evo: pr.evo ? 1 : 0, ...(sim.pace >= 2 ? { projectile: pr.id, owner: pr.owner, lvl: pr.lvl } : {}) });
           for (const o of sim.enemies) if (o !== e && !o.dead && hyp(o.x - pr.x, o.z - pr.z) < pr.burst) damageEnemy(sim, o, pr.dmg * 0.6, pr.owner, 1, pr.x, pr.z);
@@ -1288,7 +1289,7 @@ function bossAct(sim, e, def, tp, d, dx, dz, dt) {
     const base = datan2(dx, dz), n = 5;
     for (let i = 0; i < n; i++) {
       const a = base + (i - (n - 1) / 2) * 0.22, sp = 8.5;
-      sim.eproj.push({ id: sim.nextId++, x: e.x, z: e.z, vx: dsin(a) * sp, vz: dcos(a) * sp, r: 0.55, dmg: bossDmg(sim, def, 0.75), life: 3.2, art: def.shot || 'fire' });
+      sim.eproj.push({ id: sim.nextId++, x: e.x, z: e.z, vx: dsin(a) * sp, vz: dcos(a) * sp, r: 0.55, dmg: bossDmg(sim, def, 0.75), life: 3.2, art: def.shot || 'fire', ...(sim.pace >= 2 ? { caster: e.id, target: tp.id } : {}) });
     }
     sim.fx.push({ k: 'volley', x: e.x, z: e.z, art: def.shot || 'fire' });
   }
@@ -1302,7 +1303,7 @@ function wizardAct(sim, e, tp, d, dx, dz, dt) {
       const base = e.charge.aim, n = e.type === 'starwiz' ? 3 : 1;
       for (let i = 0; i < n && sim.eproj.length < 40; i++) {
         const a = base + (i - (n - 1) / 2) * 0.24;
-        sim.eproj.push({ id: sim.nextId++, x: e.x, z: e.z, vx: dsin(a) * 7, vz: dcos(a) * 7, r: 0.35, dmg: 8, life: 4, art: e.type === 'starwiz' ? 'ice' : 'fire' });
+        sim.eproj.push({ id: sim.nextId++, x: e.x, z: e.z, vx: dsin(a) * 7, vz: dcos(a) * 7, r: 0.35, dmg: 8, life: 4, art: e.type === 'starwiz' ? 'ice' : 'fire', ...(sim.pace >= 2 ? { caster: e.id, target: tp.id } : {}) });
       }
       sim.fx.push({ k: 'volley', x: e.x, z: e.z });
       e.charge = null; e.atkCd = 3.5 + sim.rng() * 2;
@@ -1330,7 +1331,7 @@ function stepBossAttacks(sim, dt) {
     if (sim.variant === 'wizard' && !clearPath(sim, b.x, b.z, b.x + b.vx * dt, b.z + b.vz * dt)) { b.dead = true; continue; }
     b.x += b.vx * dt; b.z += b.vz * dt; b.life -= dt;
     if (b.life <= 0 || !walkable(sim, b.x, b.z) && sim.ground && hyp(b.vx, b.vz) > 0) { b.dead = true; continue; }
-    for (const p of sim.players) if (p.alive && p.inv <= 0 && hyp(p.x - b.x, p.z - b.z) < b.r + PLAYER_BASE.radius) { hurtPlayer(sim, p, Math.max(1, b.dmg - playerStats(p).armor), 'volley'); b.dead = true; break; }
+    for (const p of sim.players) if (p.alive && p.inv <= 0 && hyp(p.x - b.x, p.z - b.z) < b.r + PLAYER_BASE.radius) { hurtPlayer(sim, p, Math.max(1, b.dmg - playerStats(p).armor), 'volley'); if (sim.pace >= 2) sim.fx.push({ k: 'spell-hit', projectile: b.id, target: p.id, x: p.x, z: p.z, enemy: 1, art: b.art }); b.dead = true; break; }
   }
   sim.eproj = sim.eproj.filter((b) => !b.dead);
 }

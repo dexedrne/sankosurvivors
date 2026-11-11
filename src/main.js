@@ -2835,6 +2835,9 @@ function loop(ts) {
   }
   const view = snapshot(sim, { maxEnemies: 420 });
   view.spellCasters = Object.fromEntries(sim.proj.filter(p => p.art === 'bolt').map(p => [p.id, p.owner]));
+  view.spellTargets = Object.fromEntries(sim.proj.filter(p => p.art === 'bolt' && Number.isSafeInteger(p.homing) && Number.isFinite(p.speed) && p.speed > 0).map(p => [p.id, { target: p.homing, speed: p.speed, radius: p.r }]));
+  view.enemySpellTargets = Object.fromEntries(sim.eproj.filter(p => typeof p.target === 'string' && Number.isSafeInteger(p.caster)).map(p => [p.id, { target: p.target, caster: p.caster, speed: Math.hypot(p.vx, p.vz), radius: p.r }]));
+  if (sim.pace >= 2) view.spellHits = view.fx.filter(f => f.k === 'spell-hit');
   view.petActive = mode === 'play' && !waitingForMove && !Object.keys(view.pending || {}).length && !view.over && (!sim.coop || !!coop?.run && !coop.run.held && !coop.run.closed);
   view.alpha = Math.min(1, Math.max(0, acc / TICK)); // where between sim ticks this frame is (the renderer slides spells by it)
   if (view.fx.some((f) => f.k === 'die' && f.boss)) slowmo = 0.9;

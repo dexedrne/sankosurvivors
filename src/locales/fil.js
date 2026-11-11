@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Native spell flight": "Orihinal na galaw ng mga spell",
+  "Spells use SankoQuest’s original effect size and vertical arc. Impacts follow the projectile that actually hit, including level-one and hostile spells. Upgrade screens hold the whole effect steady.": "Gamit ng mga spell ang orihinal na laki ng effect at patayong arko ng SankoQuest. Sinusundan ng impact ang projectile na talagang tumama, kasama ang level-one at mga spell ng kalaban. Nakatigil ang buong effect sa upgrade screen.",
   "Armed karts": "Mga kart na may armas",
   "Grand Theft Sanko: fit a native Auto Rifle, Gatling or Heavy Cannon in the Garage. Your weapon choice saves locally; mounted guns share the existing damage and firing speed. Getting out keeps your Glock. Safe hub and Wilderness rules still apply.": "Grand Theft Sanko: ikabit ang orihinal na Auto Rifle, Gatling o Heavy Cannon sa Garahe. Naka-save sa device ang napiling armas; pareho ang kasalukuyang pinsala at bilis ng pagpapaputok. May Glock ka pa rin paglabas. Nananatili ang mga patakaran ng ligtas na hub at Wilderness.",
   "Room for the karts": "Mas maluwag para sa mga kart",

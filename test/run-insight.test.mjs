@@ -66,7 +66,7 @@ function loopFixture({fps='max',initialMode='title'}={}){
  const bunCompanions=createBunCompanions({walletNow:()=>null,walletRevision:()=>0,onChange:()=>{}});
  const context={coop:null,enforceRankedDeadline:()=>false,syncRankedClock(){},setMapPeek(){},hideItemInspection(){},inspectedElement:null,document:{hidden:false},petViewer:null,bunCompanions,bunChoice,selectedPet:null,requestAnimationFrame(){},renderer:{getSettings:()=>({fps}),getYaw:()=>0,setYaw(){},setShift(){},update(){draws++;return 0;}},readInput(){inputs++;return{pad:[]};},padEdges:()=>({}),navMove(){},navBack(){},navPress(){},navScreen:()=>({id:'title'}),$,
  snapshot:()=>({players:[{f:0}],fx:[]}),compactMenu:{matches:true},params:{has:()=>true},window:{__idleSim:{}},performance:{now:()=>0},PLAYER:'p1',audio:{onFx(){}},MAP_BY_ID:{},updateHud(){},drawMinimap(){},console};
- vm.createContext(context);vm.runInContext(`let mode='${initialMode}',sim=${initialMode==='pause'?"{map:{world:false,music:''},proj:[]}":'null'},last=0,frame=0,acc=0,hudT=0,slowmo=0;const TICK=1/30;${main.slice(start,end)};globalThis.frameAt=loop;`,context);
+ vm.createContext(context);vm.runInContext(`let mode='${initialMode}',sim=${initialMode==='pause'?"{map:{world:false,music:''},proj:[],eproj:[]}":'null'},last=0,frame=0,acc=0,hudT=0,slowmo=0;const TICK=1/30;${main.slice(start,end)};globalThis.frameAt=loop;`,context);
  return{run(ts){context.frameAt(ts);},draws:()=>draws,inputs:()=>inputs};
 }
 for(const hz of [60,144,240])test(`actual title loop caps rendering at30FPS on${hz}Hz and keeps input polling`,()=>{

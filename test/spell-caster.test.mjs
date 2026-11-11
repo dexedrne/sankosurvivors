@@ -43,5 +43,13 @@ test('the actual main view carries existing ownership through local prediction w
  const view=Function('sim','snapshot',source.slice(a,b)+'\nreturn view;')(sim,snapshot);
  assert.deepEqual(view.spellCasters,{51:'p2'});assert.equal(JSON.stringify(sim.proj),before);
  const rendered=predictedView(view,{x:20,z:0,f:0,mv:1},'p1');assert.equal(rendered.spellCasters,view.spellCasters);assert.equal(rendered.players.find(p=>p.id==='p2').x,view.players.find(p=>p.id==='p2').x);
- const plain=snapshot(sim);delete view.spellCasters;assert.deepEqual(view,plain);assert(!Object.hasOwn(plain,'spellCasters'));
+ const plain=snapshot(sim);delete view.spellCasters;delete view.spellTargets;delete view.enemySpellTargets;delete view.spellHits;assert.deepEqual(view,plain);assert(!Object.hasOwn(plain,'spellCasters'));
+});
+
+
+test('render-only spell targeting carries the actual homing ID and speed without changing the wire snapshot',()=>{
+ const sim=createSim({seed:8});sim.fx=[];sim.proj=[{id:51,art:'bolt',owner:'p1',homing:77,speed:14,r:.5,x:1,z:0,vx:14,vz:0,lvl:1},{id:52,art:'arrow',owner:'p1',x:2,z:0,vx:1,vz:0,lvl:1}];
+ const before=JSON.stringify(sim.proj),source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),a=source.indexOf('  const view = snapshot(sim, { maxEnemies: 420 });'),b=source.indexOf('  view.petActive =',a);
+ const rendered=Function('sim','snapshot',source.slice(a,b)+'\nreturn view;')(sim,snapshot);assert.deepEqual(rendered.spellTargets,{51:{target:77,speed:14,radius:.5}});assert.equal(JSON.stringify(sim.proj),before);
+ const predicted=predictedView(rendered,{x:20,z:0,f:0,mv:1},'p1');assert.equal(predicted.spellTargets,rendered.spellTargets);const plain=snapshot(sim);assert(!Object.hasOwn(plain,'spellTargets'));delete rendered.spellTargets;delete rendered.enemySpellTargets;delete rendered.spellHits;delete rendered.spellCasters;assert.deepEqual(rendered,plain);
 });

@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Native spell flight": "Trayectoria original de los hechizos",
+  "Spells use SankoQuest’s original effect size and vertical arc. Impacts follow the projectile that actually hit, including level-one and hostile spells. Upgrade screens hold the whole effect steady.": "Los hechizos usan el tamaño original de los efectos de SankoQuest y su arco vertical. Los impactos siguen al proyectil que realmente acertó, incluidos los hechizos de nivel uno y los enemigos. Las pantallas de mejoras mantienen todo el efecto inmóvil.",
   "Armed karts": "Karts armados",
   "Grand Theft Sanko: fit a native Auto Rifle, Gatling or Heavy Cannon in the Garage. Your weapon choice saves locally; mounted guns share the existing damage and firing speed. Getting out keeps your Glock. Safe hub and Wilderness rules still apply.": "Grand Theft Sanko: equipa el Auto Rifle, Gatling o Heavy Cannon original en el Garaje. La elección se guarda en este dispositivo; las armas montadas usan el daño y la cadencia actuales. Al bajar conservas tu Glock. Siguen vigentes las reglas de la zona segura y Wilderness.",
   "Room for the karts": "Más espacio para los karts",

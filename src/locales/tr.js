@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Native spell flight": "Orijinal büyü hareketi",
+  "Spells use SankoQuest’s original effect size and vertical arc. Impacts follow the projectile that actually hit, including level-one and hostile spells. Upgrade screens hold the whole effect steady.": "Büyüler, SankoQuest’in orijinal efekt boyutunu ve dikey yayını kullanıyor. Birinci seviye büyüler ve düşman büyüleri de dahil olmak üzere, çarpma efektleri gerçekten isabet eden mermiyi takip ediyor. Yükseltme ekranlarında efekt tamamen sabit kalıyor.",
   "Armed karts": "Silahlı kartlar",
   "Grand Theft Sanko: fit a native Auto Rifle, Gatling or Heavy Cannon in the Garage. Your weapon choice saves locally; mounted guns share the existing damage and firing speed. Getting out keeps your Glock. Safe hub and Wilderness rules still apply.": "Grand Theft Sanko: Garajda orijinal Auto Rifle, Gatling veya Heavy Cannon takın. Silah seçiminiz bu cihazda kaydedilir; araç silahları mevcut hasar ve atış hızını kullanır. Araçtan inince Glock’unuz kalır. Güvenli merkez ve Wilderness kuralları geçerlidir.",
   "Room for the karts": "Kartlara daha fazla alan",

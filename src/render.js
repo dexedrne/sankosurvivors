@@ -20,7 +20,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, weaponLook, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR, TUMBLE } from './content.js';
+import { ADVENTURER_BY_ID, MAPS, ENEMIES, WEAPONS, weaponModelPath, weaponLook, ARMOR_TIERS, gemItem, GEM_COLORS, GEAR, TUMBLE, PLAYER_BASE } from './content.js';
 import { createCharacterKit, armorSet, cloneActor, ownActorResource, disposeActor, mergeActorMeshes } from './character.js';
 import { NATIVE_PETS, petChoice } from './pets.js';
 import { createPetRenderer } from './pet-renderer.js';
@@ -981,7 +981,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const projObjs = new Map(); // proj id -> object
   // SankoQuest's own spell projectile (its client's "magic_sphere"): a bright octahedron head with six trailing pieces in
   // the element's colour, a soft diamond glow that always faces the camera, and a burst of seven pieces on impact.
-  // Native Missile/Blast proportions are enlarged together for readability at normal camera zoom.
+  // Keep the supplied Missile/Blast flight, glow and impact dimensions.
   // SankoQuest's own eight combat spells, ported from its client (native module374567/spawnProjectile, 3-Nov capture): the element
   // colours, the Missile and Blast tiers. The staff casts them in order as it levels (owner 3 Nov: "the earth air water
   // blast strike projectiles still arent the ones from sankoquest"): Air, Water, Earth, Fire Missile, then Air and Water
@@ -993,7 +993,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // Native module374567, 3-Nov capture dc560396: seven pieces follow elapsed50/65ms samples, not fixed distances.
   const SPELL_TIER = { missile: { size: 1, interval: 50, impact: 260, spread: 0.36 }, blast: { size: 1.65, interval: 65, impact: 400, spread: 0.7 } };
   let spellTime = 0; // interpolated run time in ms; spell animation holds with the run
-  const MS_K = 1.5, msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc), MS_Z = new THREE.Vector3(0, 0, 1);
+  const msGeo = new THREE.OctahedronGeometry(1, 0), msGlowGeo = new THREE.PlaneGeometry(1, 1), MS_WHITE = new THREE.Color(0xfff4dc), MS_Z = new THREE.Vector3(0, 0, 1);
   const { head: msMat, glow: msGlowMat, clock: msClock, glows: msGlowMats } = createSpellMaterials();
   const msInstances = new Set(), msLocal = new THREE.Matrix4(), msWorld = new THREE.Matrix4(), msTint = new THREE.Color();
   let msBatch = null, msCapacity = 0;
@@ -1034,7 +1034,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const parts = ownActorResource(new THREE.InstancedMesh(msGeo, msMat, 7)); parts.visible = false;
     const c = new THREE.Color(col), tmp = new THREE.Color();
     for (let i = 0; i < 7; i++) parts.setColorAt(i, tmp.copy(c).lerp(MS_WHITE, i === 0 ? 0.7 : 0.12));
-    const glow = new THREE.Mesh(msGlowGeo, msGlowMat(col, tier)); glow.scale.setScalar(0.54 * T.size * MS_K);
+    const glow = new THREE.Mesh(msGlowGeo, msGlowMat(col, tier)); glow.scale.setScalar(0.54 * T.size);
     o.add(parts, glow);
     o.userData.ms = { parts, glow, T, clock: msClock, path: Array.from({ length: 8 }, () => ({ p: new THREE.Vector3(), at: 0 })), pathN: 0, born: spellTime, lastNow: spellTime, dir: new THREE.Vector3(0, 0, 1) };
     msInstances.add(o);
@@ -1080,7 +1080,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         msTv.x += Math.sin(13 * sec - 1.7 * i) * a * 0.055; msTv.y += Math.cos(11 * sec - 1.7 * i) * a * 0.055;
         msObj.position.copy(msTv).applyQuaternion(msQ);
       }
-      const sc = (i === 0 ? 0.1125 : 0.075 * (1 - 0.8 * a)) * T.size * MS_K;
+      const sc = (i === 0 ? 0.1125 : 0.075 * (1 - 0.8 * a)) * T.size;
       msObj.scale.set(sc, sc, sc * (i === 0 ? 1.3 : 1.6));
       // the head points along the flight (setFromUnitVectors(X, Y)); the trail pieces keep WORLD axes; all spin about their z
       if (i === 0) msObj.quaternion.setFromUnitVectors(MS_Z, d.dir).premultiply(msQ); else msObj.quaternion.copy(msQ);
@@ -1100,11 +1100,11 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const b = msBursts[i], t = (now - b.born) / b.T.impact, d = b.o.userData.ms;
       if (t < 0 || t >= 1) { disposeActor(b.o); msBursts.splice(i, 1); continue; }
       d.glow.quaternion.copy(camera.quaternion);
-      d.glow.scale.setScalar((b.tier === 'blast' ? 1.35 * Math.sin(Math.PI * Math.sqrt(t)) : 0.82 * (1 - t)) * MS_K); msClock.value = now / 1000; // the game's impact
+      d.glow.scale.setScalar((b.tier === 'blast' ? 1.35 * Math.sin(Math.PI * Math.sqrt(t)) : 0.82 * (1 - t))); msClock.value = now / 1000; // the game's impact
       for (let k = 0; k < 7; k++) {
-        const ang = k * Math.PI * 2 / 7, r = b.T.spread * t * MS_K;
-        msObj.position.set(Math.cos(ang) * r, Math.sin(2 * ang) * r * 0.65 - t * t * 0.15 * MS_K, Math.sin(ang) * r);
-        msObj.scale.setScalar(0.0675 * b.T.size * (1 - t) * MS_K); msObj.quaternion.identity(); msObj.rotateZ((now - d.born) / 250 + k); msObj.updateMatrix(); d.parts.setMatrixAt(k, msObj.matrix);
+        const ang = k * Math.PI * 2 / 7, r = b.T.spread * t;
+        msObj.position.set(Math.cos(ang) * r, Math.sin(2 * ang) * r * 0.65 - t * t * 0.15, Math.sin(ang) * r);
+        msObj.scale.setScalar(0.0675 * b.T.size * (1 - t)); msObj.quaternion.identity(); msObj.rotateZ((now - d.born) / 250 + k); msObj.updateMatrix(); d.parts.setMatrixAt(k, msObj.matrix);
       }
       d.parts.instanceMatrix.needsUpdate = true;
     }
@@ -1120,6 +1120,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     spRT = view.alpha !== undefined ? vt - 1 + view.alpha : Math.min(vt, Math.max(vt - 1, spRT));
     const presented = Math.max(0, spRT / 30 * 1000);
     spellTime = restarted ? presented : Math.max(spellTime, presented); // Reward completion can reset alpha without rewinding the run.
+    spRT = Math.max(spRT, spellTime * 30 / 1000);
     return vt;
   }
   function spellSample(u, g, x, y, z, a) { // a sim position for this spell, once per tick: [g0 -> g1] is the segment being drawn
@@ -1149,42 +1150,86 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const a = actorAt(h.x, h.z);
     return a ? { x: a.px, y: a.root.position.y + (ENEMIES[a.type].h || 1.8) * (a.base || 1) * 0.5, z: a.pz } : { x: h.x, y: groundAt(h.x, h.z) + 0.9, z: h.z };
   }
+  function spellHitPoint(hit, bolt) {
+    const a = bolt ? actors.get(hit.target) || corpses.find(c => c.id === hit.target)?.a : playerActors.get(hit.target);
+    const x = a?.px ?? hit.x, z = a?.pz ?? hit.z;
+    return { x, y: a ? a.root.position.y + (bolt ? (ENEMIES[a.type]?.h || 1.8) * (a.base || 1) * 0.5 : 0.8) : groundAt(x, z) + (bolt ? 0.9 : 0.8), z };
+  }
   function spellRing(x, z, r, col) { // the staff's splash area: a thin edge in the spell's colour (the game's spells have no splash)
     const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.93, r, 48).rotateX(-Math.PI / 2), ringMat(col));
     ring.position.set(x, groundAt(x, z) + 0.14, z); addEffect(ring, 0.3, 0.12);
   }
   // a spell that left the sim: if it hit, it flies the last stretch into the target's middle and bursts there (the game's head
   // lerps to the target's combat centre and bursts on it); if it flew out its life or hit a wall it just goes, as the game's does
-  function spellLand(o, vt, bolt) {
+  function spellLand(o, vt, bolt, hits) {
     const u = o.userData;
     if (!u.land) {
       const n = Math.max(1, u.g1 - u.g0), px = u.x1 + (u.x1 - u.x0) / n, pz = u.z1 + (u.z1 - u.z0) / n; // one tick on from its last spot
       let L = null;
-      if (bolt) L = hitCentre(px, pz, 12);
+      if (hits) { const hit = hits.get(u.projectile); if (!hit || !!hit.enemy !== !bolt) return false; L = spellHitPoint(hit, bolt); hit.used = true; }
+      else if (bolt) L = hitCentre(px, pz, 12);
       else { let h = null, hd = 2.8; for (const f of spFx.hurt) { const d = (f.x - px) ** 2 + (f.z - pz) ** 2; if (d < hd) { hd = d; h = f; } }
         if (h) { const pa = playerActors.get(h.id), x = pa && pa.px !== undefined ? pa.px : h.x, z = pa && pa.pz !== undefined ? pa.pz : h.z; L = { x, y: groundAt(x, z) + 0.8, z }; } } // a person's middle (ours stand 1.6)
       if (!L) return false;
-      if (bolt) { let bd = 1.2; for (const f of spFx.burst) if (!f.used) { const d = (f.x - px) ** 2 + (f.z - pz) ** 2; if (d < bd) { bd = d; L.ring = f; } } if (L.ring) L.ring.used = true; }
+      if (bolt) {
+        let bd = 1.2;
+        for (const f of spFx.burst) if (!f.used) {
+          if (hits) { if (f.projectile === u.projectile) { L.ring = f; break; } }
+          else { const d = (f.x - px) ** 2 + (f.z - pz) ** 2; if (d < bd) { bd = d; L.ring = f; } }
+        }
+        if (L.ring) L.ring.used = true;
+      }
       u.land = L;
+      if (u.flight) {
+        const d = o.children[0].userData.ms;
+        u.g1 = d.lastNow * 30 / 1000; u.x1 = o.position.x; u.y1 = o.position.y; u.z1 = o.position.z;
+        L.direction = d.dir.clone();
+      }
       spellSample(u, vt, L.x, L.y, L.z, Math.atan2(L.x - u.x1, L.z - u.z1));
     }
-    spellDraw(o); stepMagicSphere(o.children[0], spellTime);
+    spellDraw(o);
+    if (u.land.direction && spRT <= u.g0 + 1e-9) o.children[0].userData.ms.dir.copy(u.land.direction);
+    stepMagicSphere(o.children[0], spellTime);
     if (spRT < u.g1) return true; // still on its way in
     magicBurst(u.land.x, u.land.y, u.land.z, u.spell.col, u.spell.tier, o.children[0]); if (u.land.ring) spellRing(u.land.ring.x, u.land.ring.z, u.land.ring.r, u.spell.col);
     return false;
   }
-  function spellStray(f, players) { // a staff bolt that hit in the tick it was cast (point blank) was never drawn: burst on what it hit
+  function spellStray(f, players, splash = f) { // a staff bolt that hit in the tick it was cast (point blank) was never drawn: burst on what it hit
     let c = null, cd = 1e9; for (const p of players) if (p.al) { const d = (p.x - f.x) ** 2 + (p.z - f.z) ** 2; if (d < cd) { cd = d; c = p; } }
-    const s = Number.isSafeInteger(f.projectile) && f.lvl >= 1 ? staffSpell(f.lvl, !!f.evo, f.projectile) : staffSpell((c && c.w && c.w.staff) || 1, !!(c && c.evo && c.evo.staff)), L = hitCentre(f.x, f.z, 9) || { x: f.x, y: groundAt(f.x, f.z) + 0.9, z: f.z };
-    magicBurst(L.x, L.y, L.z, s.col, s.tier); spellRing(f.x, f.z, f.r, s.col);
+    const s = Number.isSafeInteger(f.projectile) && f.lvl >= 1 ? staffSpell(f.lvl, !!f.evo, f.projectile) : staffSpell((c && c.w && c.w.staff) || 1, !!(c && c.evo && c.evo.staff)), L = (f.target !== undefined ? spellHitPoint(f, true) : hitCentre(f.x, f.z, 9)) || { x: f.x, y: groundAt(f.x, f.z) + 0.9, z: f.z };
+    magicBurst(L.x, L.y, L.z, s.col, s.tier); if (splash?.r > 0) spellRing(splash.x, splash.z, splash.r, s.col);
   }
-  // Native uses a target anchor and an arc; our simulation supplies horizontal flight, eased toward the target's middle.
+  // Legacy views without target metadata retain their original height easing.
   function boltY(x, z, ang) {
     const g = groundAt(x, z) + 1.3, sx = Math.sin(ang), sz = Math.cos(ang); let best = null, bd = 1e9;
     for (const a of actors.values()) { const def = ENEMIES[a.type], dx = a.px - x, dz = a.pz - z, along = dx * sx + dz * sz; if (!def || along <= 0 || along > 4 + def.r || along >= bd || Math.abs(dx * sz - dz * sx) > def.r + 0.5) continue; bd = along; best = a; }
     if (!best) return g;
     const def = ENEMIES[best.type], k = Math.min(1, Math.max(0, 1 - (Math.hypot(best.px - x, best.pz - z) - 0.5 - def.r) / 3));
     return g + (best.root.position.y + (def.h || 1.8) * (best.base || 1) * 0.5 - g) * k;
+  }
+  function spellArc(o, info, hostile = false) {
+    const u = o.userData, d = o.children[0].userData.ms, target = (hostile ? playerActors : actors).get(info?.target), def = target && ENEMIES[target.type];
+    u.launch ||= new THREE.Vector3(u.x0, u.y0, u.z0);
+    if (!target || !hostile && !def || !(info?.speed > 0) || !Number.isFinite(info.speed)) {
+      if (u.flight) { o.position.y = u.flight.position.y; d.dir.copy(u.flight.dir); }
+      return;
+    }
+    const end = msTv.set(target.px ?? target.root.position.x, target.root.position.y + (hostile ? 0.8 : (def.h || 1.8) * (target.base || 1) * 0.5), target.pz ?? target.root.position.z);
+    let f = u.flight;
+    if (!f || f.target !== info.target) {
+      const origin = f ? f.position.clone() : u.launch.clone();
+      f = u.flight = { target: info.target, baseY: origin.y, born: f ? spellTime : d.born, phase: 0, height: Math.min(0.8, origin.distanceTo(end) * 0.025), position: origin.clone(), dir: d.dir.clone(), at: -1 };
+    }
+    if (spellTime === f.at) { o.position.y = f.position.y; d.dir.copy(f.dir); return; }
+    const elapsed = Math.max(0, spellTime - f.born), radius = Number.isFinite(info.radius) ? Math.max(0, info.radius) : 0.5;
+    const remaining = Math.max(0, Math.hypot(end.x - o.position.x, end.z - o.position.z) - radius - (hostile ? PLAYER_BASE.radius : def.r)) / info.speed * 1000;
+    const phase = Math.max(f.phase, remaining ? elapsed / (elapsed + remaining) : 1);
+    // Native anchor lerp and 4*h*s*(1-s) arc, retimed to confirmed collision travel.
+    f.baseY += (end.y - f.baseY) * (f.phase < 1 ? (phase - f.phase) / (1 - f.phase) : 1);
+    o.position.y = f.baseY + 4 * f.height * phase * (1 - phase);
+    d.dir.subVectors(o.position, f.position);
+    if (d.dir.lengthSq() > 1e-6) d.dir.normalize(); else d.dir.copy(f.dir);
+    f.position.copy(o.position); f.dir.copy(d.dir); f.phase = phase; f.at = spellTime;
   }
   const shieldObjs = new Map(); // `${playerId}:${i}` -> object
   const dyn = new THREE.Group(); dyn.name = 'dyn'; scene.add(dyn);
@@ -1951,7 +1996,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (corpses.length > 50) { disposeActor(a.root, a.mixer); continue; }
       if (a.mats) for (const m of a.mats) m.emissive.setRGB(0, 0, 0);
       if (a.mixer && a.deathClip) { a.mixer.stopAllAction(); const act = a.mixer.clipAction(a.deathClip); act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; act.reset().play(); }
-      corpses.push({ a, t: 0, life: a.deathClip ? 1.3 : 0.9, tip: a.deathClip ? 0 : (Math.random() < 0.5 ? 1 : -1), y0: a.root.position.y });
+      corpses.push({ id, a, t: 0, life: a.deathClip ? 1.3 : 0.9, tip: a.deathClip ? 0 : (Math.random() < 0.5 ? 1 : -1), y0: a.root.position.y });
     }
     for (let i = corpses.length - 1; i >= 0; i--) {
       const c = corpses[i]; c.t += dt; const k = c.t / c.life;
@@ -1973,22 +2018,24 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (h[4]) { rock.position.set(0, (1 - h[3]) * 26 / h[2], 0); rock.scale.setScalar(0.9 / h[2]); if (Math.random() < 0.6) emit(h[0], m.position.y + (1 - h[3]) * 26, h[1], 1, 0.6, { s: 1.4, life: 0.4, color: 0xff7a30, up: 1.5, g: 0 }); }
     }
     // monster projectiles (fire and ice): SankoQuest's Blast spell (owner 3 Nov: "collosues projectile just a ball")
+    const exactHits = view.spellHits && new Map(view.spellHits.map(hit => [hit.projectile, hit]));
     const seenEp = new Set();
     for (const b of view.eproj || []) {
       seenEp.add(b[0]); let o = eprojObjs.get(b[0]);
       if (!o) {
         const col = b[3] === 'ice' ? SPELL_ELEMENT.air : SPELL_ELEMENT.fire; o = new THREE.Group();
-        o.add(magicSphere(col, 'blast')); o.userData.spell = { col, tier: 'blast' }; dyn.add(o); eprojObjs.set(b[0], o);
-        let v = null, vd = 9; for (const f of spFx.volley) { const d = (f.x - b[1]) ** 2 + (f.z - b[2]) ** 2; if (d < vd) { vd = d; v = f; } }
+        o.add(magicSphere(col, 'blast')); o.userData.spell = { col, tier: 'blast' }; o.userData.projectile = b[0]; dyn.add(o); eprojObjs.set(b[0], o);
+        const caster = view.enemySpellTargets?.[b[0]]?.caster, source = actors.get(caster);
+        let v = source ? { x: source.px, z: source.pz } : null, vd = 9; if (!view.enemySpellTargets) for (const f of spFx.volley) { const d = (f.x - b[1]) ** 2 + (f.z - b[2]) ** 2; if (d < vd) { vd = d; v = f; } }
         o.userData.ox = v ? v.x : b[1]; o.userData.oz = v ? v.z : b[2]; // it left the boss this tick: start it there
         if (v) spellSample(o.userData, vt - 1, v.x, groundAt(v.x, v.z) + 1.3, v.z, Math.atan2(b[1] - v.x, b[2] - v.z));
       }
       // a straight shot: aim along boss -> now (the rounded per-tick step swung the head up to ~25 degrees)
       const u = o.userData, hx = b[1] - u.ox, hz = b[2] - u.oz;
       spellSample(u, vt, b[1], groundAt(b[1], b[2]) + 1.3, b[2], hx * hx + hz * hz > 1e-4 ? Math.atan2(hx, hz) : (u.a1 ?? 0));
-      spellDraw(o); stepMagicSphere(o.children[0], spellTime);
+      spellDraw(o); if (view.enemySpellTargets) spellArc(o, view.enemySpellTargets[b[0]], true); stepMagicSphere(o.children[0], spellTime);
     }
-    for (const [id, o] of eprojObjs) if (!seenEp.has(id) && !spellLand(o, vt, false)) { disposeActor(o); eprojObjs.delete(id); }
+    for (const [id, o] of eprojObjs) if (!seenEp.has(id) && !spellLand(o, vt, false, exactHits)) { disposeActor(o); eprojObjs.delete(id); }
 
 
     // projectiles
@@ -2001,7 +2048,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         o = new THREE.Group(); dyn.add(o); projObjs.set(id, o);
         if (art === 'bolt') { // the staff's spell: SankoQuest's magic sphere in the shard's element colour
           const { col, tier } = staffSpell(lvl, evo, id);
-          o.add(magicSphere(col, tier)); Object.assign(o.userData, { spell: { col, tier } });
+          o.add(magicSphere(col, tier)); Object.assign(o.userData, { spell: { col, tier }, projectile: id });
           // it left its caster this tick: start the flight there, so the tail grows out of the caster as the game's does
           const caster = view.spellCasters?.[id];
           let c = caster == null ? null : view.players.find(p => p.id === caster && p.al), cd = 4;
@@ -2023,9 +2070,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
 
         }
       }
-      if (o.userData.spell) { // spells fly about 1.3 up, as the game's, slide between sim ticks, and are never turned (only the head aims)
-        if (o.userData.g1 !== vt) spellSample(o.userData, vt, x, boltY(x, z, ang), z, ang);
-        spellDraw(o); stepMagicSphere(o.children[0], spellTime);
+      if (o.userData.spell) { // interpolate confirmed travel; known targets supply the native vertical arc
+        if (o.userData.g1 !== vt) spellSample(o.userData, vt, x, view.spellTargets ? groundAt(x, z) + 1.3 : boltY(x, z, ang), z, ang);
+        spellDraw(o); if (view.spellTargets) spellArc(o, view.spellTargets[id]); stepMagicSphere(o.children[0], spellTime);
       } else {
         o.position.set(x, groundAt(x, z) + 1.0, z);
         if (art === 'axe') { if (o.userData.spinner2) o.userData.spinner2.rotation.y = spin; o.rotation.y = 0; } else o.rotation.y = ang;
@@ -2034,7 +2081,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (o.userData.spinner) o.userData.spinner.material.rotation = (spellTime - o.userData.spinBorn) * 0.012;
       if (o.userData.trail && Math.random() < o.userData.every) emit(x, o.position.y, z, 1, 0.3, { s: art === 'bolt' ? 0.7 : 0.45, life: 0.35, color: o.userData.trail, up: 0.25, g: 0 });
     }
-    for (const [id, o] of projObjs) if (!seenPr.has(id) && !(o.userData.spell && spellLand(o, vt, true))) { disposeActor(o); projObjs.delete(id); }
+    for (const [id, o] of projObjs) if (!seenPr.has(id) && !(o.userData.spell && spellLand(o, vt, true, exactHits))) { disposeActor(o); projObjs.delete(id); }
+    if (exactHits) for (const hit of exactHits.values()) if (!hit.used) {
+      const burst = spFx.burst.find(f => f.projectile === hit.projectile);
+      if (hit.enemy) { const L = spellHitPoint(hit, false); magicBurst(L.x, L.y, L.z, hit.art === 'ice' ? SPELL_ELEMENT.air : SPELL_ELEMENT.fire, 'blast'); }
+      else spellStray(hit, view.players, burst || null);
+      hit.used = true; if (burst) burst.used = true;
+    }
     for (const f of spFx.burst) if (!f.used) spellStray(f, view.players); // a bolt that hit in the tick it was cast was never drawn
     stepMagicBursts(spellTime);
     syncSpellHeads();
