@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "A new Racers menu":"Bagong menu ng Racers",
+  "The Racers menu gives the live driver and kart preview more room. Find Courier, Zombies, Free Drive and races under Activities.":"Mas malaki na ang live na preview ng drayber at kart sa menu ng Racers. Makikita sa Activities ang Tagahatid, mga Zombie, Free Drive at mga karera.",
   "Greentown Courier":"Tagahatid sa Greentown",
   "The Survivors Fun menu links directly to the Racers public world, Greentown Courier and Zombies.":"Sa Fun menu ng Survivors, direktang mabubuksan ang pampublikong mundo ng Racers, Tagahatid sa Greentown at mga Zombie.",
   "Drive or explore Greentown on foot.":"Magmaneho o maglakad sa Greentown.",

@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A new Racers menu":"Yeni Racers menüsü",
+  "The Racers menu gives the live driver and kart preview more room. Find Courier, Zombies, Free Drive and races under Activities.":"Yeni Racers menüsü sürücünün ve kartın canlı önizlemesine daha fazla yer açıyor. Kurye, Zombiler, Serbest Sürüş ve yarışları Etkinlikler bölümünde bulabilirsin.",
   "Greentown Courier":"Greentown Kuryesi",
   "The Survivors Fun menu links directly to the Racers public world, Greentown Courier and Zombies.":"Survivors Eğlence menüsünden Racers ortak dünyasına, Greentown Kuryesi’ne ve Zombiler’e doğrudan geçebilirsin.",
   "Drive or explore Greentown on foot.":"Greentown’u araçla veya yürüyerek keşfet.",

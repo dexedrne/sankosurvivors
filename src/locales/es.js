@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A new Racers menu":"Nuevo menú de Racers",
+  "The Racers menu gives the live driver and kart preview more room. Find Courier, Zombies, Free Drive and races under Activities.":"El nuevo menú de Racers da más espacio a la vista en directo del piloto y su kart. En Actividades encontrarás Mensajero, Zombis, Conducción libre y carreras.",
   "Greentown Courier":"Mensajero de Greentown",
   "The Survivors Fun menu links directly to the Racers public world, Greentown Courier and Zombies.":"El menú Diversión de Survivors enlaza al mundo público de Racers, al Mensajero de Greentown y a Zombis.",
   "Drive or explore Greentown on foot.":"Conduce o explora Greentown a pie.",

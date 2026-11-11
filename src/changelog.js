@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.44.96", "date": "11 Nov 2026", "title": "A new Racers menu", "items": ["The Racers menu gives the live driver and kart preview more room. Find Courier, Zombies, Free Drive and races under Activities."]},
   {"version": "0.44.95", "date": "11 Nov 2026", "title": "Greentown Courier", "items": ["The Survivors Fun menu links directly to the Racers public world, Greentown Courier and Zombies."]},
   {"version": "0.44.94", "date": "10 Nov 2026", "title": "A steadier grip", "items": ["Sanko Racers: the Glock sits higher in the right hand and stays aligned with the wrist when you run, aim or fire."]},
   {"version": "0.44.93", "date": "10 Nov 2026", "title": "Zombies in Greentown", "items": ["Customize your Sanko Racers character with saved hair, skin and clothing choices in the Garage.", "Open Activities → Zombies for solo third-person survival with a Glock and iron shortsword."]},
