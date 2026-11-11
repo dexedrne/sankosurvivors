@@ -4,6 +4,7 @@ import { createMeleeVfx } from './melee-vfx.js';
 import { createStormEffects } from './storm-effects.js';
 import { createSpellMaterials } from './spell-materials.js';
 import { cleanSettings } from './settings.js';
+import { fitHazardTerrain } from './terrain-warning.js';
 // Three.js renderer. Reads snapshots from sim.js, owns every GPU object.
 import * as THREE from 'three';
 import { WebGLNodesHandler } from 'three/addons/tsl/WebGLNodesHandler.js';
@@ -1521,7 +1522,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   });
   const hazardPool = Array.from({ length: 16 }, () => {
     const g = new THREE.Group(); g.visible = false;
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 64).rotateX(-Math.PI / 2), hazardMat());
+    const disc = fxOnly(new THREE.Mesh(new THREE.BufferGeometry(), hazardMat()));
     const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff6a20).multiplyScalar(1.8), toneMapped: false })); rock.visible = false;
     g.add(disc, rock); g.userData = { disc, rock }; scene.add(g); return g;
   });
@@ -1964,7 +1965,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (let i = 0; i < hazardPool.length; i++) {
       const h = view.hazards && view.hazards[i], m = hazardPool[i];
       if (!h) { m.visible = false; continue; }
-      m.visible = true; m.position.set(h[0], groundAt(h[0], h[1]) + 0.08, h[1]); m.scale.setScalar(h[2]);
+      const y = groundAt(h[0], h[1]);
+      fitHazardTerrain(m.userData.disc, field, h[0], h[1], h[2], y);
+      m.visible = true; m.position.set(h[0], y + 0.08, h[1]); m.scale.setScalar(h[2]);
       const u = m.userData.disc.material.uniforms; u.uProg.value = Math.max(0.01, h[3]); u.uTime.value = time; u.uCol.value.setHex(h[4] ? 0xff8a2a : 0xff3b2f);
       const rock = m.userData.rock; rock.visible = !!h[4];
       if (h[4]) { rock.position.set(0, (1 - h[3]) * 26 / h[2], 0); rock.scale.setScalar(0.9 / h[2]); if (Math.random() < 0.6) emit(h[0], m.position.y + (1 - h[3]) * 26, h[1], 1, 0.6, { s: 1.4, life: 0.4, color: 0xff7a30, up: 1.5, g: 0 }); }

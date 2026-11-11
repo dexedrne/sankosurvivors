@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+ "Warnings follow the ground": "Babala na sumusunod sa lupa",
+ "Boss slam and meteor warning circles follow uneven ground so uphill terrain no longer hides the danger zone. Damage radius and charge timing are unchanged.": "Sumusunod sa hindi pantay na lupa ang mga babalang bilog ng boss slam at meteor para hindi matakpan ng paakyat na lupa ang danger zone. Pareho pa rin ang lawak ng pinsala at oras ng paghahanda.",
  "Luck multiplier": "Multiplier ng suwerte",
  "End-of-run coin multiplier": "Multiplier ng barya sa dulo",
  "Weapon slots": "Mga puwesto ng armas",

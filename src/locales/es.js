@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+ "Warnings follow the ground": "Avisos que siguen el terreno",
+ "Boss slam and meteor warning circles follow uneven ground so uphill terrain no longer hides the danger zone. Damage radius and charge timing are unchanged.": "Los círculos de aviso de golpes de jefes y meteoros siguen el terreno irregular para que las pendientes no oculten la zona de peligro. El radio de daño y el tiempo de preparación no cambian.",
  "Luck multiplier": "Multiplicador de suerte",
  "End-of-run coin multiplier": "Multiplicador de monedas al terminar",
  "Weapon slots": "Espacios de armas",
