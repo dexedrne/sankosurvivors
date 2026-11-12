@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Faster workshops": "Talleres más rápidos",
+  "Grand Theft Sanko workshops now offer Make max. Bank max and Take max show the quantity that fits in your backpack or bank.": "Los talleres de Grand Theft Sanko ahora ofrecen fabricar la cantidad máxima. Bank max y Take max muestran la cantidad que cabe en tu mochila o banco.",
   "Original details": "Detalles originales",
   "Equipped amulets now appear on your character using the original SankoQuest models. Grand Theft Sanko uses the native mining animation while you gather ore.": "Los amuletos equipados ahora se ven en tu personaje con los modelos originales de SankoQuest. Grand Theft Sanko usa la animación de minería original mientras recoges mineral.",
   "Ironworking": "Trabajo del hierro",

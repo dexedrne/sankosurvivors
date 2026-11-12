@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Faster workshops": "Mas mabilis na pagawaan",
+  "Grand Theft Sanko workshops now offer Make max. Bank max and Take max show the quantity that fits in your backpack or bank.": "May Make max na ang mga pagawaan sa Grand Theft Sanko. Ipinapakita ng Bank max at Take max ang dami na kasya sa backpack o bangko mo.",
   "Original details": "Orihinal na detalye",
   "Equipped amulets now appear on your character using the original SankoQuest models. Grand Theft Sanko uses the native mining animation while you gather ore.": "Makikita na sa karakter mo ang mga suot na anting-anting gamit ang orihinal na mga modelo ng SankoQuest. Ginagamit ng Grand Theft Sanko ang orihinal na animasyon ng pagmimina habang nangangalap ka ng mineral.",
   "Ironworking": "Paggawa gamit ang bakal",

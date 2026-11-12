@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.45.33", "date": "12 Nov 2026", "title": "Faster workshops", "items": ["Grand Theft Sanko workshops now offer Make max. Bank max and Take max show the quantity that fits in your backpack or bank."]},
   {version:'0.45.32',date:'12 Nov 2026',title:'Original details',items:['Equipped amulets now appear on your character using the original SankoQuest models. Grand Theft Sanko uses the native mining animation while you gather ore.']},
   {"version": "0.45.31", "date": "12 Nov 2026", "title": "Ironworking", "items": ["Grand Theft Sanko: mine iron rocks, smelt Iron Bars and forge an Iron Helmet. Bronze Bars can also become spare Bronze Pickaxes. Workshops show their recipes and materials. Armour stays cosmetic; inventory saves on this device."]},
   {"version": "0.45.30", "date": "12 Nov 2026", "title": "Reliable mining recovery", "items": ["Grand Theft Sanko: rocks recover for eight seconds after ore is saved, including when another tab delays saving. Failed or cancelled mining still awards nothing."]},
