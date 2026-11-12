@@ -1,17 +1,17 @@
 // Bounded copied-body prediction adapts RunEscape MovementPrediction; see licenses/run-escape.txt.
 import {walkPlayer,boundPlayer,playerStats,TICK} from './sim.js';
-const TICK_MS=TICK*1000,LEAD_MS=300,STALE_MS=500,CORRECTION_MS=80,MAX_HISTORY=128;
+const TICK_MS=TICK*1000,LEAD_MS=300,MAX_LEAD_MS=1000,STALE_MS=500,CORRECTION_MS=80,MAX_HISTORY=128;
 const same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
 
 export function createMovementPrediction({sim,index,now}){
- let sequence=0,acknowledged=0,applied=[0,0],confirmed=false;
+ let sequence=0,acknowledged=0,applied=[0,0],confirmed=false,leadMs=LEAD_MS;
  let confirmedAt=now(),receivedAt=confirmedAt,renderedAt=confirmedAt,lastTick=sim.tick;
  let lastX=sim.players[index].x,lastZ=sim.players[index].z,pose=null,settling=false,inputExpired=false;
  let inputs=[{seq:0,at:confirmedAt,move:[0,0]}];
  // Collision caches belong to this view, never the authoritative simulation.
  const view={ground:sim.ground,map:sim.map,pace:sim.pace};
  function reset(){
-  const time=now();inputs=[{seq:sequence,at:time,move:[0,0]}];applied=[0,0];
+  const time=now();inputs=[{seq:sequence,at:time,move:[0,0]}];applied=[0,0];leadMs=LEAD_MS;
   confirmedAt=renderedAt=time;lastTick=sim.tick;
   lastX=sim.players[index].x;lastZ=sim.players[index].z;pose=null;settling=false;
  }
@@ -32,9 +32,13 @@ export function createMovementPrediction({sim,index,now}){
    if(event.move&&!event.moveSeq&&!event.move[0]&&!event.move[1]){inputExpired=true;applied=[0,0];confirmedAt=time;continue;}
    if(!event.moveSeq||event.moveSeq<=acknowledged)continue;
    const input=inputs.find(i=>i.seq===event.moveSeq);if(!input)continue;inputExpired=false;
+   // Allow measured round-trip delay and jitter; missing updates still freeze after 500ms.
+   leadMs=Math.min(MAX_LEAD_MS,Math.max(leadMs,time-input.at+100));
    const at=input.at+TICK_MS;
-   // A coalesced tap may end on the old direction; its skipped samples still need retiring.
-   if(!same(input.move,applied)||input.seq>acknowledged+1||Math.abs(at-confirmedAt)>2*TICK_MS)confirmedAt=at;
+   // Coalesced turns need retiring; skipped identical keepalives keep the movement clock.
+   const missing=inputs[0].seq>acknowledged+1;
+   const changed=inputs.some(i=>i.seq>acknowledged&&i.seq<input.seq&&!same(i.move,applied));
+   if(!same(input.move,applied)||input.seq>acknowledged+1&&(missing||changed))confirmedAt=at;
    acknowledged=input.seq;applied=input.move;
   }
   const pending=inputs.find(i=>i.seq>acknowledged&&!same(i.move,applied));
@@ -63,13 +67,13 @@ export function createMovementPrediction({sim,index,now}){
   if(!confirmed){confirmedAt=renderedAt=time;return null;}
   if(inputExpired){pose={x:p.x,z:p.z,face:p.face,moving:false};renderedAt=time;return publicPose();}
   const latest=inputs.at(-1),still=!latest.move[0]&&!latest.move[1];
-  const capped=confirmedAt<time-LEAD_MS,halted=capped&&time-receivedAt>100;
+  const capped=confirmedAt<time-leadMs,halted=capped&&time-receivedAt>100;
   if(time-receivedAt>STALE_MS){renderedAt=time;if(pose)pose.moving=false;return publicPose();}
   const speed=playerStats(p).speed,target={x:p.x,z:p.z,face:p.face,moving:p.moving};
-  replay(target,Math.max(confirmedAt,time-LEAD_MS),time,speed);
+  replay(target,Math.max(confirmedAt,time-leadMs),time,speed);
   if(!pose)pose={...target};
   else if(!halted){
-   replay(pose,Math.max(renderedAt,time-LEAD_MS),time,speed);
+   replay(pose,Math.max(renderedAt,time-leadMs),time,speed);
    const dx=target.x-pose.x,dz=target.z-pose.z,error=Math.hypot(dx,dz),blend=1-Math.exp(-dt/CORRECTION_MS);
    const stopping=still&&latest.seq>acknowledged&&time-latest.at<2000;
    settling=still&&!stopping&&(error>=.1||settling&&error>.001);

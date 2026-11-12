@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Steadier co-op movement": "Mas matatag na galaw sa co-op",
+  "Co-op walking is steadier on slower connections, with the same combat, rewards and reconnect rules.": "Mas tuloy-tuloy ang paglakad sa co-op sa mabagal na koneksyon, habang pareho pa rin ang labanan, mga gantimpala at mga tuntunin sa muling pagkonekta.",
   "Steadier online controls": "Mas matatag na online controls",
   "Grand Theft Sanko: held walking and driving keep a continuous movement history between server updates. Reload to join the updated hub and races.": "Grand Theft Sanko: tuloy-tuloy ang kasaysayan ng paggalaw sa pagitan ng server updates habang nakahawak ang paglakad at pagmamaneho. I-reload para sumali sa na-update na hub at mga karera.",
   "A steadier town camera": "Mas matatag na camera sa bayan",

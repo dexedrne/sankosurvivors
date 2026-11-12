@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Steadier co-op movement": "Daha dengeli eşli hareket",
+  "Co-op walking is steadier on slower connections, with the same combat, rewards and reconnect rules.": "Eşli oyunda yürüme, yavaş bağlantılarda daha akıcıdır; savaş, ödül ve yeniden bağlanma kuralları aynıdır.",
   "Steadier online controls": "Daha dengeli çevrimiçi kontroller",
   "Grand Theft Sanko: held walking and driving keep a continuous movement history between server updates. Reload to join the updated hub and races.": "Grand Theft Sanko: yürüme ve sürüş tuşlarını basılı tutarken hareket geçmişi sunucu güncellemeleri arasında kesintisiz devam eder. Güncellenen ortak dünyaya ve yarışlara katılmak için yeniden yükle.",
   "A steadier town camera": "Kasabada daha dengeli kamera",

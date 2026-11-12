@@ -117,3 +117,44 @@ test('a wall that blocks correction snaps to the valid confirmed side',async()=>
  const seq=prediction.sample([0,0]);p.x=9.4;prediction.confirm([{hero:0,move:[0,0],moveSeq:seq}]);
  time=100;assert.equal(prediction.render(true).x,9.4);assert.equal(p.x,9.4);
 });
+
+test('a delayed equivalent held-input echo retires its sample without shifting displayed time',async()=>{
+ const {createMovementPrediction}=await import('../src/coop-prediction.js');let time=0;
+ const sim=physics.createSim({seed:711}),player=sim.players[0],x=player.x,speed=physics.playerStats(player).speed;
+ const prediction=createMovementPrediction({sim,index:0,now:()=>time}),advance=n=>{for(let i=0;i<n;i++){physics.walkPlayer(sim,player,1,0,speed,physics.TICK);sim.tick++;}};
+ prediction.confirm([]);const first=prediction.sample([127,0]);advance(1);time=1000/30;prediction.confirm([{hero:0,move:[127,0],moveSeq:first}]);prediction.render(true);
+ for(const at of[67,100,133,167]){time=at;prediction.render(true);}
+ time=200;const refresh=prediction.sample([127,0]);prediction.render(true);time=233;prediction.render(true);
+ advance(3);time=250;prediction.confirm([{hero:0,move:[127,0],moveSeq:refresh}]);const before=structuredClone({...sim,rng:null});
+ for(const at of[250,267,300,333]){time=at;const pose=prediction.render(true);assert(Math.abs(pose.x-(x+speed*at/1000))<1e-9,'equivalent keepalive must not shorten the held-movement timeline at '+at);}
+ assert.deepEqual({...sim,rng:null},before,'presentation must leave authority untouched');
+});
+
+test('only a known movement echo expands presentation for measured latency, within one second',async()=>{
+ const {createMovementPrediction}=await import('../src/coop-prediction.js');
+ for(const [delay,known,seconds]of[[700,true,.7],[2000,true,1+1/30],[700,false,.3+1/30]]){
+  let time=0;const sim=physics.createSim({seed:711}),p=sim.players[0],x=p.x,speed=physics.playerStats(p).speed;
+  const prediction=createMovementPrediction({sim,index:0,now:()=>time});prediction.confirm([]);const seq=prediction.sample([127,0]);
+  physics.walkPlayer(sim,p,1,0,speed,physics.TICK);sim.tick++;time=delay;prediction.confirm([{hero:0,move:[127,0],moveSeq:known?seq:seq+100}]);
+  assert(Math.abs(prediction.render(true).x-(x+speed*seconds))<1e-9,`delay ${delay}, known echo ${known}`);
+  const held=prediction.render(true);time+=501;const stale=prediction.render(true);assert.equal(stale.x,held.x);assert.equal(stale.mv,false,'measured latency must not extend stale-update movement');
+ }
+});
+
+test('reset clears measured latency without renewing stale authority',async()=>{
+ const {createMovementPrediction}=await import('../src/coop-prediction.js');let time=0;
+ const sim=physics.createSim({seed:711}),p=sim.players[0],speed=physics.playerStats(p).speed,prediction=createMovementPrediction({sim,index:0,now:()=>time});
+ prediction.confirm([]);const seq=prediction.sample([127,0]);physics.walkPlayer(sim,p,1,0,speed,physics.TICK);sim.tick++;time=700;prediction.confirm([{hero:0,move:[127,0],moveSeq:seq}]);prediction.render(true);
+ time=701;prediction.reset();prediction.sample([127,0]);sim.tick++;prediction.confirm([]);prediction.render(true);
+ time=1001;const capped=prediction.render(true);assert(Math.abs(capped.x-(p.x+speed*.3))<1e-9);time=1101;assert.equal(prediction.render(true).x,capped.x,'reset restores the normal 300ms budget until a known echo arrives');
+ time=1300;prediction.reset();prediction.sample([127,0]);assert.equal(prediction.render(true),null,'reset never makes an old host frame fresh');
+});
+
+test('coalesced identical keepalives do not rewind the picture on a slow host',async()=>{
+ const {createMovementPrediction}=await import('../src/coop-prediction.js');let time=0;
+ const sim=physics.createSim({seed:711}),p=sim.players[0],speed=physics.playerStats(p).speed,prediction=createMovementPrediction({sim,index:0,now:()=>time});
+ const advance=n=>{for(let i=0;i<n;i++){physics.walkPlayer(sim,p,1,0,speed,physics.TICK);sim.tick++;}};
+ prediction.confirm([]);const first=prediction.sample([127,0]);advance(1);time=1000/30;prediction.confirm([{hero:0,move:[127,0],moveSeq:first}]);prediction.render(true);
+ time=200;prediction.sample([127,0]);prediction.render(true);time=300;prediction.render(true);time=400;const latest=prediction.sample([127,0]);const before=prediction.render(true);
+ advance(3);time=450;prediction.confirm([{hero:0,move:[127,0],moveSeq:latest}]);assert(prediction.render(true).x>=before.x,'skipping only equivalent refreshes must not rewind held movement');
+});

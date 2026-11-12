@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Steadier co-op movement": "Movimiento cooperativo más estable",
+  "Co-op walking is steadier on slower connections, with the same combat, rewards and reconnect rules.": "Caminar en cooperativo es más fluido con conexiones lentas, con las mismas reglas de combate, recompensas y reconexión.",
   "Steadier online controls": "Controles en línea más estables",
   "Grand Theft Sanko: held walking and driving keep a continuous movement history between server updates. Reload to join the updated hub and races.": "Grand Theft Sanko: al mantener los controles para caminar o conducir, el historial de movimiento continúa entre actualizaciones del servidor. Recarga para entrar al mundo compartido y las carreras actualizadas.",
   "A steadier town camera": "Una cámara más estable en la ciudad",
