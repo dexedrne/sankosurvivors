@@ -41,6 +41,8 @@ WalletConnect and supported injected wallets connect from the original game page
 
 Grand Theft Sanko and its Need for Sanko racing modes keep their own device-local Road Log and settings. Browser saves belong to each address: existing saves remain available at the [previous Racers link](https://sankosurvivors.quest/racers/); they are not migrated to the GTS subdomain. Its public hub has no ranked prizes and does not share Survivors progression. The separate Wavedash casual edition omits wallets, blockchain features and the website's ranked/cloud systems.
 
+Online GTS players use a short buffer of confirmed server positions for steadier cars, walkers and map markers. Local driving remains predicted immediately. Brief buffering reduces packet jitter; longer stalls and poor connections can still be visible.
+
 ## Development
 
 Use Node.js and the pinned npm dependencies. In a development checkout:
