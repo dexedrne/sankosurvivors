@@ -14,7 +14,7 @@ Survive the SankoQuest world, build a ridiculous loadout, and take on the weekly
 - **Co-op:** invite a friend into a shared survival run. Both players use the shared run state; casual progress and rewards remain tied to the local player.
 - **Boss / Raid and Fun:** practice Boss Trials, take on a Survival Raid, or try Slimer Invasion, Wizard Invasion and endless Castle Defence. These modes have their own rules and reward eligibility.
 - **Weekly Ranked:** everyone starts from the week's standard loadout. Paid entries use DMT on Arbitrum; the server replays recorded inputs against the matching archived rules. The Ranked panel shows the current map, fee, scoring, cutoff, pause allowance, prize rules and reward transactions. Read those before paying; historical weeks can use different rules. The developer wallet is excluded from prizes.
-- **Results:** inspect your full final build and save a native-styled PNG card. File sharing appears where the browser supports it; exporting an image does not submit a score or post anything.
+- **Results:** inspect your full final build and save or copy a native-styled PNG card with item icons and level tracks. If image clipboard access is blocked, save the image to attach it. File sharing appears where the browser supports it; exporting an image does not submit a score or post anything.
 
 The menu's **Guide** explains weapons, evolutions, caskets, gear, skills, food and controls. **Updates** lists changes with copy buttons. Use **More → Report a bug** to send feedback.
 
