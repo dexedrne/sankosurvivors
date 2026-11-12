@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Steadier co-op timeouts": "Tiempos de espera cooperativos más estables",
+  "Co-op connection timeouts use a steady clock, so changing the device clock cannot end your session early or extend a stalled connection. The normal timeout and reconnect allowance stay the same.": "Los tiempos de espera de conexión cooperativa usan un reloj estable: cambiar la hora del dispositivo no termina la sesión antes ni prolonga una conexión bloqueada. El tiempo de espera y el plazo de reconexión siguen igual.",
   "Recovering connections": "Recuperación de conexión",
   "Grand Theft Sanko: missing server updates show a waiting warning and hold your position. Movement resumes from a valid update; online races continue on the server during interruptions.": "Grand Theft Sanko: si faltan actualizaciones del servidor, aparece un aviso de espera y tu posición se mantiene. El movimiento se reanuda con una actualización válida; las carreras en línea continúan en el servidor durante las interrupciones.",
   "Steadier online players": "Jugadores en línea más fluidos",

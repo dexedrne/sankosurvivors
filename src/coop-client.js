@@ -45,7 +45,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
    const ground=await load(structuredClone(game));if(stopped||game!==next)return;
    run=createCoopRun({start:game,localId:session.you,ground,send,onEnd:finish});loading=false;
    onRun(run,structuredClone(game),session.you);if(stopped)return;
-   send({t:'loaded',epoch:game.epoch,frame:0});lastProgress=Date.now();lastTick=performance.now();
+   send({t:'loaded',epoch:game.epoch,frame:0});lastProgress=performance.now();lastTick=performance.now();
    tick=setInterval(()=>{
     const now=performance.now(),elapsed=now-lastTick;lastTick=now;
     if(stopped||!run||run.held){carry=0;return;}
@@ -55,7 +55,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
      while(carry>=1000/COOP_HZ&&steps++<8&&!run.closed){run.advance();carry-=1000/COOP_HZ;}
     }else{run.flushInput();
      // A resumed timer can precede queued socket events; grant grace once per real progress.
-     if(elapsed>1000&&!stallGrace){lastProgress=Date.now();stallGrace=true;}if(Date.now()-lastProgress>15000)finish('hostStalled');}}catch{finish('invalidState');}
+     if(elapsed>1000&&!stallGrace){lastProgress=now;stallGrace=true;}if(now-lastProgress>15000)finish('hostStalled');}}catch{finish('invalidState');}
    },1000/COOP_HZ);tick.unref?.();
   }catch{finish('loadFailed');}
  }
@@ -90,7 +90,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
   if(!run){finish('invalidMessage');return;}
   if(v.t==='begin'){
    if(!keys(v,['t','epoch','frame'])||!uint(v.frame)){finish('invalidMessage');return;}
-   if(run.begin(v.frame)){lastTick=performance.now();carry=0;recovering=false;clearTimeout(recoveryTimer);lastProgress=Date.now();stallGrace=false;status('playing');}return;
+   if(run.begin(v.frame)){lastTick=performance.now();carry=0;recovering=false;clearTimeout(recoveryTimer);lastProgress=performance.now();stallGrace=false;status('playing');}return;
   }
   if(v.t==='hold'){
    if(!keys(v,['t','epoch','held','frame'])||v.held!==true||!uint(v.frame)){finish('invalidMessage');return;}run.hold();status('waiting');return;
@@ -102,7 +102,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
    if(!keys(v,['t','epoch','hero','data'])||!run.host||v.hero!==1||!cleanUp(v.data)){finish('invalidMessage');return;}run.accept({hero:1,data:v.data});return;
   }
   if(v.t==='down'){
-   if(!keys(v,['t','epoch','data'])||run.host||!cleanDown(v.data)){finish('invalidMessage');return;}const before=run.frame;if(run.accept(v.data)&&run.frame>before){lastProgress=Date.now();stallGrace=false;}return;
+   if(!keys(v,['t','epoch','data'])||run.host||!cleanDown(v.data)){finish('invalidMessage');return;}const before=run.frame;if(run.accept(v.data)&&run.frame>before){lastProgress=performance.now();stallGrace=false;}return;
   }
   finish('invalidMessage');
  }

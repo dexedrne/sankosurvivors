@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Steadier co-op timeouts": "Mas maaasahang timeout sa co-op",
+  "Co-op connection timeouts use a steady clock, so changing the device clock cannot end your session early or extend a stalled connection. The normal timeout and reconnect allowance stay the same.": "Gumagamit ng tuloy-tuloy na oras ang timeout ng koneksyon sa co-op. Hindi matatapos nang maaga ang session o hahaba ang paghihintay sa natigil na koneksyon kapag binago ang oras ng device. Pareho pa rin ang karaniwang timeout at palugit sa muling pagkonekta.",
   "Recovering connections": "Pagbawi ng koneksyon",
   "Grand Theft Sanko: missing server updates show a waiting warning and hold your position. Movement resumes from a valid update; online races continue on the server during interruptions.": "Grand Theft Sanko: kapag walang update mula sa server, may babala ng paghihintay at mananatili ang posisyon mo. Magpapatuloy ang galaw sa isang wastong update; tuloy ang online na karera sa server habang napuputol ang koneksyon.",
   "Steadier online players": "Mas maayos na galaw ng mga online na manlalaro",

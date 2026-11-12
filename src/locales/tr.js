@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Steadier co-op timeouts": "Daha tutarlı eşli oyun zaman aşımı",
+  "Co-op connection timeouts use a steady clock, so changing the device clock cannot end your session early or extend a stalled connection. The normal timeout and reconnect allowance stay the same.": "Eşli oyunda bağlantı zaman aşımı sabit ilerleyen bir saat kullanır. Cihazın saatini değiştirmek oturumu erken bitirmez veya takılan bağlantının süresini uzatmaz. Normal zaman aşımı ve yeniden bağlanma süresi aynıdır.",
   "Recovering connections": "Bağlantı kurtarma",
   "Grand Theft Sanko: missing server updates show a waiting warning and hold your position. Movement resumes from a valid update; online races continue on the server during interruptions.": "Grand Theft Sanko: sunucu güncellemeleri gelmediğinde bir bekleme uyarısı gösterilir ve konumunuz sabit tutulur. Geçerli bir güncelleme geldiğinde hareket devam eder; kesintiler sırasında çevrimiçi yarış sunucuda devam eder.",
   "Steadier online players": "Daha akıcı çevrimiçi oyuncular",

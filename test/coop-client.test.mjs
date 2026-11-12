@@ -66,13 +66,13 @@ test('changing high-refresh guest movement stays bounded and blur sends immediat
 });
 
 function suspendedGuest(t){
- let now=0,tick;const sent=[],ends=[],listeners={},epoch='00112233445566778899aabbccddeeff',roomSettings={...settings,...identity};
- t.mock.method(Date,'now',()=>now);t.mock.method(performance,'now',()=>now);t.mock.method(globalThis,'setInterval',fn=>{tick=fn;return{unref(){}};});t.mock.method(globalThis,'clearInterval',()=>{});
+ let now=0,wallOffset=0,tick;const sent=[],ends=[],listeners={},epoch='00112233445566778899aabbccddeeff',roomSettings={...settings,...identity};
+ t.mock.method(Date,'now',()=>now+wallOffset);t.mock.method(performance,'now',()=>now);t.mock.method(globalThis,'setInterval',fn=>{tick=fn;return{unref(){}};});t.mock.method(globalThis,'clearInterval',()=>{});
  const ws={readyState:1,bufferedAmount:0,addEventListener:(kind,fn)=>listeners[kind]=fn,send:text=>sent.push(JSON.parse(text)),close(){this.readyState=3;}},emit=m=>listeners.message({data:JSON.stringify(m)});
  const client=createCoopClient({url:'ws://127.0.0.1/coop',identity,load:async()=>null,events:new EventTarget(),createSocket:()=>ws,onEnd:reason=>ends.push(reason)});t.after(()=>client.close());
  const game={...roomSettings,epoch,ground:'0',seed:711,players:['p1','p2'].map(id=>({id,loadout:me(id)}))};
  client.join('ABCDEF',me('p2'));emit({t:'hello',protocol:1});emit({t:'session',code:'ABCDEF',epoch,you:'p2',token:'1'.repeat(64)});emit({t:'room',code:'ABCDEF',epoch,you:'p2',hostId:'p1',settings:roomSettings,started:false,members:game.players.map(p=>({...p,ready:true,connected:true}))});emit({t:'start',game});
- return{client,game,ends,emit,at:n=>{now=n;tick();},async begin(){await Promise.resolve();emit({t:'begin',epoch,frame:0});assert(client.run&&!client.run.held);}};
+ return{client,game,ends,emit,wallOffset:n=>{wallOffset=n;},at:n=>{now=n;tick();},async begin(){await Promise.resolve();emit({t:'begin',epoch,frame:0});assert(client.run&&!client.run.held);}};
 }
 test('a suspended guest can consume queued host progress before the stall watchdog ends the run',async t=>{
  const f=suspendedGuest(t);await f.begin();const down=[],host=createCoopRun({start:f.game,localId:'p1',ground:null,send:m=>down.push(m)});host.begin(0);host.advance();host.advance();
@@ -94,4 +94,11 @@ test('guest start and short stop edges reach socket before a network interval',a
  ws.send=(text,...args)=>{const m=JSON.parse(text);if(m.t==='up'&&m.data.move)sent.push(m.data.move);return native(text,...args);};
  p.guest.client.run.input(1,0);p.guest.client.run.input(0,0);
  assert.deepEqual(sent,[[127,0],[0,0]],'both tap edges must bypass interval coalescing when budget permits');
+});
+
+test('wall clock jumping forward does not prematurely end a healthy guest',async t=>{
+ const f=suspendedGuest(t);await f.begin();f.wallOffset(86400000);f.at(33);assert.equal(f.client.closed,false);assert.deepEqual(f.ends,[]);
+});
+test('wall clock jumping backward does not extend the guest silence deadline',async t=>{
+ const f=suspendedGuest(t);await f.begin();f.wallOffset(-86400000);for(let at=33;at<=14982;at+=33)f.at(at);f.at(15015);assert.deepEqual(f.ends,['hostStalled']);
 });
