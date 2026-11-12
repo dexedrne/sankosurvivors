@@ -1,5 +1,11 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Ranked food safety": "Kaligtasan gamit ang pagkain sa ranked",
+  "From ranked week 2, food stacks hold up to five portions per type. Stored food is eaten automatically before a fatal hit when it can save you. Earlier ranked weeks and casual runs keep their existing rules.": "Mula ranked week 2, hanggang limang bahagi bawat uri ng pagkain ang puwedeng itabi. Awtomatikong kakain bago ang nakamamatay na tama kung maililigtas ka nito. Pareho pa rin ang mga patakaran sa mas naunang ranked weeks at casual runs.",
+  "Food stacks hold up to 5 portions per type. Stored food is automatically eaten before a fatal hit if enough food can save you. Extra pickups are eaten immediately.": "Hanggang 5 bahagi bawat uri ng pagkain ang puwedeng itabi. Awtomatikong kakain bago ang nakamamatay na tama kung sapat ang pagkain para mailigtas ka. Kakainin agad ang sobrang mapupulot.",
+  "Ranked food: up to 5 per type. Automatically eaten before a fatal hit when enough food can save you.": "Pagkain sa ranked: hanggang 5 bawat uri. Awtomatikong kakain bago ang nakamamatay na tama kung sapat para mailigtas ka.",
+  "Stored food saved you.": "Iniligtas ka ng itinabing pagkain.",
+
   "Make your way in the world": "Gumawa ng sarili mong landas",
   "Grand Theft Sanko: mine ore, smelt bronze, forge a sword, bank supplies and trade with townspeople. Open Backpack to equip gear; nearby players see your helmet, robe and sword. Inventory saves on this device.": "Grand Theft Sanko: magmina, magtunaw ng bronze, gumawa ng espada, mag-imbak sa bangko at makipagkalakalan sa mga taga-bayan. Buksan ang Backpack para magsuot ng gear; makikita ng kalapit na manlalaro ang helmet, robe at espada mo. Sa device na ito nase-save ang inventory.",
   "Clearer prize estimates": "Mas malinaw na tantiya sa premyo",

@@ -18,6 +18,8 @@ Survive the SankoQuest world, build a ridiculous loadout, and take on the weekly
 
 The menu's **Guide** explains weapons, evolutions, caskets, gear, skills, food and controls. **Updates** lists changes with copy buttons. Use **More → Report a bug** to send feedback.
 
+From ranked week 2, food stacks hold at most five portions per type. An extra pickup is eaten immediately. Stored food automatically heals before an otherwise fatal hit when enough food can save you, using the belt from left to right; manual eating still works. Beer, Pumpkin and Warp Shard are never used automatically. Earlier ranked weeks, casual and co-op keep their existing food rules.
+
 ## Controls and devices
 
 | Action | Desktop |

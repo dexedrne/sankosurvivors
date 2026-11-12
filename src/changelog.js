@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.45.26',date:'12 Nov 2026',title:'Ranked food safety',items:['From ranked week 2, food stacks hold up to five portions per type. Stored food is eaten automatically before a fatal hit when it can save you. Earlier ranked weeks and casual runs keep their existing rules.']},
   {version:'0.45.25',date:'12 Nov 2026',title:'Make your way in the world',items:['Grand Theft Sanko: mine ore, smelt bronze, forge a sword, bank supplies and trade with townspeople. Open Backpack to equip gear; nearby players see your helmet, robe and sword. Inventory saves on this device.']},
   {version:'0.45.24',date:'12 Nov 2026',title:'Clearer prize estimates',items:['Ranked estimated prizes show two decimal places. The actual reward calculation keeps its full precision.']},
   {"version": "0.45.23", "date": "12 Nov 2026", "title": "Build cards at a glance", "items": ["Copy your final build as an image to paste into a post. Larger item icons, level tracks and labelled results make build cards easier to read. Save and Share remain available."]},

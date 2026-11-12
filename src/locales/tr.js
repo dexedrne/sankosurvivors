@@ -1,5 +1,11 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked food safety": "Sıralamalı yiyecek güvencesi",
+  "From ranked week 2, food stacks hold up to five portions per type. Stored food is eaten automatically before a fatal hit when it can save you. Earlier ranked weeks and casual runs keep their existing rules.": "Sıralamalı 2. haftadan itibaren yiyecekler tür başına beş porsiyona kadar birikir. Saklanan yiyecek seni kurtarabiliyorsa ölümcül darbeden önce otomatik yenir. Önceki sıralamalı haftalar ve normal koşular mevcut kurallarını korur.",
+  "Food stacks hold up to 5 portions per type. Stored food is automatically eaten before a fatal hit if enough food can save you. Extra pickups are eaten immediately.": "Yiyecekler tür başına en fazla 5 porsiyon birikir. Yeterli yiyecek seni kurtarabiliyorsa ölümcül bir darbeden önce otomatik olarak yenir. Fazladan alınan yiyecekler hemen yenir.",
+  "Ranked food: up to 5 per type. Automatically eaten before a fatal hit when enough food can save you.": "Sıralamalı yiyecek: tür başına en fazla 5. Yeterli yiyecek seni kurtarabiliyorsa ölümcül darbeden önce otomatik yenir.",
+  "Stored food saved you.": "Sakladığın yiyecek seni kurtardı.",
+
   "Make your way in the world": "Dünyada kendi yolunu çiz",
   "Grand Theft Sanko: mine ore, smelt bronze, forge a sword, bank supplies and trade with townspeople. Open Backpack to equip gear; nearby players see your helmet, robe and sword. Inventory saves on this device.": "Grand Theft Sanko: cevher kaz, bronz erit, kılıç döv, malzemeleri bankaya koy ve kasabalılarla ticaret yap. Ekipman takmak için Sırt Çantası’nı aç; yakındaki oyuncular miğferini, cübbeni ve kılıcını görür. Envanter bu cihazda kaydedilir.",
   "Clearer prize estimates": "Daha net ödül tahminleri",

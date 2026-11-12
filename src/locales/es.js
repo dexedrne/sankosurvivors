@@ -1,5 +1,11 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked food safety": "Protección con comida en clasificación",
+  "From ranked week 2, food stacks hold up to five portions per type. Stored food is eaten automatically before a fatal hit when it can save you. Earlier ranked weeks and casual runs keep their existing rules.": "A partir de la semana 2 de clasificación, la comida se acumula hasta cinco porciones por tipo. Se come automáticamente antes de un golpe mortal si puede salvarte. Las semanas anteriores y las partidas casuales conservan sus reglas.",
+  "Food stacks hold up to 5 portions per type. Stored food is automatically eaten before a fatal hit if enough food can save you. Extra pickups are eaten immediately.": "La comida se acumula hasta 5 porciones por tipo. Se come automáticamente antes de un golpe mortal si hay suficiente para salvarte. Las recogidas adicionales se comen al instante.",
+  "Ranked food: up to 5 per type. Automatically eaten before a fatal hit when enough food can save you.": "Comida de clasificación: hasta 5 por tipo. Se come automáticamente antes de un golpe mortal si hay suficiente para salvarte.",
+  "Stored food saved you.": "La comida guardada te salvó.",
+
   "Make your way in the world": "Ábrete camino por el mundo",
   "Grand Theft Sanko: mine ore, smelt bronze, forge a sword, bank supplies and trade with townspeople. Open Backpack to equip gear; nearby players see your helmet, robe and sword. Inventory saves on this device.": "Grand Theft Sanko: extrae mineral, funde bronce, forja una espada, guarda suministros en el banco y comercia con los habitantes. Abre Mochila para equiparte; los jugadores cercanos ven tu casco, túnica y espada. El inventario se guarda en este dispositivo.",
   "Clearer prize estimates": "Estimaciones de premios más claras",

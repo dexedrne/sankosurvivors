@@ -53,7 +53,7 @@ function oasisGround(ground) {
   return corrected;
 }
 
-export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, coop = false, variant = 'normal', trialBoss = 'giant' } = {}) {
+export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, rankedFood = false, coop = false, variant = 'normal', trialBoss = 'giant' } = {}) {
   if (!Object.hasOwn(VARIANTS, variant) || !TRIAL_BOSSES.includes(trialBoss)) throw Error('Unknown game mode or trial boss.');
   if (variant !== 'normal') {
     if (ranked || pace !== 2 || hard || endAt || endless && !['fun', 'wizard', 'castle'].includes(variant) || !MAPS.some(m => m.id === map.id)
@@ -74,7 +74,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
   const sim = {
-    seed, rng, map, hard, meta, endless, endAt, pace, ranked: !!ranked, t: 0, tick: 0, nextId: 1,
+    seed, rng, map, hard, meta, endless, endAt, pace, ranked: !!ranked, ...(ranked && pace >= 2 && rankedFood === true ? { rankedFood: true } : {}), t: 0, tick: 0, nextId: 1,
     // veterans (owner 3 Nov: "regular mode feels too easy"): each permanent skill rank makes casual monsters 1.5% tougher
     // and harder-hitting, to +60% at 40 ranks, with a few more of them. A new player is untouched; ranked has no skills.
     vet: 1, // set below once the players (and the gear they wear) are in // pace: 2 the denser crowd of 3 Nov, 1 the 2 Nov one (ranked week 0)
@@ -993,6 +993,7 @@ export function regionOf(sim, p) {
 
 // ---- the belt: food and power-ups can be saved and used when it counts -----------------------------------------
 export const BELT_SIZE = 4;
+const RANKED_FOOD_CAP = 5;
 const BELT_KINDS = ['beer', 'pumpkin', 'warp'];
 // Food uses SankoQuest's own tiers; pace2 stores matching portions in one belt slot, pace1 eats on pickup.
 // Pace 2 splits the lowest drops between Cheese and crawdads; elites still drop one tier up and bosses a bass.
@@ -1254,9 +1255,26 @@ function eventTick(sim, dt) {
   sim.fx.push({ k: 'event', kind, dir });
 }
 
+// Plan before consuming: an insufficient belt must not waste food on a hit it cannot save.
+function emergencyFood(sim, p, dmg) {
+  if (dmg >= p.maxHp) return;
+  let hp = p.hp; const plan = [], heal = playerStats(p).heal;
+  food: for (let slot = 0; slot < p.belt.length; slot++) {
+    const kind = p.belt[slot]; if (!FOOD[kind]) continue;
+    for (let n = 0; n < Math.min(RANKED_FOOD_CAP, beltCount(p, slot)); n++) {
+      hp = Math.min(p.maxHp, hp + FOOD[kind].heal * heal); plan.push(kind);
+      if (hp > dmg) break food;
+    }
+  }
+  if (hp <= dmg) return;
+  for (const kind of plan) useBelt(sim, p.id, p.belt.indexOf(kind));
+  sim.fx.push({ k: 'auto-food', id: p.id, count: plan.length, x: p.x, z: p.z });
+}
+
 // ---- boss attacks: every one is telegraphed, so it can be dodged -------------------------------------------------
 function hurtPlayer(sim, tp, dmg, src = 'contact') {
   sim.hurtBy[src] = (sim.hurtBy[src] || 0) + dmg; // damage taken by source, for balancing
+  if (sim.rankedFood && tp.hp <= dmg) emergencyFood(sim, tp, dmg);
   tp.hp -= dmg; tp.inv = 0.75; tp.hurt = 0.25; // a beat to break free after each hit
   sim.fx.push({ k: 'hurt', id: tp.id, v: dmg, x: tp.x, z: tp.z });
   if (tp.hp <= 0 && tp.revives > 0) {
@@ -1510,7 +1528,7 @@ export function step(sim, inputs = {}, dt = TICK) {
       const st = playerStats(p), beforeHp = p.hp;
       if (sim.pace >= 2 && FOOD[k.kind]) {
         const slot = p.belt.indexOf(k.kind), count = beltCount(p, slot);
-        if (count < Number.MAX_SAFE_INTEGER && (slot >= 0 || p.belt.length < BELT_SIZE)) {
+        if (count < (sim.rankedFood ? RANKED_FOOD_CAP : Number.MAX_SAFE_INTEGER) && (slot >= 0 || p.belt.length < BELT_SIZE)) {
           if (slot < 0) p.belt.push(k.kind);
           (p.foodStacks ??= {})[k.kind] = count + 1;
         } else useItem(sim, p, k.kind);
