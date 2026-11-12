@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Reliable mining recovery": "Güvenilir madencilik yenilenmesi",
+  "Grand Theft Sanko: rocks recover for eight seconds after ore is saved, including when another tab delays saving. Failed or cancelled mining still awards nothing.": "Grand Theft Sanko: başka bir sekme kaydı geciktirse bile kayalar, cevher kaydedildikten sonra sekiz saniyede yenilenir. Başarısız veya iptal edilen kazılar yine ödül vermez.",
   "Know your build": "Donanımını tanı",
   "Pause shows your current build, stats and active effects. Phones get camera zoom buttons in Pause. Quests can hide completed milestones and show nearby goals first.": "Duraklatma ekranı mevcut donanımını, istatistiklerini ve etkin etkileri gösterir. Telefonlarda Duraklatma ekranına kamera yakınlaştırma düğmeleri eklendi. Görevler tamamlanan hedefleri gizleyebilir ve tamamlanmaya yakın hedefleri önce gösterebilir.",
   "Camera zoom": "Kamera yakınlaştırma",

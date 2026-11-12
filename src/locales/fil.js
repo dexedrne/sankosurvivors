@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Reliable mining recovery": "Maayos na pagbabalik ng minahan",
+  "Grand Theft Sanko: rocks recover for eight seconds after ore is saved, including when another tab delays saving. Failed or cancelled mining still awards nothing.": "Grand Theft Sanko: bumabalik ang mga bato walong segundo matapos mai-save ang ore, kahit maantala ng ibang tab ang pag-save. Walang gantimpala ang nabigo o kinanselang pagmimina.",
   "Know your build": "Kilalanin ang build mo",
   "Pause shows your current build, stats and active effects. Phones get camera zoom buttons in Pause. Quests can hide completed milestones and show nearby goals first.": "Makikita sa Pause ang kasalukuyang build, stats at aktibong epekto. May mga button ng zoom ng camera sa Pause para sa telepono. Puwedeng itago ang mga tapos na milestone at unahin ang mga layuning malapit nang matapos.",
   "Camera zoom": "Zoom ng camera",

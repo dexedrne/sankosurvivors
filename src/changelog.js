@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.45.30", "date": "12 Nov 2026", "title": "Reliable mining recovery", "items": ["Grand Theft Sanko: rocks recover for eight seconds after ore is saved, including when another tab delays saving. Failed or cancelled mining still awards nothing."]},
   {"version": "0.45.29", "date": "12 Nov 2026", "title": "Know your build", "items": ["Pause shows your current build, stats and active effects. Phones get camera zoom buttons in Pause. Quests can hide completed milestones and show nearby goals first."]},
   {version:'0.45.28',date:'12 Nov 2026',title:'Before you leave',items:['Quit run now asks before ending a casual or co-op run. Back keeps the current run. Co-op explains that leaving ends the shared run for both players.']},
   {version:'0.45.27',date:'12 Nov 2026',title:'Steadier co-op timing',items:["Improved co-op timing when the host's game is behind another window. A sleeping or suspended device can still interrupt play."]},

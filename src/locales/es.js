@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Reliable mining recovery": "Recuperación fiable de minerales",
+  "Grand Theft Sanko: rocks recover for eight seconds after ore is saved, including when another tab delays saving. Failed or cancelled mining still awards nothing.": "Grand Theft Sanko: las rocas se recuperan ocho segundos después de guardar el mineral, incluso si otra pestaña retrasa el guardado. La minería fallida o cancelada sigue sin dar recompensas.",
   "Know your build": "Conoce tu equipo",
   "Pause shows your current build, stats and active effects. Phones get camera zoom buttons in Pause. Quests can hide completed milestones and show nearby goals first.": "Pausa muestra tu equipo actual, estadísticas y efectos activos. Los teléfonos tienen botones de zoom de cámara en Pausa. Las misiones permiten ocultar los hitos completados y muestran primero los objetivos más cercanos.",
   "Camera zoom": "Zoom de cámara",
