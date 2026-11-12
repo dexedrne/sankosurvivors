@@ -1,6 +1,6 @@
 {
-  "commit": "45c06f1fee9e7ab5d2379fa5529aa2c7229cec4f",
-  "implementation": "45c06f1fee9e7ab5d2379fa5529aa2c7229cec4f",
+  "commit": "e0342ca42dc38341e73bf1f5f2f8cd4af7a38301",
+  "implementation": "e0342ca42dc38341e73bf1f5f2f8cd4af7a38301",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -60,6 +60,12 @@
       "path": "assets/anim/idle.fbx",
       "bytes": 116128,
       "sha256": "99806e4bff80bc6570a8a155e20c957447920450db0505b98ceac223b628285b",
+      "role": "shared"
+    },
+    {
+      "path": "assets/anim/mine.fbx",
+      "bytes": 116498,
+      "sha256": "db902ed49d6eb7958ff5b17846fb8c613c4571126a67020212e2bb6389f32d56",
       "role": "shared"
     },
     {
@@ -2943,9 +2949,9 @@
       "role": "stylesheet"
     },
     {
-      "path": "assets/index-ciGxA69J.js",
-      "bytes": 1739232,
-      "sha256": "b61a1363e31af3bf786e8f1291bfe131e56226b8afcfbfc5f9fe4250e9359c12",
+      "path": "assets/index-f8VnMp8J.js",
+      "bytes": 1739529,
+      "sha256": "db418425e0e552ce82f80e7ee6aa6c5a5b4d07dbba663c955a4e64d33c28be48",
       "role": "client"
     },
     {
@@ -4835,7 +4841,7 @@
     {
       "path": "index.html",
       "bytes": 13018,
-      "sha256": "9b5e08ed6fee4fdc491d7a56fcb68983b46c35747377c4a8aab90de3a3c9a52f",
+      "sha256": "a80a15e87ca1080bc912c57d14e0ffa534a6edf4759ef3cdf8d1bb70ed696a5f",
       "role": "entry"
     }
   ],

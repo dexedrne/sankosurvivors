@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Original details": "Orihinal na detalye",
+  "Equipped amulets now appear on your character using the original SankoQuest models. Grand Theft Sanko uses the native mining animation while you gather ore.": "Makikita na sa karakter mo ang mga suot na anting-anting gamit ang orihinal na mga modelo ng SankoQuest. Ginagamit ng Grand Theft Sanko ang orihinal na animasyon ng pagmimina habang nangangalap ka ng mineral.",
   "Ironworking": "Paggawa gamit ang bakal",
   "Grand Theft Sanko: mine iron rocks, smelt Iron Bars and forge an Iron Helmet. Bronze Bars can also become spare Bronze Pickaxes. Workshops show their recipes and materials. Armour stays cosmetic; inventory saves on this device.": "Grand Theft Sanko: magmina ng bakal, gumawa ng Iron Bar at magpanday ng Iron Helmet. Puwede ring gawing ekstrang Bronze Pickaxe ang Bronze Bar. Ipinapakita ng mga pagawaan ang recipe at mga materyales. Panghitsura ang baluti; sa device na ito nai-save ang imbentaryo.",
   "Reliable mining recovery": "Maayos na pagbabalik ng minahan",

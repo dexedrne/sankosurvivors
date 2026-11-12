@@ -4,6 +4,8 @@
 
 Survive the SankoQuest world, build a ridiculous loadout, and take on the weekly ranked board.
 
+Equipped Magician's, Warrior's and Power amulets use their original SankoQuest models on your character. Their existing bonuses are unchanged.
+
 **[Play SankoSurvivors](https://sankosurvivors.quest)** · **[Enter Grand Theft Sanko](https://gts.sankosurvivors.quest/)** · [Need for Sanko races](https://gts.sankosurvivors.quest/?mode=online) · [@dexedrne](https://x.com/dexedrne)
 
 ## Play

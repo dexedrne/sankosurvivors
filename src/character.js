@@ -8,7 +8,7 @@ import { ARMOR_TIERS } from './content.js';
 
 const BASE = { chest: 'Chest/Styles/Shoulders', arms: 'Arms/Nude', legs: 'Legs/Styles/Pants', forearm: 'Hands/Forearm', feet: 'Feet/Feet', head: 'Head/Bald', neck: 'Head/Neck' };
 const CLIP_NAMES = ['idle', 'run', 'walk', 'slash', 'hurt', 'death'];
-const FOLDER = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back' };
+const FOLDER = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back', neck: 'Neck' };
 const SUFFIX = { head: 'Helmet', chest: 'Chestplate', hands: 'Gauntlets', legs: 'Leggings', feet: 'Boots' };
 const HAIR = ['Short', 'Long', 'Shaggy', 'Pomp', 'Middle Part', 'Buns', 'Sideswept', 'Liberty Spikes'];
 
@@ -305,7 +305,7 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
       setArmor(a = {}) {
         for (const sm of extra.armor) disposeActor(sm);
         extra.armor = [];
-        for (const slot of Object.keys(SUFFIX).concat('back')) {
+        for (const slot of Object.keys(SUFFIX).concat('back', 'neck')) {
           const name = a[slot]; if (!name) continue;
           const g = ready.get(clothing(slot, name)); if (!g) { console.warn('armor missing', slot, name); continue; }
           const parts = bindParts(rest, bones, g, null, skeletons); if (!parts.length) console.warn('armor has no skinned meshes', slot, name);

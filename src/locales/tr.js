@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Original details": "Özgün ayrıntılar",
+  "Equipped amulets now appear on your character using the original SankoQuest models. Grand Theft Sanko uses the native mining animation while you gather ore.": "Kuşandığın muskalar artık özgün SankoQuest modelleriyle karakterinde görünür. Grand Theft Sanko, cevher toplarken oyunun özgün madencilik animasyonunu kullanır.",
   "Ironworking": "Demir işçiliği",
   "Grand Theft Sanko: mine iron rocks, smelt Iron Bars and forge an Iron Helmet. Bronze Bars can also become spare Bronze Pickaxes. Workshops show their recipes and materials. Armour stays cosmetic; inventory saves on this device.": "Grand Theft Sanko: demir kayalarını kaz, Demir Külçeleri erit ve Demir Miğfer döv. Bronz Külçelerden yedek Bronz Kazmalar da yapılabilir. Atölyeler tariflerini ve malzemelerini gösterir. Zırh kozmetiktir; envanter bu cihaza kaydedilir.",
   "Reliable mining recovery": "Güvenilir madencilik yenilenmesi",

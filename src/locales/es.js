@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Original details": "Detalles originales",
+  "Equipped amulets now appear on your character using the original SankoQuest models. Grand Theft Sanko uses the native mining animation while you gather ore.": "Los amuletos equipados ahora se ven en tu personaje con los modelos originales de SankoQuest. Grand Theft Sanko usa la animación de minería original mientras recoges mineral.",
   "Ironworking": "Trabajo del hierro",
   "Grand Theft Sanko: mine iron rocks, smelt Iron Bars and forge an Iron Helmet. Bronze Bars can also become spare Bronze Pickaxes. Workshops show their recipes and materials. Armour stays cosmetic; inventory saves on this device.": "Grand Theft Sanko: extrae hierro, funde lingotes y forja un casco de hierro. Los lingotes de bronce también sirven para fabricar picos de repuesto. Los talleres muestran sus recetas y materiales. La armadura es cosmética; el inventario se guarda en este dispositivo.",
   "Reliable mining recovery": "Recuperación fiable de minerales",

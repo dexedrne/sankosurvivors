@@ -31,7 +31,7 @@ test('every packaged and shared route dependency matches its recorded bytes', ()
  assert.equal(m.source.commit,inputs.commit);
  assert.equal(m.source.rulesVersion,inputs.rulesVersion);assert.match(inputs.rulesVersion,/^[0-9a-f]{12}$/);
  assert.match(m.source.commit,/^[a-f0-9]{40}$/);
- assert.equal(m.shared.length,289);
+ assert.equal(m.shared.length,290);
  for(const name of ['Iron_Ore','Iron_Bar'])assert(m.shared.some(f=>f.path==='/assets/ui/items/item_'+name+'.png'));
  for(const item of [...m.files,...m.shared]) {
   assert.match(item.path,/^\/(?:fun\/racers|assets|draco)\//);

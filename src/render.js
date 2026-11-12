@@ -951,7 +951,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     shield:  { tip: [0, 1, 0], thin: [0, 0, 1] },
   };
   // make sure the models for worn gear are loaded before a character puts them on
-  const GEAR_FOLDER = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back' };
+  const GEAR_FOLDER = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back', neck: 'Neck' };
   // (a shield is a held item: its model loads with the other hand-held items)
   const isClothing = (n) => Object.hasOwn(GEAR, n) && GEAR_FOLDER[GEAR[n].slot];
   const clothFile = (n) => GEAR[n].file || n; // trimmed "(t)" pieces and the Minion set use SankoQuest's own file names
