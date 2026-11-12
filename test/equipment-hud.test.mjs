@@ -32,9 +32,9 @@ test('missing, mismatched, prototype and unknown items never become markup or ex
 });
 test('connected HUD selects the actual local co-op player gear instead of the host',()=>{
  const start=source.indexOf('function updateHud(view) {'),end=source.indexOf('  updateShrineHud(view);',start),calls=[];
- const run=Function('sim','PLAYER','updateEquipmentHud','view',source.slice(start,end)+'} return updateHud(view);');
+ const run=Function('sim','PLAYER','updateEquipmentHud','view','mode','refreshPauseBuild',source.slice(start,end)+'} return updateHud(view);');
  const players=[{id:'p1',gear:{head:'Bronze Helmet'}},{id:'p2',gear:{feet:'Iron Boots'}}];
- run({coop:true},'p2',p=>calls.push(p.gear),{players});assert.deepEqual(calls,[{feet:'Iron Boots'}]);
+ let refreshes=0;for(const mode of ['play','pause'])run({coop:true},'p2',p=>calls.push(p.gear),{players},mode,()=>refreshes++);assert.deepEqual(calls,[{feet:'Iron Boots'},{feet:'Iron Boots'}]);assert.equal(refreshes,1);
 });
 for(const key of ['Tab',' '])test(`native equipment inspection ${JSON.stringify(key)} does not open DPS or tumble`,()=>{
  const start=source.indexOf("addEventListener('keydown', (e) => {",source.indexOf('const MENU_SCREENS')),end=source.indexOf("\n});",start),body=source.slice(start+"addEventListener('keydown', (e) => {".length,end),calls=[];

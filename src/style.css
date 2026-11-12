@@ -1014,3 +1014,26 @@ body.ds-layout #tradebtn { position:fixed; bottom:calc(112px + env(safe-area-ins
 
 /* Final builds use the native item art at a readable size. */
 .runbuild-item{grid-template-columns:56px minmax(0,1fr);gap:12px;padding:10px}.runbuild-item img{width:56px;height:56px}.runbuild-item.evolved{border-color:#77d6d0}.runbuild-item.evolved b{color:var(--gold)}.runbuild-level{display:flex;gap:3px;margin-top:8px;max-width:180px}.runbuild-level i{height:5px;flex:1;background:#514331}.runbuild-level .filled{background:#d4b34f}.runbuild-item.evolved .runbuild-level .filled{background:#77d6d0}
+#pause .panel:has(#pausemain:not(.hidden)){display:flex;flex-direction:column;width:min(680px,96vw);height:min(740px,calc(100dvh - 24px));overflow:hidden}
+#pausemain{display:flex;flex-direction:column;min-height:0;flex:1}
+#pausemain>h2,#pausemain>.rankedpause{flex-shrink:0}
+#pausebody{overflow:auto;overscroll-behavior:contain;min-height:0;flex:1;text-align:left;padding-right:4px}
+.pauseactions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;flex-shrink:0;max-height:50%;overflow:auto;padding-top:8px}
+#pause .pauseactions button{margin:0;min-height:44px}
+#pausebody summary{min-height:44px;display:flex;align-items:center;color:var(--gold);font:22px RSQuill8,sans-serif;cursor:pointer}
+#pausebody details{border-top:1px solid var(--line)}
+#pausebody .runbuild-stats{grid-template-columns:repeat(2,minmax(0,1fr));margin:0 0 10px;padding:0;border:0}
+#pausebody .runbuild-item{grid-template-columns:36px minmax(0,1fr);gap:8px;padding:6px}
+#pausebody .runbuild-item img{width:36px;height:36px}
+#pausebody h4{font:19px RSQuill8,sans-serif;color:var(--gold);margin:8px 0}
+.pauseeffect{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:8px;margin:6px 0;font:18px RSPlain,sans-serif}
+.pauseeffect img{width:32px;height:32px;object-fit:contain;image-rendering:pixelated}
+.pauseeffect small{display:block;color:var(--cream)}
+.pauseeffect.negative{color:#ffaaa0}
+.pausehealth{margin:4px 0;color:var(--cream)}
+
+.pausezoom { display:none; }
+body.touch .pausezoom { display:flex; align-items:center; gap:8px; color:var(--cream); }
+.pausezoom button { min-width:44px; min-height:44px; margin:4px 0; padding:2px 10px; }
+#questfilter { min-height:44px; }
+#questfilter[aria-pressed="true"] { border-image-source:url(../assets/ui/sq/green_slot.png); background:#2c3a22; }

@@ -127,7 +127,7 @@ function focusHarness() {
   const panels = new Map(['pause','levelup','casket','quitconfirm','pausemain'].map(id => [id, { hidden:id!=='levelup', classList:{add(){panels.get(id).hidden=true;},remove(){panels.get(id).hidden=false;},toggle(_name,on){panels.get(id).hidden=on;}} }]));
   let focused = true, hidden = false;
   const document = { get hidden(){return hidden;}, hasFocus:()=>focused, addEventListener(){} };
-  const api = Function('$','document', `let mode='title',runStarting=false,acc=4,last=0,pendingUse=null; const keys=new Set(['d']),clearTouch=()=>{},audio={duck(){}};const addEventListener=()=>{};
+  const api = Function('$','document', `let sim=null,mode='title',runStarting=false,acc=4,last=0,pendingUse=null; const keys=new Set(['d']),clearTouch=()=>{},audio={duck(){}};const addEventListener=()=>{};
     ${code.slice(start,end)}
     return {pause,suspendPage,set(modeValue,starting=false){mode=modeValue;runStarting=starting;},state(){return{mode,acc,focusLostWhileStarting,resumeMode,keys:keys.size};},enter(){mode='play';${code.slice(code.indexOf('    if (focusLostWhileStarting'),code.indexOf('\n  } finally { runStarting',code.indexOf('    if (focusLostWhileStarting')))}}};
   `)(id=>panels.get(id),document);

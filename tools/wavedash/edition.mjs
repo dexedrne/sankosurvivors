@@ -143,6 +143,7 @@ function pause(on) {
   if (resumeMode === 'levelup' || resumeMode === 'casket') $(resumeMode).classList.toggle('hidden', on);
   if (!on) focusLostWhileStarting = false;
   audio.duck(on || mode === 'levelup' || mode === 'casket'); $('pause').classList.toggle('hidden', !on);
+  if (on) refreshPauseBuild(true);
 }
 `);
   s = once(s, 'cancelPendingLoads(); runStarting = true;', 'cancelPendingLoads(); runStarting = true; focusLostWhileStarting = false;');

@@ -5,7 +5,7 @@ import {VARIANTS} from './game-modes.js';
 const number=value=>Number.isFinite(value)?Math.max(0,value):0;
 const rounded=value=>Math.round(number(value)*100)/100;
 const icon=name=>'ui/items/'+itemIconFile(name);
-const effectNames={speed:'Tin of Beer',strength:'Strength shrine',agility:'Agility shrine',wisdom:'Wisdom shrine',chill:'Snowstorm chill'};
+export const effectNames={speed:'Tin of Beer',strength:'Strength shrine',agility:'Agility shrine',wisdom:'Wisdom shrine',chill:'Snowstorm chill'};
 
 // Detached display data only: never attach this to a score, payment, save or replay payload.
 export function captureRunBuild(sim,player,{name='Adventurer',ranked=false,version=''}={}) {

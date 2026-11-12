@@ -1,5 +1,17 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Know your build": "Conoce tu equipo",
+  "Pause shows your current build, stats and active effects. Phones get camera zoom buttons in Pause. Quests can hide completed milestones and show nearby goals first.": "Pausa muestra tu equipo actual, estadísticas y efectos activos. Los teléfonos tienen botones de zoom de cámara en Pausa. Las misiones permiten ocultar los hitos completados y muestran primero los objetivos más cercanos.",
+  "Camera zoom": "Zoom de cámara",
+  "Zoom in": "Acercar",
+  "Zoom out": "Alejar",
+  "Hide completed": "Ocultar completados",
+  "All complete": "Todo completado",
+  "Current stats": "Estadísticas actuales",
+  "More stats": "Más estadísticas",
+  "Current build": "Equipo actual",
+  "No active effects": "Sin efectos activos",
+  "Health": "Salud",
   "Quit this run?": "¿Abandonar esta partida?",
   "Leave co-op?": "¿Salir del cooperativo?",
   "End this run and show your results?": "¿Terminar esta partida y mostrar tus resultados?",

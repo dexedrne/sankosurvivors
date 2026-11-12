@@ -1,4 +1,5 @@
 import { captureRunBuild } from './run-build.js';
+import { pauseBuild, pauseBuildHTML } from './pause-build.js';
 import { drawRunCard } from './run-card.js';
 import { skillQuote, prepareSkills } from './skill-purchases.js';
 import { armouryQuote, prepareArmoury } from './armoury.js';
@@ -1708,13 +1709,18 @@ $('bugsend').onclick = async () => {
 
 // ---- quests ------------------------------------------------------------------------------------------------------------
 function buildQuests() {
-  const st = getStats(), done = questsDone();
+  const st = getStats(), done = questsDone(), hide = $('questfilter').getAttribute('aria-pressed') === 'true';
+  const expanded = new Map([...$('questlist').querySelectorAll('[data-milestone-group]')].map(el => [el.dataset.milestoneGroup, el.open]));
+  const progress = q => Math.max(0, Math.min(1, statVal(st, q.stat) / q.goal));
+  const shown = list => list.filter(q => !hide || !done.has(q.id)).sort((a,b) => Number(done.has(a.id)) - Number(done.has(b.id)) || progress(b) - progress(a));
   const card = q => {
     const ok = done.has(q.id), v = ok ? q.goal : Math.max(0, Math.min(q.goal, statVal(st, q.stat))), ready = !ok && v >= q.goal;
     return `<div class="quest${ok ? ' done' : ''}" tabindex="0" data-milestone="${q.id}"><div class="qhead"><b>${q.name}</b><span>${ok ? 'Complete' : ready ? 'Ready' : `${v.toLocaleString()} / ${q.goal.toLocaleString()}`}</span></div><p>${q.text}</p><div class="qbar" role="progressbar" aria-label="${q.name}" aria-valuemin="0" aria-valuemax="${q.goal}" aria-valuenow="${v}"><i style="width:${(v / q.goal) * 100}%"></i></div>${ready ? '<p class="qready">Finish a run to record this milestone.</p>' : ''}<div class="qreward">${q.achievement ? '<span aria-hidden="true">★</span> <span>Achievement</span>' : `${imgTag('Gold')} ${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}`}</div></div>`;
   };
-  $('questlist').innerHTML = [['quests','Quests',QUESTS],['achievements','Achievements',ACHIEVEMENTS]].map(([id,title,list]) => `<details class="questgroup" data-milestone-group="${id}"${id === 'quests' ? ' open' : ''}><summary><span>${title}</span><span class="qcount" translate="no">${list.filter(q => done.has(q.id)).length} / ${list.length}</span></summary><div class="questcards">${list.map(card).join('')}</div></details>`).join('');
+  $('questlist').innerHTML = [['quests','Quests',QUESTS],['achievements','Achievements',ACHIEVEMENTS]].map(([id,title,list]) => `<details class="questgroup" data-milestone-group="${id}"${id === 'quests' ? ' open' : ''}><summary><span>${title}</span><span class="qcount" translate="no">${list.filter(q => done.has(q.id)).length} / ${list.length}</span></summary><div class="questcards">${shown(list).map(card).join('') || '<p class="dim">All complete</p>'}</div></details>`).join('');
+  for (const el of $('questlist').querySelectorAll('[data-milestone-group]')) if (expanded.has(el.dataset.milestoneGroup)) el.open = expanded.get(el.dataset.milestoneGroup);
 }
+$('questfilter').onclick = () => { const button = $('questfilter'); button.setAttribute('aria-pressed', String(button.getAttribute('aria-pressed') !== 'true')); buildQuests(); };
 $('questbtn').onclick = () => { buildQuests(); $('quests').classList.remove('hidden'); navFocus($('questclose')); };
 $('questclose').onclick = () => { $('quests').classList.add('hidden'); navFocus($('morebtn')); };
 
@@ -2152,6 +2158,28 @@ addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => { keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play' && (document.hidden || !keepPlayingUnfocused())) pause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play') pause(true); } });
 let quitTarget = null;
+let pauseBuildSecond = null, pauseBuildKey = '';
+function refreshPauseBuild(force = false) {
+  if (mode !== 'pause' || !sim || !$('quitconfirm').classList.contains('hidden')) return;
+  const second = Math.floor(sim.tick * TICK);
+  if (!force && second === pauseBuildSecond) return;
+  pauseBuildSecond = second;
+  const box = $('pausedetails'), player = sim.players?.find(p => p.id === PLAYER);
+  const data = player ? pauseBuild(sim, player) : null;
+  if (!data) { box.innerHTML = ''; $('pausehealth').textContent = ''; pauseBuildKey = ''; return; }
+  const key = JSON.stringify([data.sections, data.stats, data.effects.map(({seconds, ...effect}) => effect)]);
+  if (force || key !== pauseBuildKey) {
+    const expanded = new Map([...box.querySelectorAll('[data-pause-group]')].map(el => [el.dataset.pauseGroup, el.open]));
+    const scrollBody = $('pausebody');
+    const focused = box.contains(document.activeElement) ? document.activeElement.closest('details[data-pause-group]')?.dataset.pauseGroup : null, scroll = scrollBody.scrollTop;
+    box.innerHTML = pauseBuildHTML(data, asset, esc); pauseBuildKey = key;
+    for (const el of box.querySelectorAll('[data-pause-group]')) if (expanded.has(el.dataset.pauseGroup)) el.open = expanded.get(el.dataset.pauseGroup);
+    if (focused) navFocus(box.querySelector(`[data-pause-group="${focused}"] > summary`));
+    scrollBody.scrollTop = scroll;
+  }
+  $('pausehealth').textContent = `${data.hp} / ${data.maxHp}`;
+  for (const el of box.querySelectorAll('[data-pause-seconds]')) el.textContent = data.effects.find(effect => effect.id === el.dataset.pauseSeconds).seconds + 's';
+}
 function resetQuitConfirm() {
   quitTarget = null; $('quitconfirm').classList.add('hidden'); $('pausemain').classList.remove('hidden');
 }
@@ -2172,7 +2200,7 @@ function confirmQuit() {
   if (coop) { coop.close(); return; }
   pause(false); sim.over = 'dead';
 }
-function pause(on) { resetQuitConfirm(); clearTouch(); if (on) coop?.run?.resetInput(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (rankedRun) updateRankedPause(); }
+function pause(on) { resetQuitConfirm(); clearTouch(); if (on) coop?.run?.resetInput(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (on) refreshPauseBuild(true); if (rankedRun) updateRankedPause(); }
 $('start').onclick = startRun; $('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
 $('quit').onclick = requestQuit;
 $('quitcancel').onclick = cancelQuit;
@@ -2256,6 +2284,8 @@ addEventListener('pointermove', (e) => {
 });
 const endTouch = (e) => { if (e.pointerId === touch.id) clearTouch(); };
 addEventListener('pointerup', endTouch); addEventListener('pointercancel', endTouch);
+$('zoomin').onclick = () => { if (mode === 'pause' && sim) renderer.zoomBy(1 / 1.15); };
+$('zoomout').onclick = () => { if (mode === 'pause' && sim) renderer.zoomBy(1.15); };
 $('pausebtn').onclick = () => { if (mode === 'play') pause(true); };
 const hop = () => {
   if (mode !== 'play' || !sim) return;
@@ -2576,6 +2606,7 @@ function updateEquipmentHud(me) {
   $('equipmentitems').innerHTML = items.join('') || '<small>No gear equipped.</small>';
 }
 function updateHud(view) {
+  if (mode === 'pause') refreshPauseBuild();
   const me = sim.coop ? view.players.find(p => p.id === PLAYER) : view.players[0];
   updateEquipmentHud(me);
   updateShrineHud(view);

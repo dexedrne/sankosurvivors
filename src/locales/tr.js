@@ -1,5 +1,17 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Know your build": "Donanımını tanı",
+  "Pause shows your current build, stats and active effects. Phones get camera zoom buttons in Pause. Quests can hide completed milestones and show nearby goals first.": "Duraklatma ekranı mevcut donanımını, istatistiklerini ve etkin etkileri gösterir. Telefonlarda Duraklatma ekranına kamera yakınlaştırma düğmeleri eklendi. Görevler tamamlanan hedefleri gizleyebilir ve tamamlanmaya yakın hedefleri önce gösterebilir.",
+  "Camera zoom": "Kamera yakınlaştırma",
+  "Zoom in": "Yakınlaştır",
+  "Zoom out": "Uzaklaştır",
+  "Hide completed": "Tamamlananları gizle",
+  "All complete": "Hepsi tamamlandı",
+  "Current stats": "Güncel istatistikler",
+  "More stats": "Diğer istatistikler",
+  "Current build": "Mevcut donanım",
+  "No active effects": "Etkin etki yok",
+  "Health": "Sağlık",
   "Quit this run?": "Bu turdan çıkılsın mı?",
   "Leave co-op?": "Eşli oyundan çıkılsın mı?",
   "End this run and show your results?": "Bu tur bitirilsin ve sonuçların gösterilsin mi?",

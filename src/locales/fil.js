@@ -1,5 +1,17 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Know your build": "Kilalanin ang build mo",
+  "Pause shows your current build, stats and active effects. Phones get camera zoom buttons in Pause. Quests can hide completed milestones and show nearby goals first.": "Makikita sa Pause ang kasalukuyang build, stats at aktibong epekto. May mga button ng zoom ng camera sa Pause para sa telepono. Puwedeng itago ang mga tapos na milestone at unahin ang mga layuning malapit nang matapos.",
+  "Camera zoom": "Zoom ng camera",
+  "Zoom in": "Ilapit",
+  "Zoom out": "Ilayo",
+  "Hide completed": "Itago ang tapos na",
+  "All complete": "Tapos na lahat",
+  "Current stats": "Kasalukuyang stats",
+  "More stats": "Iba pang stats",
+  "Current build": "Kasalukuyang build",
+  "No active effects": "Walang aktibong epekto",
+  "Health": "Buhay",
   "Quit this run?": "Tapusin ang run na ito?",
   "Leave co-op?": "Umalis sa co-op?",
   "End this run and show your results?": "Tapusin ang run na ito at ipakita ang mga resulta?",

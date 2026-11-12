@@ -9,7 +9,7 @@ function fixture({ranked=false,coop=false,edition=false}={}){
  const code=edition?transformMain(main):main;
  const calls=[],nodes=new Map();
  const $=id=>{if(!nodes.has(id)){const classes=new Set(id==='pausemain'?[]:['hidden']);nodes.set(id,{id,textContent:'',disabled:false,addEventListener(){},classList:{contains:k=>classes.has(k),add:k=>classes.add(k),remove:k=>classes.delete(k),toggle(k,on){on?classes.add(k):classes.delete(k);}}});}return nodes.get(id);};
- const env={$,mode:'pause',sim:{over:null,t:120},coop:coop?{close(){calls.push('close');env.mode='coop';env.sim=null;}}:null,rankedRun:null,rankedPlaying:()=>ranked,navFocus:node=>calls.push('focus:'+node.id),clearTouch(){},pendingUse:null,keys:new Set(),acc:0,runStarting:false,document:{hidden:false,addEventListener(){}},addEventListener(){},audio:{duck(){},init:()=>Promise.resolve()},updateRankedPause(){},containMenuTab(){}};
+ const env={$,TICK:1/30,mode:'pause',sim:{over:null,t:120},coop:coop?{close(){calls.push('close');env.mode='coop';env.sim=null;}}:null,rankedRun:null,rankedPlaying:()=>ranked,navFocus:node=>calls.push('focus:'+node.id),clearTouch(){},pendingUse:null,keys:new Set(),acc:0,runStarting:false,document:{hidden:false,addEventListener(){}},addEventListener(){},audio:{duck(){},init:()=>Promise.resolve()},updateRankedPause(){},containMenuTab(){}};
  const a=code.indexOf('let quitTarget = null;'),b=code.indexOf(edition?'let resumeMode =':'function pause(on)',a),helpers=a<0?'':code.slice(a,b);
  const pause=code.slice(code.indexOf(edition?'let resumeMode =':'function pause(on)'),code.indexOf("$('start').onclick",code.indexOf('function pause(on)')));
  const wiring=code.slice(code.indexOf("$('quit').onclick"),code.indexOf('// touch:',code.indexOf("$('quit').onclick")));

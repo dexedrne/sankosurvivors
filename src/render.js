@@ -1605,6 +1605,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (k === 'q' || k === 'e') rotKeys[k] = false; });
   window.addEventListener('wheel', (e) => { if (e.target === canvas || e.target === document.body || e.target.id === 'fx' || e.target.id === 'hud') { cam.zoomT = Math.max(0.5, Math.min(2.2, cam.zoomT * Math.exp(e.deltaY * 0.0012))); e.preventDefault(); } }, { passive: false });
   window.addEventListener('keydown', (e) => { if (e.key === '+' || e.key === '=') cam.zoomT = Math.max(0.5, cam.zoomT / 1.15); if (e.key === '-' || e.key === '_') cam.zoomT = Math.min(2.2, cam.zoomT * 1.15); });
+  function zoomBy(factor) {
+    cam.zoomT = Math.max(0.5, Math.min(2.2, cam.zoomT * factor));
+  }
   // two-finger pinch zooms on touch screens
   const pinch = { d: 0 };
   const touchDist = (e) => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -2273,7 +2276,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     spTick = -1; spellTime = 0;
     cam.x = curMap.cx; cam.z = curMap.cz;
   }
-  return { hop: () => { hopReq = true; }, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v, previewY = null) { cam.shift = v; cam.previewY = previewY; if (previewY == null) camera.clearViewOffset(); }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
+  return { hop: () => { hopReq = true; }, zoomBy, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v, previewY = null) { cam.shift = v; cam.previewY = previewY; if (previewY == null) camera.clearViewOffset(); }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
     preloadGear, setPet: petRenderer.set, petState: petRenderer.state, createPetPreview: canvas => createPetPreview({ canvas, ...petModels }),
     // QA hooks
     setAura(on) { dmtAura = !!on; },
