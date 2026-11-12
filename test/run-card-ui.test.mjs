@@ -38,3 +38,18 @@ test('unavailable PNG export is recoverable and a missing snapshot clears an old
 test('a stalled font download reaches a retry state instead of disabling export forever',async()=>{
  const f=fixture();f.context.document.fonts.ready=new Promise(()=>{});const pending=f.context.prepare(f.result);await f.load();assert.equal(f.timers.size,1,'font wait must have a deadline');for(const callback of [...f.timers.values()])callback();await pending;assert.equal(f.node('savecard').disabled,false);assert.equal(f.node('savecard').textContent,'Retry build card');assert.equal(f.timers.size,0);
 });
+
+test('copy writes the prepared PNG only after a click and confirms after clipboard resolution',async()=>{
+ const f=fixture(),writes=[];let complete;
+ f.context.ClipboardItem=class{constructor(data){this.data=data;}};
+ f.context.navigator.clipboard={write:items=>{writes.push(items);return new Promise(resolve=>{complete=resolve;});}};
+ const pending=f.context.prepare(f.result);assert.equal(f.node('copycard').disabled,true);await f.load();f.finish();await pending;assert.equal(writes.length,0);
+ assert.equal(f.node('copycard').disabled,false);assert.equal(typeof f.node('copycard').onclick,'function');const copied=f.node('copycard').onclick();assert.equal(writes.length,1);assert.equal(writes[0][0].data['image/png'],f.context.readyRunCard.blob);assert.doesNotMatch(f.node('cardstatus').textContent,/copied/i);complete();await copied;assert.match(f.node('cardstatus').textContent,/copied/i);
+});
+test('unsupported or denied image clipboard keeps Save available and never claims success',async()=>{
+ for(const supported of [false,true]){const f=fixture();f.context.ClipboardItem=class{constructor(data){this.data=data;}};if(supported)f.context.navigator.clipboard={write:async()=>{throw Error('NotAllowedError');}};
+ const pending=f.context.prepare(f.result);await f.load();f.finish();await pending;assert.equal(typeof f.node('copycard').onclick,'function');await f.node('copycard').onclick();assert.match(f.node('cardstatus').textContent,/save/i);assert.doesNotMatch(f.node('cardstatus').textContent,/copied/i);assert.equal(f.node('savecard').disabled,false);}
+});
+test('a stale clipboard completion cannot change the next run status',async()=>{
+ const f=fixture();let complete;f.context.ClipboardItem=class{};f.context.navigator.clipboard={write:()=>new Promise(resolve=>{complete=resolve;})};const pending=f.context.prepare(f.result);await f.load();f.finish();await pending;assert.equal(typeof f.node('copycard').onclick,'function');const copied=f.node('copycard').onclick();f.context.lastRun={map:'apache'};f.node('cardstatus').textContent='Next run';complete();await copied;assert.equal(f.node('cardstatus').textContent,'Next run');
+});

@@ -1,5 +1,12 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Build cards at a glance": "Bir bakışta yapı kartları",
+  "Copy your final build as an image to paste into a post. Larger item icons, level tracks and labelled results make build cards easier to read. Save and Share remain available.": "Son yapını gönderine yapıştırmak için resim olarak kopyala. Daha büyük eşya simgeleri, seviye çubukları ve etiketli sonuçlar kartları daha okunaklı yapar. Kaydet ve Paylaş kullanılabilir.",
+  "Copy build card": "Yapı kartını kopyala",
+  "Build card copied. Paste it into your post.": "Yapı kartı kopyalandı. Gönderine yapıştır.",
+  "Image clipboard is unavailable. Save the build card to attach it instead.": "Resim panosu kullanılamıyor. Eklemek için yapı kartını kaydet.",
+  "Final stats": "Son istatistikler",
+
   "Lighter off-screen crowds": "Ekran dışındaki kalabalıklar daha hafif",
   "Crowded runs do less work for enemies outside the camera view. Visible animation and combat stay the same.": "Kalabalık koşularda kamera dışındaki düşmanlar daha az işlem gerektirir. Görünür animasyonlar ve savaş aynı kalır.",
   "Steadier co-op movement": "Daha dengeli eşli hareket",

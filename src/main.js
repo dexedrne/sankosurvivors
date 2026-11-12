@@ -1919,15 +1919,15 @@ function cardImage(path) {
 }
 function renderEndBuild(result) {
   const build = finishedBuilds.get(result);
-  if (!build) { ++cardGeneration; readyRunCard = null; $('savecard').disabled = true; $('sharecard').classList.add('hidden'); $('endbuildbody').textContent = 'Build details unavailable. Your run result is kept.'; $('cardstatus').textContent = ''; return; }
-  $('endbuildbody').innerHTML = build.sections.map(section => `<section class="runbuild-section"><h4>${esc(section.title)}</h4><div class="runbuild-items">${section.rows.length ? section.rows.map(row => `<div class="runbuild-item"><img src="${esc(asset(row.icon))}" alt=""><div><b>${esc(row.name)}</b><small>${row.details.map(esc).join(' · ')}</small></div></div>`).join('') : '<p class="dim">None</p>'}</div></section>`).join('') + `<div class="runbuild-stats">${build.stats.map(stat => `<div><small>${esc(stat.name)}</small><b>${stat.value.toLocaleString()}${esc(stat.suffix)}</b></div>`).join('')}</div>`;
+  if (!build) { ++cardGeneration; readyRunCard = null; $('savecard').disabled = true; $('copycard').disabled = true; $('sharecard').classList.add('hidden'); $('endbuildbody').textContent = 'Build details unavailable. Your run result is kept.'; $('cardstatus').textContent = ''; return; }
+  $('endbuildbody').innerHTML = build.sections.map(section => `<section class="runbuild-section"><h4>${esc(section.title)}</h4><div class="runbuild-items">${section.rows.length ? section.rows.map(row => `<div class="runbuild-item${row.evolved ? ' evolved' : ''}"><img src="${esc(asset(row.icon))}" alt=""><div><b>${esc(row.name)}</b><small>${row.details.map(esc).join(' · ')}</small>${row.maxLevel ? `<span class="runbuild-level" aria-hidden="true">${Array.from({length:row.maxLevel},(_,i)=>`<i${i<row.level?' class="filled"':''}></i>`).join('')}</span>` : ''}</div></div>`).join('') : '<p class="dim">None</p>'}</div></section>`).join('') + `<h4>Final stats</h4><div class="runbuild-stats">${build.stats.map(stat => `<div><small>${esc(stat.name)}</small><b>${stat.value.toLocaleString()}${esc(stat.suffix)}</b></div>`).join('')}</div>`;
   void prepareEndCard(result);
 }
 async function prepareEndCard(result) {
   const build = finishedBuilds.get(result); if (!build) return;
   const generation = ++cardGeneration, language = document.documentElement.lang;
   const current = () => generation === cardGeneration && lastRun === result && mode === 'end' && language === document.documentElement.lang;
-  readyRunCard = null; $('savecard').disabled = true; $('savecard').textContent = 'Save build card'; $('sharecard').classList.add('hidden'); $('cardstatus').textContent = 'Preparing build card…';
+  readyRunCard = null; $('copycard').disabled = true; $('savecard').disabled = true; $('savecard').textContent = 'Save build card'; $('sharecard').classList.add('hidden'); $('cardstatus').textContent = 'Preparing build card…';
   try {
     const paths = [...new Set(['ui/sq/frame.png', ...build.sections.flatMap(section => section.rows.map(row => row.icon))])];
     const images = await Promise.all(paths.map(async path => [path, await cardImage(path)]));
@@ -1941,7 +1941,7 @@ async function prepareEndCard(result) {
     if (!current()) return;
     if (!blob) throw Error('Image export unavailable');
     const filename = `SankoSurvivors-${String(result.map).replace(/[^a-z0-9_-]/gi, '')}-${build.t}s.png`, file = new File([blob], filename, { type: 'image/png' });
-    readyRunCard = { result, blob, file }; $('savecard').disabled = false; $('cardstatus').textContent = 'Save the image to attach it to your post.';
+    readyRunCard = { result, blob, file }; $('savecard').disabled = $('copycard').disabled = false; $('cardstatus').textContent = 'Save the image to attach it to your post.';
     let share = false; try { share = !!navigator.canShare?.({ files: [file] }); } catch { /* download remains available */ }
     $('sharecard').classList.toggle('hidden', !share);
   } catch {
@@ -1953,6 +1953,18 @@ $('savecard').onclick = () => {
   if (mode !== 'end' || !lastRun) return;
   if (readyRunCard?.result !== lastRun) { void prepareEndCard(lastRun); return; }
   const link = document.createElement('a'), url = URL.createObjectURL(readyRunCard.blob); link.href = url; link.download = readyRunCard.file.name; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+};
+$('copycard').onclick = async () => {
+  if (mode !== 'end' || readyRunCard?.result !== lastRun) return;
+  const card = readyRunCard, current = () => mode === 'end' && readyRunCard === card && lastRun === card.result;
+  $('copycard').disabled = true;
+  try {
+    // Start inside the click: awaiting image preparation would lose Safari's user activation.
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': card.blob })]);
+    if (current()) $('cardstatus').textContent = 'Build card copied. Paste it into your post.';
+  } catch {
+    if (current()) $('cardstatus').textContent = 'Image clipboard is unavailable. Save the build card to attach it instead.';
+  } finally { if (current()) $('copycard').disabled = false; }
 };
 $('sharecard').onclick = async () => {
   if (mode !== 'end' || readyRunCard?.result !== lastRun) return;

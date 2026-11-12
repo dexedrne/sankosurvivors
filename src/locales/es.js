@@ -1,5 +1,12 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Build cards at a glance": "Tu equipo de un vistazo",
+  "Copy your final build as an image to paste into a post. Larger item icons, level tracks and labelled results make build cards easier to read. Save and Share remain available.": "Copia tu equipo final como imagen para pegarla en una publicación. Los iconos más grandes, las barras de nivel y los resultados con etiquetas facilitan la lectura. Guardar y Compartir siguen disponibles.",
+  "Copy build card": "Copiar tarjeta",
+  "Build card copied. Paste it into your post.": "Tarjeta copiada. Pégala en tu publicación.",
+  "Image clipboard is unavailable. Save the build card to attach it instead.": "El portapapeles de imágenes no está disponible. Guarda la tarjeta para adjuntarla.",
+  "Final stats": "Estadísticas finales",
+
   "Lighter off-screen crowds": "Menos carga fuera de cámara",
   "Crowded runs do less work for enemies outside the camera view. Visible animation and combat stay the same.": "En las partidas con muchos enemigos, los que están fuera de cámara requieren menos trabajo. La animación visible y el combate siguen igual.",
   "Steadier co-op movement": "Movimiento cooperativo más estable",

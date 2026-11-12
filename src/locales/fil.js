@@ -1,5 +1,12 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Build cards at a glance": "Build card sa isang tingin",
+  "Copy your final build as an image to paste into a post. Larger item icons, level tracks and labelled results make build cards easier to read. Save and Share remain available.": "Kopyahin ang huling build bilang larawan para i-paste sa post. Mas malalaking item icon, level bar at may label na resulta para mas madaling basahin. May Save at Share pa rin.",
+  "Copy build card": "Kopyahin ang build card",
+  "Build card copied. Paste it into your post.": "Nakopya ang build card. I-paste ito sa post mo.",
+  "Image clipboard is unavailable. Save the build card to attach it instead.": "Hindi magamit ang clipboard para sa larawan. I-save ang build card para ilakip.",
+  "Final stats": "Huling stats",
+
   "Lighter off-screen crowds": "Mas magaang mga kalaban sa labas ng tanaw",
   "Crowded runs do less work for enemies outside the camera view. Visible animation and combat stay the same.": "Sa mataong runs, mas kaunti ang trabaho para sa mga kalaban sa labas ng tanaw ng camera. Pareho pa rin ang nakikitang animation at labanan.",
   "Steadier co-op movement": "Mas matatag na galaw sa co-op",

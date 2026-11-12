@@ -22,3 +22,8 @@ test('evolved weapons retain actual equipped metals and every bow retains its ar
  p.evo.bow=false;assert(captureRunBuild(s,p).sections[0].rows[1].details.includes('Adamantite Arrow'));
 });
 test('final stat rows include every player stat and preserve critical percentages',()=>{const s=createSim({pace:2}),p=s.players[0],stats=playerStats(p),rows=captureRunBuild(s,p).stats;assert.deepEqual(rows.map(r=>r.id).sort(),Object.keys(stats).sort());assert.equal(rows.find(r=>r.id==='critC').value,8);assert.equal(rows.find(r=>r.id==='critC').suffix,'%');});
+
+test('visual level indicators capture actual base level and evolution independently of quality',()=>{
+ const s=createSim({pace:2}),p=s.players[0];p.weapons={katana:6};p.evo={katana:true};p.quality.weapons.katana=125;p.passives={haste:3};
+ const b=captureRunBuild(s,p),weapon=b.sections[0].rows[0],passive=b.sections[1].rows[0];assert.equal(weapon.level,6);assert.equal(weapon.maxLevel,6);assert.equal(weapon.evolved,true);assert.equal(passive.level,3);assert.equal(passive.maxLevel,5);assert.equal(passive.evolved,false);
+});
