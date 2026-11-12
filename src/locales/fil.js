@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Ironworking": "Paggawa gamit ang bakal",
+  "Grand Theft Sanko: mine iron rocks, smelt Iron Bars and forge an Iron Helmet. Bronze Bars can also become spare Bronze Pickaxes. Workshops show their recipes and materials. Armour stays cosmetic; inventory saves on this device.": "Grand Theft Sanko: magmina ng bakal, gumawa ng Iron Bar at magpanday ng Iron Helmet. Puwede ring gawing ekstrang Bronze Pickaxe ang Bronze Bar. Ipinapakita ng mga pagawaan ang recipe at mga materyales. Panghitsura ang baluti; sa device na ito nai-save ang imbentaryo.",
   "Reliable mining recovery": "Maayos na pagbabalik ng minahan",
   "Grand Theft Sanko: rocks recover for eight seconds after ore is saved, including when another tab delays saving. Failed or cancelled mining still awards nothing.": "Grand Theft Sanko: bumabalik ang mga bato walong segundo matapos mai-save ang ore, kahit maantala ng ibang tab ang pag-save. Walang gantimpala ang nabigo o kinanselang pagmimina.",
   "Know your build": "Kilalanin ang build mo",

@@ -1,6 +1,6 @@
 {
-  "commit": "25c5b8a82d4cebd5ea4c6cf69c8a96f0067afb56",
-  "implementation": "25c5b8a82d4cebd5ea4c6cf69c8a96f0067afb56",
+  "commit": "45c06f1fee9e7ab5d2379fa5529aa2c7229cec4f",
+  "implementation": "45c06f1fee9e7ab5d2379fa5529aa2c7229cec4f",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2943,9 +2943,9 @@
       "role": "stylesheet"
     },
     {
-      "path": "assets/index-igrYHRhF.js",
-      "bytes": 1738308,
-      "sha256": "26a121e1f3979f26d903536988f9fc5f6f972964a1aa8ad86470f70511e30a41",
+      "path": "assets/index-ciGxA69J.js",
+      "bytes": 1739232,
+      "sha256": "b61a1363e31af3bf786e8f1291bfe131e56226b8afcfbfc5f9fe4250e9359c12",
       "role": "client"
     },
     {
@@ -3255,9 +3255,21 @@
       "role": "shared"
     },
     {
+      "path": "assets/ui/items/item_Iron_Bar.png",
+      "bytes": 6190,
+      "sha256": "b652feb4f2c8c49a04af3a42fe4e9c9f80488e5aee51647931a13909968f9be7",
+      "role": "shared"
+    },
+    {
       "path": "assets/ui/items/item_Iron_Helmet.png",
       "bytes": 15600,
       "sha256": "87f432de5eea1aa89e02f245f51147518f00c832de2948612723a1b040dc5f6c",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Iron_Ore.png",
+      "bytes": 7791,
+      "sha256": "b8ab8471548d25ec88ebfc6779e3da27437777fc546799cbb23de304d26e727b",
       "role": "shared"
     },
     {
@@ -4823,7 +4835,7 @@
     {
       "path": "index.html",
       "bytes": 13018,
-      "sha256": "2e87db1a9a868bc150ffd0ef7fde6cef52d69e22131830f20a23a8b6295c08e1",
+      "sha256": "9b5e08ed6fee4fdc491d7a56fcb68983b46c35747377c4a8aab90de3a3c9a52f",
       "role": "entry"
     }
   ],

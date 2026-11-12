@@ -3,14 +3,14 @@
     {
       "path": "/racers/index.html",
       "bytes": 14703,
-      "sha256": "6de25aa0a10b279cacafa0a9e672c8e496404faa924e6376317da2c849766a3e"
+      "sha256": "b0b819d7920c7b4ac9e887b6b2508acb6f75a6d4106f9056e1c635cc67d1c9d1"
     }
   ],
   "source": {
-    "commit": "25c5b8a82d4cebd5ea4c6cf69c8a96f0067afb56",
-    "implementation": "25c5b8a82d4cebd5ea4c6cf69c8a96f0067afb56",
+    "commit": "45c06f1fee9e7ab5d2379fa5529aa2c7229cec4f",
+    "implementation": "45c06f1fee9e7ab5d2379fa5529aa2c7229cec4f",
     "rulesVersion": "09158d4b45e8",
-    "clientSha256": "26a121e1f3979f26d903536988f9fc5f6f972964a1aa8ad86470f70511e30a41"
+    "clientSha256": "b61a1363e31af3bf786e8f1291bfe131e56226b8afcfbfc5f9fe4250e9359c12"
   },
   "adaptations": {
     "client": [
@@ -76,8 +76,8 @@
         "after": "<title>Grand Theft Sanko · SankoQuest World</title><meta name=\"description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Grand Theft Sanko\"><meta property=\"og:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta property=\"og:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:url\" content=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><link rel=\"canonical\" href=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image:secure_url\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta name=\"twitter:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta name=\"twitter:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\">"
       },
       {
-        "before": "/assets/index-igrYHRhF.js",
-        "after": "./racers-bb5b04cb21d0dcfc.js"
+        "before": "/assets/index-ciGxA69J.js",
+        "after": "./racers-dd0de647001d029e.js"
       },
       {
         "before": "/assets/index-DP2ggugk.css",
@@ -94,12 +94,12 @@
     {
       "path": "/fun/racers/index.html",
       "bytes": 14673,
-      "sha256": "474cbec9c0a720acc23db36cf6af9f862bf718cd663a67f95bce22e2c70e38df"
+      "sha256": "131153fca406d2ee2e6d72d49a8b6d55351a9ad183898eb710b01f37b44c0626"
     },
     {
-      "path": "/fun/racers/racers-bb5b04cb21d0dcfc.js",
-      "bytes": 1738441,
-      "sha256": "bb5b04cb21d0dcfc70c54d60e166879c1b9dddeff5ce255bdc3b3a63a396b16b"
+      "path": "/fun/racers/racers-dd0de647001d029e.js",
+      "bytes": 1739365,
+      "sha256": "dd0de647001d029e4bf068a07bed994b4f11b630c954edc91152f14779afb2ef"
     },
     {
       "path": "/fun/racers/racers-674517027e31c883.css",
@@ -119,7 +119,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 3264,
-      "sha256": "0f5f540865a03beecdd651b27472c1af83046d3a8e90a3447a290701d38bb45e"
+      "sha256": "5bcb5827ab10a2d7c50b0df5195863f04cb068dbdc21feb6305d5c7b4aee50d9"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -2859,9 +2859,19 @@
       "sha256": "42b95473a31d0e4b3247dc7c2cdd9edce622023e7777c679ef2ffd7bd9af2567"
     },
     {
+      "path": "/assets/ui/items/item_Iron_Bar.png",
+      "bytes": 6190,
+      "sha256": "b652feb4f2c8c49a04af3a42fe4e9c9f80488e5aee51647931a13909968f9be7"
+    },
+    {
       "path": "/assets/ui/items/item_Iron_Helmet.png",
       "bytes": 15600,
       "sha256": "87f432de5eea1aa89e02f245f51147518f00c832de2948612723a1b040dc5f6c"
+    },
+    {
+      "path": "/assets/ui/items/item_Iron_Ore.png",
+      "bytes": 7791,
+      "sha256": "b8ab8471548d25ec88ebfc6779e3da27437777fc546799cbb23de304d26e727b"
     },
     {
       "path": "/assets/ui/items/item_Tin_Ore.png",

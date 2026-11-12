@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ironworking": "Trabajo del hierro",
+  "Grand Theft Sanko: mine iron rocks, smelt Iron Bars and forge an Iron Helmet. Bronze Bars can also become spare Bronze Pickaxes. Workshops show their recipes and materials. Armour stays cosmetic; inventory saves on this device.": "Grand Theft Sanko: extrae hierro, funde lingotes y forja un casco de hierro. Los lingotes de bronce también sirven para fabricar picos de repuesto. Los talleres muestran sus recetas y materiales. La armadura es cosmética; el inventario se guarda en este dispositivo.",
   "Reliable mining recovery": "Recuperación fiable de minerales",
   "Grand Theft Sanko: rocks recover for eight seconds after ore is saved, including when another tab delays saving. Failed or cancelled mining still awards nothing.": "Grand Theft Sanko: las rocas se recuperan ocho segundos después de guardar el mineral, incluso si otra pestaña retrasa el guardado. La minería fallida o cancelada sigue sin dar recompensas.",
   "Know your build": "Conoce tu equipo",
