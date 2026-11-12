@@ -15,7 +15,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
  if(!keys(identity,['protocol','build','sim'])||!cleanRoomSettings({...identity,map:'greentown',hard:false,endless:false})||typeof load!=='function')throw Error('Invalid co-op identity or loader');
  identity={...identity};
  let socket=null,generation=0,hello=false,stopped=false,intent=null,room=null,session=null,game=null,run=null,loading=false,recovering=false,request=null;
- let retryTimer=null,handshakeTimer=null,recoveryTimer=null,tick=null,lastProgress=0,lastTick=0,carry=0,stallGrace=false;
+ let retryTimer=null,handshakeTimer=null,recoveryTimer=null,tick=null,worker=null,lastProgress=0,lastTick=0,carry=0,stallGrace=false;
  const status=value=>{if(!stopped)onStatus(value);};
  function send(value){
   if(stopped||!socket||socket.readyState!==1||!hello)return false;
@@ -23,8 +23,19 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
   try{socket.send(JSON.stringify(value));return true;}catch{finish('connectionLost');return false;}
  }
  function neutral(){run?.resetInput();}
+ function stopTick(){clearInterval(tick);tick=null;if(worker){worker.onmessage=worker.onerror=null;worker.terminate();worker=null;}}
+ function startTick(callback){
+  if(stopped)return;
+  const fallback=()=>{stopTick();tick=setInterval(callback,1000/COOP_HZ);tick?.unref?.();};
+  try{
+   const current=worker=new Worker(new URL('./coop-ticker-worker.js',import.meta.url),{type:'module'});
+   current.onmessage=()=>{if(worker===current&&!stopped)callback();};
+   current.onerror=event=>{event.preventDefault?.();if(worker===current&&!stopped)fallback();};
+   current.postMessage(1000/COOP_HZ);
+  }catch{fallback();}
+ }
  function finish(reason){
-  if(stopped)return;stopped=true;clearTimeout(retryTimer);clearTimeout(handshakeTimer);clearTimeout(recoveryTimer);clearInterval(tick);
+  if(stopped)return;stopped=true;clearTimeout(retryTimer);clearTimeout(handshakeTimer);clearTimeout(recoveryTimer);stopTick();
   events.removeEventListener?.('blur',neutral,true);events.removeEventListener?.('visibilitychange',neutral,true);
   if(socket?.readyState===1)try{socket.send(JSON.stringify(run?.host&&reason==='complete'?{t:'end',epoch:game.epoch}:{t:'leave'}));}catch{}
   generation++;socket?.close();socket=null;session=null;intent=null;run?.close(reason);onEnd(reason,run);
@@ -46,7 +57,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
    run=createCoopRun({start:game,localId:session.you,ground,send,onEnd:finish});loading=false;
    onRun(run,structuredClone(game),session.you);if(stopped)return;
    send({t:'loaded',epoch:game.epoch,frame:0});lastProgress=performance.now();lastTick=performance.now();
-   tick=setInterval(()=>{
+   startTick(()=>{
     const now=performance.now(),elapsed=now-lastTick;lastTick=now;
     if(stopped||!run||run.held){carry=0;return;}
     try{if(run.host){
@@ -56,7 +67,7 @@ export function createCoopClient({url,identity,load,onRoom=()=>{},onRun=()=>{},o
     }else{run.flushInput();
      // A resumed timer can precede queued socket events; grant grace once per real progress.
      if(elapsed>1000&&!stallGrace){lastProgress=now;stallGrace=true;}if(now-lastProgress>15000)finish('hostStalled');}}catch{finish('invalidState');}
-   },1000/COOP_HZ);tick.unref?.();
+   });
   }catch{finish('loadFailed');}
  }
  function message(text,current){

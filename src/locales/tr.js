@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Steadier co-op timing": "Daha kararlı eşli oyun zamanlaması",
+  "Improved co-op timing when the host's game is behind another window. A sleeping or suspended device can still interrupt play.": "Ev sahibinin oyunu başka bir pencerenin arkasındayken eşli oyun zamanlaması iyileştirildi. Uykuya geçen veya askıya alınan bir cihaz oyunu hâlâ kesintiye uğratabilir.",
   "Ranked food safety": "Sıralamalı yiyecek güvencesi",
   "From ranked week 2, food stacks hold up to five portions per type. Stored food is eaten automatically before a fatal hit when it can save you. Earlier ranked weeks and casual runs keep their existing rules.": "Sıralamalı 2. haftadan itibaren yiyecekler tür başına beş porsiyona kadar birikir. Saklanan yiyecek seni kurtarabiliyorsa ölümcül darbeden önce otomatik yenir. Önceki sıralamalı haftalar ve normal koşular mevcut kurallarını korur.",
   "Food stacks hold up to 5 portions per type. Stored food is automatically eaten before a fatal hit if enough food can save you. Extra pickups are eaten immediately.": "Yiyecekler tür başına en fazla 5 porsiyon birikir. Yeterli yiyecek seni kurtarabiliyorsa ölümcül bir darbeden önce otomatik olarak yenir. Fazladan alınan yiyecekler hemen yenir.",

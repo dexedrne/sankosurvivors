@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Steadier co-op timing": "Ritmo cooperativo más estable",
+  "Improved co-op timing when the host's game is behind another window. A sleeping or suspended device can still interrupt play.": "Mejorado el ritmo cooperativo cuando otra ventana cubre la partida del anfitrión. Un dispositivo en reposo o suspendido aún puede interrumpir la partida.",
   "Ranked food safety": "Protección con comida en clasificación",
   "From ranked week 2, food stacks hold up to five portions per type. Stored food is eaten automatically before a fatal hit when it can save you. Earlier ranked weeks and casual runs keep their existing rules.": "A partir de la semana 2 de clasificación, la comida se acumula hasta cinco porciones por tipo. Se come automáticamente antes de un golpe mortal si puede salvarte. Las semanas anteriores y las partidas casuales conservan sus reglas.",
   "Food stacks hold up to 5 portions per type. Stored food is automatically eaten before a fatal hit if enough food can save you. Extra pickups are eaten immediately.": "La comida se acumula hasta 5 porciones por tipo. Se come automáticamente antes de un golpe mortal si hay suficiente para salvarte. Las recogidas adicionales se comen al instante.",

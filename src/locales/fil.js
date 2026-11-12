@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Steadier co-op timing": "Mas matatag na takbo ng co-op",
+  "Improved co-op timing when the host's game is behind another window. A sleeping or suspended device can still interrupt play.": "Pinahusay ang takbo ng co-op kapag natatakpan ng ibang window ang laro ng host. Maaari pa ring maputol ang laro kapag natulog o nasuspinde ang device.",
   "Ranked food safety": "Kaligtasan gamit ang pagkain sa ranked",
   "From ranked week 2, food stacks hold up to five portions per type. Stored food is eaten automatically before a fatal hit when it can save you. Earlier ranked weeks and casual runs keep their existing rules.": "Mula ranked week 2, hanggang limang bahagi bawat uri ng pagkain ang puwedeng itabi. Awtomatikong kakain bago ang nakamamatay na tama kung maililigtas ka nito. Pareho pa rin ang mga patakaran sa mas naunang ranked weeks at casual runs.",
   "Food stacks hold up to 5 portions per type. Stored food is automatically eaten before a fatal hit if enough food can save you. Extra pickups are eaten immediately.": "Hanggang 5 bahagi bawat uri ng pagkain ang puwedeng itabi. Awtomatikong kakain bago ang nakamamatay na tama kung sapat ang pagkain para mailigtas ka. Kakainin agad ang sobrang mapupulot.",
