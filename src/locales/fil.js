@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "A steadier town camera": "Mas matatag na camera sa bayan",
+  "Grand Theft Sanko: the camera clears low scenery near your character and checks for walls again when it moves closer or eases back out.": "Grand Theft Sanko: iniiwasan ng camera ang mababang bagay malapit sa karakter at muling sinusuri ang mga pader kapag lumalapit o unti-unting lumalayo.",
   "Stopping lost co-op movement": "Paghinto kapag nawawala ang co-op controls",
   "Co-op guests stop moving if their controls stop reaching the host for over a second. Movement resumes when fresh controls arrive, including when other connection messages still get through.": "Hihinto ang co-op guest kapag mahigit isang segundong hindi nakararating sa host ang controls niya. Magpapatuloy ang galaw kapag dumating ang bagong controls, kahit patuloy na nakararating ang ibang mensahe ng koneksyon.",
   "Steadier co-op timeouts": "Mas maaasahang timeout sa co-op",

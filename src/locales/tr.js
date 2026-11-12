@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A steadier town camera": "Kasabada daha dengeli kamera",
+  "Grand Theft Sanko: the camera clears low scenery near your character and checks for walls again when it moves closer or eases back out.": "Grand Theft Sanko: kamera, karakterinin yakınındaki alçak nesnelerden kaçınır; yaklaştığında veya yavaşça uzaklaştığında duvarları yeniden kontrol eder.",
   "Stopping lost co-op movement": "Kaybolan eşli oyun hareketini durdurma",
   "Co-op guests stop moving if their controls stop reaching the host for over a second. Movement resumes when fresh controls arrive, including when other connection messages still get through.": "Eşli oyunda konukların kontrolleri bir saniyeden uzun süre ev sahibine ulaşmazsa hareketleri durur. Diğer bağlantı mesajları ulaşmaya devam etse bile yeni kontroller geldiğinde hareket yeniden başlar.",
   "Steadier co-op timeouts": "Daha tutarlı eşli oyun zaman aşımı",

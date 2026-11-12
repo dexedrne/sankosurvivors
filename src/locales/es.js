@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A steadier town camera": "Una cámara más estable en la ciudad",
+  "Grand Theft Sanko: the camera clears low scenery near your character and checks for walls again when it moves closer or eases back out.": "Grand Theft Sanko: la cámara evita los objetos bajos cerca de tu personaje y vuelve a comprobar las paredes al acercarse o alejarse suavemente.",
   "Stopping lost co-op movement": "Detener movimientos cooperativos perdidos",
   "Co-op guests stop moving if their controls stop reaching the host for over a second. Movement resumes when fresh controls arrive, including when other connection messages still get through.": "Los invitados del modo cooperativo dejan de moverse si sus controles no llegan al anfitrión durante más de un segundo. El movimiento se reanuda cuando llegan controles nuevos, aunque otros mensajes de conexión sigan pasando.",
   "Steadier co-op timeouts": "Tiempos de espera cooperativos más estables",
