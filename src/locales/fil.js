@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Make your way in the world": "Gumawa ng sarili mong landas",
+  "Grand Theft Sanko: mine ore, smelt bronze, forge a sword, bank supplies and trade with townspeople. Open Backpack to equip gear; nearby players see your helmet, robe and sword. Inventory saves on this device.": "Grand Theft Sanko: magmina, magtunaw ng bronze, gumawa ng espada, mag-imbak sa bangko at makipagkalakalan sa mga taga-bayan. Buksan ang Backpack para magsuot ng gear; makikita ng kalapit na manlalaro ang helmet, robe at espada mo. Sa device na ito nase-save ang inventory.",
   "Clearer prize estimates": "Mas malinaw na tantiya sa premyo",
   "Ranked estimated prizes show two decimal places. The actual reward calculation keeps its full precision.": "Dalawang decimal na ang ipinapakita sa tantiyang premyo sa ranked. Buo pa rin ang precision ng aktuwal na pagkalkula ng reward.",
 

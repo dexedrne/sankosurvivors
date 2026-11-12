@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Make your way in the world": "Dünyada kendi yolunu çiz",
+  "Grand Theft Sanko: mine ore, smelt bronze, forge a sword, bank supplies and trade with townspeople. Open Backpack to equip gear; nearby players see your helmet, robe and sword. Inventory saves on this device.": "Grand Theft Sanko: cevher kaz, bronz erit, kılıç döv, malzemeleri bankaya koy ve kasabalılarla ticaret yap. Ekipman takmak için Sırt Çantası’nı aç; yakındaki oyuncular miğferini, cübbeni ve kılıcını görür. Envanter bu cihazda kaydedilir.",
   "Clearer prize estimates": "Daha net ödül tahminleri",
   "Ranked estimated prizes show two decimal places. The actual reward calculation keeps its full precision.": "Sıralamalı ödül tahminleri iki ondalık basamak gösterir. Gerçek ödül hesabı tam hassasiyetini korur.",
 

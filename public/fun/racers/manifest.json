@@ -2,15 +2,15 @@
   "aliases": [
     {
       "path": "/racers/index.html",
-      "bytes": 14379,
-      "sha256": "8dbd221ec96638ccf341c9cda6293ae355c4518b22949cebbcdc2e56f1d0d9d3"
+      "bytes": 14703,
+      "sha256": "38d21661d1eaef208ace4b8b2c21822b8fd4751aba5f4f45557ed6d964099cc9"
     }
   ],
   "source": {
-    "commit": "aeedd91d225e432a6806395e2591e1bd4cc6ae76",
-    "implementation": "aeedd91d225e432a6806395e2591e1bd4cc6ae76",
-    "rulesVersion": "66468502cefa",
-    "clientSha256": "94d6e831307d4825f5e17f985d2926fa86e9c1253be23c710ed4867eea229e2c"
+    "commit": "6ed18e13dced1300b0c292b3da48efb89e40b151",
+    "implementation": "6ed18e13dced1300b0c292b3da48efb89e40b151",
+    "rulesVersion": "09158d4b45e8",
+    "clientSha256": "d299cff4d0ee1f61b09eebf162dce7d5319ce2cf784f034e83ea0cdd99e66ed3"
   },
   "adaptations": {
     "client": [
@@ -76,12 +76,12 @@
         "after": "<title>Grand Theft Sanko · SankoQuest World</title><meta name=\"description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Grand Theft Sanko\"><meta property=\"og:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta property=\"og:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:url\" content=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><link rel=\"canonical\" href=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image:secure_url\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta name=\"twitter:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta name=\"twitter:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\">"
       },
       {
-        "before": "/assets/index-DD48PXAg.js",
-        "after": "./racers-137b11a3aa9cfd67.js"
+        "before": "/assets/index-Cd2Ao1Kf.js",
+        "after": "./racers-0234c8a7fc2db929.js"
       },
       {
-        "before": "/assets/index-CMs61cLC.css",
-        "after": "./racers-d8b0ebeb5fb097b1.css"
+        "before": "/assets/index-DP2ggugk.css",
+        "after": "./racers-674517027e31c883.css"
       },
       {
         "before": "<div id=\"return-slot\"></div>",
@@ -93,18 +93,18 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 14349,
-      "sha256": "5ad9134cfc0f60ee73a09af77de5a3993a2a4cb29e3d9482c0ad32274c19ecc3"
+      "bytes": 14673,
+      "sha256": "4ca4b05a502c1b9753691a21163465257182cfcf9742a921c02774e8fba106de"
     },
     {
-      "path": "/fun/racers/racers-137b11a3aa9cfd67.js",
-      "bytes": 1722416,
-      "sha256": "137b11a3aa9cfd67b1a3394bf75aea849dc680f1a98c27c5816980aaa5687dcc"
+      "path": "/fun/racers/racers-0234c8a7fc2db929.js",
+      "bytes": 1738182,
+      "sha256": "0234c8a7fc2db929ca3f09280b8bb6e483d58dbac694fc1f1b6f62daaea518fd"
     },
     {
-      "path": "/fun/racers/racers-d8b0ebeb5fb097b1.css",
-      "bytes": 30771,
-      "sha256": "d8b0ebeb5fb097b194bce10d1560c8a1d0aa3cb418f12b1f69f9497819c72c93"
+      "path": "/fun/racers/racers-674517027e31c883.css",
+      "bytes": 32883,
+      "sha256": "674517027e31c883604814fb2a84a81df4234ee7d83c523ec3200c6d36594362"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -119,7 +119,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 3264,
-      "sha256": "04c4142f750b293da661af7ba7eab658a4b270b027a1a1641810da898ca31877"
+      "sha256": "9f7e8f513bf43ac81dccea6ab8e3f8c2985da629b04fa1b5372c70f55f8d3416"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -2699,6 +2699,16 @@
       "sha256": "704a161e303dac0aa94e168df256ed7ab71fd48f9737aa5357bd40bf1a62050f"
     },
     {
+      "path": "/assets/models/equipment/equipment/pickaxe/bronze_pickaxe.glb",
+      "bytes": 3324,
+      "sha256": "712199fe4a3f407f2bc681348e7020e8172369eb6119f96b5fb0673cf918801f"
+    },
+    {
+      "path": "/assets/models/equipment/weapons/blade/shortsword/bronze_shortsword.glb",
+      "bytes": 4276,
+      "sha256": "093231d0ccef4e2ce04ef9d4fcfd9fff01d465154453e4a1959244b383b3dfbc"
+    },
+    {
       "path": "/assets/models/playerCharacter/Arms/Nude.glb",
       "bytes": 25752,
       "sha256": "90f16e5735476a9599853c587a26a50536828a45e24514dafa03a4db6c00334d"
@@ -2827,6 +2837,46 @@
       "path": "/assets/sound/soundEffects/poppop.mp3",
       "bytes": 100927,
       "sha256": "4d3a42bbc1c32a06e0e3a6742c7f8110f40adbbcb7a39bcad9f3f09e0c769caa"
+    },
+    {
+      "path": "/assets/ui/items/item_Bronze_Bar.png",
+      "bytes": 2948,
+      "sha256": "74f65629d666d2fc4f20f01b197e973637d290d7a9fbfb69c492435d8f304425"
+    },
+    {
+      "path": "/assets/ui/items/item_Bronze_Pickaxe.png",
+      "bytes": 6932,
+      "sha256": "c8af4bb512a0ab142e1efe32b10c1504c7aef0a50f07ed558f9b1520bf758977"
+    },
+    {
+      "path": "/assets/ui/items/item_Bronze_Sword.png",
+      "bytes": 4205,
+      "sha256": "17239fde2055ddc0516ed15d17b352b68f46a630b9ca350c96d57c0aee6c1aff"
+    },
+    {
+      "path": "/assets/ui/items/item_Copper_Ore.png",
+      "bytes": 3231,
+      "sha256": "42b95473a31d0e4b3247dc7c2cdd9edce622023e7777c679ef2ffd7bd9af2567"
+    },
+    {
+      "path": "/assets/ui/items/item_Iron_Helmet.png",
+      "bytes": 15600,
+      "sha256": "87f432de5eea1aa89e02f245f51147518f00c832de2948612723a1b040dc5f6c"
+    },
+    {
+      "path": "/assets/ui/items/item_Tin_Ore.png",
+      "bytes": 7554,
+      "sha256": "23644b762db21aa03aab59ae26804c911ac9c921da85d272215ee7bfd6f21a9b"
+    },
+    {
+      "path": "/assets/ui/items/item_Tin_of_Beer.png",
+      "bytes": 18141,
+      "sha256": "71462deaf8c4ed1410675bead883666785ad9c1216216f069900e6ec8a09d211"
+    },
+    {
+      "path": "/assets/ui/items/item_Wizard_Robe.png",
+      "bytes": 11500,
+      "sha256": "a1b03d4d5f02f35b66accefde7ce0360b146eceb9007385441d3daf9c5d3e1ef"
     },
     {
       "path": "/assets/ui/sq/accept_button.png",

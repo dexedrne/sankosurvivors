@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Make your way in the world": "Ábrete camino por el mundo",
+  "Grand Theft Sanko: mine ore, smelt bronze, forge a sword, bank supplies and trade with townspeople. Open Backpack to equip gear; nearby players see your helmet, robe and sword. Inventory saves on this device.": "Grand Theft Sanko: extrae mineral, funde bronce, forja una espada, guarda suministros en el banco y comercia con los habitantes. Abre Mochila para equiparte; los jugadores cercanos ven tu casco, túnica y espada. El inventario se guarda en este dispositivo.",
   "Clearer prize estimates": "Estimaciones de premios más claras",
   "Ranked estimated prizes show two decimal places. The actual reward calculation keeps its full precision.": "Los premios estimados de clasificación muestran dos decimales. El cálculo real de recompensas mantiene toda su precisión.",
 

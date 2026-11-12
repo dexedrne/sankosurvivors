@@ -1,6 +1,6 @@
 {
-  "commit": "aeedd91d225e432a6806395e2591e1bd4cc6ae76",
-  "implementation": "aeedd91d225e432a6806395e2591e1bd4cc6ae76",
+  "commit": "6ed18e13dced1300b0c292b3da48efb89e40b151",
+  "implementation": "6ed18e13dced1300b0c292b3da48efb89e40b151",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2937,16 +2937,16 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-CMs61cLC.css",
-      "bytes": 30655,
-      "sha256": "976e8e16c6627243cec49a82b19f56defa4f5923e4cb221c93b4164dd24197f7",
-      "role": "stylesheet"
+      "path": "assets/index-Cd2Ao1Kf.js",
+      "bytes": 1738049,
+      "sha256": "d299cff4d0ee1f61b09eebf162dce7d5319ce2cf784f034e83ea0cdd99e66ed3",
+      "role": "client"
     },
     {
-      "path": "assets/index-DD48PXAg.js",
-      "bytes": 1722283,
-      "sha256": "94d6e831307d4825f5e17f985d2926fa86e9c1253be23c710ed4867eea229e2c",
-      "role": "client"
+      "path": "assets/index-DP2ggugk.css",
+      "bytes": 32767,
+      "sha256": "f5bd644da2726acfe3809a41bbcf9aac2b563e71492acc9f48b8d013c7b78d49",
+      "role": "stylesheet"
     },
     {
       "path": "assets/inventory.json",
@@ -3055,6 +3055,18 @@
       "bytes": 751,
       "sha256": "d1d1d31026643e85a978c50f499b921e46251b75882589854421d03b72580d68",
       "role": "unique"
+    },
+    {
+      "path": "assets/models/equipment/equipment/pickaxe/bronze_pickaxe.glb",
+      "bytes": 3324,
+      "sha256": "712199fe4a3f407f2bc681348e7020e8172369eb6119f96b5fb0673cf918801f",
+      "role": "shared"
+    },
+    {
+      "path": "assets/models/equipment/weapons/blade/shortsword/bronze_shortsword.glb",
+      "bytes": 4276,
+      "sha256": "093231d0ccef4e2ce04ef9d4fcfd9fff01d465154453e4a1959244b383b3dfbc",
+      "role": "shared"
     },
     {
       "path": "assets/models/playerCharacter/Arms/Nude.glb",
@@ -3216,6 +3228,54 @@
       "path": "assets/sound/soundEffects/poppop.mp3",
       "bytes": 100927,
       "sha256": "4d3a42bbc1c32a06e0e3a6742c7f8110f40adbbcb7a39bcad9f3f09e0c769caa",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Bronze_Bar.png",
+      "bytes": 2948,
+      "sha256": "74f65629d666d2fc4f20f01b197e973637d290d7a9fbfb69c492435d8f304425",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Bronze_Pickaxe.png",
+      "bytes": 6932,
+      "sha256": "c8af4bb512a0ab142e1efe32b10c1504c7aef0a50f07ed558f9b1520bf758977",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Bronze_Sword.png",
+      "bytes": 4205,
+      "sha256": "17239fde2055ddc0516ed15d17b352b68f46a630b9ca350c96d57c0aee6c1aff",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Copper_Ore.png",
+      "bytes": 3231,
+      "sha256": "42b95473a31d0e4b3247dc7c2cdd9edce622023e7777c679ef2ffd7bd9af2567",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Iron_Helmet.png",
+      "bytes": 15600,
+      "sha256": "87f432de5eea1aa89e02f245f51147518f00c832de2948612723a1b040dc5f6c",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Tin_Ore.png",
+      "bytes": 7554,
+      "sha256": "23644b762db21aa03aab59ae26804c911ac9c921da85d272215ee7bfd6f21a9b",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Tin_of_Beer.png",
+      "bytes": 18141,
+      "sha256": "71462deaf8c4ed1410675bead883666785ad9c1216216f069900e6ec8a09d211",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Wizard_Robe.png",
+      "bytes": 11500,
+      "sha256": "a1b03d4d5f02f35b66accefde7ce0360b146eceb9007385441d3daf9c5d3e1ef",
       "role": "shared"
     },
     {
@@ -4762,8 +4822,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 12694,
-      "sha256": "48d77a448793a11a0dbd408680bd65ac54d8b8167f6d39c0909c6ed38da11660",
+      "bytes": 13018,
+      "sha256": "da512311bfee166bcbcc1e3a774947f53fd1eb2e865ef828cb751aac19af23e6",
       "role": "entry"
     }
   ],
@@ -4772,5 +4832,5 @@
     "bytes": 669454,
     "sha256": "f802a64a319badc7950199713c322e3848783a6563eb3a680f1393a422876cc8"
   },
-  "rulesVersion": "66468502cefa"
+  "rulesVersion": "09158d4b45e8"
 }
