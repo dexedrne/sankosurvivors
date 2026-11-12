@@ -3,9 +3,9 @@ import {createCoopRun} from '../src/coop-run.js';
 import {snapshot} from '../src/sim.js';
 import{readFileSync}from'node:fs';import{unpackGround,groundHash}from'../src/ground-pack.js';
 const start=()=>({protocol:1,epoch:'00112233445566778899aabbccddeeff',build:'test-local',sim:'e2c1419b0907',ground:'0',seed:711,map:'greentown',hard:false,endless:false,players:['p1','p2'].map(id=>({id,loadout:{name:id,adv:'adventurer',meta:{},gear:{},gearLv:{},cleared:[]}}))});
-function pair(settings={}){
- const down=[],up=[],ended=[];const host=createCoopRun({start:{...start(),...settings},localId:'p1',ground:null,send:m=>down.push(m),onEnd:reason=>ended.push(['host',reason])});
- const guest=createCoopRun({start:{...start(),...settings},localId:'p2',ground:null,send:m=>up.push(m),onEnd:reason=>ended.push(['guest',reason])});
+function pair(settings={},now=()=>performance.now()){
+ const down=[],up=[],ended=[];const host=createCoopRun({start:{...start(),...settings},localId:'p1',ground:null,now,send:m=>down.push(m),onEnd:reason=>ended.push(['host',reason])});
+ const guest=createCoopRun({start:{...start(),...settings},localId:'p2',ground:null,now,send:m=>up.push(m),onEnd:reason=>ended.push(['guest',reason])});
  for(const d of [host,guest]){const s=d.sim;s.spawnAcc=-1e9;s.bossIndex=99;s.eventT=s.shrineT=1e9;}
  host.begin(0);guest.begin(0);
  const deliver=()=>{while(up.length){const message=up.shift();if(message.t==='up')host.accept({hero:1,data:message.data});}while(down.length){const message=down.shift();if(message.t==='down')guest.accept(message.data);}};
@@ -125,4 +125,36 @@ test('co-op gold mining produces one reward and matching host/guest state throug
  assert.equal(p.host.sim.shrines.length,0);
  assert.equal(p.host.sim.pickups.filter(k=>k.kind==='coin').length+p.host.sim.players.reduce((sum,a)=>sum+a.coins,0),24);
  assert.deepEqual(p.ended,[]);
+});
+
+test('host stops stale remote movement when the guest stops refreshing input without disconnecting',()=>{
+ let time=0;const p=pair({},()=>time);assert(p.guest.input(1,0));p.deliver();const start=p.host.sim.players[1].x;let held;
+ for(let tick=1;tick<=300;tick++){time=tick*1000/30;p.tick(1);if(tick===60)held=p.host.sim.players[1].x;}
+ assert.equal(p.host.sim.players[1].x,held,'stale remote input must not keep walking for ten seconds');assert(p.host.sim.players[1].x-start<10);assert.equal(p.host.hash(),p.guest.hash());assert.deepEqual(p.ended,[]);
+});
+
+test('healthy remote movement refreshes within budget and resumes with its real sequence after expiry',()=>{
+ let time=0;const p=pair({},()=>time);p.host.input(0,1);assert(p.guest.input(1,0));let moving;
+ for(let tick=1;tick<=120;tick++){time=tick*1000/30;p.guest.flushInput();p.tick(1);if(tick===60)moving=p.host.sim.players[1].x;}
+ assert(p.host.sim.players[1].x>moving+10);const hostZ=p.host.sim.players[0].z;
+ for(let tick=121;tick<=210;tick++){time=tick*1000/30;p.tick(1);}
+ assert(p.host.sim.players[0].z>hostZ+10,'host controls do not need remote heartbeats');const stopped=p.host.sim.players[1].x;
+ time+=210;p.guest.flushInput();p.tick(2);assert(p.host.sim.players[1].x>stopped,'the next genuine movement sequence resumes normally');assert.equal(p.host.hash(),p.guest.hash());assert.deepEqual(p.ended,[]);
+});
+
+test('a queued remote move expires before a delayed first host frame',()=>{
+ let time=0;const p=pair({},()=>time);assert(p.guest.input(1,0));p.deliver();const x=p.host.sim.players[1].x;time=1500;p.tick(2);assert.equal(p.host.sim.players[1].x,x);assert.equal(p.host.hash(),p.guest.hash());
+});
+
+test('duplicate movement cannot refresh expiry and queued neutral keeps its real acknowledgement',()=>{
+ let time=0;const p=pair({},()=>time);assert(p.guest.input(1,0));p.tick(1);time=800;assert.equal(p.host.accept({hero:1,data:{move:[127,0],moveSeq:1}}),false);time=1100;const stopped=p.host.sim.players[1].x;p.tick(2);assert.equal(p.host.sim.players[1].x,stopped);assert.equal(p.host.hash(),p.guest.hash());
+ let clock=0;const q=pair({},()=>clock);q.guest.input(1,0);q.tick(1);clock=500;q.guest.input(0,0);q.deliver();clock=1600;q.host.advance();assert(q.down.flatMap(m=>m.data?.events||[]).some(e=>e.hero===1&&e.moveSeq===2&&e.move[0]===0));q.deliver();assert.equal(q.host.hash(),q.guest.hash());
+});
+
+test('an expired remote direction holds the guest picture until a genuine movement echo returns',()=>{
+ let time=0;const p=pair({},()=>time);p.guest.input(1,0);p.tick(1);
+ for(let tick=1;tick<=90;tick++){time=tick*1000/30;p.guest.flushInput();p.up.length=0;p.tick(1);p.guest.pose();}
+ let pose=p.guest.pose();assert.equal(pose.mv,false);assert.equal(pose.x,p.host.sim.players[1].x);assert.equal(pose.z,p.host.sim.players[1].z);
+ p.guest.resetInput();p.up.length=0;p.guest.input(0,1);p.up.length=0;time+=100;p.tick(2);pose=p.guest.pose();assert.equal(pose.mv,false,'new local direction alone is not an acknowledgement');
+ time+=210;p.guest.flushInput();p.tick(2);pose=p.guest.pose();assert.equal(pose.mv,true);assert.equal(p.host.hash(),p.guest.hash());
 });

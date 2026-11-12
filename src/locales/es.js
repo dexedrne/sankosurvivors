@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Stopping lost co-op movement": "Detener movimientos cooperativos perdidos",
+  "Co-op guests stop moving if their controls stop reaching the host for over a second. Movement resumes when fresh controls arrive, including when other connection messages still get through.": "Los invitados del modo cooperativo dejan de moverse si sus controles no llegan al anfitrión durante más de un segundo. El movimiento se reanuda cuando llegan controles nuevos, aunque otros mensajes de conexión sigan pasando.",
   "Steadier co-op timeouts": "Tiempos de espera cooperativos más estables",
   "Co-op connection timeouts use a steady clock, so changing the device clock cannot end your session early or extend a stalled connection. The normal timeout and reconnect allowance stay the same.": "Los tiempos de espera de conexión cooperativa usan un reloj estable: cambiar la hora del dispositivo no termina la sesión antes ni prolonga una conexión bloqueada. El tiempo de espera y el plazo de reconexión siguen igual.",
   "Recovering connections": "Recuperación de conexión",

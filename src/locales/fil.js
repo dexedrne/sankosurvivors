@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Stopping lost co-op movement": "Paghinto kapag nawawala ang co-op controls",
+  "Co-op guests stop moving if their controls stop reaching the host for over a second. Movement resumes when fresh controls arrive, including when other connection messages still get through.": "Hihinto ang co-op guest kapag mahigit isang segundong hindi nakararating sa host ang controls niya. Magpapatuloy ang galaw kapag dumating ang bagong controls, kahit patuloy na nakararating ang ibang mensahe ng koneksyon.",
   "Steadier co-op timeouts": "Mas maaasahang timeout sa co-op",
   "Co-op connection timeouts use a steady clock, so changing the device clock cannot end your session early or extend a stalled connection. The normal timeout and reconnect allowance stay the same.": "Gumagamit ng tuloy-tuloy na oras ang timeout ng koneksyon sa co-op. Hindi matatapos nang maaga ang session o hahaba ang paghihintay sa natigil na koneksyon kapag binago ang oras ng device. Pareho pa rin ang karaniwang timeout at palugit sa muling pagkonekta.",
   "Recovering connections": "Pagbawi ng koneksyon",

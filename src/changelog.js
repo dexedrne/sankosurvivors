@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.45.18", "date": "12 Nov 2026", "title": "Stopping lost co-op movement", "items": ["Co-op guests stop moving if their controls stop reaching the host for over a second. Movement resumes when fresh controls arrive, including when other connection messages still get through."]},
   {"version": "0.45.17", "date": "12 Nov 2026", "title": "Steadier co-op timeouts", "items": ["Co-op connection timeouts use a steady clock, so changing the device clock cannot end your session early or extend a stalled connection. The normal timeout and reconnect allowance stay the same."]},
   {"version": "0.45.16", "date": "12 Nov 2026", "title": "Recovering connections", "items": ["Grand Theft Sanko: missing server updates show a waiting warning and hold your position. Movement resumes from a valid update; online races continue on the server during interruptions."]},
   {"version": "0.45.15", "date": "12 Nov 2026", "title": "Steadier online players", "items": ["Grand Theft Sanko: other drivers and walkers move more smoothly between network updates. Getting in or out, respawning and reconnecting clear old movement. Your own driving controls stay the same."]},

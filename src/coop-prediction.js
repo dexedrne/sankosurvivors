@@ -6,7 +6,7 @@ const same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
 export function createMovementPrediction({sim,index,now}){
  let sequence=0,acknowledged=0,applied=[0,0],confirmed=false;
  let confirmedAt=now(),receivedAt=confirmedAt,renderedAt=confirmedAt,lastTick=sim.tick;
- let lastX=sim.players[index].x,lastZ=sim.players[index].z,pose=null,settling=false;
+ let lastX=sim.players[index].x,lastZ=sim.players[index].z,pose=null,settling=false,inputExpired=false;
  let inputs=[{seq:0,at:confirmedAt,move:[0,0]}];
  // Collision caches belong to this view, never the authoritative simulation.
  const view={ground:sim.ground,map:sim.map,pace:sim.pace};
@@ -27,8 +27,11 @@ export function createMovementPrediction({sim,index,now}){
   const time=now(),p=sim.players[index];receivedAt=time;confirmed=true;
   confirmedAt+=Math.max(0,sim.tick-lastTick)*TICK_MS;
   for(const event of events){
-   if(event.hero!==index||!event.moveSeq||event.moveSeq<=acknowledged)continue;
-   const input=inputs.find(i=>i.seq===event.moveSeq);if(!input)continue;
+   if(event.hero!==index)continue;
+   // An authority stop stays visible until a real input echo unlocks prediction.
+   if(event.move&&!event.moveSeq&&!event.move[0]&&!event.move[1]){inputExpired=true;applied=[0,0];confirmedAt=time;continue;}
+   if(!event.moveSeq||event.moveSeq<=acknowledged)continue;
+   const input=inputs.find(i=>i.seq===event.moveSeq);if(!input)continue;inputExpired=false;
    const at=input.at+TICK_MS;
    // A coalesced tap may end on the old direction; its skipped samples still need retiring.
    if(!same(input.move,applied)||input.seq>acknowledged+1||Math.abs(at-confirmedAt)>2*TICK_MS)confirmedAt=at;
@@ -58,6 +61,7 @@ export function createMovementPrediction({sim,index,now}){
   const time=now(),p=sim.players[index],dt=Math.max(0,time-renderedAt);
   if(!enabled||!p.alive||sim.over||Object.keys(sim.pending).length||p.rollT>1e-9||time<renderedAt){reset();return null;}
   if(!confirmed){confirmedAt=renderedAt=time;return null;}
+  if(inputExpired){pose={x:p.x,z:p.z,face:p.face,moving:false};renderedAt=time;return publicPose();}
   const latest=inputs.at(-1),still=!latest.move[0]&&!latest.move[1];
   const capped=confirmedAt<time-LEAD_MS,halted=capped&&time-receivedAt>100;
   if(time-receivedAt>STALE_MS){renderedAt=time;if(pose)pose.moving=false;return publicPose();}

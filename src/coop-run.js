@@ -29,6 +29,7 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
  let frame=0,rngCount=0,held=true,closed=false,localSeq=0,moveSeq=0,lastSent=0,gapRequested=-1,recoveryTarget=null,localMove=[0,0];
  const prediction=host?null:createMovementPrediction({sim,index:local,now});
  let pendingInput=null,lastInputAt=now(),tokens=2,sentSeq=0;
+ let guestInputAt=null;
  const rng=sim.rng;sim.rng=()=>{rngCount++;return rng();};
  const moves=[[0,0],[0,0]],versions=[0,0],sequences=[0,0],moveSequences=[0,0],desired=[null,null],queues=[[],[]],pending=game.players.map(()=>({value:null,key:''})),history=new Map(),checks=new Map();
  const emit=message=>{if(!closed)send({...message,epoch:game.epoch});};
@@ -77,7 +78,7 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
  function enqueue(i,data){
   if(Object.hasOwn(data,'resend'))return resend(data.resend);
   if(held||closed)return false;
-  if(data.move){if(data.moveSeq<=moveSequences[i])return false;moveSequences[i]=data.moveSeq;desired[i]={move:data.move,moveSeq:data.moveSeq};return true;}
+  if(data.move){if(data.moveSeq<=moveSequences[i])return false;moveSequences[i]=data.moveSeq;if(i===1)guestInputAt=now();desired[i]={move:data.move,moveSeq:data.moveSeq};return true;}
   if(data.actionSeq<=sequences[i]||queues[i].some(a=>a.actionSeq===data.actionSeq)||queues[i].length>=8||!valid(i,data.action,data.decision))return false;
   queues[i].push(data);return true;
  }
@@ -104,6 +105,9 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
  function advance(){
   if(!host||closed||held||sim.over)return false;
   const events=[];
+  if(guestInputAt!==null&&now()-guestInputAt>1000){
+   guestInputAt=null;const move=desired[1]?.move||moves[1];if(move[0]||move[1])desired[1]={move:[0,0],moveSeq:0};
+  }
   for(let i=0;i<2;i++){
    const move=desired[i];if(move&&(move.moveSeq>0||move.move[0]!==moves[i][0]||move.move[1]!==moves[i][1]))events.push({frame:frame+1,hero:i,move:[...move.move],...(move.moveSeq?{moveSeq:move.moveSeq}:{})});desired[i]=null;
    while(queues[i].length){const data=queues[i].shift();if(valid(i,data.action,data.decision)&&data.actionSeq>sequences[i]){events.push({frame:frame+1,hero:i,...data});break;}}

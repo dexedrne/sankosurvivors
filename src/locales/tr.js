@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Stopping lost co-op movement": "Kaybolan eşli oyun hareketini durdurma",
+  "Co-op guests stop moving if their controls stop reaching the host for over a second. Movement resumes when fresh controls arrive, including when other connection messages still get through.": "Eşli oyunda konukların kontrolleri bir saniyeden uzun süre ev sahibine ulaşmazsa hareketleri durur. Diğer bağlantı mesajları ulaşmaya devam etse bile yeni kontroller geldiğinde hareket yeniden başlar.",
   "Steadier co-op timeouts": "Daha tutarlı eşli oyun zaman aşımı",
   "Co-op connection timeouts use a steady clock, so changing the device clock cannot end your session early or extend a stalled connection. The normal timeout and reconnect allowance stay the same.": "Eşli oyunda bağlantı zaman aşımı sabit ilerleyen bir saat kullanır. Cihazın saatini değiştirmek oturumu erken bitirmez veya takılan bağlantının süresini uzatmaz. Normal zaman aşımı ve yeniden bağlanma süresi aynıdır.",
   "Recovering connections": "Bağlantı kurtarma",
