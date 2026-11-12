@@ -125,7 +125,10 @@ export function transformMain(source) {
   s = once(s, '  syncRankedClock();\n');
   s = once(s, "const MENU_SCREENS = ['modemenu', 'coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades', 'merchant'];", "const MENU_SCREENS = ['modemenu', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades', 'merchant'];");
   s = once(s, "$('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); };", "$('again').onclick = startRun;");
-  s = between(s, "addEventListener('blur', () => { keys.clear(); clearTouch();", "$('start').onclick", `let resumeMode = 'play', focusLostWhileStarting = false;
+  const quitStart=s.indexOf('let quitTarget = null;'),quitEnd=s.indexOf('function pause(on)',quitStart);
+  assert.ok(quitStart>=0&&quitEnd>quitStart,'Expected quit confirmation helpers');
+  const quitHelpers=s.slice(quitStart,quitEnd);
+  s = between(s, "addEventListener('blur', () => { keys.clear(); clearTouch();", "$('start').onclick", `${quitHelpers}let resumeMode = 'play', focusLostWhileStarting = false;
 function suspendPage() {
   keys.clear(); clearTouch();
   if (runStarting) focusLostWhileStarting = true;
@@ -134,7 +137,7 @@ function suspendPage() {
 addEventListener('blur', suspendPage);
 document.addEventListener('visibilitychange', () => { if (document.hidden) suspendPage(); });
 function pause(on) {
-  clearTouch(); keys.clear(); pendingUse = null; acc = 0;
+  resetQuitConfirm(); clearTouch(); keys.clear(); pendingUse = null; acc = 0;
   if (on && mode !== 'pause') resumeMode = mode;
   mode = on ? 'pause' : ['levelup', 'casket'].includes(resumeMode) ? resumeMode : 'play';
   if (resumeMode === 'levelup' || resumeMode === 'casket') $(resumeMode).classList.toggle('hidden', on);

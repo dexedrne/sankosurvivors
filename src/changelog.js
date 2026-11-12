@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.45.28',date:'12 Nov 2026',title:'Before you leave',items:['Quit run now asks before ending a casual or co-op run. Back keeps the current run. Co-op explains that leaving ends the shared run for both players.']},
   {version:'0.45.27',date:'12 Nov 2026',title:'Steadier co-op timing',items:["Improved co-op timing when the host's game is behind another window. A sleeping or suspended device can still interrupt play."]},
   {version:'0.45.26',date:'12 Nov 2026',title:'Ranked food safety',items:['From ranked week 2, food stacks hold up to five portions per type. Stored food is eaten automatically before a fatal hit when it can save you. Earlier ranked weeks and casual runs keep their existing rules.']},
   {version:'0.45.25',date:'12 Nov 2026',title:'Make your way in the world',items:['Grand Theft Sanko: mine ore, smelt bronze, forge a sword, bank supplies and trade with townspeople. Open Backpack to equip gear; nearby players see your helmet, robe and sword. Inventory saves on this device.']},

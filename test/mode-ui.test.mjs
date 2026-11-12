@@ -22,7 +22,7 @@ test('returning from special co-op re-enables mode controls and restores the fix
  const nodes=new Map(),node=()=>({disabled:false,children:[],textContent:'',classList:{add(){},remove(){},toggle(){}},setAttribute(){}}),$=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id);};
  $('runvariant').children=['normal','boss','raid','fun','wizard'].map(variant=>({...node(),dataset:{variant}}));
  let coop={close(){}},selVariant='boss',mapLoading=false,runStarting=false,selMap='greentown',coopHomeMap='greentown',coopResult=null,merchantVisit=null,PLAYER='p2',rankedRun=null,rankedRec=null,rankedClock=null,casualRun=null,sim={},mode='end',waitingForMove=false,rewardWasShown=false;
- const BOSS_KIT={adv:'ranger',label:'Fixed Ranger kit'},ADVENTURER_BY_ID={ranger:{name:'Ranger'}},MODE_INFO={boss:'Practice'},window={},renderer={reset(){},setZoom(){},setShift(){}},rankedPlaying=()=>false,applyDmt=()=>{},playTitleMusic=()=>{},buildAdventurers=()=>{$('ainfo').textContent='ordinary selection';},buildMaps=()=>{},showBest=()=>{},refreshPendingTitleProgress=()=>{};
+ const BOSS_KIT={adv:'ranger',label:'Fixed Ranger kit'},ADVENTURER_BY_ID={ranger:{name:'Ranger'}},MODE_INFO={boss:'Practice'},window={},renderer={reset(){},setZoom(){},setShift(){}},rankedPlaying=()=>false,resetQuitConfirm=()=>{},applyDmt=()=>{},playTitleMusic=()=>{},buildAdventurers=()=>{$('ainfo').textContent='ordinary selection';},buildMaps=()=>{},showBest=()=>{},refreshPendingTitleProgress=()=>{};
  ${block('updateModePicker')}
  ${block('toMenu')}
  updateModePicker();const before=$('runvariant').children.map(b=>b.disabled);toMenu();

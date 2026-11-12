@@ -1,5 +1,11 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Quit this run?": "Bu turdan çıkılsın mı?",
+  "Leave co-op?": "Eşli oyundan çıkılsın mı?",
+  "End this run and show your results?": "Bu tur bitirilsin ve sonuçların gösterilsin mi?",
+  "Leaving ends this co-op run for both players. Unfinished rewards are not saved.": "Çıkmak bu eşli turu iki oyuncu için de bitirir. Tamamlanmamış turun ödülleri kaydedilmez.",
+  "Before you leave": "Çıkmadan önce",
+  "Quit run now asks before ending a casual or co-op run. Back keeps the current run. Co-op explains that leaving ends the shared run for both players.": "Turdan çıkmak artık normal veya eşli turu bitirmeden önce onay ister. Geri, mevcut turu korur. Eşli oyunda çıkmanın paylaşılan turu iki oyuncu için de bitirdiği açıklanır.",
   "Steadier co-op timing": "Daha kararlı eşli oyun zamanlaması",
   "Improved co-op timing when the host's game is behind another window. A sleeping or suspended device can still interrupt play.": "Ev sahibinin oyunu başka bir pencerenin arkasındayken eşli oyun zamanlaması iyileştirildi. Uykuya geçen veya askıya alınan bir cihaz oyunu hâlâ kesintiye uğratabilir.",
   "Ranked food safety": "Sıralamalı yiyecek güvencesi",

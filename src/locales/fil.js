@@ -1,5 +1,11 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Quit this run?": "Tapusin ang run na ito?",
+  "Leave co-op?": "Umalis sa co-op?",
+  "End this run and show your results?": "Tapusin ang run na ito at ipakita ang mga resulta?",
+  "Leaving ends this co-op run for both players. Unfinished rewards are not saved.": "Kapag umalis ka, matatapos ang co-op run para sa inyong dalawa. Hindi mase-save ang mga reward ng hindi natapos na run.",
+  "Before you leave": "Bago ka umalis",
+  "Quit run now asks before ending a casual or co-op run. Back keeps the current run. Co-op explains that leaving ends the shared run for both players.": "Humihingi na ng kumpirmasyon ang Quit run bago tapusin ang casual o co-op run. Pinapanatili ng Back ang kasalukuyang run. Ipinapaliwanag sa co-op na matatapos ang run para sa inyong dalawa kapag umalis ka.",
   "Steadier co-op timing": "Mas matatag na takbo ng co-op",
   "Improved co-op timing when the host's game is behind another window. A sleeping or suspended device can still interrupt play.": "Pinahusay ang takbo ng co-op kapag natatakpan ng ibang window ang laro ng host. Maaari pa ring maputol ang laro kapag natulog o nasuspinde ang device.",
   "Ranked food safety": "Kaligtasan gamit ang pagkain sa ranked",

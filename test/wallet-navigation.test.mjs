@@ -63,7 +63,7 @@ function menu(mode = 'title') {
   for(const [id,parent] of [['gearclose','gear'],['skillsclose','skills'],['skillgrid','skills'],['skillrefund','skills'],['setbtn','more'],['setbtn2','pause']])element(id,elements.get(parent));
   element('petchoice',elements.get('pets'));element('petsclose',elements.get('pets'));
   element('guidecurrentrecipes');element('guideoldrecipes');
-  for (const id of ['walletchip', 'cloudwal', 'clouddev']) element(id);
+  for (const id of ['walletchip', 'cloudwal', 'clouddev', 'quitconfirm']) element(id);
   const $ = id => { assert.ok(elements.has(id), `unknown DOM id ${id}`); return elements.get(id); };
   $(mode).classList.remove('hidden');
   const app = Function('$', 'addEventListener', 'document', 'initialMode', 'onWallet', 'walletRevision', `

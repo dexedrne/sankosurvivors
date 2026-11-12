@@ -1,5 +1,11 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Quit this run?": "¿Abandonar esta partida?",
+  "Leave co-op?": "¿Salir del cooperativo?",
+  "End this run and show your results?": "¿Terminar esta partida y mostrar tus resultados?",
+  "Leaving ends this co-op run for both players. Unfinished rewards are not saved.": "Al salir, esta partida cooperativa termina para ambos jugadores. No se guardan las recompensas de una partida sin terminar.",
+  "Before you leave": "Antes de salir",
+  "Quit run now asks before ending a casual or co-op run. Back keeps the current run. Co-op explains that leaving ends the shared run for both players.": "Abandonar partida ahora pide confirmación antes de terminar una partida casual o cooperativa. Volver conserva la partida actual. En cooperativo se explica que salir termina la partida compartida para ambos jugadores.",
   "Steadier co-op timing": "Ritmo cooperativo más estable",
   "Improved co-op timing when the host's game is behind another window. A sleeping or suspended device can still interrupt play.": "Mejorado el ritmo cooperativo cuando otra ventana cubre la partida del anfitrión. Un dispositivo en reposo o suspendido aún puede interrumpir la partida.",
   "Ranked food safety": "Protección con comida en clasificación",

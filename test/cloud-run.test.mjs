@@ -26,6 +26,7 @@ const start=main.slice(main.indexOf('async function startRun('),main.indexOf('le
 const action=main.slice(main.indexOf('async function rankedAction('),main.indexOf('// the wallet the entry'));
 const rankedStart=main.slice(main.indexOf('async function startRankedEntry('),main.indexOf('async function submitRanked()'));
 const menu=main.slice(main.indexOf('function toMenu()'),main.indexOf('// ---- input ---'));
+const quitHelpers=main.slice(main.indexOf('let quitTarget = null;'),main.indexOf('function pause(on)'));
 const updater=main.slice(main.indexOf('const BUILD ='),main.indexOf('\ncheckForUpdate();')).replace('import.meta.env.VITE_BUILD',"'fixture-build'");
 const importer=main.slice(main.indexOf("$('xferload').onclick ="),main.indexOf("for (const b of document.querySelectorAll('#more",main.indexOf("$('xferload').onclick =")));
 const connectWrapper=main.slice(main.indexOf('async function walletConnect('),main.indexOf('// a button for each wallet'));
@@ -110,6 +111,7 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     ${rankedStart}
     ${tickets}
     ${start}
+    ${quitHelpers}
     ${menu}
     const pickAssetHost=async()=>{},createRenderer=async()=>renderer,requestAnimationFrame=()=>{},loop=()=>{};
     ${preferenceHelpers}

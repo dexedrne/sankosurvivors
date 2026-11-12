@@ -1808,7 +1808,7 @@ function openCoop() {
       audio.music(sim.map.music); audio.init().catch(() => {}); banner('Co-op · shared world, your own upgrades',3500);
     },
     onEnd:reason => {
-      if (coop !== c) return; keys.clear(); clearTouch(); pendingUse = null; $('coopwait').classList.add('hidden');
+      if (coop !== c) return; resetQuitConfirm(); keys.clear(); clearTouch(); pendingUse = null; $('coopwait').classList.add('hidden');
       for (const id of ['pause','settings','levelup','casket']) $(id).classList.add('hidden');
       if (reason === 'complete' && sim?.coop) { coopResult = reason; endRun(); }
       else { sim = null; mode = 'coop'; $('hud').classList.add('hidden'); $('coop').classList.remove('hidden'); $('coopform').classList.add('hidden'); $('cooproom').classList.add('hidden'); $('coopstatus').innerHTML = `<span>${coopText(reason)}</span> <span>Unfinished co-op rewards were not saved.</span>`; $('coopclose').focus(); }
@@ -2095,6 +2095,7 @@ $('continueendless').onclick = () => continueAfterScore();
 $('continueunconfirmed').onclick = () => continueAfterScore(true);
 function toMenu() {
   if (rankedPlaying()) return;
+  resetQuitConfirm();
   if (coop) { const c = coop; coop = null; c.close(); selMap = coopHomeMap || selMap; coopResult = null; }
   merchantVisit = null; $('merchant').classList.add('hidden');
   PLAYER = 'p1'; $('coop').classList.add('hidden'); $('coopwait').classList.add('hidden');
@@ -2150,9 +2151,33 @@ addEventListener('keydown', (e) => {
 addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => { keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play' && (document.hidden || !keepPlayingUnfocused())) pause(true); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play') pause(true); } });
-function pause(on) { clearTouch(); if (on) coop?.run?.resetInput(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (rankedRun) updateRankedPause(); }
+let quitTarget = null;
+function resetQuitConfirm() {
+  quitTarget = null; $('quitconfirm').classList.add('hidden'); $('pausemain').classList.remove('hidden');
+}
+function requestQuit() {
+  if (mode !== 'pause' || !sim || sim.over || rankedPlaying()) return;
+  quitTarget = { sim, coop };
+  $('quitconfirmtitle').textContent = coop ? 'Leave co-op?' : 'Quit this run?';
+  $('quitconfirmtext').textContent = coop ? 'Leaving ends this co-op run for both players. Unfinished rewards are not saved.' : 'End this run and show your results?';
+  $('quitconfirmbtn').textContent = coop ? 'Leave co-op' : 'Quit run';
+  $('pausemain').classList.add('hidden'); $('quitconfirm').classList.remove('hidden'); navFocus($('quitcancel'));
+}
+function cancelQuit() {
+  resetQuitConfirm(); if (mode === 'pause') navFocus($('quit'));
+}
+function confirmQuit() {
+  const target = quitTarget; resetQuitConfirm();
+  if (!target || mode !== 'pause' || !sim || sim.over || rankedPlaying() || sim !== target.sim || coop !== target.coop) return;
+  if (coop) { coop.close(); return; }
+  pause(false); sim.over = 'dead';
+}
+function pause(on) { resetQuitConfirm(); clearTouch(); if (on) coop?.run?.resetInput(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (rankedRun) updateRankedPause(); }
 $('start').onclick = startRun; $('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
-$('quit').onclick = () => { if (rankedPlaying()) return; if (coop) { coop.close(); return; } pause(false); sim.over = 'dead'; };
+$('quit').onclick = requestQuit;
+$('quitcancel').onclick = cancelQuit;
+$('quitconfirmbtn').onclick = confirmQuit;
+$('quitconfirm').addEventListener('keydown', containMenuTab);
 
 // touch: drag anywhere on the field to move (a stick appears under your thumb); the II button pauses
 const touch = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
@@ -2658,6 +2683,7 @@ function navPress() {
 function navBack() {
   if (mode === 'recovery') return true;
   if (walletModalOpen()) return true;
+  if (mode === 'pause' && !$('quitconfirm').classList.contains('hidden')) { cancelQuit(); return true; }
   if (!$('cloudpick').classList.contains('hidden')) return true; // Keep both saves until an explicit choice resolves the prompt.
   for (const id of MENU_SCREENS) if (!$(id).classList.contains('hidden')) {
     if (id === 'merchant') { closeMerchant(); return true; }

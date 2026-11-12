@@ -122,9 +122,9 @@ test('existing score comparator is identical: whole seconds, kills and old full 
 
 function focusHarness() {
   const code = transformMain(main);
-  const start = code.indexOf('let resumeMode ='), end = code.indexOf("$('start').onclick", start);
+  const start = code.indexOf('let quitTarget = null;'), end = code.indexOf("$('start').onclick", start);
   assert.ok(start > 0 && end > start, 'edition focus suspension code');
-  const panels = new Map(['pause','levelup','casket'].map(id => [id, { hidden:id!=='levelup', classList:{toggle(_name,on){panels.get(id).hidden=on;}} }]));
+  const panels = new Map(['pause','levelup','casket','quitconfirm','pausemain'].map(id => [id, { hidden:id!=='levelup', classList:{add(){panels.get(id).hidden=true;},remove(){panels.get(id).hidden=false;},toggle(_name,on){panels.get(id).hidden=on;}} }]));
   let focused = true, hidden = false;
   const document = { get hidden(){return hidden;}, hasFocus:()=>focused, addEventListener(){} };
   const api = Function('$','document', `let mode='title',runStarting=false,acc=4,last=0,pendingUse=null; const keys=new Set(['d']),clearTouch=()=>{},audio={duck(){}};const addEventListener=()=>{};
