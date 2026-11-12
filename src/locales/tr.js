@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Lighter off-screen crowds": "Ekran dışındaki kalabalıklar daha hafif",
+  "Crowded runs do less work for enemies outside the camera view. Visible animation and combat stay the same.": "Kalabalık koşularda kamera dışındaki düşmanlar daha az işlem gerektirir. Görünür animasyonlar ve savaş aynı kalır.",
   "Steadier co-op movement": "Daha dengeli eşli hareket",
   "Co-op walking is steadier on slower connections, with the same combat, rewards and reconnect rules.": "Eşli oyunda yürüme, yavaş bağlantılarda daha akıcıdır; savaş, ödül ve yeniden bağlanma kuralları aynıdır.",
   "Steadier online controls": "Daha dengeli çevrimiçi kontroller",

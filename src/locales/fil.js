@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Lighter off-screen crowds": "Mas magaang mga kalaban sa labas ng tanaw",
+  "Crowded runs do less work for enemies outside the camera view. Visible animation and combat stay the same.": "Sa mataong runs, mas kaunti ang trabaho para sa mga kalaban sa labas ng tanaw ng camera. Pareho pa rin ang nakikitang animation at labanan.",
   "Steadier co-op movement": "Mas matatag na galaw sa co-op",
   "Co-op walking is steadier on slower connections, with the same combat, rewards and reconnect rules.": "Mas tuloy-tuloy ang paglakad sa co-op sa mabagal na koneksyon, habang pareho pa rin ang labanan, mga gantimpala at mga tuntunin sa muling pagkonekta.",
   "Steadier online controls": "Mas matatag na online controls",

@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.45.22", "date": "12 Nov 2026", "title": "Lighter off-screen crowds", "items": ["Crowded runs do less work for enemies outside the camera view. Visible animation and combat stay the same."]},
   {"version": "0.45.21", "date": "12 Nov 2026", "title": "Steadier co-op movement", "items": ["Co-op walking is steadier on slower connections, with the same combat, rewards and reconnect rules."]},
   {"version": "0.45.20", "date": "12 Nov 2026", "title": "Steadier online controls", "items": ["Grand Theft Sanko: held walking and driving keep a continuous movement history between server updates. Reload to join the updated hub and races."]},
   {"version": "0.45.19", "date": "12 Nov 2026", "title": "A steadier town camera", "items": ["Grand Theft Sanko: the camera clears low scenery near your character and checks for walls again when it moves closer or eases back out."]},

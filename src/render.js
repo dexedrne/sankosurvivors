@@ -1980,6 +1980,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (rising > 0) { a.riseMax = Math.max(a.riseMax || 0, rising); a.root.position.y -= (ENEMIES[type].h || 1.8) * 0.95 * (rising / a.riseMax); } // climbing out of the ground
       cullSphere.center.set(a.px, a.root.position.y + 1, a.pz); cullSphere.radius = (ENEMIES[type].h || 2) * 0.8 + 1;
       a.root.visible = viewFrustum.intersectsSphere(cullSphere); // monsters off screen are not drawn at all
+      // Hidden bones still cost scene transforms; keep ownership while skipping that traversal.
+      if (a.root.visible) { if (a.root.parent !== dyn) dyn.add(a.root); }
+      else a.root.removeFromParent();
       a.root.rotation.y = face - (a.kit ? a.kit.yaw0 : 0);
       a.root.scale.setScalar((a.base || 1) * (hit ? 1.12 : winding ? 1 + Math.sin(time * 40) * 0.04 : 1));
       if (a.mats && a.flashOn !== !!hit) { a.flashOn = !!hit; for (const m of a.mats) m.emissive.setRGB(hit ? 0.85 : 0, hit ? 0.85 : 0, hit ? 0.85 : 0); }

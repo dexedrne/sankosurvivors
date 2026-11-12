@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Lighter off-screen crowds": "Menos carga fuera de cámara",
+  "Crowded runs do less work for enemies outside the camera view. Visible animation and combat stay the same.": "En las partidas con muchos enemigos, los que están fuera de cámara requieren menos trabajo. La animación visible y el combate siguen igual.",
   "Steadier co-op movement": "Movimiento cooperativo más estable",
   "Co-op walking is steadier on slower connections, with the same combat, rewards and reconnect rules.": "Caminar en cooperativo es más fluido con conexiones lentas, con las mismas reglas de combate, recompensas y reconexión.",
   "Steadier online controls": "Controles en línea más estables",
