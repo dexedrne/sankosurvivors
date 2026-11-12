@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A new home for Grand Theft Sanko": "Una nueva dirección para Grand Theft Sanko",
+  "Grand Theft Sanko is now at gts.sankosurvivors.quest, with a fresh in-game link preview. Existing Racers links still work; saved progress stays with the address you used.": "Grand Theft Sanko ahora está en gts.sankosurvivors.quest, con una nueva vista previa del juego. Los enlaces anteriores de Racers siguen funcionando; el progreso guardado permanece en la dirección que usabas.",
   "Native spell flight": "Trayectoria original de los hechizos",
   "Spells use SankoQuest’s original effect size and vertical arc. Impacts follow the projectile that actually hit, including level-one and hostile spells. Upgrade screens hold the whole effect steady.": "Los hechizos usan el tamaño original de los efectos de SankoQuest y su arco vertical. Los impactos siguen al proyectil que realmente acertó, incluidos los hechizos de nivel uno y los enemigos. Las pantallas de mejoras mantienen todo el efecto inmóvil.",
   "Armed karts": "Karts armados",

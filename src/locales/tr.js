@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A new home for Grand Theft Sanko": "Grand Theft Sanko için yeni bir adres",
+  "Grand Theft Sanko is now at gts.sankosurvivors.quest, with a fresh in-game link preview. Existing Racers links still work; saved progress stays with the address you used.": "Grand Theft Sanko artık gts.sankosurvivors.quest adresinde, oyundan yeni bir bağlantı önizlemesiyle. Mevcut Racers bağlantıları çalışmaya devam eder; kayıtlı ilerlemeniz kullandığınız adreste kalır.",
   "Native spell flight": "Orijinal büyü hareketi",
   "Spells use SankoQuest’s original effect size and vertical arc. Impacts follow the projectile that actually hit, including level-one and hostile spells. Upgrade screens hold the whole effect steady.": "Büyüler, SankoQuest’in orijinal efekt boyutunu ve dikey yayını kullanıyor. Birinci seviye büyüler ve düşman büyüleri de dahil olmak üzere, çarpma efektleri gerçekten isabet eden mermiyi takip ediyor. Yükseltme ekranlarında efekt tamamen sabit kalıyor.",
   "Armed karts": "Silahlı kartlar",

@@ -49,13 +49,13 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  const html=read('public/fun/racers/index.html').toString();
  for(const [,relative] of html.matchAll(/(?:src|href)="(\.\/[^"?#]+)"/g))
   assert.ok(fs.existsSync(new URL(`public/fun/racers/${relative.slice(2)}`,root)),relative);
- assert.match(html,/href="\/\?menu=fun"[^>]*>Back to SankoSurvivors<\/a>/);
+ assert.match(html,/href="https:\/\/sankosurvivors\.quest\/\?menu=fun"[^>]*>Back to SankoSurvivors<\/a>/);
  assert.doesNotMatch(html,/<iframe\b/i);
  assert.match(html, /property="og:title" content="Grand Theft Sanko · Public World Hub"/);
- assert.match(html, /property="og:url" content="https:\/\/sankosurvivors\.quest\/racers\/"/);
+ assert.match(html, /property="og:url" content="https:\/\/gts\.sankosurvivors\.quest\/"/);
  assert.match(html, /name="twitter:card" content="summary_large_image"/);
  const image=html.match(/property="og:image" content="([^"]+)"/)[1];
- assert.equal(image,'https://sankosurvivors.quest/fun/racers/preview-'+inputs.preview.sha256.slice(0,12)+'.png');
+ assert.equal(image,'https://gts.sankosurvivors.quest/fun/racers/preview-'+inputs.preview.sha256.slice(0,12)+'.png');
  assert.equal(hash(read('public/fun/racers/preview.png')),inputs.preview.sha256,'Preview remains the accepted native capture');
  const m=manifest();
  const js=read(`public${m.files.find(f=>f.path.endsWith('.js')).path}`).toString();
@@ -101,7 +101,7 @@ test('adapted client reverses exactly to the accepted source artifact', () => {
 test('clean Racers share link serves the real game with absolute dependencies and a fresh sized native card',()=>{
  const m=manifest(),alias=m.aliases?.find(a=>a.path==='/racers/index.html');assert(alias,'clean share alias is recorded');
  const bytes=read('public/racers/index.html'),html=bytes.toString();assert.equal(hash(bytes),alias.sha256);assert.equal(bytes.length,alias.bytes);
- assert.match(html,/<link rel="canonical" href="https:\/\/sankosurvivors\.quest\/racers\/">/);assert.match(html,/property="og:url" content="https:\/\/sankosurvivors\.quest\/racers\/"/);
+ assert.match(html,/<link rel="canonical" href="https:\/\/gts\.sankosurvivors\.quest\/">/);assert.match(html,/property="og:url" content="https:\/\/gts\.sankosurvivors\.quest\/"/);
  for(const dimension of [['width','1200'],['height','630'],['type','image/png']])assert(html.includes('property="og:image:'+dimension[0]+'" content="'+dimension[1]+'"'));
  assert(html.includes('name="twitter:site" content="@dexedrne"'));assert(!/(?:src|href)="\.\//.test(html));
  for(const [,relative]of html.matchAll(/(?:src|href)="(\/fun\/racers\/[^"?#]+)"/g))assert(fs.existsSync(new URL('public'+relative,root)),relative);

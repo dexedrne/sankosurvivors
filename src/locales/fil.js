@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "A new home for Grand Theft Sanko": "Bagong tahanan ng Grand Theft Sanko",
+  "Grand Theft Sanko is now at gts.sankosurvivors.quest, with a fresh in-game link preview. Existing Racers links still work; saved progress stays with the address you used.": "Nasa gts.sankosurvivors.quest na ang Grand Theft Sanko, na may bagong preview mula sa laro. Gumagana pa rin ang mga dating link ng Racers; nananatili ang naka-save na progreso sa address na ginamit mo.",
   "Native spell flight": "Orihinal na galaw ng mga spell",
   "Spells use SankoQuest’s original effect size and vertical arc. Impacts follow the projectile that actually hit, including level-one and hostile spells. Upgrade screens hold the whole effect steady.": "Gamit ng mga spell ang orihinal na laki ng effect at patayong arko ng SankoQuest. Sinusundan ng impact ang projectile na talagang tumama, kasama ang level-one at mga spell ng kalaban. Nakatigil ang buong effect sa upgrade screen.",
   "Armed karts": "Mga kart na may armas",
