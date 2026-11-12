@@ -181,7 +181,7 @@ function pause(on) {
 
 export function transformRender(source) {
   let s = once(source, "import { createBunModels } from './bun-models.js';\n");
-  s = once(s, '  const bunModels = createBunModels(loadGLB, A);\n');
+  s = once(s, '  const bunModels = createBunModels(loadGLB, A, path => texLoader.loadAsync(path));\n');
   s = once(s, '    choice: id => petChoice(id) || bunModels.choice(id),', '    choice: petChoice,');
   s = once(s, '      if (bunModels.choice(id)) return bunModels.load(id);\n');
   s = once(s, '      if (bunModels.choice(id)) return bunModels.spawn(proto);\n');

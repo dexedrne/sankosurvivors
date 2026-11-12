@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Bun expressions": "Mga ekspresyon ng Bun",
+  "Bun companions react while catching up, look concerned when your health is low, and show affection in the pet preview. Special Bun faces keep their original details.": "Nagre-react ang mga kasamang Bun habang humahabol, nag-aalala kapag mababa ang buhay mo, at nagpapakita ng lambing sa pet preview. Nananatili ang orihinal na detalye ng mga espesyal na mukha ng Bun.",
   "Faster workshops": "Mas mabilis na pagawaan",
   "Grand Theft Sanko workshops now offer Make max. Bank max and Take max show the quantity that fits in your backpack or bank.": "May Make max na ang mga pagawaan sa Grand Theft Sanko. Ipinapakita ng Bank max at Take max ang dami na kasya sa backpack o bangko mo.",
   "Original details": "Orihinal na detalye",

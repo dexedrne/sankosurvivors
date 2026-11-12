@@ -8,9 +8,17 @@ function setup(load, options = {}) {
   assert.equal(typeof pets.createPetRenderer, 'function'); const group = new THREE.Group(), advances = [];
   const controller = pets.createPetRenderer({ group, load, groundAt: (x,z) => x + z, spawn: proto => {
     const root = new THREE.Group(); root.name = proto; const mixer = new THREE.AnimationMixer(root);
-    return { root, mixer, update: (dt,moving) => advances.push({ proto, dt, moving }) };
+    return { root, mixer, update: (dt,moving,expression) => advances.push({ proto, dt, moving, expression }) };
   }, ...options }); return { controller, group, advances };
 }
+test('pet expressions follow only their local living owner and freeze with paused time', async () => {
+  const s=setup(async id=>id);await s.controller.set('fox');
+  const players=[{id:'p1',x:0,z:2,f:0,al:true,hp:25,mhp:100},{id:'p2',x:1,z:2,f:0,al:true,hp:1,mhp:100}];
+  s.controller.update(view(0,{players}),.1,'p1');assert.equal(s.advances.at(-1).expression,'sad');
+  players[0].hp=30;s.controller.update(view(0,{players}),.1,'p1');assert.equal(s.advances.at(-1).expression,'default');
+  players[0].hp=10;const before=s.advances.length;s.controller.update(view(0,{players,petActive:false}),.1,'p1');assert.equal(s.advances.length,before);
+  s.controller.update(view(0,{players}),0,'p1');assert.equal(s.advances.length,before);
+});
 test('late A to B to A model loads never equip an obsolete selection', async () => {
   const requests = [], s = setup(id => { const d = deferred(); requests.push({ id, ...d }); return d.promise; });
   const a1=s.controller.set('chicken'), b=s.controller.set('fox'), a2=s.controller.set('chicken');

@@ -6,6 +6,8 @@ Survive the SankoQuest world, build a ridiculous loadout, and take on the weekly
 
 Equipped Magician's, Warrior's and Power amulets use their original SankoQuest models on your character. Their existing bonuses are unchanged.
 
+Owned Bun companions use SankoQuest’s original facial expressions while catching up, when your health is low, and in the rotating pet preview. Special head designs retain their original details; pets remain cosmetic.
+
 **[Play SankoSurvivors](https://sankosurvivors.quest)** · **[Enter Grand Theft Sanko](https://gts.sankosurvivors.quest/)** · [Need for Sanko races](https://gts.sankosurvivors.quest/?mode=online) · [@dexedrne](https://x.com/dexedrne)
 
 ## Play

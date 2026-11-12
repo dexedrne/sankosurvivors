@@ -88,7 +88,7 @@ export function createPetPreview({ canvas, choice, load, spawn, renderer = new T
         width = nextWidth; height = nextHeight; renderer.setSize(width, height, false); camera.aspect = width / height; fit();
       }
       if (actor) {
-        try { if (Number.isFinite(dt) && dt > 0) actor.update(Math.min(dt, .1), false); }
+        try { if (Number.isFinite(dt) && dt > 0) actor.update(Math.min(dt, .1), false, 'love'); }
         catch { remove(); status = 'unavailable'; }
       }
       pivot.rotation.y = yaw; renderer.render(scene, camera);

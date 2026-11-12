@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { cloneActor, disposeActor } from './character.js';
+import { cloneActor, disposeActor, ownActorResource } from './character.js';
 import { BUN_ANIMATIONS } from './bun-catalogue.js';
+import { createBunFace } from './bun-face.js';
 
 function bounds(root) {
   root.updateMatrixWorld(true);
@@ -45,9 +46,14 @@ export function createBunActor(proto) {
   inner.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } });
   const mixer = new THREE.AnimationMixer(inner), run = mixer.clipAction(proto.clips.run), curious = mixer.clipAction(proto.clips.curious);
   curious.setLoop(THREE.LoopOnce, 1); curious.clampWhenFinished = true; curious.play(); mixer.update(0);
-  let moving = false;
-  return { root, inner, mixer, update(dt, nextMoving) {
-    if (!Number.isFinite(dt) || dt <= 0) return;
+  let moving = false, face = null, disposed = false;
+  root.dispose = () => { disposed = true; face?.dispose(); };
+  ownActorResource(root);
+  return { root, inner, mixer, update(dt, nextMoving, expression = 'default') {
+    if (disposed || !Number.isFinite(dt) || dt <= 0) return;
+    // Pet previews isolate their renderer resources before the first update.
+    face ||= createBunFace(inner, proto.faces);
+    face.setExpression(expression === 'default' && nextMoving ? 'happy' : expression);
     nextMoving = !!nextMoving;
     if (nextMoving !== moving) {
       (moving ? run : curious).fadeOut(.15);

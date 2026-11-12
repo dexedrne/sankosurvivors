@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.45.34", "date": "12 Nov 2026", "title": "Bun expressions", "items": ["Bun companions react while catching up, look concerned when your health is low, and show affection in the pet preview. Special Bun faces keep their original details."]},
   {"version": "0.45.33", "date": "12 Nov 2026", "title": "Faster workshops", "items": ["Grand Theft Sanko workshops now offer Make max. Bank max and Take max show the quantity that fits in your backpack or bank."]},
   {version:'0.45.32',date:'12 Nov 2026',title:'Original details',items:['Equipped amulets now appear on your character using the original SankoQuest models. Grand Theft Sanko uses the native mining animation while you gather ore.']},
   {"version": "0.45.31", "date": "12 Nov 2026", "title": "Ironworking", "items": ["Grand Theft Sanko: mine iron rocks, smelt Iron Bars and forge an Iron Helmet. Bronze Bars can also become spare Bronze Pickaxes. Workshops show their recipes and materials. Armour stays cosmetic; inventory saves on this device."]},

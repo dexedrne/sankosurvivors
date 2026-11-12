@@ -15,3 +15,9 @@ Modules 918026 and 451621, captured 6 November 2026.
 Exact file hashes and capture provenance are in src/bun-catalogue.js.
 Position-track conversion and companion fitting happen on copied animation
 data at runtime; the original asset bytes are preserved.
+
+Six original native face-v1 expression textures, captured 12 November 2026
+from Sigma module266467 (54efcaeb66b1e92b.js). Source:
+Sanko-Dream-Machine/sanko-pets@0913a7b9c2f7f1c56e4fc13c3efb06dc8a78a753.
+Exact PNG hashes in src/bun-catalogue.js (BUN_FACES); original bytes retained.
+Expression consumer/geometry guards adapted from Sigma module823859.

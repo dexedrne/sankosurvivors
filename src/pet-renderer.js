@@ -36,7 +36,7 @@ export function createPetRenderer({ load, spawn, group, groundAt, choice = petCh
         if (!actor) { actor = spawn(prototype, selected); group.add(actor.root); owner = localId; }
         const y = groundAt(pose.x, pose.z); if (!Number.isFinite(y)) throw new Error('Pet ground is unavailable');
         actor.root.position.set(pose.x, y, pose.z); actor.root.rotation.y = pose.f;
-        if (active) actor.update(dt, pose.moving);
+        if (active) actor.update(dt, pose.moving, player.mhp > 0 && player.hp / player.mhp < .3 ? 'sad' : 'default');
       } catch { reset(); prototype = null; state = 'unavailable'; }
     },
   };

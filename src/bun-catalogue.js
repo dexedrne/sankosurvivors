@@ -84,3 +84,35 @@ export const BUN_ANIMATIONS = freeze({
     "returnsToIdle": true
   }
 });
+
+// Original face records captured from Sigma module266467, 12 November 2026.
+export const BUN_FACES = freeze({
+  "version": "sankopets-face-v1",
+  "source": "Sanko-Dream-Machine/sanko-pets@0913a7b9c2f7f1c56e4fc13c3efb06dc8a78a753",
+  "textures": {
+    "eyesHappy": {
+      "path": "sanko/pets/expressions/v1/eye-s-1.png",
+      "sha256": "259f65e6a049c6e8ed55c9cae83076e8d6616dc34fe1d2f6867e32085b6d6396"
+    },
+    "eyesSad": {
+      "path": "sanko/pets/expressions/v1/eye-s-2.png",
+      "sha256": "6ada6c7521b9c83a6d1bbc3fc2b0ef394664884386fdf8334fa0eaa2cf44005b"
+    },
+    "mouthHappy": {
+      "path": "sanko/pets/expressions/v1/mouth-1.png",
+      "sha256": "11173c994f929fa24c5a3073d8fe41a44f11bcf3080f827615c2660972945413"
+    },
+    "mouthSad": {
+      "path": "sanko/pets/expressions/v1/mouth-2.png",
+      "sha256": "91dee320344dc8164c2dd41a745bf50194dec745b85b55471093e91c7728a78e"
+    },
+    "mouthAngry": {
+      "path": "sanko/pets/expressions/v1/mouth-3.png",
+      "sha256": "1f579bb26e92a17967782718ee3f86c364affa1883186ee9cea1acd730a81257"
+    },
+    "mouthLove": {
+      "path": "sanko/pets/expressions/v1/mouth-4.png",
+      "sha256": "28a89be8c739d267d73e7f2b1fabed0df6ac72aefb1c2576768b1600396b907a"
+    }
+  }
+});

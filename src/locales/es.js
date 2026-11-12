@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Bun expressions": "Expresiones de los Bun",
+  "Bun companions react while catching up, look concerned when your health is low, and show affection in the pet preview. Special Bun faces keep their original details.": "Los compañeros Bun reaccionan al alcanzarte, se preocupan cuando tienes poca salud y muestran cariño en la vista previa de mascotas. Las caras especiales de los Bun conservan sus detalles originales.",
   "Faster workshops": "Talleres más rápidos",
   "Grand Theft Sanko workshops now offer Make max. Bank max and Take max show the quantity that fits in your backpack or bank.": "Los talleres de Grand Theft Sanko ahora ofrecen fabricar la cantidad máxima. Bank max y Take max muestran la cantidad que cabe en tu mochila o banco.",
   "Original details": "Detalles originales",

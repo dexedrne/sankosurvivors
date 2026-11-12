@@ -17,3 +17,14 @@ test('native Bun loading uses only catalogue paths, retries failed preparations 
   assert.equal(paths.length,6);await assert.rejects(models.load('bun:../../bad'));assert.equal(paths.length,6);
   const actor=models.spawn(a);try{actor.update(.1,true);assert.equal(actor.root.name,'companion');assert(actor.root.children.length);}finally{disposeActor(actor.root,actor.mixer);}
 });
+test('optional native face texture failures preserve the Bun and retry without refetching its model',async()=>{
+  const scene=new THREE.Group(),bone=new THREE.Bone();bone.name='hips';scene.add(bone);bone.add(new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial()));
+  const clip=new THREE.AnimationClip('idle',.6,[new THREE.VectorKeyframeTrack('hips.position',[0,.6],[0,0,0,0,.01,0])]);
+  let fail=true,modelsFetched=0;const texturePaths=[],textureDisposals=[];
+  const models=buns.createBunModels(async path=>{modelsFetched++;return path.includes('/anim/')?{animations:[clip]}:{scene};},p=>'fixture/'+p,async path=>{texturePaths.push(path);if(fail&&path.endsWith('/eye-s-1.png'))throw Error('texture offline');const texture=new THREE.Texture();let count=0;texture.addEventListener('dispose',()=>count++);textureDisposals.push(()=>count);return texture;});
+  const first=await models.load('bun:Mini');assert.equal(modelsFetched,3);assert.equal(texturePaths.length,6);assert.equal(first.faces,null);
+  assert.equal(textureDisposals.length,5);assert(textureDisposals.every(n=>n()===1),'a partially loaded optional face releases its successful textures');
+  fail=false;const ready=await models.load('bun:Mini');assert.equal(ready,first);assert.equal(modelsFetched,3);assert.equal(texturePaths.length,12);assert.equal(Object.keys(ready.faces).length,6);
+  await models.load('bun:Mini');assert.equal(texturePaths.length,12);assert(texturePaths.every(path=>path.startsWith('fixture/sanko/pets/expressions/v1/')));
+  assert(textureDisposals.slice(5).every(n=>n()===0),'successful cached textures remain available');
+});

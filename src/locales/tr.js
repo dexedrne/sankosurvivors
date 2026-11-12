@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Bun expressions": "Bun ifadeleri",
+  "Bun companions react while catching up, look concerned when your health is low, and show affection in the pet preview. Special Bun faces keep their original details.": "Bun dostların sana yetişirken tepki verir, sağlığın azaldığında endişelenir ve evcil hayvan önizlemesinde sevgi gösterir. Özel Bun yüzleri özgün ayrıntılarını korur.",
   "Faster workshops": "Daha hızlı atölyeler",
   "Grand Theft Sanko workshops now offer Make max. Bank max and Take max show the quantity that fits in your backpack or bank.": "Grand Theft Sanko atölyeleri artık en fazla sayıda eşya üretebilir. Bank max ve Take max, çantana veya bankana sığan miktarı gösterir.",
   "Original details": "Özgün ayrıntılar",
