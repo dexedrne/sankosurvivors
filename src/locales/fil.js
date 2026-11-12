@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Steadier online players": "Mas maayos na galaw ng mga online na manlalaro",
+  "Grand Theft Sanko: other drivers and walkers move more smoothly between network updates. Getting in or out, respawning and reconnecting clear old movement. Your own driving controls stay the same.": "Grand Theft Sanko: mas maayos ang galaw ng ibang drayber at naglalakad sa pagitan ng mga update ng network. Ang pagsakay, pagbaba, muling paglitaw at muling pagkonekta ay nag-aalis ng lumang galaw. Pareho pa rin ang mga kontrol mo sa pagmamaneho.",
   "A new home for Grand Theft Sanko": "Bagong tahanan ng Grand Theft Sanko",
   "Grand Theft Sanko is now at gts.sankosurvivors.quest, with a fresh in-game link preview. Existing Racers links still work; saved progress stays with the address you used.": "Nasa gts.sankosurvivors.quest na ang Grand Theft Sanko, na may bagong preview mula sa laro. Gumagana pa rin ang mga dating link ng Racers; nananatili ang naka-save na progreso sa address na ginamit mo.",
   "Native spell flight": "Orihinal na galaw ng mga spell",

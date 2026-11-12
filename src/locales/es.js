@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Steadier online players": "Jugadores en línea más fluidos",
+  "Grand Theft Sanko: other drivers and walkers move more smoothly between network updates. Getting in or out, respawning and reconnecting clear old movement. Your own driving controls stay the same.": "Grand Theft Sanko: los demás conductores y peatones se mueven con más fluidez entre actualizaciones de red. Entrar o salir del vehículo, reaparecer y reconectarse borra los movimientos anteriores. Tus controles de conducción siguen igual.",
   "A new home for Grand Theft Sanko": "Una nueva dirección para Grand Theft Sanko",
   "Grand Theft Sanko is now at gts.sankosurvivors.quest, with a fresh in-game link preview. Existing Racers links still work; saved progress stays with the address you used.": "Grand Theft Sanko ahora está en gts.sankosurvivors.quest, con una nueva vista previa del juego. Los enlaces anteriores de Racers siguen funcionando; el progreso guardado permanece en la dirección que usabas.",
   "Native spell flight": "Trayectoria original de los hechizos",

@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {"version": "0.45.15", "date": "12 Nov 2026", "title": "Steadier online players", "items": ["Grand Theft Sanko: other drivers and walkers move more smoothly between network updates. Getting in or out, respawning and reconnecting clear old movement. Your own driving controls stay the same."]},
   {"version": "0.45.14", "date": "11 Nov 2026", "title": "A new home for Grand Theft Sanko", "items": ["Grand Theft Sanko is now at gts.sankosurvivors.quest, with a fresh in-game link preview. Existing Racers links still work; saved progress stays with the address you used."]},
   {"version": "0.45.13", "date": "11 Nov 2026", "title": "Native spell flight", "items": ["Spells use SankoQuest’s original effect size and vertical arc. Impacts follow the projectile that actually hit, including level-one and hostile spells. Upgrade screens hold the whole effect steady."]},
   {"version": "0.45.12", "date": "11 Nov 2026", "title": "Armed karts", "items": ["Grand Theft Sanko: fit a native Auto Rifle, Gatling or Heavy Cannon in the Garage. Your weapon choice saves locally; mounted guns share the existing damage and firing speed. Getting out keeps your Glock. Safe hub and Wilderness rules still apply."]},
