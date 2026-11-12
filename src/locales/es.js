@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Steadier online controls": "Controles en línea más estables",
+  "Grand Theft Sanko: held walking and driving keep a continuous movement history between server updates. Reload to join the updated hub and races.": "Grand Theft Sanko: al mantener los controles para caminar o conducir, el historial de movimiento continúa entre actualizaciones del servidor. Recarga para entrar al mundo compartido y las carreras actualizadas.",
   "A steadier town camera": "Una cámara más estable en la ciudad",
   "Grand Theft Sanko: the camera clears low scenery near your character and checks for walls again when it moves closer or eases back out.": "Grand Theft Sanko: la cámara evita los objetos bajos cerca de tu personaje y vuelve a comprobar las paredes al acercarse o alejarse suavemente.",
   "Stopping lost co-op movement": "Detener movimientos cooperativos perdidos",

@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Steadier online controls": "Mas matatag na online controls",
+  "Grand Theft Sanko: held walking and driving keep a continuous movement history between server updates. Reload to join the updated hub and races.": "Grand Theft Sanko: tuloy-tuloy ang kasaysayan ng paggalaw sa pagitan ng server updates habang nakahawak ang paglakad at pagmamaneho. I-reload para sumali sa na-update na hub at mga karera.",
   "A steadier town camera": "Mas matatag na camera sa bayan",
   "Grand Theft Sanko: the camera clears low scenery near your character and checks for walls again when it moves closer or eases back out.": "Grand Theft Sanko: iniiwasan ng camera ang mababang bagay malapit sa karakter at muling sinusuri ang mga pader kapag lumalapit o unti-unting lumalayo.",
   "Stopping lost co-op movement": "Paghinto kapag nawawala ang co-op controls",

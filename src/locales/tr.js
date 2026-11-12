@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Steadier online controls": "Daha dengeli çevrimiçi kontroller",
+  "Grand Theft Sanko: held walking and driving keep a continuous movement history between server updates. Reload to join the updated hub and races.": "Grand Theft Sanko: yürüme ve sürüş tuşlarını basılı tutarken hareket geçmişi sunucu güncellemeleri arasında kesintisiz devam eder. Güncellenen ortak dünyaya ve yarışlara katılmak için yeniden yükle.",
   "A steadier town camera": "Kasabada daha dengeli kamera",
   "Grand Theft Sanko: the camera clears low scenery near your character and checks for walls again when it moves closer or eases back out.": "Grand Theft Sanko: kamera, karakterinin yakınındaki alçak nesnelerden kaçınır; yaklaştığında veya yavaşça uzaklaştığında duvarları yeniden kontrol eder.",
   "Stopping lost co-op movement": "Kaybolan eşli oyun hareketini durdurma",
