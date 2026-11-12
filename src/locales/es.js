@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Clearer prize estimates": "Estimaciones de premios más claras",
+  "Ranked estimated prizes show two decimal places. The actual reward calculation keeps its full precision.": "Los premios estimados de clasificación muestran dos decimales. El cálculo real de recompensas mantiene toda su precisión.",
+
   "Build cards at a glance": "Tu equipo de un vistazo",
   "Copy your final build as an image to paste into a post. Larger item icons, level tracks and labelled results make build cards easier to read. Save and Share remain available.": "Copia tu equipo final como imagen para pegarla en una publicación. Los iconos más grandes, las barras de nivel y los resultados con etiquetas facilitan la lectura. Guardar y Compartir siguen disponibles.",
   "Copy build card": "Copiar tarjeta",

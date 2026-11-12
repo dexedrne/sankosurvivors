@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Clearer prize estimates": "Mas malinaw na tantiya sa premyo",
+  "Ranked estimated prizes show two decimal places. The actual reward calculation keeps its full precision.": "Dalawang decimal na ang ipinapakita sa tantiyang premyo sa ranked. Buo pa rin ang precision ng aktuwal na pagkalkula ng reward.",
+
   "Build cards at a glance": "Build card sa isang tingin",
   "Copy your final build as an image to paste into a post. Larger item icons, level tracks and labelled results make build cards easier to read. Save and Share remain available.": "Kopyahin ang huling build bilang larawan para i-paste sa post. Mas malalaking item icon, level bar at may label na resulta para mas madaling basahin. May Save at Share pa rin.",
   "Copy build card": "Kopyahin ang build card",

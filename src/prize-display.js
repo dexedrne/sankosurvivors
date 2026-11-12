@@ -7,6 +7,14 @@ export function dmtText(value) {
   return `${n / 10n ** 18n}.${(n % 10n ** 18n).toString().padStart(18, '0')}`.replace(/\.?0+$/, '');
 }
 
+// Rounded presentation only; reward allocation and recorded amounts retain every base unit.
+export function estimatedDmtText(value) {
+  const n = amount(value);
+  if (n === null) return '—';
+  const cents = (n + 5n * 10n ** 15n) / 10n ** 16n;
+  return `${cents / 100n}.${(cents % 100n).toString().padStart(2, '0')}`;
+}
+
 export function poolReadout(race) {
   const complete = race.rolloverReady === true;
   const value = dmtText(complete ? race.poolWei : race.entryPoolWei);

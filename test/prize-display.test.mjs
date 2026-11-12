@@ -40,3 +40,9 @@ for(const language of ['tr','es','fil'])test(`${language}: precise prize copy tr
     for(const number of source.match(/\d+(?:\.\d+)?/g)||[])assert(translated.includes(number),number);
   }
 });
+
+test('estimated DMT rounds to exactly two decimals with integer arithmetic',async()=>{
+ const {estimatedDmtText}=await import('../src/prize-display.js');assert.equal(typeof estimatedDmtText,'function');
+ for(const [wei,want]of [['0','0.00'],['1','0.00'],['4999999999999999','0.00'],['5000000000000000','0.01'],['3487500000000000000','3.49'],['1994999999999999999','1.99'],['1995000000000000000','2.00'],['1000000000000000000001','1000.00']])assert.equal(estimatedDmtText(wei),want);
+ for(const bad of [null,undefined,1,'01','-1','1e18','0x12','1.2',(1n<<256n).toString()])assert.equal(estimatedDmtText(bad),'—');
+});

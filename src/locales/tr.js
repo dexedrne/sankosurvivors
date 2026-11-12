@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Clearer prize estimates": "Daha net ödül tahminleri",
+  "Ranked estimated prizes show two decimal places. The actual reward calculation keeps its full precision.": "Sıralamalı ödül tahminleri iki ondalık basamak gösterir. Gerçek ödül hesabı tam hassasiyetini korur.",
+
   "Build cards at a glance": "Bir bakışta yapı kartları",
   "Copy your final build as an image to paste into a post. Larger item icons, level tracks and labelled results make build cards easier to read. Save and Share remain available.": "Son yapını gönderine yapıştırmak için resim olarak kopyala. Daha büyük eşya simgeleri, seviye çubukları ve etiketli sonuçlar kartları daha okunaklı yapar. Kaydet ve Paylaş kullanılabilir.",
   "Copy build card": "Yapı kartını kopyala",

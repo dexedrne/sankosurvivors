@@ -29,7 +29,7 @@ import { NATIVE_PETS, petChoice } from './pets.js';
 import { createBunCompanions, bunChoice } from './bun-companions.js';
 import { canAutoEquip } from './auto-equip.js';
 import { CHANGELOG, LATEST } from './changelog.js';
-import { dmtText, poolReadout, prizeEstimate, prizeNotes, walletPrize } from './prize-display.js';
+import { estimatedDmtText, poolReadout, prizeEstimate, prizeNotes, walletPrize } from './prize-display.js';
 import { initI18n, translateText } from './i18n.js';
 import { CREATOR, TIP_ETH, NO_PRIZE, COOP_RELAY } from './config.js';
 const noPrize = (w) => NO_PRIZE.includes(String(w || '').toLowerCase());
@@ -399,7 +399,7 @@ function renderRanked() {
     pool.replaceChildren(summary, ' ');
     estimate?.prizes.forEach((amount,i) => {
       const prize = document.createElement('span');
-      prize.textContent = `${['1st','2nd','3rd','4th','5th'][i] || `${i+1}th`}: ${dmtText(amount)} DMT${race.week >= 1 ? ' + participation' : ''}`;
+      prize.textContent = `${['1st','2nd','3rd','4th','5th'][i] || `${i+1}th`}: ${estimatedDmtText(amount)} DMT${race.week >= 1 ? ' + participation' : ''}`;
       pool.append(i ? ' · ' : '', prize);
     });
     for (const text of prizeNotes(race, estimate)) { const note = document.createElement('small'); note.textContent = text; pool.append(note); }
@@ -1211,7 +1211,7 @@ async function showRankedBoard(request = ++lbRequest) {
       + (kp ? `<p class="lbweek dim">Score: ${combined ? 'total kills + seconds survived. Equal points use KPM' : 'kills per minute'}. Runs under ${fmtT(d.minSeconds || RANKED.minSeconds)} cannot win.</p>` : '');
     const prize = (i) => {
       const total = walletPrize(estimate, rows[i].wallet, place[i]);
-      return noPrize(rows[i].wallet) ? '<span class="dim">no prize (dev)</span>' : total === null ? '—' : total !== '0' || place[i] >= 0 ? `${dmtText(total)} DMT` : '<span class="dim">too short</span>';
+      return noPrize(rows[i].wallet) ? '<span class="dim">no prize (dev)</span>' : total === null ? '—' : total !== '0' || place[i] >= 0 ? `${estimatedDmtText(total)} DMT` : '<span class="dim">too short</span>';
     };
     const wal = (x) => esc(String(x.wallet || '').slice(0, 6) + '…' + String(x.wallet || '').slice(-4));
     $('lblist').innerHTML = head + (rows.length ? (kp
@@ -1219,7 +1219,7 @@ async function showRankedBoard(request = ++lbRequest) {
       : `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Wallet</th><th class="opt">Adventurer</th><th>Time</th><th>Slain</th><th>Estimated prize</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span><small class="rankedruns">${esc(completedRunText(x))}</small></td><td class="opt">${wal(x)}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td>${x.kills}</td><td class="prizeamt">${prize(i)}</td></tr>`).join('')}</table>`)
       : `<p class="dim">No ${two ? race.name + ' ' : ''}ranked runs yet this week. Enter from the Ranked button on the title screen.</p>`)
       + (d.week >= 1 ? `<p class="lbweek dim">Prize pool: 80% placing, 10% qualifying runs, 10% active playtime. No run or time caps; verified runs must last at least 3:00. Pauses earn no participation. The developer earns no prizes.</p>` : '')
-      + (estimate?.participation?.length ? `<details><summary>Participation rewards</summary><ul>${estimate.participation.map(p => { const row = rows.find(r => r.wallet === p.wallet); return `<li><span translate="no">${esc(row?.name || p.wallet)}</span> · ${dmtText(p.amount)} DMT</li>`; }).join('')}</ul></details>` : '')
+      + (estimate?.participation?.length ? `<details><summary>Participation rewards</summary><ul>${estimate.participation.map(p => { const row = rows.find(r => r.wallet === p.wallet); return `<li><span translate="no">${esc(row?.name || p.wallet)}</span> · ${estimatedDmtText(p.amount)} DMT</li>`; }).join('')}</ul></details>` : '')
       + rewardTransactions();
     for (const b of $('lblist').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); showRankedBoard(); };
   } catch (e) { if (request === lbRequest) $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
