@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Recovering connections": "Pagbawi ng koneksyon",
+  "Grand Theft Sanko: missing server updates show a waiting warning and hold your position. Movement resumes from a valid update; online races continue on the server during interruptions.": "Grand Theft Sanko: kapag walang update mula sa server, may babala ng paghihintay at mananatili ang posisyon mo. Magpapatuloy ang galaw sa isang wastong update; tuloy ang online na karera sa server habang napuputol ang koneksyon.",
   "Steadier online players": "Mas maayos na galaw ng mga online na manlalaro",
   "Grand Theft Sanko: other drivers and walkers move more smoothly between network updates. Getting in or out, respawning and reconnecting clear old movement. Your own driving controls stay the same.": "Grand Theft Sanko: mas maayos ang galaw ng ibang drayber at naglalakad sa pagitan ng mga update ng network. Ang pagsakay, pagbaba, muling paglitaw at muling pagkonekta ay nag-aalis ng lumang galaw. Pareho pa rin ang mga kontrol mo sa pagmamaneho.",
   "A new home for Grand Theft Sanko": "Bagong tahanan ng Grand Theft Sanko",

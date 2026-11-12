@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Recovering connections": "Recuperación de conexión",
+  "Grand Theft Sanko: missing server updates show a waiting warning and hold your position. Movement resumes from a valid update; online races continue on the server during interruptions.": "Grand Theft Sanko: si faltan actualizaciones del servidor, aparece un aviso de espera y tu posición se mantiene. El movimiento se reanuda con una actualización válida; las carreras en línea continúan en el servidor durante las interrupciones.",
   "Steadier online players": "Jugadores en línea más fluidos",
   "Grand Theft Sanko: other drivers and walkers move more smoothly between network updates. Getting in or out, respawning and reconnecting clear old movement. Your own driving controls stay the same.": "Grand Theft Sanko: los demás conductores y peatones se mueven con más fluidez entre actualizaciones de red. Entrar o salir del vehículo, reaparecer y reconectarse borra los movimientos anteriores. Tus controles de conducción siguen igual.",
   "A new home for Grand Theft Sanko": "Una nueva dirección para Grand Theft Sanko",
