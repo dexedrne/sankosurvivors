@@ -1595,6 +1595,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
 
   // ---- camera ------------------------------------------------------------------
   const cam = { x: MAPS[0].cx, z: MAPS[0].cz, shake: 0, flash: 0, zoom: 1, zoomT: 1, shift: 0, yaw: 0, pitch: Math.atan2(21, 17), rot: 0 };
+  const reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
   // middle mouse drag turns the camera (and tilts it); Q/E turn it too; Home resets
   let drag = null; const rotKeys = { q: false, e: false };
   window.addEventListener('mousedown', (e) => { if (e.button === 1) { drag = { x: e.clientX, y: e.clientY }; e.preventDefault(); } });
@@ -2205,7 +2206,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
 
     // camera
     cam.shake = Math.max(0, cam.shake - dt); cam.flash = Math.max(0, cam.flash - dt);
-    const shk = settings.shake ? cam.shake : 0, sx = (Math.random() - 0.5) * shk * 0.8, sz = (Math.random() - 0.5) * shk * 0.8;
+    const shk = settings.shake && !reducedMotion?.matches ? cam.shake : 0, sx = (Math.random() - 0.5) * shk * 0.8, sz = (Math.random() - 0.5) * shk * 0.8;
     const gy = groundAt(cam.x, cam.z);
     cam.zoom += (cam.zoomT - cam.zoom) * Math.min(1, dt * 8 + 0.02);
     const weatherDt = weatherClock === null ? 0 : Math.max(0, Math.min(0.1, view.t - weatherClock)); weatherClock = view.t;

@@ -37,7 +37,7 @@ From ranked week 2, food stacks hold at most five portions per type. An extra pi
 | Pause | Escape or the Pause button below the minimap |
 | Mute | M |
 
-Touch controls and standard-mapped controllers are supported. Settings includes separate sound/music volume, graphics presets and detailed options. The installable PWA supports phone layouts and an optional Flex layout. Browser emulation does not guarantee every device's fullscreen, safe-area, audio or controller behavior.
+Touch controls and standard-mapped controllers are supported. Settings includes separate sound/music volume, graphics presets and detailed options. The device’s Reduce Motion preference suppresses camera shake while preserving the saved shake toggle. The installable PWA supports phone layouts and an optional Flex layout. Browser emulation does not guarantee every device's fullscreen, safe-area, audio or controller behavior.
 
 Pause shows your current run's build, stats and active-effect timers. Phone players can zoom the camera with the +/− buttons in Pause, or pinch during play. In co-op, Pause stops your controls while the shared run continues. Quests has a Hide completed toggle and lists unfinished goals by progress.
 

@@ -922,6 +922,7 @@ const SETTINGS = [
   { id: 'fx', name: 'Effects', opts: [['full', 'Full'], ['reduced', 'Reduced']] },
   { id: 'numbers', name: 'Damage numbers', opts: [[true, 'On'], [false, 'Off']] },
   { id: 'shake', name: 'Screen shake', opts: [[true, 'On'], [false, 'Off']] },
+  { note: "Your device's Reduce Motion setting disables screen shake." },
   { id: 'autoequip', name: 'Auto equip safe armour upgrades (this device)', opts: [[true, 'On'], [false, 'Off']] },
   { note: 'Keeps every stat and any set you have started. Weapons stay manual.' },
   { id: 'autoalch', name: 'Auto high alch caskets that are not better', opts: [[true, 'On'], [false, 'Off']] },

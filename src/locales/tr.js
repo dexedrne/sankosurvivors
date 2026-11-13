@@ -1,5 +1,8 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A calmer camera": "Daha sakin bir kamera",
+  "Screen shake now respects your device’s Reduce Motion preference. Your saved shake setting stays the same.": "Ekran sarsıntısı artık cihazınızın Hareketi Azalt tercihine uyar. Kayıtlı sarsıntı ayarınız değişmez.",
+  "Your device's Reduce Motion setting disables screen shake.": "Cihazınızın Hareketi Azalt ayarı ekran sarsıntısını kapatır.",
   "Lighter world rendering": "Daha hafif dünya çizimi",
   "Grand Theft Sanko’s world rendering does less work per frame while you drive and explore.": "Grand Theft Sanko dünyası, araç sürerken ve keşfederken her karede daha az işlem yapar.",
   "Find Pause more easily": "Duraklatmayı daha kolay bulun",

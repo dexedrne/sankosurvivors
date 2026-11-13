@@ -1,5 +1,8 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "A calmer camera": "Mas kalmadong camera",
+  "Screen shake now respects your device’s Reduce Motion preference. Your saved shake setting stays the same.": "Sinusunod na ng screen shake ang Reduce Motion preference ng device mo. Hindi nababago ang naka-save mong shake setting.",
+  "Your device's Reduce Motion setting disables screen shake.": "Pinapatay ng Reduce Motion setting ng device mo ang screen shake.",
   "Lighter world rendering": "Mas magaan na world rendering",
   "Grand Theft Sanko’s world rendering does less work per frame while you drive and explore.": "Mas kaunti ang ginagawa ng world renderer ng Grand Theft Sanko bawat frame habang nagmamaneho at nag-e-explore ka.",
   "Find Pause more easily": "Mas madaling makita ang Pause",

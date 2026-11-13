@@ -1,5 +1,8 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "A calmer camera": "Una cámara más tranquila",
+  "Screen shake now respects your device’s Reduce Motion preference. Your saved shake setting stays the same.": "El temblor de pantalla respeta la preferencia Reducir movimiento del dispositivo. Tu ajuste guardado se conserva.",
+  "Your device's Reduce Motion setting disables screen shake.": "La opción Reducir movimiento del dispositivo desactiva el temblor de pantalla.",
   "Lighter world rendering": "Un mundo más ligero",
   "Grand Theft Sanko’s world rendering does less work per frame while you drive and explore.": "El renderizado del mundo de Grand Theft Sanko hace menos trabajo por fotograma mientras conduces y exploras.",
   "Find Pause more easily": "Pausa más fácil de encontrar",
