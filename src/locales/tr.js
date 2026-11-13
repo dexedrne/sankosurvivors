@@ -1,5 +1,15 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Room for one more": "Bir tane daha için yer",
+  "Adventure and Endless can offer one extra weapon or passive slot from level 10 when a row is full. The rare card opens space for a later item; trained builds can reach 7 slots in that row. Narrow-screen loadouts wrap beside the minimap.": "Macera ve Sonsuz modlarında, bir sıra dolduğunda 10. seviyeden itibaren bir ek silah veya pasif yuvası sunulabilir. Nadir kart, daha sonra bulacağın eşya için yer açar; eğitimli karakterler o sırada 7 yuvaya ulaşabilir. Dar ekranlarda ekipman simgeleri mini haritanın yanında alt satıra geçer.",
+  "In Adventure and Endless, a full row can roll a 2% extra-slot offer from level 10. Accept one weapon or passive slot per run, up to 7 with training. Find the new item in a later upgrade.": "Macera ve Sonsuz modlarında, dolu bir sıra 10. seviyeden itibaren %2 olasılıkla ek yuva teklifi alabilir. Her koşuda bir silah veya pasif yuvası kabul edebilirsin; eğitimle o sıra 7 yuvaya ulaşabilir. Yeni eşyayı sonraki bir yükseltmede bul.",
+  "Extra weapon slot": "Ek silah yuvası",
+  "Extra passive slot": "Ek pasif yuvası",
+  "This run only": "Yalnızca bu koşu",
+  "Find a new item in a later upgrade.": "Yeni eşyayı sonraki bir yükseltmede bul.",
+  "Only one extra slot can be earned per run.": "Her koşuda yalnızca bir ek yuva kazanabilirsin.",
+  "Extra weapon slot unlocked.": "Ek silah yuvası açıldı.",
+  "Extra passive slot unlocked.": "Ek pasif yuvası açıldı.",
   "Forge your equipment": "Ekipmanını döv",
   "Grand Theft Sanko: forge an Iron Pickaxe for faster mining, plus full Bronze and Iron armour sets. Workshop cards show mining time and required bars. Armour remains cosmetic; inventory saves on this device. Reload GTS to join the updated hub and races.": "Grand Theft Sanko: daha hızlı madencilik için Demir Kazma ve tam Bronz ile Demir zırh setleri üret. Atölye kartları kazma süresini ve gereken külçeleri gösterir. Zırhlar yalnızca görseldir; envanter bu cihaza kaydedilir. Güncellenen ortak dünyaya ve yarışlara katılmak için GTS’yi yeniden yükle.",
   "A calmer camera": "Daha sakin bir kamera",

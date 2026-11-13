@@ -1048,3 +1048,10 @@ body.touch .pausezoom { display:flex; align-items:center; gap:8px; color:var(--c
 .pausezoom button { min-width:44px; min-height:44px; margin:4px 0; padding:2px 10px; }
 #questfilter { min-height:44px; }
 #questfilter[aria-pressed="true"] { border-image-source:url(../assets/ui/sq/green_slot.png); background:#2c3a22; }
+
+.card.slot-upgrade { border-image-source: url(../assets/ui/sq/yellow_slot.png); }
+
+/* Reserve the minimap column as a trained loadout grows. */
+@media (max-width:760px), (max-height:480px) {
+  body:not(.ds-layout) #wrow, body:not(.ds-layout) #prow { max-width:calc(100vw - 142px); flex-wrap:wrap; }
+}

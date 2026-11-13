@@ -1,4 +1,5 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {createSim,playerStats} from '../src/sim.js';import {captureRunBuild} from '../src/run-build.js';
+import {WEAPON_IDS} from '../src/content.js';
+import test from 'node:test';import assert from 'node:assert/strict';import {createSim,playerStats,applyChoice} from '../src/sim.js';import {captureRunBuild} from '../src/run-build.js';
 test('final build captures real weapon metals, evolution, continuous quality, worn ranks and actual skills',()=>{
  const s=createSim({pace:2,meta:{combat:3,smithing:2},players:[{id:'p1',adv:'ranger',gear:{head:'Iron Helmet'},gearLv:{'Iron Helmet':2}}]}),p=s.players[0];s.t=1334;s.level=36;s.kills=4321;s.over='dead';p.weapons={bow:6,staff:3};p.evo={bow:true};p.wm={bow:2};p.quality.weapons.bow=125;p.passives={haste:3};p.quality.passives.haste=45;p.belt=['cheese'];p.foodStacks.cheese=4;
  const b=captureRunBuild(s,p,{name:'Player',ranked:false,version:'0.45'}),by=title=>b.sections.find(s=>s.title===title).rows;
@@ -26,4 +27,8 @@ test('final stat rows include every player stat and preserve critical percentage
 test('visual level indicators capture actual base level and evolution independently of quality',()=>{
  const s=createSim({pace:2}),p=s.players[0];p.weapons={katana:6};p.evo={katana:true};p.quality.weapons.katana=125;p.passives={haste:3};
  const b=captureRunBuild(s,p),weapon=b.sections[0].rows[0],passive=b.sections[1].rows[0];assert.equal(weapon.level,6);assert.equal(weapon.maxLevel,6);assert.equal(weapon.evolved,true);assert.equal(passive.level,3);assert.equal(passive.maxLevel,5);assert.equal(passive.evolved,false);
+});
+
+test('earned seventh weapon and capacity survive a detached full build capture',()=>{
+ const s=createSim({meta:{strength:2}}),p=s.players[0];s.level=10;p.weapons=Object.fromEntries(WEAPON_IDS.slice(0,6).map(id=>[id,1]));applyChoice(s,p,{kind:'slot',id:'weapon',level:1});applyChoice(s,p,{kind:'weapon',id:WEAPON_IDS[6],level:1,from:0,rarity:'common'});const build=captureRunBuild(s,p);assert.equal(build.sections.find(section=>section.title==='Weapons').rows.length,7);assert.equal(build.stats.find(row=>row.id==='weaponSlots').value,7);const frozen=JSON.stringify(build);p.slotUpgrade=undefined;p.weapons={katana:1};assert.equal(JSON.stringify(build),frozen);
 });

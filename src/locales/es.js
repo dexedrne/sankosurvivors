@@ -1,5 +1,15 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Room for one more": "Sitio para uno más",
+  "Adventure and Endless can offer one extra weapon or passive slot from level 10 when a row is full. The rare card opens space for a later item; trained builds can reach 7 slots in that row. Narrow-screen loadouts wrap beside the minimap.": "Aventura y Sin fin pueden ofrecer una ranura adicional de arma o pasiva desde el nivel 10 cuando una fila está llena. La carta rara abre espacio para un objeto posterior; con entrenamiento puedes llegar a 7 ranuras en esa fila. En pantallas estrechas, el equipo se distribuye en varias líneas junto al minimapa.",
+  "In Adventure and Endless, a full row can roll a 2% extra-slot offer from level 10. Accept one weapon or passive slot per run, up to 7 with training. Find the new item in a later upgrade.": "En Aventura y Sin fin, una fila llena tiene un 2% de probabilidad de ofrecer una ranura adicional desde el nivel 10. Acepta una ranura de arma o pasiva por partida, hasta 7 con entrenamiento. Encuentra el nuevo objeto en una mejora posterior.",
+  "Extra weapon slot": "Ranura de arma adicional",
+  "Extra passive slot": "Ranura pasiva adicional",
+  "This run only": "Solo esta partida",
+  "Find a new item in a later upgrade.": "Encuentra el nuevo objeto en una mejora posterior.",
+  "Only one extra slot can be earned per run.": "Solo puedes conseguir una ranura adicional por partida.",
+  "Extra weapon slot unlocked.": "Ranura de arma adicional desbloqueada.",
+  "Extra passive slot unlocked.": "Ranura pasiva adicional desbloqueada.",
   "Forge your equipment": "Forja tu equipo",
   "Grand Theft Sanko: forge an Iron Pickaxe for faster mining, plus full Bronze and Iron armour sets. Workshop cards show mining time and required bars. Armour remains cosmetic; inventory saves on this device. Reload GTS to join the updated hub and races.": "Grand Theft Sanko: forja un Pico de hierro para minar más rápido y conjuntos completos de armadura de bronce y hierro. Las tarjetas del taller muestran el tiempo de extracción y los lingotes necesarios. La armadura es cosmética; el inventario se guarda en este dispositivo. Recarga GTS para entrar al mundo compartido y las carreras actualizados.",
   "A calmer camera": "Una cámara más tranquila",

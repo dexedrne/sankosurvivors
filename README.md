@@ -12,6 +12,8 @@ Owned Bun companions use SankoQuest’s original facial expressions while catchi
 
 ## Play
 
+Adventure and Endless can offer one rare extra weapon or passive slot from level 10 when a row is full. It adds space for a later item, once per player per run; Strength or Prayer training can bring that row to 7 slots. Each co-op teammate can earn their own, and continuing a victory as Endless retains the same run bonus.
+
 - **Adventure:** choose an adventurer and map, collect experience, pick upgrades and combine weapons with passives to evolve them. Casual upgrades have rarity and quality; weapon metal tiers and casket equipment are explained separately in the in-game Guide.
 - **Endless:** keep the same live build after a normal casual victory, or start an Endless run. After normal upgrades are exhausted, level-ups can keep adding small stat boosts. Continuing a finished map requires the same open tab; a reload does not restore the running simulation.
 - **Progress:** earn GP, equip gear, improve skills, complete quests and achievements, and bring a cosmetic pet. Connected eligible wallets can load owned Bun companions. Pets do not add ranked power.

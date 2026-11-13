@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.45.39',date:'12 Nov 2026',title:'Room for one more',items:['Adventure and Endless can offer one extra weapon or passive slot from level 10 when a row is full. The rare card opens space for a later item; trained builds can reach 7 slots in that row. Narrow-screen loadouts wrap beside the minimap.']},
   {version:'0.45.38',date:'12 Nov 2026',title:'Forge your equipment',items:['Grand Theft Sanko: forge an Iron Pickaxe for faster mining, plus full Bronze and Iron armour sets. Workshop cards show mining time and required bars. Armour remains cosmetic; inventory saves on this device. Reload GTS to join the updated hub and races.']},
   {version:'0.45.37',date:'12 Nov 2026',title:'A calmer camera',items:["Screen shake now respects your device’s Reduce Motion preference. Your saved shake setting stays the same."]},
   {version:'0.45.36',date:'12 Nov 2026',title:'Lighter world rendering',items:["Grand Theft Sanko’s world rendering does less work per frame while you drive and explore."]},

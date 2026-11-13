@@ -1,5 +1,15 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Room for one more": "Lugar para isa pa",
+  "Adventure and Endless can offer one extra weapon or passive slot from level 10 when a row is full. The rare card opens space for a later item; trained builds can reach 7 slots in that row. Narrow-screen loadouts wrap beside the minimap.": "Sa Adventure at Endless, puwedeng mag-alok ng dagdag na weapon o passive slot mula level 10 kapag puno ang isang row. Nagbubukas ng lugar ang rare card para sa susunod na item; puwedeng umabot sa 7 slot ang row ng trained na build. Sa makikitid na screen, bumababa sa bagong linya ang loadout sa tabi ng minimap.",
+  "In Adventure and Endless, a full row can roll a 2% extra-slot offer from level 10. Accept one weapon or passive slot per run, up to 7 with training. Find the new item in a later upgrade.": "Sa Adventure at Endless, may 2% pagkakataong mag-alok ng dagdag na slot ang isang punong row mula level 10. Isang weapon o passive slot lang ang puwedeng tanggapin bawat run, hanggang 7 kasama ang training. Hanapin ang bagong item sa susunod na upgrade.",
+  "Extra weapon slot": "Dagdag na weapon slot",
+  "Extra passive slot": "Dagdag na passive slot",
+  "This run only": "Para lang sa run na ito",
+  "Find a new item in a later upgrade.": "Hanapin ang bagong item sa susunod na upgrade.",
+  "Only one extra slot can be earned per run.": "Isang dagdag na slot lang ang makukuha sa bawat run.",
+  "Extra weapon slot unlocked.": "Na-unlock ang dagdag na weapon slot.",
+  "Extra passive slot unlocked.": "Na-unlock ang dagdag na passive slot.",
   "Forge your equipment": "I-forge ang gamit mo",
   "Grand Theft Sanko: forge an Iron Pickaxe for faster mining, plus full Bronze and Iron armour sets. Workshop cards show mining time and required bars. Armour remains cosmetic; inventory saves on this device. Reload GTS to join the updated hub and races.": "Grand Theft Sanko: gumawa ng Iron Pickaxe para mas mabilis magmina, at kumpletong Bronze at Iron armour set. Makikita sa mga card ng workshop ang oras ng pagmimina at kailangang mga bar. Pang-itsura lang ang armour; sa device na ito naka-save ang inventory. I-reload ang GTS para sumali sa updated na hub at mga karera.",
   "A calmer camera": "Mas kalmadong camera",

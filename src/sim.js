@@ -359,7 +359,7 @@ export function playerStats(p, meta = p.meta || {}) {
     luck: 1 + 0.15 * m('luck'),
     casket: (1 + 0.25 * passiveStrength(p, 'greed')) * (1 + 0.15 * m('luck')),
     coinBonus: 1 + 0.1 * m('coins'),
-    weaponSlots: MAX_WEAPONS + m('strength'), passiveSlots: MAX_PASSIVES + m('prayer'),
+    weaponSlots: MAX_WEAPONS + m('strength') + (p.pace >= 2 && p.slotUpgrade === 'weapon' ? 1 : 0), passiveSlots: MAX_PASSIVES + m('prayer') + (p.pace >= 2 && p.slotUpgrade === 'passive' ? 1 : 0),
     projectileSpeed: 1 + 0.1 * m('projectileSpeed'),
     rerolls: REROLLS_PER_RUN + m('rerolls'), revives: m('revive'),
     area: 1 + 0.1 * passiveStrength(p, 'area') + 0.05 * m('area'),
@@ -608,6 +608,14 @@ function recycleStrays(sim, dt) {
 }
 
 // ---- level ups ----------------------------------------------------------
+// Capacity is earned per player in normal casual runs; training keeps its existing value.
+function slotOptions(sim, p, st = playerStats(p)) {
+  if (sim.pace < 2 || sim.ranked || sim.variant && sim.variant !== 'normal' || sim.level < 10 || sim.over || !p.alive || p.slotUpgrade) return [];
+  const kinds = [];
+  if (Object.keys(p.weapons).length === st.weaponSlots && WEAPON_IDS.some(id => !p.weapons[id] && !p.banished.includes('weapon:' + id))) kinds.push('weapon');
+  if (Object.keys(p.passives).length === st.passiveSlots && passiveIdsAt(sim.pace, false).some(id => !p.passives[id] && !p.banished.includes('passive:' + id))) kinds.push('passive');
+  return kinds;
+}
 export function rollChoices(sim, p) {
   const opts = [], st = playerStats(p);
   for (const id of Object.keys(EVOLUTIONS)) {
@@ -641,12 +649,18 @@ export function rollChoices(sim, p) {
   if (out.length && out.every((c) => c.id === 'curse')) out.unshift({ kind: 'heal', id: 'fish', level: 1 });
   else if (out.length > 1 && out.some((c) => c.id === 'curse')) out.sort((a, b) => (a.id === 'curse') - (b.id === 'curse'));
   if (!out.length) out.push({ kind: 'heal', id: 'fish', level: 1 });
+  const replace = out.findLastIndex(c => c.kind !== 'evolve'), slots = slotOptions(sim, p, st);
+  if ((out.length < 3 || replace >= 0) && slots.length && sim.rng() < 0.02) {
+    const id = slots.length === 1 ? slots[0] : slots[Math.floor(sim.rng() * slots.length)];
+    const card = { kind: 'slot', id, level: 1 };
+    if (out.length < 3) out.push(card); else out[replace] = card;
+  }
   // pace 1 (ranked week 0): no rarity, one level a card, and no extra rolls, exactly as before
   if (!(sim.pace >= 2)) return out.map(({ kind, id, level }) => ({ kind, id, level }));
   // each card rolls its rarity (evolutions are their own reward and do not roll)
   const luck = cardLuck(p.meta || {}, { greed: passiveStrength(p, 'greed') });
   return out.map(({ kind, id, level }) => {
-    if (kind === 'evolve') return { kind, id, level };
+    if (kind === 'evolve' || kind === 'slot') return { kind, id, level };
     if (id === 'curse') return { kind, id, level, from: level - 1 };
     const r = rarityFromRoll(sim.rng(), luck);
     if (kind === 'heal') return { kind, id, level, rarity: CARD_RARITIES[r] };
@@ -675,6 +689,12 @@ function openLevel(sim, p) {
 }
 
 export function applyChoice(sim, p, choice) {
+  if (choice.kind === 'slot') {
+    if (choice.level === 1 && slotOptions(sim, p).includes(choice.id)) {
+      p.slotUpgrade = choice.id; sim.fx.push({ k: 'slot-upgrade', player: p.id, slot: choice.id });
+    }
+    return;
+  }
   if (choice.kind === 'evolve') { p.evo[choice.id] = true; sim.evolves++; if (sim.coop) p.evolves++; sim.fx.push({ k: 'evolve', id: choice.id, ...(sim.coop ? { player: p.id } : {}) }); return; }
   if (sim.pace >= 2 && (choice.kind === 'weapon' || choice.kind === 'passive')) {
     const key = choice.kind === 'weapon' ? 'weapons' : 'passives', max = choice.kind === 'weapon' ? MAX_WEAPON_LEVEL : MAX_PASSIVE_LEVEL;

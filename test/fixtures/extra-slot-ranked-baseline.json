@@ -1,0 +1,405 @@
+{
+  "source": "9dcf5ec",
+  "cases": [
+    {
+      "pace": 1,
+      "seed": 1,
+      "level": 20,
+      "weapons": {
+        "katana": 1,
+        "bow": 1,
+        "axe": 1,
+        "shield": 1
+      },
+      "passives": {
+        "might": 1,
+        "haste": 1,
+        "vigor": 1,
+        "boots": 1
+      },
+      "choices": [
+        [
+          {
+            "kind": "passive",
+            "id": "might",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "katana",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "shield",
+            "level": 2
+          }
+        ],
+        [
+          {
+            "kind": "passive",
+            "id": "boots",
+            "level": 2
+          },
+          {
+            "kind": "passive",
+            "id": "vigor",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "bow",
+            "level": 2
+          }
+        ],
+        [
+          {
+            "kind": "passive",
+            "id": "might",
+            "level": 2
+          },
+          {
+            "kind": "passive",
+            "id": "haste",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "axe",
+            "level": 2
+          }
+        ],
+        [
+          {
+            "kind": "passive",
+            "id": "boots",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "axe",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "shield",
+            "level": 2
+          }
+        ]
+      ],
+      "draws": 12
+    },
+    {
+      "pace": 1,
+      "seed": 914,
+      "level": 20,
+      "weapons": {
+        "katana": 1,
+        "bow": 1,
+        "axe": 1,
+        "shield": 1
+      },
+      "passives": {
+        "might": 1,
+        "haste": 1,
+        "vigor": 1,
+        "boots": 1
+      },
+      "choices": [
+        [
+          {
+            "kind": "passive",
+            "id": "vigor",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "shield",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "axe",
+            "level": 2
+          }
+        ],
+        [
+          {
+            "kind": "weapon",
+            "id": "bow",
+            "level": 2
+          },
+          {
+            "kind": "passive",
+            "id": "boots",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "katana",
+            "level": 2
+          }
+        ],
+        [
+          {
+            "kind": "passive",
+            "id": "might",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "bow",
+            "level": 2
+          },
+          {
+            "kind": "weapon",
+            "id": "katana",
+            "level": 2
+          }
+        ],
+        [
+          {
+            "kind": "weapon",
+            "id": "bow",
+            "level": 2
+          },
+          {
+            "kind": "passive",
+            "id": "haste",
+            "level": 2
+          },
+          {
+            "kind": "passive",
+            "id": "might",
+            "level": 2
+          }
+        ]
+      ],
+      "draws": 12
+    },
+    {
+      "pace": 2,
+      "seed": 1,
+      "level": 20,
+      "weapons": {
+        "katana": 1,
+        "bow": 1,
+        "axe": 1,
+        "shield": 1
+      },
+      "passives": {
+        "might": 1,
+        "haste": 1,
+        "vigor": 1,
+        "boots": 1
+      },
+      "choices": [
+        [
+          {
+            "kind": "passive",
+            "id": "might",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "weapon",
+            "id": "katana",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "weapon",
+            "id": "shield",
+            "level": 2,
+            "from": 1,
+            "rarity": "uncommon"
+          }
+        ],
+        [
+          {
+            "kind": "passive",
+            "id": "might",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "passive",
+            "id": "haste",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "weapon",
+            "id": "axe",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          }
+        ],
+        [
+          {
+            "kind": "weapon",
+            "id": "bow",
+            "level": 2,
+            "from": 1,
+            "rarity": "uncommon"
+          },
+          {
+            "kind": "weapon",
+            "id": "shield",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "weapon",
+            "id": "axe",
+            "level": 2,
+            "from": 1,
+            "rarity": "rare"
+          }
+        ],
+        [
+          {
+            "kind": "weapon",
+            "id": "axe",
+            "level": 2,
+            "from": 1,
+            "rarity": "uncommon"
+          },
+          {
+            "kind": "passive",
+            "id": "vigor",
+            "level": 2,
+            "from": 1,
+            "rarity": "rare"
+          },
+          {
+            "kind": "weapon",
+            "id": "bow",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          }
+        ]
+      ],
+      "draws": 24
+    },
+    {
+      "pace": 2,
+      "seed": 914,
+      "level": 20,
+      "weapons": {
+        "katana": 1,
+        "bow": 1,
+        "axe": 1,
+        "shield": 1
+      },
+      "passives": {
+        "might": 1,
+        "haste": 1,
+        "vigor": 1,
+        "boots": 1
+      },
+      "choices": [
+        [
+          {
+            "kind": "passive",
+            "id": "vigor",
+            "level": 2,
+            "from": 1,
+            "rarity": "uncommon"
+          },
+          {
+            "kind": "weapon",
+            "id": "shield",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "weapon",
+            "id": "axe",
+            "level": 2,
+            "from": 1,
+            "rarity": "uncommon"
+          }
+        ],
+        [
+          {
+            "kind": "passive",
+            "id": "might",
+            "level": 2,
+            "from": 1,
+            "rarity": "uncommon"
+          },
+          {
+            "kind": "weapon",
+            "id": "bow",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "weapon",
+            "id": "katana",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          }
+        ],
+        [
+          {
+            "kind": "weapon",
+            "id": "katana",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "weapon",
+            "id": "shield",
+            "level": 2,
+            "from": 1,
+            "rarity": "uncommon"
+          },
+          {
+            "kind": "weapon",
+            "id": "bow",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          }
+        ],
+        [
+          {
+            "kind": "weapon",
+            "id": "bow",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "weapon",
+            "id": "shield",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          },
+          {
+            "kind": "passive",
+            "id": "boots",
+            "level": 2,
+            "from": 1,
+            "rarity": "common"
+          }
+        ]
+      ],
+      "draws": 24
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createCoopRun} from '../src/coop-run.js';
-import {snapshot} from '../src/sim.js';
+import {snapshot,playerStats} from '../src/sim.js';
+import {WEAPON_IDS,PASSIVES} from '../src/content.js';
 import{readFileSync}from'node:fs';import{unpackGround,groundHash}from'../src/ground-pack.js';
 const start=()=>({protocol:1,epoch:'00112233445566778899aabbccddeeff',build:'test-local',sim:'e2c1419b0907',ground:'0',seed:711,map:'greentown',hard:false,endless:false,players:['p1','p2'].map(id=>({id,loadout:{name:id,adv:'adventurer',meta:{},gear:{},gearLv:{},cleared:[]}}))});
 function pair(settings={},now=()=>performance.now()){
@@ -157,4 +158,15 @@ test('an expired remote direction holds the guest picture until a genuine moveme
  let pose=p.guest.pose();assert.equal(pose.mv,false);assert.equal(pose.x,p.host.sim.players[1].x);assert.equal(pose.z,p.host.sim.players[1].z);
  p.guest.resetInput();p.up.length=0;p.guest.input(0,1);p.up.length=0;time+=100;p.tick(2);pose=p.guest.pose();assert.equal(pose.mv,false,'new local direction alone is not an acknowledgement');
  time+=210;p.guest.flushInput();p.tick(2);pose=p.guest.pose();assert.equal(pose.mv,true);assert.equal(p.host.hash(),p.guest.hash());
+});
+
+test('seeded rare slot decisions stay personal, survive held recovery and enter canonical co-op checksums',()=>{
+ const p=pair({seed:26});
+ // A shared full-row fixture reaches the ordinary XP/choice path; no RNG overrides.
+ for(const run of [p.host,p.guest]){run.sim.level=10;for(const hero of run.sim.players){hero.weapons=Object.fromEntries(WEAPON_IDS.slice(0,4).map(id=>[id,1]));hero.passives=Object.fromEntries(Object.keys(PASSIVES).slice(0,4).map(id=>[id,1]));}}
+ earn(p);const before=p.host.decision('p1'),index=p.host.sim.pending.p1.choices.findIndex(c=>c.kind==='slot');assert.equal(index,2);assert.equal(p.host.sim.pending.p1.choices[index].id,'passive');assert(p.host.action({kind:'choose',index},before));p.tick(2);
+ assert.equal(p.host.sim.players[0].slotUpgrade,'passive');assert.equal(p.guest.sim.players[0].slotUpgrade,'passive');assert.equal(playerStats(p.guest.sim.players[0]).passiveSlots,5);assert.equal(p.guest.sim.players[1].slotUpgrade,undefined);assert.equal(p.host.action({kind:'choose',index},before),false);
+ assert(p.guest.action({kind:'choose',index:0},p.guest.decision('p2')));p.tick(5);assert.equal(p.host.hash(),p.guest.hash());
+ p.host.hold();p.guest.hold();p.deliver();assert(p.guest.recover(p.host.frame));p.deliver();assert(p.host.begin(p.host.frame));assert(p.guest.begin(p.guest.frame));p.tick(35);assert.equal(p.host.hash(),p.guest.hash());assert.equal(p.guest.sim.players[0].slotUpgrade,'passive');assert.deepEqual(p.ended,[]);
+ p.guest.sim.players[0].slotUpgrade='weapon';p.tick(30);assert.deepEqual(p.ended,[['guest','desync']]);
 });

@@ -2383,11 +2383,16 @@ function showLevelUp() {
   pend.choices.forEach((c, i) => {
     // Rarity strengthens one accepted level; discrete unlocks use the integer level.
     const ri = c.rarity ? Math.max(0, CARD_RARITIES.indexOf(c.rarity)) : -1;
-    const el = document.createElement('div'); el.className = 'card' + (c.banished ? ' banished' : '') + (c.kind === 'evolve' ? ' evo' : '') + (ri >= 0 ? ` rar r-${CARD_RARITIES[ri]}` : ''); el.dataset.i = i; el.setAttribute('role', 'button'); el.setAttribute('aria-disabled', String(!!c.banished)); el.tabIndex = c.banished ? -1 : 0;
+    const el = document.createElement('div'); el.className = 'card' + (c.banished ? ' banished' : '') + (c.kind === 'slot' ? ' slot-upgrade' : '') + (c.kind === 'evolve' ? ' evo' : '') + (ri >= 0 ? ` rar r-${CARD_RARITIES[ri]}` : ''); el.dataset.i = i; el.setAttribute('role', 'button'); el.setAttribute('aria-disabled', String(!!c.banished)); el.tabIndex = c.banished ? -1 : 0;
     const from = typeof c.from === 'number' && c.rarity ? c.from : c.level - 1; // the level you have now
     const lvTag = () => (from === 0 ? (c.level > 1 ? `NEW · Lv ${c.level}` : 'NEW') : c.level - from > 1 ? `Lv ${from} → ${c.level}` : `Lv ${c.level}`);
     let name, tag, text, icon;
-    if (c.kind === 'evolve') {
+    if (c.kind === 'slot') {
+      const weapon = c.id === 'weapon', st = playerStats(me), capacity = weapon ? st.weaponSlots : st.passiveSlots;
+      name = weapon ? 'Extra weapon slot' : 'Extra passive slot'; tag = 'This run only';
+      text = `<span>${weapon ? 'Weapon slots' : 'Passive slots'}</span>: <b>${capacity} → ${capacity + 1}</b>. <span>Find a new item in a later upgrade.</span> <span>Only one extra slot can be earned per run.</span>`;
+      icon = `<img src="${asset('')}${SKILLS[weapon ? 'strength' : 'prayer'].icon}" alt="">`;
+    } else if (c.kind === 'evolve') {
       const e = EVOLUTIONS[c.id]; name = e.name; tag = `EVOLVES ${weaponTitle(c.id, 6, stepOf(c.id)).toUpperCase()}`; text = e.blurb; icon = imgTag(e.item, EMOJI[c.id]);
     } else if (c.kind === 'weapon') {
       const w = WEAPONS[c.id], ups = []; for (let l = Math.max(1, from); l < c.level; l++) ups.push(w.next(l));
@@ -2671,6 +2676,7 @@ function updateHud(view) {
     else if (f.k === 'shrine-done' && SHRINES[f.kind] && f.id === PLAYER) banner(`${SHRINES[f.kind].name}: ${SHRINES[f.kind].text}`, 3200);
     else if (f.k === 'region' && sim.t > 1) banner(MAP_BY_ID[f.id].name, 1800);
     else if (f.k === 'escape') banner('The treasure goblin got away', 1600);
+    else if (f.k === 'slot-upgrade' && ['weapon', 'passive'].includes(f.slot)) banner(f.slot === 'weapon' ? 'Extra weapon slot unlocked.' : 'Extra passive slot unlocked.', 1800);
     else if (f.k === 'endless-growth') {
       const text = { might: 'Damage bonus +1%', maxHp: 'Maximum health bonus +1%', area: 'Area bonus +1%' }[f.stat];
       if (typeof text === 'string') toast(`<span>Endless growth<br><b>${text}</b></span>`);
