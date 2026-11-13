@@ -1,6 +1,6 @@
 {
-  "commit": "c5139f4602b4f6f1afea0d05d7137180934d854a",
-  "implementation": "c5139f4602b4f6f1afea0d05d7137180934d854a",
+  "commit": "09e9a0ce2b2737fb17b25a6b82e997ed6a6940de",
+  "implementation": "09e9a0ce2b2737fb17b25a6b82e997ed6a6940de",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2943,21 +2943,21 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-B8PZmS92.js",
-      "bytes": 1740230,
-      "sha256": "5e23162a4ba39495a4242aec2f0149180268b2e32f34708d8128e8083d11146c",
-      "role": "client"
-    },
-    {
       "path": "assets/index-DP2ggugk.css",
       "bytes": 32767,
       "sha256": "f5bd644da2726acfe3809a41bbcf9aac2b563e71492acc9f48b8d013c7b78d49",
       "role": "stylesheet"
     },
     {
+      "path": "assets/index-KGmUjGdn.js",
+      "bytes": 1742865,
+      "sha256": "e4ebbabd65d4fe3d52f409679668f050cd39b5af90633fa44d43cef9a1d811e6",
+      "role": "client"
+    },
+    {
       "path": "assets/inventory.json",
-      "bytes": 43037,
-      "sha256": "1e9bf3cf1830262841005c06b1ce289cd33ecb349eaaf2d5cf9ad81e4f0353dd",
+      "bytes": 45198,
+      "sha256": "3747998b341e5e07cc9bdac7d14dc1051a8e29607c57fb022e598d45bdb5406a",
       "role": "omit-unused"
     },
     {
@@ -3069,6 +3069,12 @@
       "role": "shared"
     },
     {
+      "path": "assets/models/equipment/equipment/pickaxe/iron_pickaxe.glb",
+      "bytes": 3316,
+      "sha256": "06ab0080ac39ea971e186d14dc79c270d4422690c9e63961e042a4afb092e432",
+      "role": "shared"
+    },
+    {
       "path": "assets/models/equipment/weapons/blade/shortsword/bronze_shortsword.glb",
       "bytes": 4276,
       "sha256": "093231d0ccef4e2ce04ef9d4fcfd9fff01d465154453e4a1959244b383b3dfbc",
@@ -3078,6 +3084,12 @@
       "path": "assets/models/playerCharacter/Arms/Nude.glb",
       "bytes": 25752,
       "sha256": "90f16e5735476a9599853c587a26a50536828a45e24514dafa03a4db6c00334d",
+      "role": "shared"
+    },
+    {
+      "path": "assets/models/playerCharacter/Chest/Clothing/Bronze Chestplate.glb",
+      "bytes": 53396,
+      "sha256": "3fde27f69fdf129f926a33f585cfe354d02466e627be5794dd9453a0709a48c8",
       "role": "shared"
     },
     {
@@ -3096,6 +3108,12 @@
       "path": "assets/models/playerCharacter/Chest/Styles/Shoulders.glb",
       "bytes": 32164,
       "sha256": "7dbb45ca499e87d4bd90838d5b213f41201976d82089b1d974356b89f46db633",
+      "role": "shared"
+    },
+    {
+      "path": "assets/models/playerCharacter/Feet/Clothing/Bronze Boots.glb",
+      "bytes": 23688,
+      "sha256": "ca0870b878d52771bf414ce6cd20eeb0f37908912ce357a01329623bf5b26f95",
       "role": "shared"
     },
     {
@@ -3120,6 +3138,12 @@
       "path": "assets/models/playerCharacter/Head/Bald.glb",
       "bytes": 17476,
       "sha256": "3492664d6b2ad29b7fbcc1313569bc4aa378b2e25060cbf8a27d421a66f6f5e4",
+      "role": "shared"
+    },
+    {
+      "path": "assets/models/playerCharacter/Head/Clothing/Bronze Helmet.glb",
+      "bytes": 42708,
+      "sha256": "1cf05b77f25a0ff90281b4c574e8251803da5805f29f51efc03ae0ce46f11562",
       "role": "shared"
     },
     {
@@ -3183,6 +3207,12 @@
       "role": "shared"
     },
     {
+      "path": "assets/models/playerCharacter/Legs/Clothing/Bronze Leggings.glb",
+      "bytes": 25808,
+      "sha256": "be8fa6b955abb8a08309c072c6ca48f49f9e667b2789c21db9dd11e749c74e57",
+      "role": "shared"
+    },
+    {
       "path": "assets/models/playerCharacter/Legs/Clothing/Iron Leggings.glb",
       "bytes": 25768,
       "sha256": "f2dd33562cbabcf5496ec4f64792270951fe9a857cd2f4a3258fd1701f358add",
@@ -3243,6 +3273,30 @@
       "role": "shared"
     },
     {
+      "path": "assets/ui/items/item_Bronze_Boots.png",
+      "bytes": 18170,
+      "sha256": "a1b3e00d41c0be6ad0d2f184f5dc7e6c955fb50c6b92357a5caf909da3742b64",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Bronze_Chestplate.png",
+      "bytes": 23182,
+      "sha256": "c49974d27c0cb703558bfb1f0ad1825e364defbbb945dee579cf3762e9400742",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Bronze_Helmet.png",
+      "bytes": 15325,
+      "sha256": "4e94fd6acf165a6d80c73e835695386c118d9990e5edd5f721c10702b1971287",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Bronze_Leggings.png",
+      "bytes": 14224,
+      "sha256": "29be8a22834b3cd7569135dcfec5cd8269e73d4cad28e04eeec21e3a8d939a8e",
+      "role": "shared"
+    },
+    {
       "path": "assets/ui/items/item_Bronze_Pickaxe.png",
       "bytes": 6932,
       "sha256": "c8af4bb512a0ab142e1efe32b10c1504c7aef0a50f07ed558f9b1520bf758977",
@@ -3267,15 +3321,39 @@
       "role": "shared"
     },
     {
+      "path": "assets/ui/items/item_Iron_Boots.png",
+      "bytes": 16967,
+      "sha256": "07f715cd5e8755a05be268f518ff20ae2e805ae144f8792040bbb9674f097368",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Iron_Chestplate.png",
+      "bytes": 23024,
+      "sha256": "a2a0e148a755baf85a968315445096d5cbc8ead6df0c2afdd6bd9f38e9ed13c8",
+      "role": "shared"
+    },
+    {
       "path": "assets/ui/items/item_Iron_Helmet.png",
       "bytes": 15600,
       "sha256": "87f432de5eea1aa89e02f245f51147518f00c832de2948612723a1b040dc5f6c",
       "role": "shared"
     },
     {
+      "path": "assets/ui/items/item_Iron_Leggings.png",
+      "bytes": 13628,
+      "sha256": "aecb296c967d2e35e5e0d213269afba02de46ec35b534be31577b05bb83d5439",
+      "role": "shared"
+    },
+    {
       "path": "assets/ui/items/item_Iron_Ore.png",
       "bytes": 7791,
       "sha256": "b8ab8471548d25ec88ebfc6779e3da27437777fc546799cbb23de304d26e727b",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Iron_Pickaxe.png",
+      "bytes": 4261,
+      "sha256": "c36771a09fd648ce808a8535f993b103a99cd182e853ce01f04116901725dc7b",
       "role": "shared"
     },
     {
@@ -4841,7 +4919,7 @@
     {
       "path": "index.html",
       "bytes": 13018,
-      "sha256": "09cf7cd1580e353cc4010471837039827bda866da2370d72bf5b4d9941041b64",
+      "sha256": "2704dfb19e535a03d31f31bc14cf3ff3075796855032d9fca90a9fc229ec72eb",
       "role": "entry"
     }
   ],
@@ -4850,5 +4928,5 @@
     "bytes": 669454,
     "sha256": "f802a64a319badc7950199713c322e3848783a6563eb3a680f1393a422876cc8"
   },
-  "rulesVersion": "09158d4b45e8"
+  "rulesVersion": "6931e7d6b043"
 }

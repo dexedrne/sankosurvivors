@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Forge your equipment": "I-forge ang gamit mo",
+  "Grand Theft Sanko: forge an Iron Pickaxe for faster mining, plus full Bronze and Iron armour sets. Workshop cards show mining time and required bars. Armour remains cosmetic; inventory saves on this device. Reload GTS to join the updated hub and races.": "Grand Theft Sanko: gumawa ng Iron Pickaxe para mas mabilis magmina, at kumpletong Bronze at Iron armour set. Makikita sa mga card ng workshop ang oras ng pagmimina at kailangang mga bar. Pang-itsura lang ang armour; sa device na ito naka-save ang inventory. I-reload ang GTS para sumali sa updated na hub at mga karera.",
   "A calmer camera": "Mas kalmadong camera",
   "Screen shake now respects your device’s Reduce Motion preference. Your saved shake setting stays the same.": "Sinusunod na ng screen shake ang Reduce Motion preference ng device mo. Hindi nababago ang naka-save mong shake setting.",
   "Your device's Reduce Motion setting disables screen shake.": "Pinapatay ng Reduce Motion setting ng device mo ang screen shake.",

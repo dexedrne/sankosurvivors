@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Forge your equipment": "Ekipmanını döv",
+  "Grand Theft Sanko: forge an Iron Pickaxe for faster mining, plus full Bronze and Iron armour sets. Workshop cards show mining time and required bars. Armour remains cosmetic; inventory saves on this device. Reload GTS to join the updated hub and races.": "Grand Theft Sanko: daha hızlı madencilik için Demir Kazma ve tam Bronz ile Demir zırh setleri üret. Atölye kartları kazma süresini ve gereken külçeleri gösterir. Zırhlar yalnızca görseldir; envanter bu cihaza kaydedilir. Güncellenen ortak dünyaya ve yarışlara katılmak için GTS’yi yeniden yükle.",
   "A calmer camera": "Daha sakin bir kamera",
   "Screen shake now respects your device’s Reduce Motion preference. Your saved shake setting stays the same.": "Ekran sarsıntısı artık cihazınızın Hareketi Azalt tercihine uyar. Kayıtlı sarsıntı ayarınız değişmez.",
   "Your device's Reduce Motion setting disables screen shake.": "Cihazınızın Hareketi Azalt ayarı ekran sarsıntısını kapatır.",

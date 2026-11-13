@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Forge your equipment": "Forja tu equipo",
+  "Grand Theft Sanko: forge an Iron Pickaxe for faster mining, plus full Bronze and Iron armour sets. Workshop cards show mining time and required bars. Armour remains cosmetic; inventory saves on this device. Reload GTS to join the updated hub and races.": "Grand Theft Sanko: forja un Pico de hierro para minar más rápido y conjuntos completos de armadura de bronce y hierro. Las tarjetas del taller muestran el tiempo de extracción y los lingotes necesarios. La armadura es cosmética; el inventario se guarda en este dispositivo. Recarga GTS para entrar al mundo compartido y las carreras actualizados.",
   "A calmer camera": "Una cámara más tranquila",
   "Screen shake now respects your device’s Reduce Motion preference. Your saved shake setting stays the same.": "El temblor de pantalla respeta la preferencia Reducir movimiento del dispositivo. Tu ajuste guardado se conserva.",
   "Your device's Reduce Motion setting disables screen shake.": "La opción Reducir movimiento del dispositivo desactiva el temblor de pantalla.",
