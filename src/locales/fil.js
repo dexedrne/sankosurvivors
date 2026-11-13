@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Find Pause more easily": "Mas madaling makita ang Pause",
+  "Desktop players have a labelled Pause button and an Esc hint. Short landscape screens keep Pause clear of Tumble; compact Flex keeps its small pause icon.": "May malinaw na Pause button at Esc hint sa desktop. Hindi na nagtatakipan ang Pause at Tumble sa mababang landscape screen; nananatili ang maliit na pause icon sa compact Flex.",
   "Bun expressions": "Mga ekspresyon ng Bun",
   "Bun companions react while catching up, look concerned when your health is low, and show affection in the pet preview. Special Bun faces keep their original details.": "Nagre-react ang mga kasamang Bun habang humahabol, nag-aalala kapag mababa ang buhay mo, at nagpapakita ng lambing sa pet preview. Nananatili ang orihinal na detalye ng mga espesyal na mukha ng Bun.",
   "Faster workshops": "Mas mabilis na pagawaan",

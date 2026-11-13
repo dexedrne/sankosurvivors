@@ -34,7 +34,7 @@ From ranked week 2, food stacks hold at most five portions per type. An extra pi
 | Choose upgrade | 1–3 or arrows and Enter |
 | Reroll / skip / banish | R / X / B on the upgrade screen |
 | Enlarge map | Hold Tab during play |
-| Pause | Escape |
+| Pause | Escape or the Pause button below the minimap |
 | Mute | M |
 
 Touch controls and standard-mapped controllers are supported. Settings includes separate sound/music volume, graphics presets and detailed options. The installable PWA supports phone layouts and an optional Flex layout. Browser emulation does not guarantee every device's fullscreen, safe-area, audio or controller behavior.

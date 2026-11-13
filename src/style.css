@@ -250,8 +250,10 @@ html, body, #c, #hud { touch-action: none; }
 .screen .panel, #menu { touch-action: pan-y; }
 #stick { position: fixed; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; background: rgba(30, 23, 16, .35); border: 2px solid rgba(255, 240, 192, .45); pointer-events: none; z-index: 3; }
 #stick i { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; border-radius: 50%; background: rgba(255, 240, 192, .55); border: 2px solid rgba(0, 0, 0, .5); transform: translate(-50%, -50%); }
-#pausebtn { display: none; position: absolute; top: 74px; right: 10px; pointer-events: auto; margin: 0; padding: 4px 14px; font-size: 16px; }
-body.touch #pausebtn { display: block; }
+#pausebtn { display: block; position: absolute; top: 258px; right: 10px; min-height: 44px; pointer-events: auto; margin: 0; padding: 4px 14px; font-size: 16px; white-space: nowrap; }
+#pausebtn .pauseicon { display: none; }
+#pausebtn .pausekey { font-size: .85em; }
+body.touch #pausebtn .pausekey, body.ds-layout #pausebtn .pausekey { display: none; }
 #tumblebtn { display:block; position:absolute; right:max(12px,env(safe-area-inset-right,0px)); bottom:calc(80px + env(safe-area-inset-bottom,0px)); min-width:58px; min-height:44px; margin:0; padding:4px 10px; pointer-events:auto; font-size:18px; }
 #tumblecd { display:inline-block; min-width:12px; margin-left:4px; }
 body.ds-layout #tumblebtn { position:fixed; bottom:calc(62px + env(safe-area-inset-bottom,0px)); }
@@ -303,13 +305,20 @@ body.touch .card .key { display: none; }
 /* minimap, framed like the game's */
 #mmwrap { position: absolute; top: 70px; right: 10px; width: 180px; height: 180px; border: 6px solid transparent; border-image: url(../assets/ui/sq/frame.png) 20 round; border-radius: 50%; background: #1e1710; display: grid; place-items: center; }
 #minimap { width: 168px; height: 168px; border-radius: 50%; image-rendering: pixelated; }
-body.touch #pausebtn { top: 258px; }
-@media (max-width: 760px) { #mmwrap { width: 120px; height: 120px; top: 62px; } #minimap { width: 108px; height: 108px; } body.touch #pausebtn { top: 190px; } }
+@media (max-width: 760px), (max-height: 480px) { #mmwrap { width: 120px; height: 120px; top: 62px; } #minimap { width: 108px; height: 108px; } #pausebtn { top: 190px; } }
 #killcount { top: 38px; }
 #toasts { top: 262px; }
 @media (max-width: 760px) { #toasts { top: auto; } }
 #mmwrap { border: 4px solid #8f642f; border-image: none; box-shadow: 0 0 0 2px #1e1710, 0 4px 12px rgba(0,0,0,.6); width: 176px; height: 176px; }
-@media (max-width: 760px) { #mmwrap { width: 116px; height: 116px; } }
+@media (max-width: 760px), (max-height: 480px) { #mmwrap { width: 116px; height: 116px; } }
+@media (max-height:360px) {
+  body:not(.ds-layout) #pausebtn { top:auto; bottom:12px; }
+  body:not(.ds-layout) #zoomhint { display:none; }
+}
+@media (max-height:360px) and (max-width:480px) {
+  body:not(.ds-layout) #pausebtn { padding:4px 8px; }
+  body:not(.ds-layout) #pausebtn .pausekey { display:none; }
+}
 /* the belt: four slots for items you keep (1-4, tap, or LB/RB/X/Y) */
 #belt { position: absolute; left: 14px; bottom: 48px; display: flex; gap: 4px; pointer-events: auto; }
 .bslot { position: relative; width: 40px; height: 40px; border: 6px solid transparent; border-image: url(../assets/ui/sq/grey_slot.png) 14 fill stretch; display: grid; place-items: center; cursor: url(../assets/ui/sq/cursors/customcursor_hand.png), pointer; }
@@ -747,7 +756,9 @@ body.ds-layout #levelup .panel, body.ds-layout #casket .panel, body.ds-layout #p
   /* Compact panes keep full-size touch targets; the noninteractive loadout stays out of their way. */
   body.ds-layout #loadout, body.ds-layout #dscontrols > span { display:none; }
   body.ds-layout #hp { top:calc(var(--ds-play-height) - 40px); bottom:auto; }
-  body.ds-layout #pausebtn { top:calc(var(--ds-control-top) + 4px); bottom:auto; left:max(12px,env(safe-area-inset-left,0px)); right:auto; }
+  body.ds-layout #pausebtn { top:calc(var(--ds-control-top) + 4px); bottom:auto; left:max(12px,env(safe-area-inset-left,0px)); right:auto; width:58px; padding:4px; }
+  body.ds-layout #pausebtn .pauseword { display:none; }
+  body.ds-layout #pausebtn .pauseicon { display:inline; }
   body.ds-layout #tumblebtn { top:calc(var(--ds-control-top) + 56px); bottom:auto; left:max(12px,env(safe-area-inset-left,0px)); right:auto; width:58px; padding:4px; }
   body.ds-layout #tumblebtn > span { display:none; }
   body.ds-layout #belt { top:calc(var(--ds-control-top) + 4px); bottom:auto; left:calc(max(12px,env(safe-area-inset-left,0px)) + 68px); width:92px; flex-wrap:wrap; gap:4px; }

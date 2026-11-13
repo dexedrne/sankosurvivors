@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Find Pause more easily": "Duraklatmayı daha kolay bulun",
+  "Desktop players have a labelled Pause button and an Esc hint. Short landscape screens keep Pause clear of Tumble; compact Flex keeps its small pause icon.": "Bilgisayar oyuncuları için etiketli bir Duraklat düğmesi ve Esc ipucu var. Kısa yatay ekranlarda Duraklat ve Takla çakışmaz; kompakt Flex küçük duraklatma simgesini korur.",
   "Bun expressions": "Bun ifadeleri",
   "Bun companions react while catching up, look concerned when your health is low, and show affection in the pet preview. Special Bun faces keep their original details.": "Bun dostların sana yetişirken tepki verir, sağlığın azaldığında endişelenir ve evcil hayvan önizlemesinde sevgi gösterir. Özel Bun yüzleri özgün ayrıntılarını korur.",
   "Faster workshops": "Daha hızlı atölyeler",
