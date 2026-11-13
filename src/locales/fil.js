@@ -1,5 +1,7 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Lighter world rendering": "Mas magaan na world rendering",
+  "Grand Theft Sanko’s world rendering does less work per frame while you drive and explore.": "Mas kaunti ang ginagawa ng world renderer ng Grand Theft Sanko bawat frame habang nagmamaneho at nag-e-explore ka.",
   "Find Pause more easily": "Mas madaling makita ang Pause",
   "Desktop players have a labelled Pause button and an Esc hint. Short landscape screens keep Pause clear of Tumble; compact Flex keeps its small pause icon.": "May malinaw na Pause button at Esc hint sa desktop. Hindi na nagtatakipan ang Pause at Tumble sa mababang landscape screen; nananatili ang maliit na pause icon sa compact Flex.",
   "Bun expressions": "Mga ekspresyon ng Bun",

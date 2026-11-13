@@ -1,5 +1,7 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Lighter world rendering": "Un mundo más ligero",
+  "Grand Theft Sanko’s world rendering does less work per frame while you drive and explore.": "El renderizado del mundo de Grand Theft Sanko hace menos trabajo por fotograma mientras conduces y exploras.",
   "Find Pause more easily": "Pausa más fácil de encontrar",
   "Desktop players have a labelled Pause button and an Esc hint. Short landscape screens keep Pause clear of Tumble; compact Flex keeps its small pause icon.": "Los jugadores de ordenador tienen un botón de Pausa y un recordatorio de Esc. En pantallas horizontales bajas, Pausa queda separado de la voltereta; Flex compacto conserva su pequeño icono de pausa.",
   "Bun expressions": "Expresiones de los Bun",

@@ -1,5 +1,6 @@
 // Updates, newest first. Shown from the Updates button on the title screen.
 export const CHANGELOG = [
+  {version:'0.45.36',date:'12 Nov 2026',title:'Lighter world rendering',items:["Grand Theft Sanko’s world rendering does less work per frame while you drive and explore."]},
   {"version": "0.45.35", "date": "12 Nov 2026", "title": "Find Pause more easily", "items": ["Desktop players have a labelled Pause button and an Esc hint. Short landscape screens keep Pause clear of Tumble; compact Flex keeps its small pause icon."]},
   {"version": "0.45.34", "date": "12 Nov 2026", "title": "Bun expressions", "items": ["Bun companions react while catching up, look concerned when your health is low, and show affection in the pet preview. Special Bun faces keep their original details."]},
   {"version": "0.45.33", "date": "12 Nov 2026", "title": "Faster workshops", "items": ["Grand Theft Sanko workshops now offer Make max. Bank max and Take max show the quantity that fits in your backpack or bank."]},

@@ -1,5 +1,7 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Lighter world rendering": "Daha hafif dünya çizimi",
+  "Grand Theft Sanko’s world rendering does less work per frame while you drive and explore.": "Grand Theft Sanko dünyası, araç sürerken ve keşfederken her karede daha az işlem yapar.",
   "Find Pause more easily": "Duraklatmayı daha kolay bulun",
   "Desktop players have a labelled Pause button and an Esc hint. Short landscape screens keep Pause clear of Tumble; compact Flex keeps its small pause icon.": "Bilgisayar oyuncuları için etiketli bir Duraklat düğmesi ve Esc ipucu var. Kısa yatay ekranlarda Duraklat ve Takla çakışmaz; kompakt Flex küçük duraklatma simgesini korur.",
   "Bun expressions": "Bun ifadeleri",
