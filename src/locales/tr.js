@@ -1,5 +1,12 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Weapon roles": "Silah rolleri",
+  "Katana, Two-handed Sword and Pickaxe hit nearby crowds. Bow, Spells and Short Swords can attack from farther away.": "Katana, Çift Elli Kılıç ve Kazma yakındaki kalabalıklara vurur. Yay, Büyüler ve Kısa Kılıçlar daha uzaktan saldırabilir.",
+  "Try mixing a ranged weapon with a close-range weapon. Keep moving and use Tumble to escape; no weapon makes you safe.": "Menzilli bir silahla yakın dövüş silahını birlikte dene. Hareket et ve kaçmak için Yuvarlan kullan; hiçbir silah güvenliğini garanti etmez.",
+  "Kiteshields orbit around you. Enemies very close to your character can be inside the ring.": "Uçurtma Kalkanlar etrafında döner. Karakterine çok yakın düşmanlar halkanın içinde kalabilir.",
+  "Find your playstyle": "Oyun tarzını bul",
+  "The Guide explains close-range crowd control, ranged reach and mixing weapons, including the gap inside orbiting shields. Combat stats are unchanged.": "Rehber; yakın dövüşte kalabalık kontrolünü, menzilli saldırıları, silahları birleştirmeyi ve dönen kalkanların iç boşluğunu açıklar. Savaş değerleri değişmedi.",
+  "Grand Theft Sanko: open Mining and crafting in the World menu for a short guide to ores, workshops, equipment and banking.": "Grand Theft Sanko: cevher, atölye, ekipman ve bankacılık hakkında kısa bir rehber için Dünya menüsünde Madencilik ve üretim bölümünü aç.",
   "Your item keys": "Eşya tuşların",
   "Choose keys for your four item slots in Settings → Item keys. Belt hints follow your keys; upgrade and casket choices keep their number shortcuts.": "Dört eşya yuvan için Ayarlar → Eşya tuşları bölümünde tuş seç. Kemer ipuçları seçtiğin tuşları gösterir; yükseltme ve sandık seçimlerinde sayı kısayolları korunur.",
   "Casket choices say Sell with the coin amount. Automatic sales and results use the same plain wording.": "Sandık seçimlerinde altın miktarıyla birlikte Sat yazar. Otomatik satışlarda ve sonuçlarda da aynı açık ifadeler kullanılır.",

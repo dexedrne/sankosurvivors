@@ -1,5 +1,12 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Weapon roles": "Funciones de las armas",
+  "Katana, Two-handed Sword and Pickaxe hit nearby crowds. Bow, Spells and Short Swords can attack from farther away.": "Katana, Espada a dos manos y Pico golpean a grupos cercanos. Arco, Hechizos y Espadas cortas pueden atacar desde más lejos.",
+  "Try mixing a ranged weapon with a close-range weapon. Keep moving and use Tumble to escape; no weapon makes you safe.": "Prueba a combinar un arma a distancia con una de corto alcance. Sigue moviéndote y usa Rodar para escapar; ningún arma garantiza tu seguridad.",
+  "Kiteshields orbit around you. Enemies very close to your character can be inside the ring.": "Los escudos giran a tu alrededor. Los enemigos muy cercanos a tu personaje pueden quedar dentro del anillo.",
+  "Find your playstyle": "Encuentra tu estilo",
+  "The Guide explains close-range crowd control, ranged reach and mixing weapons, including the gap inside orbiting shields. Combat stats are unchanged.": "La Guía explica el control de grupos cercanos, el alcance y cómo combinar armas, incluido el hueco interior de los escudos giratorios. Las estadísticas de combate no cambian.",
+  "Grand Theft Sanko: open Mining and crafting in the World menu for a short guide to ores, workshops, equipment and banking.": "Grand Theft Sanko: abre Minería y fabricación en el menú Mundo para una guía breve sobre minerales, talleres, equipo y banco.",
   "Your item keys": "Tus teclas de objetos",
   "Choose keys for your four item slots in Settings → Item keys. Belt hints follow your keys; upgrade and casket choices keep their number shortcuts.": "Elige las teclas para tus cuatro ranuras en Ajustes → Teclas de objetos. El cinturón muestra tus teclas; las mejoras y los cofres conservan sus atajos numéricos.",
   "Casket choices say Sell with the coin amount. Automatic sales and results use the same plain wording.": "Los cofres muestran Vender con la cantidad de monedas. Las ventas automáticas y los resultados usan el mismo texto sencillo.",

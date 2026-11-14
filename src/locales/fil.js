@@ -1,5 +1,12 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Weapon roles": "Mga papel ng sandata",
+  "Katana, Two-handed Sword and Pickaxe hit nearby crowds. Bow, Spells and Short Swords can attack from farther away.": "Tumatama ang Katana, Two-handed Sword at Pickaxe sa mga kalapit na grupo. Nakakaatake mula sa mas malayo ang Bow, Spells at Short Swords.",
+  "Try mixing a ranged weapon with a close-range weapon. Keep moving and use Tumble to escape; no weapon makes you safe.": "Subukang pagsamahin ang malayuang sandata at malapitang sandata. Patuloy na gumalaw at gamitin ang Tumble para makatakas; walang sandatang garantiya ng kaligtasan.",
+  "Kiteshields orbit around you. Enemies very close to your character can be inside the ring.": "Umiikot sa paligid mo ang Kiteshields. Maaaring nasa loob ng singsing ang mga kalabang napakalapit sa karakter mo.",
+  "Find your playstyle": "Hanapin ang estilo mo",
+  "The Guide explains close-range crowd control, ranged reach and mixing weapons, including the gap inside orbiting shields. Combat stats are unchanged.": "Ipinapaliwanag ng Gabay ang pagkontrol sa kalapit na grupo, abot ng malayuang sandata at paghahalo ng sandata, pati ang puwang sa loob ng umiikot na mga kalasag. Walang binagong combat stats.",
+  "Grand Theft Sanko: open Mining and crafting in the World menu for a short guide to ores, workshops, equipment and banking.": "Grand Theft Sanko: buksan ang Mining and crafting sa World menu para sa maikling gabay sa mga ore, workshop, kagamitan at bangko.",
   "Your item keys": "Mga key mo para sa item",
   "Choose keys for your four item slots in Settings → Item keys. Belt hints follow your keys; upgrade and casket choices keep their number shortcuts.": "Pumili ng mga key para sa apat na item slot sa Settings → Mga key ng item. Ipapakita ng belt ang mga key mo; numero pa rin ang shortcut ng upgrade at casket.",
   "Casket choices say Sell with the coin amount. Automatic sales and results use the same plain wording.": "Ibenta at ang halaga ng coins na ang makikita sa mga casket. Pareho rin ang malinaw na salita sa awtomatikong benta at mga resulta.",
