@@ -15,7 +15,7 @@ function between(start, end) {
 }
 function harness() {
   return Function('THREE', 'ownActorResource', 'disposeActor', 'createPetRenderer', 'createMeleeVfx', 'createSpellMaterials', `
-    const dyn = new THREE.Group(), entGroup = new THREE.Group(), camera = new THREE.PerspectiveCamera();
+    const syncDownMarkers=()=>{};const dyn = new THREE.Group(), entGroup = new THREE.Group(), camera = new THREE.PerspectiveCamera();
     let merchantActor=null; const castleMarker=new THREE.Group(), folkProto=()=>null;
     const projObjs = new Map(), eprojObjs = new Map(), shrineObjs = new Map(), shieldObjs = new Map();
     const iconTex = () => modelMap;

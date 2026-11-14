@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {translateText} from '../src/i18n.js';import {CHANGELOG,LATEST} from '../src/changelog.js';
+const labels=["Teammate revival", "Hold to revive", "Revival progress", "Hold for 3 seconds.", "Move closer and stand still.", "Keep holding to revive.", "Your teammate is reviving you.", "Your teammate can revive you.", "Reviving teammates", "Stand beside a fallen teammate with a clear path and hold Revive for 3 seconds. Moving or taking damage restarts it. No items are required.", "Fallen teammates have a yellow map marker."];
+test('revive controls, progress, status and help translate in all regular locales',()=>{for(const language of ['tr','es','fil'])for(const label of [...labels,CHANGELOG[0].title,...CHANGELOG[0].items]){const result=translateText(label,language);assert(result&&result!==label,language+': '+label);}});
+
+test('the prepared revive release is version 0.45.41',()=>{assert.equal(LATEST,'0.45.41');assert.equal(CHANGELOG[0].title,'Reviving teammates');});

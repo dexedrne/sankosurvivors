@@ -15,9 +15,9 @@ export function createMovementPrediction({sim,index,now}){
   confirmedAt=renderedAt=time;lastTick=sim.tick;
   lastX=sim.players[index].x;lastZ=sim.players[index].z;pose=null;settling=false;
  }
- function sample(move){
+ function sample(move,force=false){
   const last=inputs.at(-1),time=now();
-  if(!same(last.move,move)||(move[0]||move[1])&&time-last.at>=200){
+  if(force||!same(last.move,move)||(move[0]||move[1])&&time-last.at>=200){
    inputs.push({seq:++sequence,at:time,move:[...move]});
    if(inputs.length>MAX_HISTORY){inputs.shift();confirmedAt=Math.max(confirmedAt,inputs[0].at);}
   }

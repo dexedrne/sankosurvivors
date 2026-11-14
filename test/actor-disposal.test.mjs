@@ -97,7 +97,7 @@ test('renderer reset releases enemy, corpse, player, NPC, merchant and companion
   await petRenderer.set('chicken'); petRenderer.update({ players: [{ id: 'p1', x: 0, z: 0, al: true }], petActive: false }, 0, 'p1');
   const resetCode = renderer.slice(renderer.indexOf('  function reset() {'), renderer.indexOf('  return { hop:', renderer.indexOf('  function reset() {')));
   Function('actors', 'corpses', 'playerActors', 'folkActors', 'merchantActor', 'dyn', 'entGroup', 'disposeActor', 'petRenderer', `
-    const castleMarker={visible:true}; const slimeFlecks=[],effects=[],pickupSprites=new Map(),numbers=[],parts=[],gemSets=[],partMesh={};
+    const syncDownMarkers=()=>{};const castleMarker={visible:true}; const slimeFlecks=[],effects=[],pickupSprites=new Map(),numbers=[],parts=[],gemSets=[],partMesh={};
     const msInstances=new Set(),msBatch=null; const projObjs=new Map(),shieldObjs=new Map(),eprojObjs=new Map(),shrineObjs=new Map(),msBursts=[],hazardPool=[],curMap={cx:0,cz:0},cam={};
     let folkT=0,spTick=0; const removePickup=()=>{},meleeFx={reset(){}},resetWeather=()=>{};
     ${resetCode}; reset(); if(castleMarker.visible)throw Error('castle marker survives reset');

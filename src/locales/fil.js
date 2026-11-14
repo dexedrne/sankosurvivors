@@ -1,5 +1,18 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Co-op: revive a fallen teammate with a 3-second hold. A successful revive restores 30% health.": "Co-op: buhayin ang bumagsak na kakampi sa pamamagitan ng pagpindot nang 3 segundo. Ibinabalik ng matagumpay na pagbuhay ang 30% na buhay.",
+  "Use F, controller B or the touch button. Moving or taking damage resets the hold. Yellow markers help you find fallen teammates.": "Gamitin ang F, B sa controller o ang touch button. Nire-reset ang pagpindot kapag gumalaw o napinsala. Tumutulong ang dilaw na mga marka para mahanap ang bumagsak na kakampi.",
+  "Teammate revival": "Pagbuhay muli ng kakampi",
+  "Hold to revive": "Pindutin nang matagal para buhayin",
+  "Revival progress": "Progreso ng pagbuhay muli",
+  "Hold for 3 seconds.": "Pindutin nang matagal sa loob ng 3 segundo.",
+  "Move closer and stand still.": "Lumapit at huwag gumalaw.",
+  "Keep holding to revive.": "Patuloy na pindutin para buhayin.",
+  "Your teammate is reviving you.": "Binubuhay kang muli ng kakampi mo.",
+  "Your teammate can revive you.": "Maaari kang buhayin muli ng kakampi mo.",
+  "Reviving teammates": "Pagbuhay muli sa kakampi",
+  "Stand beside a fallen teammate with a clear path and hold Revive for 3 seconds. Moving or taking damage restarts it. No items are required.": "Tumayo sa tabi ng bumagsak na kakampi na walang harang sa pagitan ninyo at pindutin nang matagal ang Buhayin sa loob ng 3 segundo. Magsisimula ulit kapag gumalaw ka o tinamaan. Walang kailangang item.",
+  "Fallen teammates have a yellow map marker.": "May dilaw na marka sa mapa ang mga bumagsak na kakampi.",
   "Guides and steel": "Mga gabay at steel",
   "Survivors: off-screen enemies wait to load their full models until they enter view. Spell targeting and combat rules stay the same.": "Survivors: nilo-load lang ang buong modelo ng mga kalabang wala sa screen kapag pumasok sila sa view. Pareho pa rin ang pag-target ng spells at mga tuntunin ng combat.",
   "How to play lists every weapon and passive with its original icon and description. Ranked share text explains the 80% placing and 20% participation split.": "Nakalista sa How to play ang bawat weapon at passive kasama ang orihinal na icon at paglalarawan. Ipinapaliwanag ng ranked share text ang 80% para sa puwesto at 20% para sa participation.",

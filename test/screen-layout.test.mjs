@@ -79,7 +79,7 @@ test('actual layout callback clears steering, pauses live play and resizes witho
  const clear=main.slice(main.indexOf('function clearTouch()'),main.indexOf("addEventListener('pointerdown'"));
  const pause=main.slice(main.indexOf('function pause(on)'),main.indexOf("$('start').onclick"));
  const quit=main.slice(main.indexOf('let quitTarget = null;'),main.indexOf('function pause(on)'));
- const app=Function('createScreenLayout','$','renderer',`let mode='play';const TICK=1/30,coop=null,rankedRun=null,touch={id:7,x:1,y:0},stickEl=$('stick'),audio={duck(){}},sim={t:10};${quit}${clear}${pause}${init};return{choose:v=>screenLayout.setMode(v),state:()=>({mode,id:touch.id,x:touch.x,t:sim.t})};`)(createScreenLayout,$,{resize(){resizes++;}});
+ const app=Function('createScreenLayout','$','renderer',`let mode='play';const TICK=1/30,coopReviveUi={clear(){}},coop=null,rankedRun=null,touch={id:7,x:1,y:0},stickEl=$('stick'),audio={duck(){}},sim={t:10};${quit}${clear}${pause}${init};return{choose:v=>screenLayout.setMode(v),state:()=>({mode,id:touch.id,x:touch.x,t:sim.t})};`)(createScreenLayout,$,{resize(){resizes++;}});
  app.choose('ds');assert.deepEqual(app.state(),{mode:'pause',id:null,x:0,t:10});assert.equal($('pause').classList.contains('hidden'),false);assert.equal(resizes,1);
 });
 

@@ -53,7 +53,7 @@ function queuePageReload(text, delay) {
 
 export function transformMain(source) {
   let s = source;
-  for (const file of ['coop-client', 'ranked', 'ranked-play', 'ranked-client', 'ranked-clock', 'ranked-clock-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'swap-planner', 'wallet-connect', 'wallet', 'bun-companions']) {
+  for (const file of ['coop-client', 'coop-revive-ui', 'ranked', 'ranked-play', 'ranked-client', 'ranked-clock', 'ranked-clock-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'swap-planner', 'wallet-connect', 'wallet', 'bun-companions']) {
     const re = new RegExp(`^import .+ from './${file}\\.js';\\n`, 'm');
     assert.ok(re.test(s), `Expected import ${file}`); s = s.replace(re, '');
   }
@@ -61,6 +61,10 @@ export function transformMain(source) {
   s = between(s, 'const walletHandoff =', 'const BASE =', "initI18n();\nconst wavedashLoader = createWavedashLoader();\n");
   s = "import { createWavedashLoader } from './wavedash.js';\nimport { betterRun } from './personal-record.js';\n" + s;
   s = between(s, '// ---- co-op lobby:', '// ---- solo and ranked startup');
+  s = once(s, '  coopReviveUi.clear();\n');
+  s = once(s, "  if (mode === 'play' && coopReviveUi.keyDown(e)) return;\n");
+  s = once(s, "addEventListener('keyup', (e) => { keys.delete(e.key.toLowerCase()); coopReviveUi.keyUp(e.key); });", "addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));");
+  s = s.replaceAll('coopReviveUi.clear(); ', '');
   s = between(s, '// ---- ranked: paid tickets', '// ---- skills');
   s = once(s, "  const original = $('guideoldrecipes'); if (original) original.innerHTML = guideRecipes(1);\n");
   s = between(s, '// ---- version, leaderboard', '// ---- DMT holder perks', records);
@@ -175,7 +179,7 @@ function pause(on) {
   s = s.replace(/\b(?:sim|s)\??\.coop\b/g, 'false'); // This edition stays solo until its own online-platform proof.
   // Every removed panel must also leave the list of panels hidden when a run starts.
   for (const id of excluded) s = s.replaceAll(`'${id}', `, '').replaceAll(`, '${id}']`, ']');
-  assert.doesNotMatch(s, /fetch\(|serviceWorker|caches\.|savedPass|walletNow|createCloud|api\/|TIP_ETH|rankedApi|openRanked|submitScore|bunCompanions|bunChoice|bun-companions/, 'Forbidden network/service in casual entry');
+  assert.doesNotMatch(s, /fetch\(|serviceWorker|caches\.|savedPass|walletNow|createCloud|api\/|TIP_ETH|rankedApi|openRanked|submitScore|bunCompanions|bunChoice|bun-companions|coopReviveUi|createCoopReviveUi|coop-revive/, 'Forbidden network/service in casual entry');
   return s;
 }
 
@@ -206,7 +210,7 @@ export function transformHtml(source) {
   let s = source;
   s = s.replace(/^.*(?:rel="manifest"|apple-touch-icon|og:|twitter:|rel="canonical").*\n/gm, '');
   s = s.replaceAll('href="/assets/', 'href="./assets/');
-  for (const id of ['coopbtn', 'coopwait', 'cooppause', 'walletchip', 'dmtchip', 'rankedbtn', 'tipwrap', 'updatebtn', 'bugbtn2', 'dmtbtn', 'bugbtn', 'installbtn', 'endlb', 'rankedresult', 'rankedretry', 'sharex', ...excluded.filter(id => id !== 'cloudpick'), 'walletlink', 'cloudpick', 'guide-ranked', 'guide-cloud', 'petbuns', 'racersportal', 'racersbtn']) s = removeElement(s, id);
+  for (const id of ['coopbtn', 'cooprevive', 'coopwait', 'cooppause', 'walletchip', 'dmtchip', 'rankedbtn', 'tipwrap', 'updatebtn', 'bugbtn2', 'dmtbtn', 'bugbtn', 'installbtn', 'endlb', 'rankedresult', 'rankedretry', 'sharex', ...excluded.filter(id => id !== 'cloudpick'), 'walletlink', 'cloudpick', 'guide-ranked', 'guide-cloud', 'petbuns', 'racersportal', 'racersbtn']) s = removeElement(s, id);
   s = s.replaceAll('<p class="rankedpause dim hidden" role="timer" aria-live="off"></p>', '');
   s = s.replace(/<p class="rankedmovement dim">[^<]*<\/p>/g, '<p class="dim">Tumble with Space, controller A, or the Tumble button. Cross reachable low fences; buildings stay solid.</p>');
   s = s.replaceAll('Submit score &amp; continue as Endless', 'Continue as Endless').replaceAll('Continue without confirmed score', 'Continue as Endless');

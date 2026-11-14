@@ -221,7 +221,7 @@ function walkableStep(sim, x, z, nx, nz) {
   // An open diagonal destination must not shortcut the solid cells on either side.
   return walkable(sim, nx, z) && walkable(sim, x, nz);
 }
-function clearPath(sim, x, z, nx, nz, body = false) {
+export function clearPath(sim, x, z, nx, nz, body = false) {
   const g = sim.ground; if (!g) return true;
   const W = wallsOf(sim), parts = Math.max(1, Math.ceil(Math.max(Math.abs(nx - x), Math.abs(nz - z)) / 0.5));
   const dx = (nx - x) / parts, dz = (nz - z) / parts;

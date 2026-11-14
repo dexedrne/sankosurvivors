@@ -5,6 +5,7 @@ import { skillQuote, prepareSkills } from './skill-purchases.js';
 import { armouryQuote, prepareArmoury } from './armoury.js';
 import { createCoopClient } from './coop-client.js';
 import { predictedView } from './coop-view.js';
+import { createCoopReviveUi } from './coop-revive-ui.js';
 import { groundHash } from './ground-pack.js';
 import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION, WISE_OLD_MAN } from './game-modes.js';
 import { RunRecorder, RANKED, pauseRemaining, rankedPoints, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf } from './ranked.js';
@@ -1805,13 +1806,13 @@ function openCoop() {
     onRoom:room => { if (coop === c) showCoopRoom(room); },
     onStatus:code => {
       if (coop !== c) return; $('coopstatus').textContent = coopText(code);
-      if (['waiting','reconnecting','catchingUp'].includes(code)) { keys.clear(); clearTouch(); pendingUse = null; $('coopwait').textContent = coopText(code); }
+      if (['waiting','reconnecting','catchingUp'].includes(code)) { coopReviveUi.clear(); keys.clear(); clearTouch(); pendingUse = null; $('coopwait').textContent = coopText(code); }
       if (code === 'playing') coopDecision = -1;
       if (['connecting','starting','loading'].includes(code)) for (const id of ['coopcreate','coopjoin','coopready','coopgo']) $(id).disabled = true;
       else { $('coopcreate').disabled = $('coopjoin').disabled = false; $('coopready').disabled = false; if (c.room) showCoopRoom(c.room); }
     },
     onRun:(run,game,localId) => {
-      if (coop !== c) return; PLAYER = localId; sim = run.sim; coopDecision = -1; rankedRun = rankedRec = null; runTicket = null;
+      if (coop !== c) return; coopReviveUi.clear(); PLAYER = localId; sim = run.sim; coopDecision = -1; rankedRun = rankedRec = null; runTicket = null;
       renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
       for (const id of ['title','end','pause','levelup','casket',...MENU_SCREENS]) $(id).classList.add('hidden');
       $('hud').classList.remove('hidden'); $('cooppause').classList.remove('hidden'); $('coopwait').classList.remove('hidden');
@@ -1836,11 +1837,13 @@ $('coopgo').onclick = () => { if (!coop?.start({ground:runGround() ? groundHash(
 $('coopclose').onclick = () => { toMenu(); if (!mapLoading && !coopLoading && loadedMapId !== selMap) pickMap(selMap,false).catch(() => banner('Could not restore the selected map.',3000)); navFocus($('coopbtn')); };
 $('coop').addEventListener('keydown', containMenuTab);
 // ---- co-op UI controls: the socket client owns all simulation ticks -------------------------------------------------
+const coopReviveUi = createCoopReviveUi(() => ({run:coop?.run,mode,localId:PLAYER}));
 function syncCoopRun(inp, edges) {
-  const run = coop?.run; if (!run || run.closed || !['play','levelup','casket','pause'].includes(mode)) return;
+  const run = coop?.run; if (!run || run.closed || !['play','levelup','casket','pause'].includes(mode)) { coopReviveUi.clear(); return; }
   if (edges.start && mode === 'play') pause(true); else if (edges.start && mode === 'pause') pause(false);
+  const assisting = coopReviveUi.update(inp.pad, edges);
   if (mode === 'play' && !run.held) {
-    run.input(inp.mx,inp.mz); if (edges.a) pendingUse = 4;
+    run.input(inp.mx,inp.mz,false,assisting); if (edges.a) pendingUse = 4;
     if (edges.lb) pendingUse = 0; if (edges.rb) pendingUse = 1; if (edges.x) pendingUse = 2; if (edges.y) pendingUse = 3;
     if (pendingUse !== null) { run.action({kind:'use',index:pendingUse}); pendingUse = null; }
   } else run.input(0,0);
@@ -1855,9 +1858,9 @@ function syncCoopRun(inp, edges) {
   for (const id of ['coopleveltimer', 'coopcaskettimer']) { const timer = $(id); timer.hidden = run.held || !pending; if (pending) timer.textContent = `Automatic choice in ${Math.max(0, Math.ceil(pending.left))}s`; }
   if (!run.held) {
     if (waiting) $('coopwait').innerHTML = `<b translate="no">${esc(other.name)}</b>: <span>Choosing an upgrade…</span> <b translate="no">${Math.max(0, Math.ceil(waiting.left))}s</b>`;
-    else $('coopwait').textContent = !sim.players.find(p => p.id === PLAYER).alive ? 'You fell. Your teammate can still finish the run.' : mode === 'pause' ? 'Your controls are paused. The shared run continues.' : '';
+    else $('coopwait').textContent = !sim.players.find(p => p.id === PLAYER).alive ? 'Your teammate can revive you.' : mode === 'pause' ? 'Your controls are paused. The shared run continues.' : '';
   }
-  $('coopwait').classList.toggle('hidden', !run.held && !waiting && mode !== 'pause' && sim.players.find(p => p.id === PLAYER).alive);
+  $('coopwait').classList.toggle('hidden', !run.held && !waiting && mode !== 'pause');
 }
 // ---- solo and ranked startup ---------------------------------------------------------------------------------------
 async function startRun(live = null) {
@@ -2107,6 +2110,7 @@ $('continueendless').onclick = () => continueAfterScore();
 $('continueunconfirmed').onclick = () => continueAfterScore(true);
 function toMenu() {
   if (rankedPlaying()) return;
+  coopReviveUi.clear();
   resetQuitConfirm();
   if (coop) { const c = coop; coop = null; c.close(); selMap = coopHomeMap || selMap; coopResult = null; }
   merchantVisit = null; $('merchant').classList.add('hidden');
@@ -2133,6 +2137,7 @@ addEventListener('keydown', (e) => {
     if (setMapPeek(true)) { e.preventDefault(); return; }
   }
   if (e.repeat) return;
+  if (mode === 'play' && coopReviveUi.keyDown(e)) return;
   if (mode === 'play' && k === 'f' && openMerchant()) { e.preventDefault(); return; }
   if (mode === 'play' && k === 'escape' && !$('damagepanel').classList.contains('hidden')) { setDamagePanel(false); e.preventDefault(); return; }
   if ((k === 'enter' || k === ' ') && e.target?.matches?.('button, a[href]')) return;
@@ -2160,9 +2165,9 @@ addEventListener('keydown', (e) => {
   if (k === 'escape' && !navBack() && mode === 'play') pause(true);
   if ((k === 'enter' || k === ' ') && (mode === 'title' && !$('start').disabled || mode === 'end') && MENU_SCREENS.every((id) => $(id).classList.contains('hidden'))) startRun();
 });
-addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-addEventListener('blur', () => { keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play' && (document.hidden || !keepPlayingUnfocused())) pause(true); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play') pause(true); } });
+addEventListener('keyup', (e) => { keys.delete(e.key.toLowerCase()); coopReviveUi.keyUp(e.key); });
+addEventListener('blur', () => { coopReviveUi.clear(); keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play' && (document.hidden || !keepPlayingUnfocused())) pause(true); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { coopReviveUi.clear(); keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play') pause(true); } });
 let quitTarget = null;
 let pauseBuildSecond = null, pauseBuildKey = '';
 function refreshPauseBuild(force = false) {
@@ -2206,7 +2211,7 @@ function confirmQuit() {
   if (coop) { coop.close(); return; }
   pause(false); sim.over = 'dead';
 }
-function pause(on) { resetQuitConfirm(); clearTouch(); if (on) coop?.run?.resetInput(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (on) refreshPauseBuild(true); if (rankedRun) updateRankedPause(); }
+function pause(on) { resetQuitConfirm(); coopReviveUi.clear(); clearTouch(); if (on) coop?.run?.resetInput(); pendingUse = null; audio.duck(on); if (!on) audio.init().catch(() => {}); mode = on ? 'pause' : 'play'; $('pause').classList.toggle('hidden', !on); if (on) refreshPauseBuild(true); if (rankedRun) updateRankedPause(); }
 $('start').onclick = startRun; $('again').onclick = () => { if (lastRun?.coop) { toMenu(); openCoop(); } else if (lastRun && lastRun.ranked) { toMenu(); openRanked(); } else startRun(); }; $('resume').onclick = () => pause(false); $('tomenu').onclick = toMenu;
 $('quit').onclick = requestQuit;
 $('quitcancel').onclick = cancelQuit;
@@ -2808,7 +2813,13 @@ function drawMinimap(view) {
   const dot = (x, z, r, c) => { mmx.fillStyle = c; mmx.beginPath(); mmx.arc((x - me.x) * PX, (z - me.z) * PX, r, 0, Math.PI * 2); mmx.fill(); };
   // the edge of this map's arena
   if (sim.map.r < 500) { mmx.strokeStyle = 'rgba(255,240,192,0.5)'; mmx.lineWidth = 1.5; mmx.beginPath(); mmx.arc((sim.map.cx - me.x) * PX, (sim.map.cz - me.z) * PX, sim.map.r * PX, 0, Math.PI * 2); mmx.stroke(); }
-  for (const p of view.players) if (p.id !== PLAYER && p.al) dot(p.x, p.z, 3, '#69c8ff');
+  for (const p of view.players) if (p.id !== PLAYER) {
+    if (p.al) dot(p.x, p.z, 3, '#69c8ff');
+    else if (sim.coop && !view.over) {
+      const dx = p.x - me.x, dz = p.z - me.z, d = Math.hypot(dx, dz), limit = (R - 9) / PX, k = d > limit ? limit / d : 1;
+      dot(me.x + dx * k, me.z + dz * k, 6, '#171309'); dot(me.x + dx * k, me.z + dz * k, 4, '#ffff00');
+    }
+  }
   if (view.castle) {
     const dx = view.castle.x - me.x, dz = view.castle.z - me.z, d = Math.hypot(dx, dz), limit = (R - 9) / PX, k = d > limit ? limit / d : 1;
     dot(me.x + dx * k, me.z + dz * k, 6, '#171309'); dot(me.x + dx * k, me.z + dz * k, 4, '#83edbd');
@@ -2920,6 +2931,7 @@ function loop(ts) {
     lastMenuDrawn = ts;
   }
   const view = snapshot(sim, { maxEnemies: 420 });
+  if (sim.coop) view.coopRevive = true;
   view.spellCasters = Object.fromEntries(sim.proj.filter(p => p.art === 'bolt').map(p => [p.id, p.owner]));
   view.spellTargets = Object.fromEntries(sim.proj.filter(p => p.art === 'bolt' && Number.isSafeInteger(p.homing) && Number.isFinite(p.speed) && p.speed > 0).map(p => [p.id, { target: p.homing, speed: p.speed, radius: p.r }]));
   view.enemySpellTargets = Object.fromEntries(sim.eproj.filter(p => typeof p.target === 'string' && Number.isSafeInteger(p.caster)).map(p => [p.id, { target: p.target, caster: p.caster, speed: Math.hypot(p.vx, p.vz), radius: p.r }]));

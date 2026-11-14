@@ -8,8 +8,8 @@ assert(start>=0&&end>start);
 function fixture(){
  let pads=[],clock=0,focused=true;
  const events=new Map(),keys=new Set(),touch={id:null,x:0,y:0},document={hidden:false,hasFocus:()=>focused,addEventListener:(type,fn)=>events.set(type,fn)};
- const context={navigator:{getGamepads:()=>pads},document,keys,touch,mode:'title',clearTouch(){},addEventListener:(type,fn)=>events.set(type,fn),renderer:{getYaw:()=>0},performance:{now:()=>clock}};
- const blur=main.indexOf("addEventListener('blur', () => { keys.clear();"),pause=main.indexOf('function pause(on)',blur);
+ const context={coopReviveUi:{clear(){}},navigator:{getGamepads:()=>pads},document,keys,touch,mode:'title',clearTouch(){},addEventListener:(type,fn)=>events.set(type,fn),renderer:{getYaw:()=>0},performance:{now:()=>clock}};
+ const blur=main.indexOf("addEventListener('blur', () => {",main.indexOf('// ---- input')),pause=main.indexOf('function pause(on)',blur);assert(blur>=0&&pause>blur);
  vm.createContext(context);vm.runInContext(main.slice(start,end)+main.slice(blur,pause)+';this.read=readInput;this.edges=padEdges;',context);
  return {...context,pads:value=>pads=value,focus:value=>focused=value,time:value=>clock=value,event:type=>events.get(type)()};
 }

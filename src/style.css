@@ -1063,3 +1063,19 @@ body.touch .pausezoom { display:flex; align-items:center; gap:8px; color:var(--c
 #guide .guidecatalogue-item p { font-size:18px; line-height:1.2; margin:0; }
 .guidecatalogue-item small { color:var(--gold); }
 @media(max-width:560px) { .guidecatalogue { grid-template-columns:1fr; } }
+
+/* Co-op help stays clear of the belt and tumble button; only its hold control catches touches. */
+#cooprevive { position:absolute; left:50%; bottom:calc(140px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); width:min(280px,92vw); padding:6px 8px; border-width:8px; pointer-events:none; }
+#cooprevive[hidden] { display:none; }
+#cooprevivebtn { width:100%; min-height:44px; padding:5px 8px; margin:0; pointer-events:auto; font-size:18px; touch-action:none; }
+#cooprevivebtn small { font:14px RSPlain,sans-serif; white-space:nowrap; }
+body.touch #cooprevivebtn small { display:none; }
+#cooprevivebtn:disabled { cursor:default; }
+#cooprevivebtn[aria-pressed="true"] { outline:2px solid var(--gold); }
+#cooprevive p { margin:4px 0; font:16px/1.15 RSPlain,sans-serif; }
+#cooprevivename { display:block; color:var(--gold); }
+.cooprevive-meter { display:flex; align-items:center; gap:6px; }
+#coopreviveprogress { flex:1; min-width:0; height:10px; accent-color:var(--green); }
+#cooprevivetime { min-width:4ch; color:var(--cream); font:16px RSPlain,sans-serif; }
+body.ds-layout #cooprevive { position:fixed; bottom:calc(112px + env(safe-area-inset-bottom,0px)); }
+@media (max-height:500px) { #cooprevive, body.ds-layout #cooprevive { bottom:calc(72px + env(safe-area-inset-bottom,0px)); max-width:260px; padding:4px 6px; } }

@@ -23,7 +23,7 @@ test('new runs remove transient effects, pickup materials and damage labels',()=
   const obj=()=>({geometry:{dispose(){disposed++;}},material:{dispose(){disposed++;}}});
   const effects=[obj(),obj()],pickupSprites=new Map([[1,obj()]]),numbers=[{el:{remove(){removed++;}}}],parts=[{life:1}],gemSets=[{geometry:{setDrawRange(){}}}],partMesh={count:700};
   const resetState=Function('effects','pickupSprites','numbers','parts','gemSets','partMesh','THREE','createPetRenderer','createMeleeVfx',`
-    let merchantActor=null; const castleMarker=new THREE.Group();
+    const syncDownMarkers=()=>{};let merchantActor=null; const castleMarker=new THREE.Group();
     const actors=new Map(),playerActors=new Map(),projObjs=new Map(),shieldObjs=new Map(),folkActors=new Map(),eprojObjs=new Map(),shrineObjs=new Map();
     const msInstances=new Set([{}]),msBatch={count:7};const slimeFlecks=[],corpses=[],msBursts=[],hazardPool=[],dyn=new THREE.Group(),entGroup={remove(){}},curMap={cx:0,cz:0},cam={};let folkT=0,spTick=0,weatherResets=0,spellTime=987;const resetWeather=()=>weatherResets++;
     const petRenderer=createPetRenderer({group:dyn,groundAt:()=>0,load:async()=>null,spawn:()=>{throw Error('No companion selected in this transient fixture');}});

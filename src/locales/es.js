@@ -1,5 +1,18 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Co-op: revive a fallen teammate with a 3-second hold. A successful revive restores 30% health.": "Cooperativo: reanima a un compañero caído manteniendo pulsado durante 3 segundos. Una reanimación exitosa restaura un 30 % de vida.",
+  "Use F, controller B or the touch button. Moving or taking damage resets the hold. Yellow markers help you find fallen teammates.": "Usa F, B del mando o el botón táctil. Moverte o recibir daño reinicia el progreso. Los marcadores amarillos te ayudan a encontrar a los compañeros caídos.",
+  "Teammate revival": "Reanimación de compañero",
+  "Hold to revive": "Mantén para reanimar",
+  "Revival progress": "Progreso de reanimación",
+  "Hold for 3 seconds.": "Mantén durante 3 segundos.",
+  "Move closer and stand still.": "Acércate y quédate quieto.",
+  "Keep holding to revive.": "Sigue manteniendo para reanimar.",
+  "Your teammate is reviving you.": "Tu compañero te está reanimando.",
+  "Your teammate can revive you.": "Tu compañero puede reanimarte.",
+  "Reviving teammates": "Reanimar a tus compañeros",
+  "Stand beside a fallen teammate with a clear path and hold Revive for 3 seconds. Moving or taking damage restarts it. No items are required.": "Ponte junto a un compañero caído, sin obstáculos entre ambos, y mantén Reanimar durante 3 segundos. Moverte o recibir daño reinicia el proceso. No necesitas objetos.",
+  "Fallen teammates have a yellow map marker.": "Los compañeros caídos tienen un marcador amarillo en el mapa.",
   "Guides and steel": "Guías y acero",
   "Survivors: off-screen enemies wait to load their full models until they enter view. Spell targeting and combat rules stay the same.": "Survivors: los enemigos fuera de pantalla cargan sus modelos completos cuando entran en la vista. La selección de objetivos de hechizos y las reglas de combate siguen igual.",
   "How to play lists every weapon and passive with its original icon and description. Ranked share text explains the 80% placing and 20% participation split.": "Cómo jugar muestra todas las armas y pasivas con su icono y descripción originales. El texto para compartir partidas clasificatorias explica el reparto del 80% por posición y el 20% por participación.",

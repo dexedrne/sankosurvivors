@@ -1,5 +1,18 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Co-op: revive a fallen teammate with a 3-second hold. A successful revive restores 30% health.": "İş birliği: düşen takım arkadaşını 3 saniye basılı tutarak dirilt. Başarılı diriltme %30 can yeniler.",
+  "Use F, controller B or the touch button. Moving or taking damage resets the hold. Yellow markers help you find fallen teammates.": "F, kontrolcüde B veya dokunmatik düğmeyi kullan. Hareket etmek ya da hasar almak basılı tutmayı sıfırlar. Sarı işaretler düşen takım arkadaşlarını bulmana yardım eder.",
+  "Teammate revival": "Takım arkadaşını canlandırma",
+  "Hold to revive": "Canlandırmak için basılı tut",
+  "Revival progress": "Canlandırma ilerlemesi",
+  "Hold for 3 seconds.": "3 saniye basılı tut.",
+  "Move closer and stand still.": "Yaklaş ve hareketsiz dur.",
+  "Keep holding to revive.": "Canlandırmak için basılı tutmaya devam et.",
+  "Your teammate is reviving you.": "Takım arkadaşın seni canlandırıyor.",
+  "Your teammate can revive you.": "Takım arkadaşın seni canlandırabilir.",
+  "Reviving teammates": "Takım arkadaşlarını canlandırma",
+  "Stand beside a fallen teammate with a clear path and hold Revive for 3 seconds. Moving or taking damage restarts it. No items are required.": "Düşen takım arkadaşının yanında, aranızda engel yokken Canlandır düğmesini 3 saniye basılı tut. Hareket etmek veya hasar almak süreyi başa döndürür. Eşya gerekmez.",
+  "Fallen teammates have a yellow map marker.": "Düşen takım arkadaşları haritada sarı bir işaretle gösterilir.",
   "Guides and steel": "Rehberler ve çelik",
   "Survivors: off-screen enemies wait to load their full models until they enter view. Spell targeting and combat rules stay the same.": "Survivors: ekran dışındaki düşmanların tam modelleri, görüş alanına girdiklerinde yüklenir. Büyü hedefleme ve savaş kuralları aynı kalır.",
   "How to play lists every weapon and passive with its original icon and description. Ranked share text explains the 80% placing and 20% participation split.": "Nasıl oynanır bölümü her silahı ve pasifi özgün simgesi ve açıklamasıyla listeler. Dereceli paylaşım metni, sıralama için %80 ve katılım için %20 payı açıklar.",

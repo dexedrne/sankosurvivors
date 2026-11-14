@@ -1371,6 +1371,22 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const dummy = new THREE.Object3D(); const gemColor = new THREE.Color();
 
   // particles: glowing shards for hits, deaths and pickups (additive, so bloom makes them shine)
+  const downMarkers = new Map();
+  function syncDownMarkers(view) {
+    if (!view.coopRevive || view.over) { for (const marker of downMarkers.values()) disposeActor(marker); downMarkers.clear(); return; }
+    const seen = new Set();
+    for (const p of view.players) if (!p.al) {
+      seen.add(p.id); let marker = downMarkers.get(p.id);
+      if (!marker) {
+        marker = new THREE.Group(); marker.name = 'fallen-' + p.id;
+        const ring = softRing(0xffff00, 0.58, 0.82, {opacity:0.7}); ring.position.y = 0.08; marker.add(ring);
+        const icon = new THREE.Sprite(ownActorResource(new THREE.SpriteMaterial({map:iconTex('Power Amulet'),transparent:true,alphaTest:0.3,depthWrite:false,depthTest:false,toneMapped:false})));
+        icon.position.y = 1.5; icon.scale.setScalar(1.1); marker.add(icon); fxOnly(marker); dyn.add(marker); downMarkers.set(p.id,marker);
+      }
+      marker.position.set(p.x,groundAt(p.x,p.z),p.z);
+    }
+    for (const [id,marker] of downMarkers) if (!seen.has(id)) { disposeActor(marker); downMarkers.delete(id); }
+  }
   const PN = 700;
   const partMesh = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }), PN);
   partMesh.setColorAt(0, new THREE.Color(1, 1, 1));
@@ -1862,6 +1878,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       }
     }
 
+    syncDownMarkers(view);
     // players
     const seenP = new Set();
     for (const p of view.players) {
@@ -2265,6 +2282,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const seenShield = new Set();
 
   function reset() {
+    syncDownMarkers({players:[]});
     castleMarker.visible = false;
     if (merchantActor) { disposeActor(merchantActor.root, merchantActor.mixer); merchantActor = null; }
     msInstances.clear(); if (msBatch) msBatch.count = 0;

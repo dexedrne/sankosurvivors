@@ -83,12 +83,12 @@ export function prepareStart(value){
 }
 
 export function cleanFrame(value,partySize){
- if(!keys(value,['frame','hero','move','moveSeq','action','actionSeq','decision','leave'])||!uint(value.frame)||!Number.isInteger(partySize)||partySize<1||partySize>COOP_PARTY||!uint(value.hero)||value.hero>=partySize)return null;
+ if(!keys(value,['frame','hero','move','moveSeq','assist','action','actionSeq','decision','leave'])||!uint(value.frame)||!Number.isInteger(partySize)||partySize<1||partySize>COOP_PARTY||!uint(value.hero)||value.hero>=partySize)return null;
  const {frame,hero}=value,variants=['move','action','leave'].filter(k=>Object.hasOwn(value,k));if(variants.length!==1)return null;
  if(variants[0]==='move'){
-  const move=cleanMove(value.move),echo=Object.hasOwn(value,'moveSeq');return move&&(!echo||uint(value.moveSeq)&&value.moveSeq>0)&&!Object.hasOwn(value,'actionSeq')&&!Object.hasOwn(value,'decision')?{frame,hero,move,...(echo?{moveSeq:value.moveSeq}:{})}:null;
+  const move=cleanMove(value.move),echo=Object.hasOwn(value,'moveSeq'),assist=Object.hasOwn(value,'assist');return move&&(!echo||uint(value.moveSeq)&&value.moveSeq>0)&&(!assist||typeof value.assist==='boolean')&&!Object.hasOwn(value,'actionSeq')&&!Object.hasOwn(value,'decision')?{frame,hero,move,...(echo?{moveSeq:value.moveSeq}:{}),...(assist?{assist:value.assist}:{})}:null;
  }
- if(Object.hasOwn(value,'moveSeq'))return null;
+ if(Object.hasOwn(value,'moveSeq')||Object.hasOwn(value,'assist'))return null;
  if(variants[0]==='leave')return value.leave===true&&!Object.hasOwn(value,'actionSeq')&&!Object.hasOwn(value,'decision')?{frame,hero,leave:true}:null;
  const action=cleanAction(value.action),{actionSeq,decision}=value;
  if(!action||!uint(actionSeq)||actionSeq===0)return null;
@@ -100,7 +100,7 @@ export function cleanUp(value){
  if(!record(value))return null;
  if(Object.hasOwn(value,'move')){
   const move=cleanMove(value.move);
-  return keys(value,['move','moveSeq'])&&move&&uint(value.moveSeq)&&value.moveSeq>0?{move,moveSeq:value.moveSeq}:null;
+  const assist=Object.hasOwn(value,'assist');return keys(value,['move','moveSeq','assist'])&&move&&uint(value.moveSeq)&&value.moveSeq>0&&(!assist||typeof value.assist==='boolean')?{move,moveSeq:value.moveSeq,...(assist?{assist:value.assist}:{})}:null;
  }
  if(Object.hasOwn(value,'resend'))return keys(value,['resend'])&&uint(value.resend)?{resend:value.resend}:null;
  if(!keys(value,['action','actionSeq','decision']))return null;

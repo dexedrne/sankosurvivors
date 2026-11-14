@@ -2,9 +2,9 @@ import test from 'node:test';import assert from 'node:assert/strict';import {rea
 import {TRANSFER_KEYS} from '../src/progress-import.js';
 const source=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 function handlers(keep=false,hidden=false,startMode='play') {
- const a=source.indexOf("addEventListener('blur', () => { keys.clear(); clearTouch();"),b=source.indexOf('\nfunction pause(on)',a);assert(a>=0&&b>a);
+ const a=source.indexOf("addEventListener('blur', () => { coopReviveUi.clear(); keys.clear(); clearTouch();"),b=source.indexOf('\nfunction pause(on)',a);assert(a>=0&&b>a);
  const win=new Map(),doc=new Map(),document={hidden,addEventListener:(k,f)=>doc.set(k,f)};
- const state=Function('document','keepPlayingUnfocused','addEventListener',`let mode=${JSON.stringify(startMode)},pendingUse=2,cleared=0;const keys=new Set(['d']),clearTouch=()=>cleared++,pause=()=>mode='pause';${source.slice(a,b)};return()=>({mode,pendingUse,cleared,keys:keys.size});`)(document,()=>keep,(k,f)=>win.set(k,f));
+ const state=Function('document','keepPlayingUnfocused','addEventListener',`let mode=${JSON.stringify(startMode)},pendingUse=2,cleared=0;const coopReviveUi={clear(){}},keys=new Set(['d']),clearTouch=()=>cleared++,pause=()=>mode='pause';${source.slice(a,b)};return()=>({mode,pendingUse,cleared,keys:keys.size});`)(document,()=>keep,(k,f)=>win.set(k,f));
  return {state,fire:k=>(k==='blur'?win:doc).get(k)()};
 }
 test('keep-playing opt-in leaves a visible unfocused run active while clearing held input',()=>{

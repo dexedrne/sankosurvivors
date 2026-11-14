@@ -45,6 +45,6 @@ for(const key of ['Tab',' '])test(`native equipment inspection ${JSON.stringify(
 for(const [mode,key,wanted,target] of [['play','Escape','pause','slot'],['play','Escape','pause','summary'],['levelup','1','pick:0','slot'],['casket','1','casket:0','slot']])test(`equipment ${target} focus retains ${mode} ${key} control`,()=>{
  const start=source.indexOf("addEventListener('keydown', (e) => {",source.indexOf('const MENU_SCREENS')),end=source.indexOf('\n});',start),body=source.slice(start+"addEventListener('keydown', (e) => {".length,end),calls=[];
  const e={key,repeat:false,target:{matches:s=>target==='summary'&&s.split(',').map(s=>s.trim()).includes('summary'),closest:()=>({})},preventDefault(){}};
- Function('e','mode','walletModalOpen','MENU_SCREENS','$','setDamagePanel','keys','hop','navBack','pause','pick','pickCasket',body)(e,mode,()=>false,[],()=>({classList:{contains:()=>true}}),()=>{},new Set(),()=>{},()=>false,()=>calls.push('pause'),i=>calls.push('pick:'+i),i=>calls.push('casket:'+i));
+ Function('e','mode','walletModalOpen','MENU_SCREENS','$','setDamagePanel','keys','hop','navBack','pause','pick','pickCasket','coopReviveUi',body)(e,mode,()=>false,[],()=>({classList:{contains:()=>true}}),()=>{},new Set(),()=>{},()=>false,()=>calls.push('pause'),i=>calls.push('pick:'+i),i=>calls.push('casket:'+i),{keyDown:()=>false});
  assert.deepEqual(calls,[wanted]);
 });

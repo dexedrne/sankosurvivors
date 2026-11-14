@@ -14,7 +14,7 @@ function setup({phone=true,held=false,ranked=false,natural=null,shown=!natural,c
   if(!natural){sim.spawnAcc=-1e9;sim.bossIndex=99;sim.eventT=1e9;sim.shrineT=1e9;p.skips=2;sim.pending.p1={choices,left:20};}
   const elements=new Map(),el=id=>{if(!elements.has(id)){const classes=new Set(['hidden']);elements.set(id,{contains(node){return node===this||this.children.includes(node);},querySelector(){return this.children[0];},setAttribute(){},style:{},innerHTML:'',textContent:'',children:[],dataset:{},appendChild(child){this.children.push(child);},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle(x,on){if(on??!classes.has(x))classes.add(x);else classes.delete(x);}}});}return elements.get(id);};
   const touch={id:held?7:null,ox:0,oy:0,x:held?1:0,y:0};
-  const events=new Map(),context={...content,pauseBuild:()=>null,coop:null,sim,phone,touch,events,step,choose,skipLevel,playerStats,previewChoice,autoChoice,canBanish,TICK,rankedStep,rankedChoice,RunRecorder,rankedRun:null,updateRankedPause(){},$:el,
+  const events=new Map(),context={...content,coopReviveUi:{clear(){}},pauseBuild:()=>null,coop:null,sim,phone,touch,events,step,choose,skipLevel,playerStats,previewChoice,autoChoice,canBanish,TICK,rankedStep,rankedChoice,RunRecorder,rankedRun:null,updateRankedPause(){},$:el,
     addEventListener:(name,fn)=>events.set(name,fn),document:{hidden:false,addEventListener:(name,fn)=>events.set(name,fn),createElement:()=>({dataset:{},classList:{toggle(){}},setAttribute(){},focus(){context.document.activeElement=this;}})},
     preloadNextIcons(){},audio:{duck(){},play(){},init:()=>Promise.resolve()},renderer:{getYaw:()=>0},navigator:{getGamepads:()=>[]},
     iconHTML:()=>'',imgTag:()=>'',stepOf:()=>null,markCard(){},showCasket(){},persistRanked(){},endRun(){},hop(){},console};
@@ -26,7 +26,7 @@ function setup({phone=true,held=false,ranked=false,natural=null,shown=!natural,c
     const PLAYER='p1',isTouchUI=phone,stickEl=$('stick'),keys=new Set(),rankedRec=${ranked?'new RunRecorder()':'null'};
     ${section('function readInput() {','function padEdges(')}
     ${section('const hop =','let padPrev')}
-    ${section("addEventListener('blur', () => { keys.clear();",'function pause(on)')}
+    ${section("addEventListener('blur', () => { coopReviveUi.clear(); keys.clear();",'function pause(on)')}
     ${section('function pause(on)',"$('start').onclick")}
     ${section('function clearTouch() {',"addEventListener('pointerdown'")}
     ${section('function resumeAfterReward() {','function showLevelUp() {')}

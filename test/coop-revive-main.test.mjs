@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+import {createSim} from '../src/sim.js';
+const source=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),a=source.indexOf('function syncCoopRun('),b=source.indexOf('// ---- solo and ranked startup',a);
+function fixture(){const sim=createSim({coop:true,players:[{id:'p1'},{id:'p2'}]}),inputs=[],nodes=new Map();let uiCalls=0;const run={closed:false,held:false,input:(...args)=>inputs.push(args),action(){},decision:()=>0};const c={coop:{run},sim,mode:'play',PLAYER:'p1',pendingUse:null,coopDecision:0,coopReviveUi:{update(){uiCalls++;return true;},clear(){}},$:id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,textContent:'',classList:{toggle(){},add(){},remove(){}}});return nodes.get(id);}};vm.createContext(c);vm.runInContext(source.slice(a,b),c);return{c,inputs,get uiCalls(){return uiCalls;}};}
+test('actual co-op update forwards held assistance on the existing input lane',()=>{const f=fixture();f.c.syncCoopRun({mx:0,mz:0,pad:null},{});assert.deepEqual(f.inputs[0],[0,0,false,true]);assert.equal(f.uiCalls,1);});
+test('local pause sends neutral input even when an unrelated UI stub reports held',()=>{const f=fixture();f.c.mode='pause';f.c.syncCoopRun({mx:1,mz:1,pad:null},{});assert.deepEqual(f.inputs[0],[0,0]);});

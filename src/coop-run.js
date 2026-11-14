@@ -1,6 +1,7 @@
 // Host-ordered lockstep adapts RunEscape v0.27 CoopRun/lockstep; see licenses/run-escape.txt.
 import {createSim,step,choose,reroll,skipLevel,banish,canBanish,TICK} from './sim.js';
 import {createMovementPrediction} from './coop-prediction.js';
+import {stepCoopRevive} from './coop-revive.js';
 import {MAP_BY_ID} from './content.js';
 import {groundHash} from './ground-pack.js';
 import {COOP_HISTORY,cleanStart,quantizeMove,cleanAction,cleanUp,cleanDown} from './coop-protocol.js';
@@ -26,7 +27,8 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
  const game=cleanStart(start);if(!game||!game.players.some(p=>p.id===localId)||(ground?groundHash(ground):'0')!==game.ground)throw Error('Incompatible co-op start');
  const local=game.players.findIndex(p=>p.id===localId),host=local===0;
  const sim=createSim({seed:game.seed,map:MAP_BY_ID[game.map],hard:game.hard,endless:game.endless,variant:game.variant||'normal',trialBoss:game.trialBoss||'giant',ground,coop:true,players:game.players.map(({id,loadout:p})=>({id,name:p.name,adv:p.adv,meta:p.meta,gear:p.gear,gearLv:p.gearLv}))});
- let frame=0,rngCount=0,held=true,closed=false,localSeq=0,moveSeq=0,lastSent=0,gapRequested=-1,recoveryTarget=null,localMove=[0,0];
+ sim.coopRevive={held:[false,false],helper:null,target:null,ticks:0};
+ let frame=0,rngCount=0,held=true,closed=false,localSeq=0,moveSeq=0,lastSent=0,gapRequested=-1,recoveryTarget=null,localMove=[0,0],localAssist=false,lastAssistSample=now();
  const prediction=host?null:createMovementPrediction({sim,index:local,now});
  let pendingInput=null,lastInputAt=now(),tokens=2,sentSeq=0;
  let guestInputAt=null;
@@ -47,7 +49,7 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
  }
  function apply(event,uses){
   const i=event.hero,p=sim.players[i];
-  if(event.move){moves[i]=[...event.move];return true;}
+  if(event.move){moves[i]=[...event.move];sim.coopRevive.held[i]=event.assist===true;return true;}
   if(event.leave){p.alive=false;delete sim.pending[p.id];capture(i);return true;}
   if(event.actionSeq<=sequences[i]||!valid(i,event.action,event.decision))return false;
   const a=event.action;let accepted=true;
@@ -61,7 +63,9 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
  }
  function simulate(events){
   const uses=[null,null];for(const event of events)if(!apply(event,uses))return false;
+  const beforeTick=sim.tick,beforeFx=sim.fx.length;
   step(sim,Object.fromEntries(game.players.map((p,i)=>[p.id,{mx:moves[i][0]/127,mz:moves[i][1]/127,use:uses[i]}])),TICK);frame++;
+  stepCoopRevive(sim,sim.coopRevive,sim.tick>beforeTick,sim.fx.slice(beforeFx).filter(f=>f.k==='hurt').map(f=>f.id));
   for(let i=0;i<2;i++)capture(i);prediction?.confirm(events);return true;
  }
  function batch(from,upTo){
@@ -78,7 +82,7 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
  function enqueue(i,data){
   if(Object.hasOwn(data,'resend'))return resend(data.resend);
   if(held||closed)return false;
-  if(data.move){if(data.moveSeq<=moveSequences[i])return false;moveSequences[i]=data.moveSeq;if(i===1)guestInputAt=now();desired[i]={move:data.move,moveSeq:data.moveSeq};return true;}
+  if(data.move){if(data.moveSeq<=moveSequences[i])return false;moveSequences[i]=data.moveSeq;if(i===1)guestInputAt=now();desired[i]={move:data.move,moveSeq:data.moveSeq,assist:data.assist===true};return true;}
   if(data.actionSeq<=sequences[i]||queues[i].some(a=>a.actionSeq===data.actionSeq)||queues[i].length>=8||!valid(i,data.action,data.decision))return false;
   queues[i].push(data);return true;
  }
@@ -106,10 +110,10 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
   if(!host||closed||held||sim.over)return false;
   const events=[];
   if(guestInputAt!==null&&now()-guestInputAt>1000){
-   guestInputAt=null;const move=desired[1]?.move||moves[1];if(move[0]||move[1])desired[1]={move:[0,0],moveSeq:0};
+   guestInputAt=null;const move=desired[1]?.move||moves[1];if(move[0]||move[1]||sim.coopRevive.held[1]||desired[1]?.assist)desired[1]={move:[0,0],moveSeq:0};
   }
   for(let i=0;i<2;i++){
-   const move=desired[i];if(move&&(move.moveSeq>0||move.move[0]!==moves[i][0]||move.move[1]!==moves[i][1]))events.push({frame:frame+1,hero:i,move:[...move.move],...(move.moveSeq?{moveSeq:move.moveSeq}:{})});desired[i]=null;
+   const move=desired[i];if(move&&(move.moveSeq>0||move.move[0]!==moves[i][0]||move.move[1]!==moves[i][1]||!!move.assist!==sim.coopRevive.held[i]))events.push({frame:frame+1,hero:i,move:[...move.move],...(move.assist?{assist:true}:{}),...(move.moveSeq?{moveSeq:move.moveSeq}:{})});desired[i]=null;
    while(queues[i].length){const data=queues[i].shift();if(valid(i,data.action,data.decision)&&data.actionSeq>sequences[i]){events.push({frame:frame+1,hero:i,...data});break;}}
   }
   if(!simulate(events)){close('invalidAction');return false;}
@@ -121,20 +125,20 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
   if(host||held||closed)return false;
   const time=now();
   tokens=Math.min(2,tokens+Math.max(0,time-lastInputAt)*30/1000);lastInputAt=time;
-  if(!pendingInput&&localMove&&(localMove[0]||localMove[1])){
-   const seq=prediction.sample(localMove);if(seq>sentSeq)pendingInput={move:[...localMove],moveSeq:seq};
+  if(!pendingInput&&localMove&&(localMove[0]||localMove[1]||localAssist)){
+   const seq=prediction.sample(localMove,localAssist&&time-lastAssistSample>=200);if(seq>sentSeq){lastAssistSample=time;pendingInput={move:[...localMove],moveSeq:seq,...(localAssist?{assist:true}:{})};}
   }
   if(!pendingInput||!force&&tokens<1)return false;
   tokens=Math.max(0,tokens-1);sentSeq=pendingInput.moveSeq;
   emit({t:'up',data:pendingInput});pendingInput=null;return true;
  }
- function input(x,z,force=false){
-  const move=quantizeMove(x,z);if(!move||held||closed)return false;
-  const changed=!localMove||move[0]!==localMove[0]||move[1]!==localMove[1];localMove=move;
-  if(host){if(!changed)return false;return enqueue(local,{move,moveSeq:++moveSeq});}
-  const seq=prediction.sample(move);
+ function input(x,z,force=false,assist=false){
+  const move=quantizeMove(x,z);if(!move||held||closed||typeof assist!=='boolean')return false;
+  const changed=!localMove||move[0]!==localMove[0]||move[1]!==localMove[1],assistChanged=assist!==localAssist;localMove=move;localAssist=assist;
+  if(host){if(!changed&&!assistChanged)return false;return enqueue(local,{move,moveSeq:++moveSeq,...(assist?{assist:true}:{})});}
+  const seq=prediction.sample(move,assistChanged||assist&&now()-lastAssistSample>=200);
   if(seq<=sentSeq)return false;
-  pendingInput={move,moveSeq:seq};return flushInput(force);
+  lastAssistSample=now();pendingInput={move,moveSeq:seq,...(assist?{assist:true}:{})};return flushInput(force||assistChanged&&!assist);
  }
  return {
   sim,accept,advance,hash,close,flush,flushInput,
@@ -145,7 +149,7 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
   begin(at){if(closed)return false;if(!held&&at<=frame)return true;if(at!==frame){close('invalidFrame');return false;}held=false;recoveryTarget=null;prediction?.reset();return true;},
   input,
   action(value,decision){const action=cleanAction(value);if(!action||held||closed||!valid(local,action,decision))return false;const data={action,actionSeq:++localSeq,...(action.kind==='use'?{}:{decision})};if(host)return enqueue(local,data);emit({t:'up',data});return true;},
-  hold(){if(closed)return;held=true;localMove=null;pendingInput=null;prediction?.reset();for(let i=0;i<2;i++){queues[i].length=0;desired[i]={move:[0,0],moveSeq:moveSequences[i]};}if(host){try{if(frame)history.get(frame).hash=hash();}catch{close('invalidState');return;}flush();emit({t:'loaded',frame});}},
-  recover(target){if(host||closed||!Number.isInteger(target)||target<frame||target-frame>COOP_HISTORY){close('historyExpired');return false;}held=true;pendingInput=null;localMove=null;prediction?.reset();recoveryTarget=target;if(target===0)emit({t:'loaded',frame:0});else emit({t:'up',data:{resend:frame}});return true;},
+  hold(){if(closed)return;held=true;localMove=null;localAssist=false;pendingInput=null;prediction?.reset();for(let i=0;i<2;i++){queues[i].length=0;desired[i]={move:[0,0],moveSeq:moveSequences[i]};}if(host){try{if(frame)history.get(frame).hash=hash();}catch{close('invalidState');return;}flush();emit({t:'loaded',frame});}},
+  recover(target){if(host||closed||!Number.isInteger(target)||target<frame||target-frame>COOP_HISTORY){close('historyExpired');return false;}held=true;pendingInput=null;localMove=null;localAssist=false;prediction?.reset();recoveryTarget=target;if(target===0)emit({t:'loaded',frame:0});else emit({t:'up',data:{resend:frame}});return true;},
  };
 }
