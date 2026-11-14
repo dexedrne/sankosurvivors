@@ -1,5 +1,16 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked details": "Detalles de clasificatoria",
+  "10% house fee · 90% to the prize pool.": "10% para la casa · 90% al fondo de premios.",
+  "Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.": "Fondo: 80% por puesto · 10% por DMT aportado · 10% por tiempo jugado. Participación desde 0:30; clasificación desde 3:00. Mismo poder inicial.",
+  "30-minute pause budget. First 30 seconds of each pause are free. Reloading does not reset it.": "30 minutos de pausa. Los primeros 30 segundos de cada pausa son gratis. Recargar no reinicia el límite.",
+  "Prize pool & standings": "Fondo y clasificación",
+  "Full ranked rules": "Reglas completas",
+  "Runs stop at the weekly reset with the score earned so far. Connection and verification delays can affect submission.": "Las partidas terminan en el reinicio semanal con los puntos obtenidos. Las demoras de conexión y verificación pueden afectar el envío.",
+  "My run stops at the weekly reset. I accept the risk of starting near reset.": "Mi partida termina en el reinicio semanal. Acepto el riesgo de empezar cerca del reinicio.",
+  "Ranked, at a glance": "Clasificatoria de un vistazo",
+  "Ranked uses two columns in landscape, keeps entry controls visible, and puts full rules and standings in expandable panels.": "El menú usa dos columnas en horizontal, mantiene visible el acceso y agrupa las reglas y la clasificación en paneles desplegables.",
+
   "One pool, more ways to contribute": "Un fondo, más formas de contribuir",
   "Ranked offers 1 or 10 DMT entries into the same weekly board and pool. Scoring, starting loadout and placement prizes are identical for both.": "Clasificatoria ofrece entradas de 1 o 10 DMT para la misma tabla y fondo semanal. La puntuación, el equipo inicial y los premios por puesto son iguales para ambas.",
   "Of the prize pool, 80% rewards placement, 10% follows eligible DMT contributed and 10% follows active playtime. Verified completed runs of at least 30 seconds earn participation; placement still requires 3 minutes. Existing eligible entries count.": "Del fondo, el 80% premia los puestos, el 10% corresponde al DMT aportado elegible y el 10% al tiempo activo. Las partidas verificadas y terminadas de al menos 30 segundos cuentan para participación; para clasificar siguen haciendo falta 3 minutos. Las entradas anteriores elegibles cuentan.",
@@ -1945,6 +1956,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Run ends in {1} · Monday, 00:00 UTC.", "Tu partida termina en {1} · lunes, 00:00 UTC."],
   ["Score: {1}. Runs under {2} cannot place.", "Puntuación: {1}. Las partidas de menos de {2} no pueden clasificar."],
  ["Rank: {0}", "Rango: {0}"],
  ["Quantity: {0}", "Cantidad: {0}"],

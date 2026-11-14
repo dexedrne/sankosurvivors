@@ -16,7 +16,7 @@ for(const screen of ['play','pause','levelup','casket','settings'])test('midnigh
 });
 test('a legacy already-issued run keeps its original deadline',()=>{const c=cutoff({legacy:true});c.advance();assert.equal(c.enforce(),false);assert.equal(c.sim.over,null);});
 test('consent is unchecked and warns that the earned score ends at reset',()=>{
- const tag=html.match(/<input[^>]*id="rankedack"[^>]*>/)?.[0];assert(tag);assert(!/\bchecked\b/.test(tag));assert.match(html,/I understand that my run ends at the weekly reset/);
+ const tag=html.match(/<input[^>]*id="rankedack"[^>]*>/)?.[0];assert(tag);assert(!/\bchecked\b/.test(tag));assert.match(html,/My run stops at the weekly reset/);
  assert.match(html,/Every continuous pause starts with 30 free seconds/);
 });
 test('deadline is enforced before gameplay input and when the app returns',()=>{

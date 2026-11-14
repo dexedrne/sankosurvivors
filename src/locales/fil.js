@@ -1,5 +1,16 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Ranked details": "Detalye ng ranked",
+  "10% house fee · 90% to the prize pool.": "10% sa house · 90% sa pondo ng premyo.",
+  "Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.": "Pondo: 80% sa puwesto · 10% sa DMT na naiambag · 10% sa aktibong oras. Partisipasyon mula 0:30; puwesto mula 3:00. Parehong lakas sa simula.",
+  "30-minute pause budget. First 30 seconds of each pause are free. Reloading does not reset it.": "30 minutong pause allowance. Libre ang unang 30 segundo ng bawat pause. Hindi ito nare-reset sa pag-reload.",
+  "Prize pool & standings": "Pondo at leaderboard",
+  "Full ranked rules": "Buong ranked rules",
+  "Runs stop at the weekly reset with the score earned so far. Connection and verification delays can affect submission.": "Hihinto ang takbo sa lingguhang reset gamit ang nakuhang score. Maaaring makaapekto sa pagsumite ang pagkaantala ng koneksyon at pag-verify.",
+  "My run stops at the weekly reset. I accept the risk of starting near reset.": "Hihinto ang takbo ko sa lingguhang reset. Tinatanggap ko ang panganib ng pagsisimula malapit sa reset.",
+  "Ranked, at a glance": "Ranked sa isang tingin",
+  "Ranked uses two columns in landscape, keeps entry controls visible, and puts full rules and standings in expandable panels.": "Dalawang column sa landscape, laging abot ang mga kontrol sa pagpasok, at nasa mga nabubuksang panel ang buong rules at leaderboard.",
+
   "One pool, more ways to contribute": "Isang pondo, mas maraming paraan ng pag-ambag",
   "Ranked offers 1 or 10 DMT entries into the same weekly board and pool. Scoring, starting loadout and placement prizes are identical for both.": "May pagpipiliang 1 o 10 DMT sa ranked para sa iisang lingguhang leaderboard at pondo. Pareho ang score, panimulang gamit at gantimpala ayon sa puwesto sa dalawa.",
   "Of the prize pool, 80% rewards placement, 10% follows eligible DMT contributed and 10% follows active playtime. Verified completed runs of at least 30 seconds earn participation; placement still requires 3 minutes. Existing eligible entries count.": "80% ng pondo ang para sa puwesto, 10% ayon sa kwalipikadong DMT na inambag at 10% ayon sa aktibong oras ng paglalaro. Kasali sa pakikilahok ang na-verify at natapos na takbong hindi bababa sa 30 segundo; kailangan pa rin ng 3 minuto para sa puwesto. Kasama ang mga dati nang kwalipikadong pagsali.",
@@ -1945,6 +1956,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Run ends in {1} · Monday, 00:00 UTC.", "Matatapos ang takbo sa {1} · Lunes, 00:00 UTC."],
   ["Score: {1}. Runs under {2} cannot place.", "Score: {1}. Hindi makakakuha ng puwesto ang mga takbong mas maikli sa {2}."],
  ["Rank: {0}", "Ranggo: {0}"],
  ["Quantity: {0}", "Dami: {0}"],

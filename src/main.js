@@ -408,6 +408,7 @@ function renderRanked() {
     $('rankedraces').innerHTML = two ? races.map((m) => `<button role="tab" data-race="${m}" aria-selected="${m === rankedMode}" class="${m === rankedMode ? 'on' : 'ghost'}">${RACE[m].name} <span>${esc(raceOf(rankedWeek, m).entryDmt)} DMT</span></button>`).join('') : '';
     for (const b of $('rankedraces').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); renderRanked(); };
     $('rankedweek').textContent = `This week: ${MAP_BY_ID[rankedWeek.map]?.name || rankedWeek.map}${two ? ` · ${race.name} race${rankedMode === 'hard' ? ' (hard rules)' : ''}` : ''}`;
+    $('rankedbrief').textContent = race.rewards?.version===2 ? 'Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.' : rewardSummary(race);
     const pool = $('rankedpool'), summary = document.createElement('span');
     const place = prizePlaces(race.rows, rankedWeek.week), estimate = prizeEstimate(race, place, rankedWeek.payouts);
     summary.textContent = poolReadout(race);
@@ -451,7 +452,7 @@ function rankedTime() {
   $('rankedtime').textContent = policy.admissionOpen
     ? `New starts close in ${fmtT(Math.max(0, Math.ceil((policy.closesAt - now) / 1000)))} · Monday reset, UTC`
     : `New ranked starts are closed. Next board in ${fmtT(left)}.`;
-  $('rankedcutoff').textContent = `Time until the weekly cutoff: ${fmtT(left)}. Your run ends at 00:00 UTC on Monday, even if you are still alive. Your earned score will be submitted. Connection and verification delays can affect submission.`;
+  $('rankedcutoff').textContent = `Run ends in ${fmtT(left)} · Monday, 00:00 UTC.`;
   if (!policy.admissionOpen) $('rankedenter').disabled = true;
   for (const button of $('rankedready').querySelectorAll('[data-ranked-start]')) button.disabled = rankedBusy || !policy.admissionOpen || !$('rankedack').checked || rankedAckDeadline !== policy.deadline;
   if (!left && !rankedRefreshing && !rankedPlaying() && !rankedBusy && !buyBusy && !walletConnecting && !walletRequests && !walletModalOpen()) refreshRanked();

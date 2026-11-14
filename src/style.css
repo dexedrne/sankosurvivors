@@ -1079,3 +1079,28 @@ body.touch #cooprevivebtn small { display:none; }
 #cooprevivetime { min-width:4ch; color:var(--cream); font:16px RSPlain,sans-serif; }
 body.ds-layout #cooprevive { position:fixed; bottom:calc(112px + env(safe-area-inset-bottom,0px)); }
 @media (max-height:500px) { #cooprevive, body.ds-layout #cooprevive { bottom:calc(72px + env(safe-area-inset-bottom,0px)); max-width:260px; padding:4px 6px; } }
+
+/* Ranked: short overview, reachable entry controls, expandable detail. */
+#ranked .rankedhead { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+#ranked .rankedhead h2 { margin:0; font-size:24px; }
+#ranked .rankedhead button { flex:0 0 auto; margin:0; min-height:44px; }
+#ranked .rankedlayout { min-width:0; }
+#ranked .rankedoverview, #ranked .rankedentry { min-width:0; overflow-wrap:anywhere; }
+#ranked details { margin:8px 0; padding:0 8px; border:1px solid var(--line); }
+#ranked summary { cursor:pointer; min-height:44px; display:list-item; padding:10px 0; color:var(--cream); }
+#ranked .rankedfields { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#ranked .rankedfields label { display:block; min-width:0; }
+#ranked .rankedfields input, #ranked .rankedfields select { width:100%; min-width:0; min-height:44px; }
+#ranked .rankedfooter { min-width:0; }
+#ranked .rankedfooter>button { min-height:44px; }
+#rankedenter { width:100%; margin:4px 0 0; }
+#ranked .rankedack { min-height:44px; }
+@media (orientation:landscape) and (min-width:700px) {
+ #ranked .panel { width:min(960px,96vw); max-width:96vw; height:calc(100dvh - 24px); display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:8px; overflow:hidden; }
+ #ranked .rankedlayout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; min-height:0; }
+ #ranked .rankedoverview, #ranked .rankedentry { overflow:auto; overscroll-behavior:contain; padding-right:4px; }
+ #ranked .rankedentry { border-left:1px solid var(--line); padding-left:16px; }
+ #ranked .rankedfooter { max-height:30dvh; overflow:auto; }
+ #ranked .rankedfooter>button { margin-top:0; }
+ #ranked .rankedfooter #rankedmsg:empty, #ranked .rankedfooter #rankedtx:empty { display:none; }
+}

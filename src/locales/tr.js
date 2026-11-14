@@ -1,5 +1,16 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked details": "Sıralama ayrıntıları",
+  "10% house fee · 90% to the prize pool.": "%10 ev payı · %90 ödül havuzuna.",
+  "Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.": "Havuz: %80 sıralama · %10 DMT katkısı · %10 aktif süre. Katılım en az 0:30; sıralama en az 3:00. Başlangıç gücü eşit.",
+  "30-minute pause budget. First 30 seconds of each pause are free. Reloading does not reset it.": "30 dakika duraklatma hakkı. Her duraklatmanın ilk 30 saniyesi ücretsiz. Yenilemek hakkı sıfırlamaz.",
+  "Prize pool & standings": "Ödül havuzu ve sıralama",
+  "Full ranked rules": "Tüm sıralama kuralları",
+  "Runs stop at the weekly reset with the score earned so far. Connection and verification delays can affect submission.": "Turlar haftalık sıfırlamada o ana kadar kazanılan skorla biter. Bağlantı ve doğrulama gecikmeleri gönderimi etkileyebilir.",
+  "My run stops at the weekly reset. I accept the risk of starting near reset.": "Turum haftalık sıfırlamada biter. Sıfırlamaya yakın başlamanın riskini kabul ediyorum.",
+  "Ranked, at a glance": "Bir bakışta sıralama",
+  "Ranked uses two columns in landscape, keeps entry controls visible, and puts full rules and standings in expandable panels.": "Yatay ekranda iki sütun kullanılır, katılım kontrolleri görünür kalır ve kurallar ile sıralama açılır panellerde yer alır.",
+
   "One pool, more ways to contribute": "Tek havuz, katkı için daha fazla seçenek",
   "Ranked offers 1 or 10 DMT entries into the same weekly board and pool. Scoring, starting loadout and placement prizes are identical for both.": "Sıralamalı turlarda aynı haftalık sıralama ve havuz için 1 veya 10 DMT katılım seçeneği var. Her iki seçenekte skor, başlangıç ekipmanı ve sıralama ödülleri aynıdır.",
   "Of the prize pool, 80% rewards placement, 10% follows eligible DMT contributed and 10% follows active playtime. Verified completed runs of at least 30 seconds earn participation; placement still requires 3 minutes. Existing eligible entries count.": "Ödül havuzunun %80’i sıralamaya, %10’u geçerli DMT katkısına ve %10’u aktif oyun süresine göre dağıtılır. En az 30 saniye süren doğrulanmış ve tamamlanmış turlar katılım payı kazanır; sıralama için hâlâ 3 dakika gerekir. Önceki geçerli katılımlar da sayılır.",
@@ -1945,6 +1956,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Run ends in {1} · Monday, 00:00 UTC.", "Turun {1} sonra biter · Pazartesi, 00:00 UTC."],
   ["Score: {1}. Runs under {2} cannot place.", "Skor: {1}. {2} altındaki turlar sıralama ödülü alamaz."],
  ["Rank: {0}", "Rütbe: {0}"],
  ["Quantity: {0}", "Adet: {0}"],

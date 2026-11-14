@@ -196,19 +196,26 @@
 <div id="settings" class="screen hidden"><div class="panel"><h2>Settings</h2><p class="rankedpause dim hidden" role="timer" aria-live="off"></p><label class="langpick"><span>Language</span> <select data-language aria-label="Language"><option value="en" translate="no">English</option><option value="tr" translate="no">Türkçe</option><option value="es" translate="no">Español</option><option value="fil" translate="no">Filipino</option></select></label><div id="setlist"></div><p id="buildinfo" class="dim" translate="no"></p><p id="fullscreenstatus" class="dim" role="status" aria-live="polite"></p><button id="fullscreenbtn" class="ghost" hidden>Enter fullscreen</button><button id="setclose" class="ghost">Back</button></div></div>
 <div id="end" class="screen hidden"><div class="panel"><h2 id="endtitle"></h2><p id="endtext"></p><p id="endcoins"></p><details id="endbuild" class="runbuild" open><summary>Final build</summary><div id="endbuildbody"></div></details><div class="lurow cardactions"><button id="savecard" class="ghost" disabled>Save build card</button><button id="copycard" class="ghost" disabled>Copy build card</button><button id="sharecard" class="ghost hidden">Share build card</button></div><p id="cardstatus" class="dim" role="status" aria-live="polite"></p><div id="enddmg"></div><div id="endloot"></div><div id="endlb"><label>Name for the leaderboard <input id="lbname" maxlength="16" autocomplete="off" spellcheck="false"></label><button id="lbsubmit">Submit score</button><span id="lbmsg"></span></div><div id="rankedresult" role="status"></div><button id="rankedretry" class="hidden">Retry ranked submission</button><p id="continuemsg" role="status" aria-live="polite"></p><button id="continueendless" class="hidden">Submit score &amp; continue as Endless</button><button id="continueunconfirmed" class="ghost hidden">Continue without confirmed score</button><button id="again">Run it back</button><button id="sharex" class="ghost">Share on X</button><button id="tomenu" class="ghost">Main menu</button></div></div>
 <div id="ranked" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="rankedtitle"><div class="panel">
-  <h2 id="rankedtitle">Ranked weekly runs</h2><p id="rankedpausewarning">Ranked is competitive play. Bathroom breaks are fine: you have 30 minutes of total pause allowance per run. Every continuous pause starts with 30 free seconds. Quick upgrade and casket choices do not drain the allowance. Longer time away counts; connection delays may count. Already-started legacy runs keep their original rules. Reloading does not reset it. Exceeding the allowance disqualifies the run.</p><p class="rankedmovement dim">Week-0 ranked uses Jump and the original evolution recipes. Casual and ranked from week 1 use Tumble and the current recipes.</p>
-  <div id="rankedraces" class="rkraces" role="tablist" aria-label="Ranked race"></div>
-  <div id="rankedwagers" class="rkraces" role="group" aria-label="Entry wager"></div>
-  <p id="rankedweek">Loading this week…</p><p id="rankedtime" class="dim"></p><p id="rankedpool"></p>
-  <div id="rankedstandings"></div>
-  <p id="rankedrules" class="dim">Loading ranked rules…</p>
-  <label>Name <input id="rankedname" maxlength="16" autocomplete="off" spellcheck="false"></label>
-  <label>Adventurer <select id="rankedadv"></select></label>
-  <p id="rankedcutoff" class="dim"></p>
-  <label class="rankedack"><input type="checkbox" id="rankedack"> <span>I understand that my run ends at the weekly reset, even if time remains. I accept the risk of starting close to the cutoff.</span></label>
-  <div id="rankedready" class="dmtwallets"></div><div id="rankedfrom"></div><div id="rankedwallets" class="dmtwallets"></div>
-  <button id="rankedenter" disabled>Enter ranked</button>
-  <div id="rankedmsg" role="status" aria-live="polite"></div><div id="rankedtx"></div><button id="rankedrefresh" class="ghost hidden">Retry ranked details</button><button id="rankedupdate" class="hidden">Update</button><button id="rankedclose" class="ghost">Back</button>
+  <div class="rankedhead"><h2 id="rankedtitle">Ranked weekly runs</h2><button id="rankedclose" class="ghost">Back</button></div>
+  <div class="rankedlayout"><section class="rankedoverview" aria-label="Ranked details" tabindex="0">
+    <p id="rankedweek">Loading this week…</p><p id="rankedtime" class="dim"></p>
+    <div id="rankedraces" class="rkraces" role="tablist" aria-label="Ranked race"></div>
+    <div id="rankedwagers" class="rkraces" role="group" aria-label="Entry wager"></div>
+    <p>10% house fee · 90% to the prize pool.</p><p id="rankedbrief"></p>
+    <p class="dim">30-minute pause budget. First 30 seconds of each pause are free. Reloading does not reset it.</p>
+    <details id="rankedprizes"><summary>Prize pool &amp; standings</summary><p id="rankedpool"></p><div id="rankedstandings"></div></details>
+    <details id="rankedfulldetails"><summary>Full ranked rules</summary>
+      <p id="rankedpausewarning">Ranked is competitive play. Bathroom breaks are fine: you have 30 minutes of total pause allowance per run. Every continuous pause starts with 30 free seconds. Quick upgrade and casket choices do not drain the allowance. Longer time away counts; connection delays may count. Already-started legacy runs keep their original rules. Reloading does not reset it. Exceeding the allowance disqualifies the run.</p><p class="rankedmovement dim">Week-0 ranked uses Jump and the original evolution recipes. Casual and ranked from week 1 use Tumble and the current recipes.</p>
+      <p id="rankedrules" class="dim">Loading ranked rules…</p>
+      <p>Runs stop at the weekly reset with the score earned so far. Connection and verification delays can affect submission.</p>
+    </details>
+  </section><section class="rankedentry" aria-label="Enter ranked" tabindex="0">
+    <div class="rankedfields"><label>Name <input id="rankedname" maxlength="16" autocomplete="off" spellcheck="false"></label><label>Adventurer <select id="rankedadv"></select></label></div>
+    <p id="rankedcutoff" class="dim"></p>
+    <label class="rankedack"><input type="checkbox" id="rankedack"> <span>My run stops at the weekly reset. I accept the risk of starting near reset.</span></label>
+    <div id="rankedready" class="dmtwallets"></div><div id="rankedfrom"></div><div id="rankedwallets" class="dmtwallets"></div>
+  </section></div>
+  <div class="rankedfooter"><button id="rankedenter" disabled>Enter ranked</button><div id="rankedmsg" role="status" aria-live="polite"></div><div id="rankedtx"></div><button id="rankedrefresh" class="ghost hidden">Retry ranked details</button><button id="rankedupdate" class="hidden">Update</button></div>
 </div></div>
 <div id="wallet" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="wallettitle"><div class="panel"><h2 id="wallettitle">Wallet</h2><div id="walletbody"></div><div id="walletmsg" role="status" aria-live="polite"></div><button id="walletclose" class="ghost">Back</button></div></div>
 <div id="walletlink" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="walletlinktitle"><div class="panel"><h2 id="walletlinktitle">Approve in your wallet</h2><p id="walletlinktext"></p><div id="walletlinkapps" class="dmtwallets"></div><div id="walletlinkqr" class="hidden"><p id="walletlinkqrtext">Scan with any WalletConnect wallet</p><canvas id="walletlinkcanvas" role="img" aria-label="WalletConnect pairing QR code"></canvas></div><button id="walletlinkback" class="ghost">Back to game</button></div></div>
