@@ -10,14 +10,18 @@ export function rankedStep(sim, rec, mx, mz, use) {
 }
 
 export function rankedChoice(sim, rec, action) {
-  if (!sim.pending.p1 || sim.over) return false;
+  const pending = sim.pending.p1;
+  if (!pending || sim.over) return false;
   if (action === 'r') { if (!reroll(sim, 'p1')) return false; rec.reroll(); }
   else if (action === 's') { if (!skipLevel(sim, 'p1')) return false; rec.skip(); }
   else if (typeof action === 'string' && /^b[0-2]$/.test(action)) { const i = Number(action[1]); if (!banish(sim, 'p1', i)) return false; rec.banish(i); }
   else if ([0, 1, 2, 'a'].includes(action)) {
     const i = action === 'a' ? autoChoice(sim.pending.p1) : action;
     if (!sim.pending.p1.choices[i]) return false;
-    if (!choose(sim, 'p1', i)) return false; if (action === 'a') rec.auto(); else rec.pick(i);
+    if (!choose(sim, 'p1', i)) return false;
+    // A full page cycle returns to the identical frozen reward; retain only its shortest recorded route.
+    if (pending.spell && pending.choices[i].kind === 'spell-page' && sim.pending.p1?.page === 0) rec.picks.splice(-pending.page);
+    else if (action === 'a') rec.auto(); else rec.pick(i);
   } else return false;
   return true;
 }

@@ -149,10 +149,10 @@ for(const[weapon,first,second]of [['bow','Winged Boots','Amanita'],['staff','Wiz
  const h=setup({shown:false,choices:[{kind:'weapon',id:weapon,level:6}]});h.sim.pace=pace;h.p.weapons[weapon]=5;h.showReal();const html=h.element('cards').children[0].innerHTML;assert.ok(html.includes(first));if(pace===2){assert.ok(html.includes(' or '));assert.ok(html.includes(second));}else assert.ok(!html.includes(second));
 });
 for(const[passive,weapons]of [['area',['staff','pickaxe']],['thorns',['katana','shield']],['crit',['bow','lighter']],['boots',['bow','shortsword']]])test(`actual ${passive} passive card discloses every shared evolution route`,()=>{
- const h=setup({shown:false,choices:[{kind:'passive',id:passive,level:1}]});h.showReal();const html=h.element('cards').children[0].innerHTML;for(const id of weapons)assert.ok(html.includes(content.weaponTitle(id,6,null)),id+' missing from '+html);
+ const h=setup({shown:false,choices:[{kind:'passive',id:passive,level:1}]});h.showReal();const html=h.element('cards').children[0].innerHTML;for(const id of weapons)assert.ok(html.includes(id==='staff'?content.WEAPONS.staff.name:content.weaponTitle(id,6,null)),id+' missing from '+html);
 });
 for(const pace of [1,2])test(`Vigor card also discloses both already-existing evolution pairings on pace${pace}`,()=>{
- const h=setup({shown:false,choices:[{kind:'passive',id:'vigor',level:1}]});h.sim.pace=pace;h.showReal();const html=h.element('cards').children[0].innerHTML;for(const id of ['axe','greatsword'])assert.ok(html.includes(content.weaponTitle(id,6,null)),id+' missing from '+html);
+ const h=setup({shown:false,choices:[{kind:'passive',id:'vigor',level:1}]});h.sim.pace=pace;h.showReal();const html=h.element('cards').children[0].innerHTML;for(const id of ['axe','greatsword'])assert.ok(html.includes(id==='staff'?content.WEAPONS.staff.name:content.weaponTitle(id,6,null)),id+' missing from '+html);
 });
 
 for(const [rarity,damage]of [['common','11.3'],['uncommon','11.72'],['rare','12.14'],['epic','12.7']])test(`actual ${rarity} Bow card shows exact nominal gain and accepts one retained level`,()=>{

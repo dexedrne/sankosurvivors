@@ -989,7 +989,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const SPELL_ELEMENT = { air: 0x9fe8ff, water: 0x3b82f6, earth: 0x6db33f, fire: 0xff5a1f };
   const STAFF_SPELLS = [['air', 'missile'], ['water', 'missile'], ['earth', 'missile'], ['fire', 'missile'], ['air', 'blast'], ['water', 'blast']];
   // levels 5 and 6 cast three bolts at once: one Air, one Water and one Earth Blast (owner: "the earth air water blast")
-  const staffSpell = (lvl, evo, id = 0) => { const [el, tier] = evo ? ['fire', 'blast'] : lvl >= 5 ? [['air', 'water', 'earth'][id % 3], 'blast'] : STAFF_SPELLS[Math.min(3, Math.max(0, lvl - 1))]; return { col: SPELL_ELEMENT[el], tier }; };
+  const staffSpell = (lvl, evo, id = 0, element = null) => { const [el, tier] = evo ? [Object.hasOwn(SPELL_ELEMENT, element) ? element : 'fire', 'blast'] : lvl >= 5 ? [['air', 'water', 'earth'][id % 3], 'blast'] : STAFF_SPELLS[Math.min(3, Math.max(0, lvl - 1))]; return { col: SPELL_ELEMENT[el], tier }; };
   // Native module374567, 3-Nov capture dc560396: seven pieces follow elapsed50/65ms samples, not fixed distances.
   const SPELL_TIER = { missile: { size: 1, interval: 50, impact: 260, spread: 0.36 }, blast: { size: 1.65, interval: 65, impact: 400, spread: 0.7 } };
   let spellTime = 0; // interpolated run time in ms; spell animation holds with the run
@@ -1196,7 +1196,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   function spellStray(f, players, splash = f) { // a staff bolt that hit in the tick it was cast (point blank) was never drawn: burst on what it hit
     let c = null, cd = 1e9; for (const p of players) if (p.al) { const d = (p.x - f.x) ** 2 + (p.z - f.z) ** 2; if (d < cd) { cd = d; c = p; } }
-    const s = Number.isSafeInteger(f.projectile) && f.lvl >= 1 ? staffSpell(f.lvl, !!f.evo, f.projectile) : staffSpell((c && c.w && c.w.staff) || 1, !!(c && c.evo && c.evo.staff)), L = (f.target !== undefined ? spellHitPoint(f, true) : hitCentre(f.x, f.z, 9)) || { x: f.x, y: groundAt(f.x, f.z) + 0.9, z: f.z };
+    const s = Number.isSafeInteger(f.projectile) && f.lvl >= 1 ? staffSpell(f.lvl, !!f.evo, f.projectile, f.element) : staffSpell((c && c.w && c.w.staff) || 1, !!(c && c.evo && c.evo.staff), 0, c && c.spellElement), L = (f.target !== undefined ? spellHitPoint(f, true) : hitCentre(f.x, f.z, 9)) || { x: f.x, y: groundAt(f.x, f.z) + 0.9, z: f.z };
     magicBurst(L.x, L.y, L.z, s.col, s.tier); if (splash?.r > 0) spellRing(splash.x, splash.z, splash.r, s.col);
   }
   // Legacy views without target metadata retain their original height easing.
@@ -2076,13 +2076,13 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     // projectiles
     const seenPr = new Set();
     for (const pr of view.proj) {
-      const [id, art, x, z, ang, lvl, spin, evo, mt] = pr;
+      const [id, art, x, z, ang, lvl, spin, evo, mt, element] = pr;
       seenPr.add(id);
       let o = projObjs.get(id);
       if (!o) {
         o = new THREE.Group(); dyn.add(o); projObjs.set(id, o);
         if (art === 'bolt') { // the staff's spell: SankoQuest's magic sphere in the shard's element colour
-          const { col, tier } = staffSpell(lvl, evo, id);
+          const { col, tier } = staffSpell(lvl, evo, id, element);
           o.add(magicSphere(col, tier)); Object.assign(o.userData, { spell: { col, tier }, projectile: id });
           // it left its caster this tick: start the flight there, so the tail grows out of the caster as the game's does
           const caster = view.spellCasters?.[id];

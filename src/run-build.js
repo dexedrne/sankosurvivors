@@ -11,7 +11,7 @@ export const effectNames={speed:'Tin of Beer',strength:'Strength shrine',agility
 export function captureRunBuild(sim,player,{name='Adventurer',ranked=false,version=''}={}) {
  const pace=sim.pace||1,sections=[];
  const weapons=Object.entries(player.weapons||{}).filter(([id,level])=>Object.hasOwn(WEAPONS,id)&&Number.isInteger(level)&&level>0&&level<=MAX_WEAPON_LEVEL).map(([id,level])=>{
-  const evolved=!!player.evo?.[id],display=weaponDisplay(id,level,evolved,pace>=2?weaponStep(id,player.wm):null),quality=number(player.quality?.weapons?.[id]);
+  const evolved=!!player.evo?.[id],display=weaponDisplay(id,level,evolved,pace>=2?weaponStep(id,player.wm):null,pace>=2?player.spellElement:null),quality=number(player.quality?.weapons?.[id]);
   const metal=pace>=2?weaponStep(id,player.wm):null;
   return {name:display.name,icon:icon(display.item),level,maxLevel:MAX_WEAPON_LEVEL,evolved,details:[`Level: ${level}`,...(evolved?['Evolved']:[]),...(evolved&&metal!==null?[weaponSlotItem(id,metal)]:[]),...(pace>=2&&id==='bow'?[weaponSlotItem('arrow',player.wm?.arrow)]:[]),...(quality?[`Effective level: ${rounded(level+quality/100)}`]:[])]};
  });

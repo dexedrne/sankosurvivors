@@ -2,7 +2,7 @@
 import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in every browser and on the server (ranked replays)
 import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
-  ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
+  ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, spellEvolutions, spellEvolutionChoices, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength,
   weaponSlotItem, TUMBLE, PASTURE_NAV, OASIS_WATER_NAV, SNOW_WAVE_AT, isSnowEnemy,
 } from './content.js';
@@ -340,6 +340,7 @@ function flowDir(sim, x, z) {
 
 // ---- helpers ------------------------------------------------------------
 export function passiveLevel(p, id) { return p.passives[id] || 0; }
+const knockbackMultiplier = p => p?.pace >= 2 ? 1 + 0.1 * passiveStrength(p, 'earth') : 1;
 export function playerStats(p, meta = p.meta || {}) {
   const m = (id) => meta[id] || 0;
   const B = (ADVENTURER_BY_ID[p.adv] || {}).bonus || {};
@@ -360,16 +361,17 @@ export function playerStats(p, meta = p.meta || {}) {
     casket: (1 + 0.25 * passiveStrength(p, 'greed')) * (1 + 0.15 * m('luck')),
     coinBonus: 1 + 0.1 * m('coins'),
     weaponSlots: MAX_WEAPONS + m('strength') + (p.pace >= 2 && p.slotUpgrade === 'weapon' ? 1 : 0), passiveSlots: MAX_PASSIVES + m('prayer') + (p.pace >= 2 && p.slotUpgrade === 'passive' ? 1 : 0),
-    projectileSpeed: 1 + 0.1 * m('projectileSpeed'),
+    projectileSpeed: 1 + 0.1 * m('projectileSpeed') + (p.pace >= 2 ? 0.05 * passiveStrength(p, 'air') : 0),
     rerolls: REROLLS_PER_RUN + m('rerolls'), revives: m('revive'),
     area: 1 + 0.1 * passiveStrength(p, 'area') + 0.05 * m('area'),
     amount: m('amount') + (passiveLevel(p, 'amount') >= 1 ? 1 : 0) + (passiveLevel(p, 'amount') >= 4 ? 1 : 0),
     reach: 1 + 0.06 * passiveStrength(p, 'amount'), // Feather: projectiles fly a little farther every level
-    critC: 0.08 + 0.05 * passiveStrength(p, 'crit'), critM: 1.8 + 0.1 * passiveStrength(p, 'crit'),
+    critC: 0.08 + 0.05 * passiveStrength(p, 'crit'), critM: 1.8 + 0.1 * passiveStrength(p, 'crit') + (p.pace >= 2 ? 0.2 * passiveStrength(p, 'void') : 0),
     thorns: 8 * passiveStrength(p, 'thorns'),
-    heal: 1 + 0.12 * m('fishing'),
-    magic: 1 + (G.magic || 0), // the Minion set: magic weapons (Shard Staff, Lighter) hit harder
+    heal: 1 + 0.12 * m('fishing') + (p.pace >= 2 ? 0.1 * passiveStrength(p, 'water') : 0),
+    magic: 1 + (G.magic || 0) + (p.pace >= 2 ? 0.06 * passiveStrength(p, 'fire') : 0), // the Minion set: magic weapons (Shard Staff, Lighter) hit harder
   };
+  const knockback = knockbackMultiplier(p); if (knockback !== 1) stats.knockback = knockback;
   if (p.pace >= 2 && p.endlessGrowth) {
     for (const key of ['might', 'maxHp', 'area']) stats[key] *= 1 + 0.01 * p.endlessGrowth[key];
     stats.maxHp = Math.round(stats.maxHp);
@@ -403,9 +405,11 @@ export function damageEnemy(sim, e, amount, owner, kb = 0, fromX = 0, fromZ = 0)
   const dmg = Math.max(1, Math.round(amount * (crit ? cr[1] : 1)));
   e.hp -= dmg; e.hit = 0.12;
   const src = sim.src || 'other'; sim.dmgBy[src] = (sim.dmgBy[src] || 0) + dmg; // damage dealt per weapon, for the end screen
-  if (sim.coop) { const p = sim.players.find(p => p.id === owner); if (p) p.dmgBy[src] = (p.dmgBy[src] || 0) + dmg; }
+  const ownerPlayer = sim.coop || kb && sim.pace >= 2 ? sim.players.find(p => p.id === owner) : null;
+  if (sim.coop && ownerPlayer) ownerPlayer.dmgBy[src] = (ownerPlayer.dmgBy[src] || 0) + dmg;
   sim.fx.push({ k: 'dmg', x: e.x, z: e.z, v: dmg, c: crit ? 1 : 0 });
   if (kb && !ENEMIES[e.type].boss) {
+    if (sim.pace >= 2) kb *= knockbackMultiplier(ownerPlayer);
     const dx = e.x - fromX, dz = e.z - fromZ, d = hyp(dx, dz) || 1;
     e.kx += (dx / d) * kb; e.kz += (dz / d) * kb;
   }
@@ -689,13 +693,21 @@ function openLevel(sim, p) {
 }
 
 export function applyChoice(sim, p, choice) {
+  if (choice.kind === 'spell-page') return;
   if (choice.kind === 'slot') {
     if (choice.level === 1 && slotOptions(sim, p).includes(choice.id)) {
       p.slotUpgrade = choice.id; sim.fx.push({ k: 'slot-upgrade', player: p.id, slot: choice.id });
     }
     return;
   }
-  if (choice.kind === 'evolve') { p.evo[choice.id] = true; sim.evolves++; if (sim.coop) p.evolves++; sim.fx.push({ k: 'evolve', id: choice.id, ...(sim.coop ? { player: p.id } : {}) }); return; }
+  if (choice.kind === 'evolve') {
+    if (choice.id === 'staff' && choice.element !== undefined) {
+      if (!spellEvolutions(p, sim.pace).includes(choice.element)) return;
+      if (choice.element !== 'void') p.spellElement = choice.element; else delete p.spellElement;
+    }
+    p.evo[choice.id] = true; sim.evolves++; if (sim.coop) p.evolves++;
+    sim.fx.push({ k: 'evolve', id: choice.id, ...(p.spellElement && choice.id === 'staff' ? { element: p.spellElement } : {}), ...(sim.coop ? { player: p.id } : {}) }); return;
+  }
   if (sim.pace >= 2 && (choice.kind === 'weapon' || choice.kind === 'passive')) {
     const key = choice.kind === 'weapon' ? 'weapons' : 'passives', max = choice.kind === 'weapon' ? MAX_WEAPON_LEVEL : MAX_PASSIVE_LEVEL;
     if ((p[key][choice.id] || 0) >= max) return;
@@ -725,8 +737,23 @@ export function choose(sim, playerId, index) {
   const pend = sim.pending[playerId];
   const p = sim.players.find((q) => q.id === playerId);
   if (!pend || !p) return false;
-  const c = pend.choices[index] || pend.choices[0];
+  if (pend.spell && (!Number.isInteger(index) || index < 0 || index >= pend.choices.length)) return false;
+  let c = pend.choices[index] || pend.choices[0];
   if (sim.pace >= 2 && c.banished) return false;
+  if (sim.pace >= 2 && !pend.casket && (pend.spell || c.kind === 'spell-page' || c.kind === 'evolve' && c.id === 'staff')) {
+    const elements = spellEvolutions(p, sim.pace);
+    if (!elements.length) return false;
+    if (c.kind === 'spell-page') {
+      if (!pend.spell) return false;
+      const choices = spellEvolutionChoices(p, sim.pace, c.level); if (!choices.length) return false;
+      sim.pending[playerId] = { ...pend, page: c.level, choices }; return true;
+    }
+    if (c.kind !== 'evolve' || c.id !== 'staff') return false;
+    if (pend.spell) { if (!elements.includes(c.element)) return false; }
+    else if (elements.length > 1) {
+      sim.pending[playerId] = { spell: true, page: 0, choices: spellEvolutionChoices(p, sim.pace), left: pend.left }; return true;
+    } else c = { ...c, element: elements[0] };
+  }
   if (pend.casket) applyCasket(sim, p, c); else applyChoice(sim, p, c);
   delete sim.pending[playerId];
   sim.fx.push({ k: 'pick', id: playerId });
@@ -794,13 +821,13 @@ function applyCasket(sim, p, c) {
 // a fresh set of three cards (limited per run)
 export function reroll(sim, playerId) {
   const pend = sim.pending[playerId], p = sim.players.find((q) => q.id === playerId);
-  if (!pend || pend.casket || !p || p.rerolls <= 0) return false;
+  if (!pend || pend.casket || pend.spell || !p || p.rerolls <= 0) return false;
   p.rerolls--; pend.choices = rollChoices(sim, p); return true;
 }
 // pass on this level's cards for a coin
 export function skipLevel(sim, playerId) {
   const p = sim.players.find((q) => q.id === playerId);
-  if (!sim.pending[playerId] || sim.pending[playerId].casket || !p) return false;
+  if (!sim.pending[playerId] || sim.pending[playerId].casket || sim.pending[playerId].spell || !p) return false;
   delete sim.pending[playerId]; p.coins++; sim.fx.push({ k: 'pick', id: playerId });
   if (sim.pace >= 2 && !openLevel(sim, p)) openCasket(sim, p);
   return true;
@@ -891,7 +918,7 @@ function fireWeapons(sim, p, dt, st) {
         const tg = nearestEnemy(sim, p.x, p.z, 20, used) || target;
         used.add(tg.id);
         const a = datan2(tg.x - p.x, tg.z - p.z) + (i - (s.count - 1) / 2) * 0.5;
-        sim.proj.push({ id: sim.nextId++, art: 'bolt', evo: !!p.evo.staff, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: 0, life: s.life, r: 0.5, hit: [], homing: tg.id, speed: s.speed, burst: s.burst, lvl });
+        sim.proj.push({ id: sim.nextId++, art: 'bolt', evo: !!p.evo.staff, owner: p.id, x: p.x, z: p.z, vx: dsin(a) * s.speed, vz: dcos(a) * s.speed, dmg, pierce: 0, life: s.life, r: 0.5, hit: [], homing: tg.id, speed: s.speed, burst: s.burst, lvl, ...(sim.pace >= 2 && p.spellElement ? { element: p.spellElement } : {}) });
       }
     } else if (id === 'greatsword') {
       sim.fx.push({ k: 'spin', x: p.x, z: p.z, range: s.range, lvl, evo: p.evo.greatsword ? 1 : 0, ...(sim.coop ? { player: p.id } : {}) });
@@ -977,9 +1004,9 @@ function stepProjectiles(sim, dt) {
       pr.hit.push(e.id);
       damageEnemy(sim, e, pr.dmg, pr.owner, pr.kb || 0.8, pr.x - pr.vx, pr.z - pr.vz);
       if (pr.art === 'bolt') {
-        if (sim.pace >= 2) sim.fx.push({ k: 'spell-hit', projectile: pr.id, target: e.id, x: e.x, z: e.z, owner: pr.owner, lvl: pr.lvl, evo: pr.evo ? 1 : 0, r: pr.burst || 0 });
+        if (sim.pace >= 2) sim.fx.push({ k: 'spell-hit', projectile: pr.id, target: e.id, x: e.x, z: e.z, owner: pr.owner, lvl: pr.lvl, evo: pr.evo ? 1 : 0, r: pr.burst || 0, ...(pr.element ? { element: pr.element } : {}) });
         if (pr.burst) {
-          sim.fx.push({ k: 'burst', x: pr.x, z: pr.z, r: pr.burst, evo: pr.evo ? 1 : 0, ...(sim.pace >= 2 ? { projectile: pr.id, owner: pr.owner, lvl: pr.lvl } : {}) });
+          sim.fx.push({ k: 'burst', x: pr.x, z: pr.z, r: pr.burst, evo: pr.evo ? 1 : 0, ...(sim.pace >= 2 ? { projectile: pr.id, owner: pr.owner, lvl: pr.lvl, ...(pr.element ? { element: pr.element } : {}) } : {}) });
           for (const o of sim.enemies) if (o !== e && !o.dead && hyp(o.x - pr.x, o.z - pr.z) < pr.burst) damageEnemy(sim, o, pr.dmg * 0.6, pr.owner, 1, pr.x, pr.z);
         }
         pr.life = 0; break;
@@ -1589,16 +1616,16 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
     ...(sim.variant ? { variant: sim.variant, ...(sim.variant === 'boss' ? { trialBoss: sim.trialBoss } : { wave: sim.wave, nextWave: sim.nextWave }) } : {}),
     ...(sim.pace >= 2 ? { snowWave: !!sim.snowWave, storm } : {}),
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.pace >= 2 ? storm?.kind || null : sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
-    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { beltCounts: p.belt.map((_, i) => beltCount(p, i)), rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),
+    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, ...(sim.pace >= 2 && p.spellElement ? { spellElement: p.spellElement } : {}), buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { beltCounts: p.belt.map((_, i) => beltCount(p, i)), rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),
     hazards: sim.hazards.map((h) => [r1(h.x), r1(h.z), h.r, Math.round((1 - h.t / h.max) * 100) / 100, h.meteor ? 1 : 0]),
     eproj: sim.eproj.map((b) => [b.id, r1(b.x), r1(b.z), b.art]),
-    proj: sim.proj.map((p) => [p.id, p.art, r1(p.x), r1(p.z), Math.round(datan2(p.vx, p.vz) * 20) / 20, p.lvl, Math.round((p.spin || 0) * 10) / 10, p.evo ? 1 : 0, p.mt ?? -1]),
+    proj: sim.proj.map((p) => [p.id, p.art, r1(p.x), r1(p.z), Math.round(datan2(p.vx, p.vz) * 20) / 20, p.lvl, Math.round((p.spin || 0) * 10) / 10, p.evo ? 1 : 0, p.mt ?? -1, ...(p.element ? [p.element] : [])]),
     gems: sim.gems.map((g) => [g.id, r1(g.x), r1(g.z), g.v]),
     pickups: sim.pickups.map((k) => [k.id, k.kind, r1(k.x), r1(k.z)]),
     ...(merchantEligible(sim) ? { merchant: sim.merchant ? { ...sim.merchant, offers: sim.merchant.offers.map(o => ({ ...o })) } : null } : {}),
     shrines: sim.shrines.map((s) => [s.id, s.kind, r1(s.x), r1(s.z), Math.round(Math.min(1, s.charge / SHRINE.charge) * 100) / 100, Math.round(s.life)]),
-    pending: Object.fromEntries(Object.entries(sim.pending).map(([id, v]) => [id, v.casket ? { ...(v.merchantPurchase ? { merchantPurchase: true } : {}), choices: v.choices, left: Math.ceil(v.left), casket: v.casket, rec: v.rec, more: v.more } : { choices: v.choices, left: Math.ceil(v.left) }])),
+    pending: Object.fromEntries(Object.entries(sim.pending).map(([id, v]) => [id, v.casket ? { ...(v.merchantPurchase ? { merchantPurchase: true } : {}), choices: v.choices, left: Math.ceil(v.left), casket: v.casket, rec: v.rec, more: v.more } : { choices: v.choices, left: Math.ceil(v.left), ...(v.spell ? { spell: true, page: v.page } : {}) }])),
     fx,
   };
 }

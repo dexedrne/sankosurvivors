@@ -1,0 +1,26 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import * as C from '../src/content.js';import * as S from '../src/sim.js';
+const source=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
+function setup(){const sim=S.createSim({seed:7,pace:2,startWeapon:'staff'}),p=sim.players[0];p.weapons.staff=6;p.passives={air:1,water:1,earth:1,fire:1,void:1};sim.pending[p.id]={left:9,choices:[{kind:'evolve',id:'staff',level:1}]};
+ const nodes=new Map(),document={activeElement:null};class Element{constructor(){this.children=[];this.dataset={};this.flags=new Set();this.classList={add:(...x)=>x.forEach(v=>this.flags.add(v)),remove:(...x)=>x.forEach(v=>this.flags.delete(v)),toggle:(x,on)=>on?this.flags.add(x):this.flags.delete(x),contains:x=>this.flags.has(x)};}set innerHTML(value){this.html=value;this.children=[];}get innerHTML(){return this.html;}setAttribute(){}appendChild(c){this.children.push(c);}contains(){return false;}querySelector(){return this.children[0]||null;}focus(){document.activeElement=this;this.onfocus?.();}}
+ document.createElement=()=>new Element();const $=id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);};let resumes=0;const ducks=[];
+ const ctx={...C,...S,sim,PLAYER:p.id,$,document,stickEl:new Element(),rankedRec:null,coop:null,mode:'play',shownPending:false,rewardWasShown:false,waitingForMove:false,banishMode:false,selCard:0,audio:{duck:v=>ducks.push(v)},markCard(){},preloadNextIcons(){},resumeAfterReward(){resumes++;},stepOf:(id,who=p)=>C.weaponStep(id,who.wm),imgTag:n=>'<img alt="'+n+'">',iconHTML:()=>'<img>',EMOJI:{staff:'S'},asset:()=>'',showCasket(){throw Error('Unexpected casket');},persistRanked(){}};
+ vm.createContext(ctx);const a=source.indexOf('function showLevelUp('),b=source.indexOf('\nfunction doReroll',a),c=source.indexOf('function pick(i)'),d=source.indexOf('\n// ---- reward casket',c);assert(a>=0&&b>a&&c>=0&&d>c);vm.runInContext(source.slice(a,b)+'\n'+source.slice(c,d),ctx);return{ctx,sim,p,$,document,ducks,resumes:()=>resumes};}
+test('actual reward UI keeps Blast navigation open, focused and separate from healing/resuming',()=>{
+ const c=setup();c.ctx.showLevelUp();assert.match(c.$('cards').children[0].innerHTML,/Choose a Blast/);c.ctx.pick(0);assert.equal(c.ctx.mode,'levelup');assert.equal(c.resumes(),0);assert.equal(c.sim.pending.p1.left,9);assert(c.$('reroll').disabled);assert(c.$('skiplv').disabled);assert.equal(c.document.activeElement,c.$('cards').children[0]);
+ const nav=c.sim.pending.p1.choices.findIndex(x=>x.kind==='spell-page');assert.match(c.$('cards').children[nav].innerHTML,/More elements/);assert.match(c.$('cards').children[nav].innerHTML,/class="emoji" aria-hidden="true"/);assert(!c.$('cards').children[nav].innerHTML.includes('Cooked Bubba Bass'));const hp=c.p.hp;c.ctx.pick(nav);assert.equal(c.ctx.mode,'levelup');assert.equal(c.p.hp,hp);assert.equal(c.resumes(),0);assert.equal(c.sim.pending.p1.left,9);assert.match(c.$('cards').children[0].innerHTML,/Earth Blast/);assert.equal(c.ducks.filter(v=>v===false).length,0);c.ctx.pick(0);assert.equal(c.p.spellElement,'earth');assert.equal(c.ctx.mode,'play');assert.equal(c.resumes(),1);
+});
+test('all five actual passive cards show their documented stat preview without missing-row crashes',()=>{
+ for(const id of ['air','water','earth','fire','void']){const c=setup();c.p.passives={};c.sim.pending.p1={left:20,choices:[{kind:'passive',id,level:1,from:0,rarity:'common'}]};c.ctx.showLevelUp();assert.match(c.$('cards').children[0].innerHTML,/upstats/);assert.match(c.$('cards').children[0].innerHTML,new RegExp(C.PASSIVES[id].name));}
+});
+test('actual guide lists each Blast with its own prerequisite and retains original pace1 recipes',()=>{
+ const a=source.indexOf('function guideRecipes('),b=source.indexOf('\n}',a)+2;assert(a>=0&&b>a);const context={...C,esc:String};vm.runInNewContext(source.slice(a,b),context);const rows=context.guideRecipes(2).match(/<div class="guiderecipe">.*?<\/div>/g);assert.equal(rows.length,14);
+ for(const element of ['air','water','earth','fire']){const branch=C.SPELL_EVOLUTIONS[element],row=rows.find(r=>r.includes('<b>'+branch.name+'</b>'));assert(row);assert(row.includes('<span>'+branch.item+'</span>'));for(const other of ['air','water','earth','fire'])if(other!==element)assert(!row.includes(C.SPELL_EVOLUTIONS[other].item));}
+ const old=context.guideRecipes(1);assert.equal((old.match(/class="guiderecipe"/g)||[]).length,10);assert(!old.includes('Air Blast'));
+});
+test('actual HUD cache distinguishes selected elements even when weapon/evolution levels match',()=>{
+ const expression=source.match(/const wk = (.+?), pk =/);assert(expression);const me={w:{staff:6},evo:{staff:true},wm:{},spellElement:'air'},ctx={me};const first=vm.runInNewContext(expression[1],ctx);me.spellElement='fire';assert.notEqual(vm.runInNewContext(expression[1],ctx),first);
+});
+
+test('max-Spells alternative requirements remain a separate translatable text node',()=>{
+ const c=setup();c.sim.pending.p1={left:20,choices:[{kind:'weapon',id:'staff',level:6,from:5}]};c.ctx.showLevelUp();assert.match(c.$('cards').children[0].innerHTML,/<span>Evolves with a matching elemental shard, Wizard Hat or Cape\.<\/span>/);
+});

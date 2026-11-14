@@ -22,7 +22,7 @@ export function itemInspection(player,kind,id,pace=2) {
   const level=player.weapons[id];if(!Number.isInteger(level)||level<1||level>6)return null;
   const evolved=!!player.evo?.[id],base=weaponStats(player,id),stats=evolved?evolveStats(id,base):base;
   if(pace>=2){const metal=weaponMetal(id,player.wm);if(Number.isFinite(stats.dmg))stats.dmg*=metal.dmg;if(metal.pierce)stats.pierce=(stats.pierce||0)+metal.pierce;}
-  const title=weaponDisplay(id,level,evolved,pace>=2?weaponStep(id,player.wm):null).name;
+  const title=weaponDisplay(id,level,evolved,pace>=2?weaponStep(id,player.wm):null,pace>=2?player.spellElement:null).name;
   const details=[`Level: ${level}`,evolved?EVOLUTIONS[id].blurb:WEAPONS[id].blurb];
   for(const[key,label,suffix='']of statRows)if(Number.isFinite(stats[key]))details.push(`${label}: ${Math.round(stats[key]*100)/100}${suffix}`);
   details.push('Weapon values before shared bonuses.');

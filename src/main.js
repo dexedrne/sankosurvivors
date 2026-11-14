@@ -48,7 +48,7 @@ import { compareEthBuys } from './swap-planner.js';
 import { walletConnectLinks } from './wallet-connect.js';
 import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
-  MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, evolutionPassives, SKILLS, SKILL_IDS, clampSkills, skillCost,
+  MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, evolutionPassives, SPELL_EVOLUTIONS, spellEvolutions, SKILLS, SKILL_IDS, clampSkills, skillCost,
   weaponItem, weaponTitle, weaponDisplay, passiveItem, passiveTitle, itemIconFile,
   GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, gearPieceBonus, bonusText, deltaText, compareGear, gearRarity, alchValue, ARMOR_TIERS,
   gearGroups, isWeaponItem, WEAPON_ITEMS, weaponItemText, weaponItemLabel, weaponStep, CARD_RARITIES, CARD_RARITY_NAMES, CARD_HEAL, weaponStats, passiveStrength, cardLuck,
@@ -139,8 +139,8 @@ const preloadNextIcons = (p) => { if (!p) return; const out = []; for (const [w,
 const stepOf = (id, p = sim && (sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0])) => (sim && sim.pace >= 2 && p ? weaponStep(id, p.wm || {}) : null);
 const imgTag = (name, fallback = '✦') => `<img src="${asset('')}ui/items/${itemIconFile(name)}" alt="${name}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'emoji',textContent:'${fallback}'}))">`;
 // step: the weapon's metal on pace 2 (weaponStep), null on pace 1 (the level's look)
-function iconHTML(kind, id, level, evo, step = null) {
-  if (kind === 'weapon') return imgTag(weaponDisplay(id, level || 1, evo, step).item, EMOJI[id]);
+function iconHTML(kind, id, level, evo, step = null, spellElement = null) {
+  if (kind === 'weapon') return imgTag(weaponDisplay(id, level || 1, evo, step, spellElement).item, EMOJI[id]);
   if (kind === 'passive') return imgTag(passiveItem(id, level || 1), EMOJI[id]);
   return imgTag(id);
 }
@@ -984,7 +984,7 @@ function guideCatalogue(kind) {
   return Object.entries(kind === 'weapon' ? WEAPONS : PASSIVES).map(([id, item]) => `<article class="guidecatalogue-item">${iconHTML(kind, id, 1, false, 0)}<div><h4>${esc(item.name)}</h4><p>${esc(item.blurb)}</p>${item.casual ? '<small>Casual only</small>' : ''}</div></article>`).join('');
 }
 function guideRecipes(pace) {
-  return Object.entries(EVOLUTIONS).map(([id, evolution]) => `<div class="guiderecipe"><span>${esc(WEAPONS[id].name)}</span> → <b>${esc(evolution.name)}</b><small>${evolutionPassives(id, pace).map(passive => `<span>${esc(PASSIVES[passive].name)}</span>`).join(' / ')}</small></div>`).join('');
+  return Object.entries(EVOLUTIONS).flatMap(([id, evolution]) => id === 'staff' && pace >= 2 ? Object.values(SPELL_EVOLUTIONS).map(branch => [id, branch, branch.passives]) : [[id, evolution, evolutionPassives(id, pace)]]).map(([id, evolution, passives]) => `<div class="guiderecipe"><span>${esc(WEAPONS[id].name)}</span> → <b>${esc(evolution.name)}</b><small>${passives.map(passive => `<span>${esc(PASSIVES[passive].name)}</span>`).join(' / ')}</small></div>`).join('');
 }
 $('guidebtn').onclick = () => {
   $('guideweapons').innerHTML = guideCatalogue('weapon');
@@ -1722,11 +1722,11 @@ $('bugbtn').onclick = openBug; $('bugbtn2').onclick = openBug;
 $('bugclose').onclick = () => $('bug').classList.add('hidden');
 $('bugtext').addEventListener('keydown', (e) => e.stopPropagation());
 $('bugsend').onclick = async () => {
-  const text = $('bugtext').value.trim(); if (text.length < 3) { $('bugmsg').textContent = 'Write a few words first.'; return; }
+  const draft = $('bugtext').value, text = draft.trim(); if (text.length < 3) { $('bugmsg').textContent = 'Write a few words first.'; return; }
   $('bugsend').disabled = true; $('bugmsg').textContent = 'Sending…';
   try {
     const r = await fetch(`${BASE}api/report`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, map: sim ? sim.map.id : selMap, adv: sim ? (sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0]).adv : selAdv, v: LATEST, settings: renderer.getSettings(), errors: recentErrors }) });
-    if (r.ok) { $('bugmsg').textContent = 'Thanks, it was sent.'; $('bugtext').value = ''; }
+    if (r.ok) { $('bugmsg').textContent = 'Thanks, it was sent.'; if ($('bugtext').value === draft) $('bugtext').value = ''; }
     else $('bugmsg').innerHTML = r.status === 503 ? `Reports open soon. Until then, message <a href="${CREATOR.x}" target="_blank" rel="noopener">@${CREATOR.handle}</a> on X.` : r.status === 429 ? 'One report a minute, please.' : 'Could not send.';
   } catch (e) { $('bugmsg').textContent = 'Could not send.'; }
   $('bugsend').disabled = false;
@@ -2063,8 +2063,8 @@ function endRun() {
     const questNotes = receipt.quests.map(q => q.achievement ? `Achievement unlocked: <b>${q.name}</b>` : `Quest complete: <b>${q.name}</b> · +${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}`);
     // damage by weapon, Run Escape style
     const dmgRows = Object.entries((sim.coop ? p.dmgBy : sim.dmgBy) || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6), top = dmgRows.length ? dmgRows[0][1] : 1;
-    const wname = (id) => (WEAPONS[id] ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other');
-    const wicon = (id) => (WEAPONS[id] ? iconHTML('weapon', id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)) : imgTag(id === 'pumpkin' ? 'Pumpkin' : 'Gold'));
+    const wname = (id) => (WEAPONS[id] ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p), p.spellElement).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other');
+    const wicon = (id) => (WEAPONS[id] ? iconHTML('weapon', id, p.weapons[id] || 1, p.evo[id], stepOf(id, p), p.spellElement) : imgTag(id === 'pumpkin' ? 'Pumpkin' : 'Gold'));
     $('enddmg').innerHTML = dmgRows.map(([id, v]) => `<div class="drow">${wicon(id)}<span>${wname(id)}</span><div class="dbar"><i style="width:${(v / top) * 100}%"></i></div><b>${Math.round(v).toLocaleString()}</b></div>`).join('');
     $('endloot').innerHTML = (lootNotes.length ? `<details class="lootline" open><summary><b>Caskets</b> (${lootNotes.length})</summary><div>${lootNotes.join(' · ')}</div></details>` : '') + questNotes.map((x) => `<div class="questline">${x}</div>`).join('');
     buildMaps(); buildAdventurers(); showBest();
@@ -2391,7 +2391,7 @@ function showLevelUp() {
   shownPending = rewardWasShown = true; mode = 'levelup'; selCard = 0; audio.duck(true);
   waitingForMove = false; $('movehint').classList.add('hidden'); stickEl.classList.add('hidden');
   const wrap = $('cards'); wrap.innerHTML = '';
-  $('lutitle').textContent = pend.choices.some((c) => c.kind === 'evolve') ? 'Evolution!' : 'Level up!';
+  $('lutitle').textContent = pend.spell ? 'Choose a Blast' : pend.choices.some((c) => c.kind === 'evolve') ? 'Evolution!' : 'Level up!';
   const me = sim.players.find((q) => q.id === PLAYER);
   function statLines(c) {
     if (!(sim.pace >= 2) || !me || c.id === 'curse' || !['weapon', 'passive'].includes(c.kind)) return '';
@@ -2403,7 +2403,7 @@ function showLevelUp() {
     } else {
       const stats = p => ({ ...playerStats(p), cardLuck: cardLuck(p.meta, { greed: passiveStrength(p, 'greed') }) });
       before = stats(me); next = stats(after);
-      rows = { might: [['might', 'Damage multiplier', '×']], haste: [['haste', 'Cooldown multiplier', '×']], boots: [['speed', 'Movement speed']], magnet: [['magnet', 'Pickup range']], armor: [['armor', 'Armor']], growth: [['growth', 'XP multiplier', '×']], vigor: [['maxHp', 'Maximum health'], ['regen', 'Health per second']], greed: [['coin', 'Coin multiplier', '×'], ['casket', 'Casket multiplier', '×'], ['cardLuck', 'Card luck', '%']], area: [['area', 'Area multiplier', '×']], amount: [['amount', 'Extra projectiles'], ['reach', 'Reach multiplier', '×']], crit: [['critC', 'Critical chance', '%'], ['critM', 'Critical multiplier', '×']], thorns: [['thorns', 'Thorns damage']] }[c.id];
+      rows = { might: [['might', 'Damage multiplier', '×']], haste: [['haste', 'Cooldown multiplier', '×']], boots: [['speed', 'Movement speed']], magnet: [['magnet', 'Pickup range']], armor: [['armor', 'Armor']], growth: [['growth', 'XP multiplier', '×']], vigor: [['maxHp', 'Maximum health'], ['regen', 'Health per second']], greed: [['coin', 'Coin multiplier', '×'], ['casket', 'Casket multiplier', '×'], ['cardLuck', 'Card luck', '%']], area: [['area', 'Area multiplier', '×']], amount: [['amount', 'Extra projectiles'], ['reach', 'Reach multiplier', '×']], crit: [['critC', 'Critical chance', '%'], ['critM', 'Critical multiplier', '×']], thorns: [['thorns', 'Thorns damage']], air: [['projectileSpeed', 'Projectile speed multiplier', '×']], water: [['heal', 'Healing multiplier', '×']], earth: [['knockback', 'Knockback multiplier', '×']], fire: [['magic', 'Magic damage multiplier', '×']], void: [['critM', 'Critical multiplier', '×']] }[c.id];
     }
     const number = (n, unit) => (unit === '×' ? '×' : '') + Number((unit === '%' ? n * 100 : n).toFixed(4)) + (unit && unit !== '×' ? unit : '');
     return '<div class="upstats">' + (c.kind === 'weapon' ? '<div>Base weapon stats</div>' : '') + rows.filter(([key]) => typeof next[key] === 'number').map(([key, label, unit]) => `<div><span>${label}</span><b>${fresh ? '' : number(before[key], unit) + ' → '}${number(next[key], unit)}</b></div>`).join('') + '</div>';
@@ -2420,31 +2420,38 @@ function showLevelUp() {
       name = weapon ? 'Extra weapon slot' : 'Extra passive slot'; tag = 'This run only';
       text = `<span>${weapon ? 'Weapon slots' : 'Passive slots'}</span>: <b>${capacity} → ${capacity + 1}</b>. <span>Find a new item in a later upgrade.</span> <span>Only one extra slot can be earned per run.</span>`;
       icon = `<img src="${asset('')}${SKILLS[weapon ? 'strength' : 'prayer'].icon}" alt="">`;
+    } else if (c.kind === 'spell-page') {
+      name = c.level === 0 ? 'Back to first page' : 'More elements'; tag = 'Choose a spell'; text = 'Your reward stays open.'; icon = '<span class="emoji" aria-hidden="true">→</span>';
     } else if (c.kind === 'evolve') {
-      const e = EVOLUTIONS[c.id]; name = e.name; tag = `EVOLVES ${weaponTitle(c.id, 6, stepOf(c.id)).toUpperCase()}`; text = e.blurb; icon = imgTag(e.item, EMOJI[c.id]);
+      const e = c.id === 'staff' && Object.hasOwn(SPELL_EVOLUTIONS, c.element) ? SPELL_EVOLUTIONS[c.element] : EVOLUTIONS[c.id];
+      const selecting = c.id === 'staff' && !pend.spell && spellEvolutions(me, sim.pace).length > 1;
+      name = selecting ? 'Choose a Blast' : e.name; tag = `EVOLVES ${(c.id === 'staff' ? WEAPONS.staff.name : weaponTitle(c.id, 6, stepOf(c.id))).toUpperCase()}`;
+      text = selecting ? 'Choose one Blast evolution from your matching passives.' : e.blurb; icon = imgTag(e.item, EMOJI[c.id]);
     } else if (c.kind === 'weapon') {
       const w = WEAPONS[c.id], ups = []; for (let l = Math.max(1, from); l < c.level; l++) ups.push(w.next(l));
       name = weaponTitle(c.id, c.level, stepOf(c.id)); tag = lvTag(); text = from === 0 ? w.blurb + (ups.length ? ` Starts with ${ups.join(', ')}.` : '') : 'Upgrade: ' + ups.join(', '); icon = iconHTML('weapon', c.id, c.level, false, stepOf(c.id));
       if (c.level === 6) {
         const needs = evolutionPassives(c.id, sim.pace).map(id => PASSIVES[id].name);
-        if (needs.length) text += needs.length === 2 ? ` Evolves with ${needs[0]} or ${needs[1]}.` : ` Evolves with ${needs[0]}.`;
+        if (c.id === 'staff' && sim.pace >= 2) text += ' <span>Evolves with a matching elemental shard, Wizard Hat or Cape.</span>';
+        else if (needs.length) text += needs.length === 2 ? ` Evolves with ${needs[0]} or ${needs[1]}.` : ` Evolves with ${needs[0]}.`;
       }
     } else if (c.kind === 'passive') {
       const p = PASSIVES[c.id]; name = passiveTitle(c.id, c.level); tag = lvTag(); text = sim.pace >= 2 && c.id !== 'curse' ? `<span>Common rank:</span> ${p.blurb}` : p.blurb; icon = iconHTML('passive', c.id, c.level);
       const ev = Object.keys(EVOLUTIONS).filter(id => evolutionPassives(id, sim.pace).includes(c.id));
-      if (ev.length) text += ` Evolves ${ev.map(id => weaponTitle(id, 6, stepOf(id))).join(', ')}.`;
+      if (ev.length) text += ` Evolves ${ev.map(id => id === 'staff' && sim.pace >= 2 ? WEAPONS.staff.name : weaponTitle(id, 6, stepOf(id))).join(', ')}.`;
     } else { const hp = CARD_HEAL[Math.max(0, ri)]; name = 'Cooked Bubba Bass'; tag = 'Heal'; text = hp >= 9999 ? 'Restore all your health.' : `Restore ${hp} health.`; icon = iconHTML('item', 'Cooked Bubba Bass'); }
     if (ri === 3 && c.kind !== 'heal') text += ' Heals you to full.';
     const rar = ri >= 0 ? `<div class="rarity">${CARD_RARITY_NAMES[ri]}</div>` : '';
     el.innerHTML = `${c.banished ? '<div class="banished-label">Banished</div>' : ''}${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p>${statLines(c)}<div class="key">[${i + 1}]</div>`;
     el.onfocus = () => { selCard = i; markCard(); }; el.onclick = () => pick(i); wrap.appendChild(el);
   });
-  $('reroll').innerHTML = `Reroll<span class="key"> (R)</span> · ${me ? me.rerolls : 0} left`; $('reroll').disabled = !me || me.rerolls <= 0;
+  $('reroll').innerHTML = `Reroll<span class="key"> (R)</span> · ${me ? me.rerolls : 0} left`; $('reroll').disabled = !!pend.spell || !me || me.rerolls <= 0;
+  $('skiplv').disabled = !!pend.spell;
   $('banishlv').classList.toggle('hidden', !(sim.pace >= 2)); $('banishlv').classList.remove('on');
   $('banishlv').innerHTML = `<span>Banish</span> <span translate="no">(${me?.banished ? 3 - me.banished.length : 0})</span><span class="key"> (B)</span>`;
   $('banishlv').disabled = !pend.choices.some((_, i) => canBanish(sim, PLAYER, i));
   selCard = autoChoice(pend); $('levelup').classList.remove('hidden'); markCard();
-  if ($('equipmenthud').contains(document.activeElement)) wrap.querySelector('.card.sel')?.focus({ preventScroll: true });
+  if (pend.spell || $('equipmenthud').contains(document.activeElement)) wrap.querySelector('.card.sel')?.focus({ preventScroll: true });
 }
 function doReroll() { if (sim?.coop) { coop.run.action({kind:'reroll'},coopDecision); return; } if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 'r') : reroll(sim, PLAYER))) { shownPending = false; showLevelUp(); if (rankedRec) persistRanked(); } }
 function doSkip() { if (sim?.coop) { coop.run.action({kind:'skip'},coopDecision); return; } if (sim && (rankedRec ? rankedChoice(sim, rankedRec, 's') : skipLevel(sim, PLAYER))) { audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward(); if (rankedRec) persistRanked(); } }
@@ -2469,7 +2476,9 @@ function pick(i) {
   if (banishMode) { doBanish(i); return; }
   if (!sim.pending[PLAYER] || sim.pending[PLAYER].casket) return;
   if (sim.coop) { coop.run.action({kind:'choose',index:i},coopDecision); return; }
-  if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else if (!choose(sim, PLAYER, i)) return; audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward();
+  if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else if (!choose(sim, PLAYER, i)) return;
+  if (sim.pending[PLAYER]?.spell) { shownPending = false; showLevelUp(); return; }
+  audio.duck(false); shownPending = false; mode = 'play'; $('levelup').classList.add('hidden'); resumeAfterReward();
 }
 
 // ---- reward casket card: the item, what it replaces, every stat change, and Wear or High alch ----------------------------
@@ -2588,7 +2597,7 @@ function updateDamageHud() {
   damageReading = reading;
   const rows = Object.entries(reading.totals).filter(([, total]) => total > 0).sort((a, b) => (reading.perSecond[b[0]] || 0) - (reading.perSecond[a[0]] || 0));
   $('damagerows').innerHTML = rows.length ? rows.map(([id, total]) => {
-    const p = sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0], name = Object.hasOwn(WEAPONS, id) ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p)).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other';
+    const p = sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0], name = Object.hasOwn(WEAPONS, id) ? weaponDisplay(id, p.weapons[id] || 1, p.evo[id], stepOf(id, p), p.spellElement).name : id === 'pumpkin' ? 'Pumpkin bombs' : 'Other';
     const dps = reading.perSecond[id] || 0, share = rate > 0 ? Math.round(dps / rate * 100) : 0;
     return `<div class="damagerow"><b>${esc(name)}</b><span>${dps.toFixed(1)} DPS</span><small>${share}% · <span translate="no">${Math.round(total).toLocaleString()}</span> <span>Total damage</span></small><i style="width:${share}%"></i></div>`;
   }).join('') : '<p class="dim">No damage yet.</p>';
@@ -2684,14 +2693,14 @@ function updateHud(view) {
     const badge = el.querySelector('.beltcount'); badge.hidden = count <= 1; badge.textContent = count > 1 ? `×${count}` : '';
     el.setAttribute('aria-label', `${FOOD[kind].item}${count > 1 ? ` ×${count}` : ''}`);
   }
-  const wk = JSON.stringify([me.w, me.evo, me.wm]), pk = JSON.stringify(me.ps);
-  if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" data-inspect="weapon" data-inspect-id="${id}" tabindex="0" role="img" aria-label="${esc(weaponDisplay(id, l, me.evo[id], weaponStep(id, me.wm)).name)}">${iconHTML('weapon', id, l, me.evo[id], weaponStep(id, me.wm))}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
+  const wk = JSON.stringify([me.w, me.evo, me.wm, me.spellElement]), pk = JSON.stringify(me.ps);
+  if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" data-inspect="weapon" data-inspect-id="${id}" tabindex="0" role="img" aria-label="${esc(weaponDisplay(id, l, me.evo[id], weaponStep(id, me.wm), me.spellElement).name)}">${iconHTML('weapon', id, l, me.evo[id], weaponStep(id, me.wm), me.spellElement)}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }
   if (pk !== slotCache.p) { slotCache.p = pk; $('prow').innerHTML = Object.entries(me.ps).map(([id, l]) => `<div class="slot" data-inspect="passive" data-inspect-id="${id}" tabindex="0" role="img" aria-label="${esc(passiveTitle(id, l))}">${iconHTML('passive', id, l)}<small>${l}</small></div>`).join(''); }
   for (const f of view.fx) {
     if (sim.coop && (f.player && f.player !== PLAYER || ['down','revive'].includes(f.k) && f.id !== PLAYER)) continue;
     if (f.k === 'boss') banner(sim && !sim.endless && f.type === sim.map.finalBoss && sim.bossIndex >= sim.map.bosses.length ? `${bossName(sim.map, f.type)} approaches! Slay it to win the run.` : `${bossName(sim && sim.map, f.type)} approaches!`, 3500);
     else if (f.k === 'down') banner('You have fallen…', 3000);
-    else if (f.k === 'evolve') banner(`${EVOLUTIONS[f.id].name}!`, 3000);
+    else if (f.k === 'evolve') banner(`${(f.id === 'staff' && Object.hasOwn(SPELL_EVOLUTIONS, f.element) ? SPELL_EVOLUTIONS[f.element] : EVOLUTIONS[f.id]).name}!`, 3000);
     else if (f.k === 'use' && f.kind === 'beer') banner('Tin of Beer: speed up!', 1400);
     else if (f.k === 'use' && f.kind === 'pumpkin') banner('Pumpkin bomb!', 1200);
     else if (f.k === 'use' && f.kind === 'warp') banner('Warp Shard: everything comes to you', 1600);

@@ -3,14 +3,14 @@
     {
       "path": "/racers/index.html",
       "bytes": 14925,
-      "sha256": "5f1048890a6ba36baddf344a118faa1a32f38ad789eaef778e7ad27c76e9e662"
+      "sha256": "8263c630bd0918a1fcd2db21bb6bfe84f479e8ed91cf4bf7898b0d774a1797b4"
     }
   ],
   "source": {
-    "commit": "cac25beb555888b3102e4583936efd27a28acf8e",
-    "implementation": "cac25beb555888b3102e4583936efd27a28acf8e",
+    "commit": "cda9b84addd6251cfa42be89d9a99e438dde39d8",
+    "implementation": "cda9b84addd6251cfa42be89d9a99e438dde39d8",
     "rulesVersion": "eb932477091c",
-    "clientSha256": "b48b61e332d0fc9b00c126c028100de82ca7dfaaaa678c566db0d0b78a2a346a"
+    "clientSha256": "638b822d753e6c4b5494a0daddc8b6c899be3961aacf6fe4b1ac6f4bb8880620"
   },
   "adaptations": {
     "client": [
@@ -76,12 +76,12 @@
         "after": "<title>Grand Theft Sanko · SankoQuest World</title><meta name=\"description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Grand Theft Sanko\"><meta property=\"og:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta property=\"og:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:url\" content=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><link rel=\"canonical\" href=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image:secure_url\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta name=\"twitter:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta name=\"twitter:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\">"
       },
       {
-        "before": "/assets/index-CSyUrlsj.js",
-        "after": "./racers-bafc5f8fb5b95e02.js"
+        "before": "/assets/index-CX6o-kgo.js",
+        "after": "./racers-c26cea6811493d91.js"
       },
       {
-        "before": "/assets/index-DmrBhZBN.css",
-        "after": "./racers-f09bff91f48c3b74.css"
+        "before": "/assets/index-eTvqdKQA.css",
+        "after": "./racers-9c1570138f729021.css"
       },
       {
         "before": "<div id=\"return-slot\"></div>",
@@ -94,17 +94,17 @@
     {
       "path": "/fun/racers/index.html",
       "bytes": 14895,
-      "sha256": "9a29af272f744dbf7f044b83a3b28a7011ff6e3e07146a30a0aa0992373b1753"
+      "sha256": "2c5ad22500f28b80fd6274f4c8f436889a5929a233b16273388f51d2f9af6218"
     },
     {
-      "path": "/fun/racers/racers-bafc5f8fb5b95e02.js",
-      "bytes": 1746585,
-      "sha256": "bafc5f8fb5b95e026588e5f87677fdfd2138c1def2817a167a69b209bdae8457"
+      "path": "/fun/racers/racers-c26cea6811493d91.js",
+      "bytes": 1747191,
+      "sha256": "c26cea6811493d916c087c7bf93bce6f6b04c901030fb350bf26bfad3fbefd80"
     },
     {
-      "path": "/fun/racers/racers-f09bff91f48c3b74.css",
-      "bytes": 34594,
-      "sha256": "f09bff91f48c3b74efcbc0c7cdec93387a47259b52cf22cac0e0a61717ce241c"
+      "path": "/fun/racers/racers-9c1570138f729021.css",
+      "bytes": 34734,
+      "sha256": "9c1570138f72902185ac3ac578d18f620bc87a4af854512394da1f76f9598370"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -119,7 +119,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 3264,
-      "sha256": "ba19674b3a088a8a8fecba7ade18693ec9442ee9f55b90537b6f1283b2d6d08e"
+      "sha256": "e5c426d79b16938606397b5c0d54ddeaf8f9e0eeefcd6cebb17ac4da0d9b7a30"
     },
     {
       "path": "/fun/racers/CREDITS.txt",

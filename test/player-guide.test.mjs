@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {EVOLUTIONS,PASSIVES,WEAPONS,evolutionPassives,MAX_WEAPONS,MAX_PASSIVES,MAX_WEAPON_LEVEL,MAX_PASSIVE_LEVEL} from '../src/content.js';
+import {SPELL_EVOLUTIONS,EVOLUTIONS,PASSIVES,WEAPONS,evolutionPassives,MAX_WEAPONS,MAX_PASSIVES,MAX_WEAPON_LEVEL,MAX_PASSIVE_LEVEL} from '../src/content.js';
 import {translateText} from '../src/i18n.js';
 import {transformHtml,transformMain} from '../tools/wavedash/edition.mjs';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8'),html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-function recipes(pace){const a=main.indexOf('function guideRecipes('),b=main.indexOf("$('guidebtn').onclick",a);assert(a>=0&&b>a,'guide recipes use live content');return Function('EVOLUTIONS','PASSIVES','WEAPONS','evolutionPassives','esc',main.slice(a,b)+';return guideRecipes;')(EVOLUTIONS,PASSIVES,WEAPONS,evolutionPassives,String)(pace);}
+function recipes(pace){const a=main.indexOf('function guideRecipes('),b=main.indexOf("$('guidebtn').onclick",a);assert(a>=0&&b>a,'guide recipes use live content');return Function('SPELL_EVOLUTIONS','EVOLUTIONS','PASSIVES','WEAPONS','evolutionPassives','esc',main.slice(a,b)+';return guideRecipes;')(SPELL_EVOLUTIONS,EVOLUTIONS,PASSIVES,WEAPONS,evolutionPassives,String)(pace);}
 test('guide recipes show every actual evolution and distinguish original ranked combinations from current casual routes',()=>{
- for(const pace of[1,2]){const text=recipes(pace);assert.equal((text.match(/class="guiderecipe"/g)||[]).length,Object.keys(EVOLUTIONS).length);for(const id of Object.keys(EVOLUTIONS)){assert(text.includes(WEAPONS[id].name));assert(text.includes(EVOLUTIONS[id].name));for(const passive of evolutionPassives(id,pace))assert(text.includes(PASSIVES[passive].name));}}
+ for(const pace of[1,2]){const text=recipes(pace);assert.equal((text.match(/class="guiderecipe"/g)||[]).length,Object.keys(EVOLUTIONS).length+(pace>=2?Object.keys(SPELL_EVOLUTIONS).length-1:0));if(pace>=2)for(const e of Object.values(SPELL_EVOLUTIONS)){assert(text.includes(e.name));for(const id of e.passives)assert(text.includes(PASSIVES[id].name));}for(const id of Object.keys(EVOLUTIONS)){assert(text.includes(WEAPONS[id].name));assert(text.includes(EVOLUTIONS[id].name));for(const passive of evolutionPassives(id,pace))assert(text.includes(PASSIVES[passive].name));}}
  assert.notEqual(recipes(1),recipes(2));
 });
 test('main-menu guide describes actual slot/level limits and does not turn keyboard navigation into a new run',()=>{

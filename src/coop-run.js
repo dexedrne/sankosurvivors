@@ -43,8 +43,8 @@ export function createCoopRun({start,localId,ground,send,onEnd=()=>{},now=()=>pe
   if(action.kind==='use')return !Object.keys(sim.pending).length&&(action.index===4?!(p.rollCd>0):action.index<p.belt.length);
   if(!pend||decision!==versions[i])return false;
   if(action.kind==='choose')return !!pend.choices[action.index]&&!pend.choices[action.index].banished;
-  if(action.kind==='reroll')return !pend.casket&&p.rerolls>0;
-  if(action.kind==='skip')return !pend.casket;
+  if(action.kind==='reroll')return !pend.casket&&!pend.spell&&p.rerolls>0;
+  if(action.kind==='skip')return !pend.casket&&!pend.spell;
   return action.kind==='banish'&&canBanish(sim,p.id,action.index);
  }
  function apply(event,uses){

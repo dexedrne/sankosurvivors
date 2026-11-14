@@ -231,6 +231,11 @@ export const PASSIVES = {
   // owner 3 Nov: "we need item thats like curse to make more monsters": risk for reward. Casual only: in a kills-per-minute
   // race it would multiply the score for whoever happened to be offered the card. Pace 1 (ranked week 0) never sees it.
   curse:   { name: 'Pumpkin Head',  item: 'Pumpkin Head',  pace: 2, casual: true, blurb: 'Cursed: per level, monsters come 15% faster, 8% more of them at once, with 8% more health and 6% more damage. More kills, more experience, more coins.' },
+  air:     { name: 'Air Shard',    item: 'Air Shard',    pace: 2, blurb: '+5% projectile speed per level. Ground Air Shards still give experience.' },
+  water:   { name: 'Water Shard',  item: 'Water Shard',  pace: 2, blurb: '+10% healing from food, drinks and restoration choices per level.' },
+  earth:   { name: 'Earth Shard',  item: 'Earth Shard',  pace: 2, blurb: '+10% attack knockback per level. Bosses remain immune to knockback.' },
+  fire:    { name: 'Fire Shard',   item: 'Fire Shard',   pace: 2, blurb: '+6% magic damage per level. Affects Spells and the Lighter.' },
+  void:    { name: 'Void Shard',   item: 'Void Shard',   pace: 2, blurb: '+0.20 critical damage multiplier per level. Critical chance stays the same.' },
 };
 export const ARMOR_TIERS = ['Bronze', 'Iron', 'Steel', 'Mithril', 'Adamantite', 'Runite'];
 // Real item name to show for a passive at a level.
@@ -333,13 +338,33 @@ export const EVOLUTIONS = {
   baseball: { passive: 'amount', name: 'Home Run',      item: 'Baseball',       blurb: 'Two balls at once that bounce eight times and knock monsters flying.' },
   lighter:  { passive: 'crit',   name: 'Inferno',       item: 'Fire Shard',     blurb: 'A wide blazing ring that burns twice as hard.' },
 };
+export const SPELL_EVOLUTIONS = {
+  air: { name: 'Air Blast', item: 'Air Shard', passives: ['air'], blurb: 'More bolts that burst in huge blasts.' },
+  water: { name: 'Water Blast', item: 'Water Shard', passives: ['water'], blurb: 'More bolts that burst in huge blasts.' },
+  earth: { name: 'Earth Blast', item: 'Earth Shard', passives: ['earth'], blurb: 'More bolts that burst in huge blasts.' },
+  fire: { name: 'Fire Blast', item: 'Fire Shard', passives: ['fire'], blurb: 'More bolts that burst in huge blasts.' },
+  void: { name: EVOLUTIONS.staff.name, item: EVOLUTIONS.staff.item, passives: ['growth', 'area', 'void'], blurb: EVOLUTIONS.staff.blurb },
+};
+export function spellEvolutions(player, pace) {
+  if (!(pace >= 2) || player.evo?.staff || !(player.weapons?.staff >= MAX_WEAPON_LEVEL)) return [];
+  return Object.keys(SPELL_EVOLUTIONS).filter(element => SPELL_EVOLUTIONS[element].passives.some(id => player.passives?.[id] >= 1));
+}
+export function spellEvolutionChoices(player, pace, page = 0) {
+  const elements = spellEvolutions(player, pace), pages = Math.ceil(elements.length / 2);
+  if (!Number.isInteger(page) || page < 0 || page >= pages) return [];
+  const choices = elements.slice(page * 2, page * 2 + 2).map(element => ({ kind: 'evolve', id: 'staff', level: 1, element }));
+  if (pages > 1) choices.push({ kind: 'spell-page', id: 'staff', level: (page + 1) % pages });
+  return choices;
+}
 const EVOLUTION_ALTERNATIVES = { katana: 'thorns', bow: 'crit', axe: 'amount', shield: 'thorns', staff: 'area', pickaxe: 'area', greatsword: 'armor', shortsword: 'boots', baseball: 'might', lighter: 'growth' };
 export function evolutionPassives(id, pace) {
   if (!Object.hasOwn(EVOLUTIONS, id)) return [];
+  if (id === 'staff' && pace >= 2) return [...new Set(Object.values(SPELL_EVOLUTIONS).flatMap(branch => branch.passives))];
   const original = EVOLUTIONS[id].passive, alternative = pace >= 2 && EVOLUTION_ALTERNATIVES[id];
   return alternative ? [original, alternative] : [original];
 }
-export function weaponDisplay(id, level, evo, step = null) {
+export function weaponDisplay(id, level, evo, step = null, spellElement = null) {
+  if (id === 'staff' && evo && Object.hasOwn(SPELL_EVOLUTIONS, spellElement)) { const branch = SPELL_EVOLUTIONS[spellElement]; return { name: branch.name, item: branch.item }; }
   if (evo && EVOLUTIONS[id]) return { name: EVOLUTIONS[id].name, item: EVOLUTIONS[id].item };
   return { name: weaponTitle(id, level, step), item: weaponItem(id, level, step) };
 }

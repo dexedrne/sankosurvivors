@@ -224,8 +224,8 @@ function week1Run(seed, mapId, adv, mode) {
     const pend = sim.pending.p1;
     if (pend) {
       let i;
-      if (pend.casket) i = isWeaponItem(pend.casket.item) ? (pend.casket.better ? 0 : 1) : rnd() < 0.5 ? 0 : 1;
-      else { i = pickCard(pend.choices, p); if (pend.choices[i].rarity && pend.choices[i].rarity !== 'common') rare++; }
+      if (pend.casket) i = isWeaponItem(pend.casket.item) ? 0 : rnd() < 0.5 ? 0 : 1;
+      else { i = pend.choices.findIndex(c => c.kind === "passive" && c.id === "greed"); if (i < 0) i = pickCard(pend.choices, p); if (pend.choices[i].rarity && pend.choices[i].rarity !== 'common') rare++; }
       if (pend.casket && i === 0 && isWeaponItem(pend.casket.item)) metals++;
       rec.pick(i); choose(sim, 'p1', i); continue;
     }
@@ -238,7 +238,7 @@ function week1Run(seed, mapId, adv, mode) {
 }
 test('a ranked week-1 run with rare cards and weapon metals replays exactly', () => {
   let found = null;
-  for (const [seed, map, adv, mode] of [[308, 'goblins', 'ranger', 'normal']]) { // genuine inputs earn rare cards and a weapon metal with the current opening
+  for (const [seed, map, adv, mode] of [[1, 'greentown', 'ranger', 'normal']]) { // genuine inputs prioritize Rusty Key and keep weapon-metal caskets, including an equal-tier metal
     const r = week1Run(seed, map, adv, mode);
     if (r.rare > 0 && r.metals > 0) { found = r; break; }
   }
