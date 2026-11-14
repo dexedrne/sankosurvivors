@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "First place: +20 DMT bonus.": "Primer puesto: +20 DMT extra.",
+  "Funded bonus: 20 DMT for first place, separate from the pool.": "Extra financiado: 20 DMT para el primer puesto, aparte del fondo.",
+  "An extra Apache prize": "Un premio extra en Apache",
+  "This week's eligible Apache first-place winner receives an extra 20 DMT on top of normal rewards. The bonus follows the final reviewed standings.": "El primer puesto válido de Apache de esta semana recibe 20 DMT adicionales a los premios normales. El extra sigue la clasificación final revisada.",
+
   "Ranked details": "Detalles de clasificatoria",
   "10% house fee · 90% to the prize pool.": "10% para la casa · 90% al fondo de premios.",
   "Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.": "Fondo: 80% por puesto · 10% por DMT aportado · 10% por tiempo jugado. Participación desde 0:30; clasificación desde 3:00. Mismo poder inicial.",

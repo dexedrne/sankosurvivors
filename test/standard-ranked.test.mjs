@@ -1,3 +1,4 @@
+import {FIRST_BONUS} from '../src/first-bonus.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -20,12 +21,12 @@ test('the actual menu excludes Hard even with cached two-race metadata',()=>{
 test('week-one API publishes only Standard and refuses Hard before eligibility writes',async()=>{
  const now=Date.now,enabled=process.env.SQS_RANKED;Date.now=()=>rules.weekStart(1)+3600000;process.env.SQS_RANKED='on';
  const loaded=load(),game=loaded.game;loaded.game={...game,clockPolicy};
- const calls=[],send=(_,status,json)=>({status,json}),rpc=async(fn,p)=>{calls.push({fn,p});return{reward_version:2,activity:[],entries:0,paid:'0',incoming:'0',incoming_ready:true,rows:[]};};
+ const calls=[],send=(_,status,json)=>({status,json}),rpc=async(fn,p)=>{calls.push({fn,p});if(fn==='sqs_ranked_bonus')return{amountWei:FIRST_BONUS.amountWei,tx:FIRST_BONUS.tx};return{reward_version:2,activity:[],entries:0,paid:'0',incoming:'0',incoming_ready:true,rows:[]};};
  const ctx={send,rpc,unsign:x=>x};
  try{
   const board=await handle('ranked-week',{method:'GET'},{},ctx);
   assert.equal(board.status,200);assert.deepEqual(Object.keys(board.json.races),['normal']);
-  assert.deepEqual(calls.map(c=>c.p.p_mode),['normal']);calls.length=0;
+  assert.deepEqual(calls.map(c=>c.p.p_mode),['normal','normal']);assert.deepEqual(calls.map(c=>c.fn),['sqs_ranked_board_v2','sqs_ranked_bonus']);calls.length=0;
   const nonce=await handle('ranked-nonce',{method:'GET',url:'/?wallet=0x'+'1'.repeat(40)+'&mode=hard'},{},ctx);
   assert.equal(nonce.status,400);assert.match(nonce.json.error,/not open/);assert.deepEqual(calls,[]);
  }finally{loaded.game=game;Date.now=now;if(enabled===undefined)delete process.env.SQS_RANKED;else process.env.SQS_RANKED=enabled;}

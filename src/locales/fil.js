@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "First place: +20 DMT bonus.": "Unang puwesto: +20 DMT bonus.",
+  "Funded bonus: 20 DMT for first place, separate from the pool.": "May pondo na: 20 DMT para sa unang puwesto, hiwalay sa pool.",
+  "An extra Apache prize": "Dagdag na premyo sa Apache",
+  "This week's eligible Apache first-place winner receives an extra 20 DMT on top of normal rewards. The bonus follows the final reviewed standings.": "Ang kuwalipikadong unang puwesto sa Apache ngayong linggo ay may dagdag na 20 DMT bukod sa karaniwang reward. Batay ang bonus sa pinal at nasuring standings.",
+
   "Ranked details": "Detalye ng ranked",
   "10% house fee · 90% to the prize pool.": "10% sa house · 90% sa pondo ng premyo.",
   "Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.": "Pondo: 80% sa puwesto · 10% sa DMT na naiambag · 10% sa aktibong oras. Partisipasyon mula 0:30; puwesto mula 3:00. Parehong lakas sa simula.",

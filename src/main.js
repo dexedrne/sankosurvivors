@@ -409,6 +409,7 @@ function renderRanked() {
     for (const b of $('rankedraces').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); renderRanked(); };
     $('rankedweek').textContent = `This week: ${MAP_BY_ID[rankedWeek.map]?.name || rankedWeek.map}${two ? ` · ${race.name} race${rankedMode === 'hard' ? ' (hard rules)' : ''}` : ''}`;
     $('rankedbrief').textContent = race.rewards?.version===2 ? 'Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.' : rewardSummary(race);
+    $('rankedbonus').hidden = !(race.week===1&&rankedMode==='normal'&&race.firstBonusWei==='20000000000000000000');
     const pool = $('rankedpool'), summary = document.createElement('span');
     const place = prizePlaces(race.rows, rankedWeek.week), estimate = prizeEstimate(race, place, rankedWeek.payouts);
     summary.textContent = poolReadout(race);

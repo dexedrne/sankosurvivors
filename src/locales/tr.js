@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "First place: +20 DMT bonus.": "Birincilik: +20 DMT ek ödül.",
+  "Funded bonus: 20 DMT for first place, separate from the pool.": "Finanse edilmiş ek ödül: birinciye havuzdan ayrı 20 DMT.",
+  "An extra Apache prize": "Apache için ek ödül",
+  "This week's eligible Apache first-place winner receives an extra 20 DMT on top of normal rewards. The bonus follows the final reviewed standings.": "Bu haftanın geçerli Apache birincisi, normal ödüllere ek olarak 20 DMT alır. Ek ödül, inceleme sonrası kesinleşen sıralamaya göre verilir.",
+
   "Ranked details": "Sıralama ayrıntıları",
   "10% house fee · 90% to the prize pool.": "%10 ev payı · %90 ödül havuzuna.",
   "Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.": "Havuz: %80 sıralama · %10 DMT katkısı · %10 aktif süre. Katılım en az 0:30; sıralama en az 3:00. Başlangıç gücü eşit.",

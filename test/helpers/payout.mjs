@@ -1,3 +1,4 @@
+import {FIRST_BONUS} from '../../src/first-bonus.js';
 import { makePlan, HOUSE, COLLECT, DMT, EPOCH, WEEK, GRACE_MS, firstWeek, decimal } from '../../tools/payout/core.mjs';
 import { decode1559, hash, transferData, addressOf } from '../../tools/payout/crypto.mjs';
 import { Arbitrum, quantity } from '../../tools/payout/ports.mjs';
@@ -25,6 +26,15 @@ export class FakePayoutDB {
     }
     if(p.p_key!=='payout-key')return err('forbidden');
     switch(fn.replace('sqs_payout_','')) {
+      case 'first_bonus':{
+        const week=this.weeks.find(w=>w.week===1&&w.mode==='normal');if(!week||this.now<Date.UTC(2026,10,16))return{ok:true,waiting:true};
+        const recipient=week.top[0]?.wallet;if(!recipient)return{ok:true,waiting:true};
+        if(this.rows.some(r=>r.kind==='prize-bonus'))return{ok:true,again:true};
+        const prize=this.rows.find(r=>r.week===1&&r.mode==='normal'&&r.kind==='prize1');
+        if(week.reward_version!==2||!prize||prize.wallet!==recipient)return err('invalid first-place award');
+        this.row(1,'prize-bonus',recipient,FIRST_BONUS.amountWei,{status:prize.status==='held'||this.holds.some(h=>h.week===1&&h.wallet===recipient)?'held':'planned'});return{ok:true};
+      }
+
       case 'read':return copy({weeks:this.weeks.filter(w=>p.p_week==null||w.week===p.p_week),rows:this.rows.filter(r=>p.p_week==null||r.week===p.p_week).map(r=>this.badAddress&&r.kind==='prize1'?{...r,wallet:'bad'}:r),holds:this.holds});
       case 'plan_v2':
       case 'plan':{
@@ -123,6 +133,7 @@ export function fixture(count=3) {
   // every refund the fake ledger makes repays a real payment the fake chain holds
   db.onRefund=(row)=>{const to=(w,i)=>({address:DMT,topics:[TRANSFER,'0x'+row.wallet.slice(2).toLowerCase().padStart(64,'0'),'0x'+w.slice(2).toLowerCase().padStart(64,'0')],data:'0x'+BigInt(row.amount).toString(16).padStart(64,'0'),removed:false,transactionHash:row.source_tx,blockNumber:quantity(chain.block-30n),blockHash:'0x'+'c'.repeat(64),logIndex:quantity(i)});
     chain.receipts.set(row.source_tx,{transactionHash:row.source_tx,status:'0x1',blockNumber:quantity(chain.block-30n),blockHash:'0x'+'c'.repeat(64),logs:[...new Set([config.wallet.toLowerCase(),COLLECT.toLowerCase()])].map(to)});}; // to the fixture's wallet, and to the live one the Vercel loader uses
+  db.onRefund({wallet:HOUSE,amount:FIRST_BONUS.amountWei,source_tx:FIRST_BONUS.tx}); // Fixed funded bonus proof; no refund row is created.
   const ports={rpc:db.rpc.bind(db),chain:new Arbitrum(chain.fetch),notify:async text=>messages.push(text),log:text=>logs.push(text),key:async()=>key,now:()=>db.now,pause:async()=>{}};
   return {config,ports,db,chain,messages,logs};
 }

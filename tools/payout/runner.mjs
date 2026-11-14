@@ -1,3 +1,4 @@
+import {FIRST_BONUS,firstBonusFor} from '../../src/first-bonus.js';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { makePlan, units, dmt, DMT, HOUSE, COLLECT, weekOf, weekEnd, GRACE_MS, racesOf, firstWeek } from './core.mjs';
@@ -21,16 +22,18 @@ export function validateState(state) {
   for(const row of state.rows) {
     if(!/^\d+$/.test(row.id)||ids.has(row.id)||!Number.isInteger(row.week)||row.week< -1)throw Error('invalid payout identity');ids.add(row.id);
     address(row.wallet);units(row.amount);
-    if(!['prize1','prize2','prize3','prize4','prize5','participation','house','refund','rollover-note'].includes(row.kind)||!['planned','held','sending','sent','confirmed','failed'].includes(row.status)||!['normal','hard'].includes(modeOf(row)))throw Error('invalid payout row');
+    if(!['prize1','prize2','prize3','prize4','prize5','prize-bonus','participation','house','refund','rollover-note'].includes(row.kind)||!['planned','held','sending','sent','confirmed','failed'].includes(row.status)||!['normal','hard'].includes(modeOf(row)))throw Error('invalid payout row');
     if(row.nonce!=null){units(row.nonce);if(nonces.has(row.nonce))throw Error('duplicate nonce');nonces.add(row.nonce);}
     if(['sending','sent'].includes(row.status)&&row.nonce==null)throw Error('missing nonce');
-    if(row.kind==='refund') {if(!/^\d+$/.test(row.source_entry_id))throw Error('invalid refund source');continue;}
+    if(row.kind==='refund') {if(String(row.source_tx??'').toLowerCase()===FIRST_BONUS.tx)throw Error('bonus funding cannot be refunded');if(!/^\d+$/.test(row.source_entry_id))throw Error('invalid refund source');continue;}
     const week=planOf(state,row);if(!week)throw Error('missing weekly plan');
     const expected=expectedFor(week);
     const identity=[row.week,modeOf(row),row.kind,row.wallet].join(':');if(transfers.has(identity))throw Error('duplicate payout');transfers.add(identity);
     if(expected.pool!==week.pool||expected.rollover!==week.rollover||expected.house!==week.house)throw Error('invalid weekly totals');
-    const prize=row.kind==='participation'?expected.participation?.find(p=>p.wallet===row.wallet):expected.prizes[Number(row.kind.slice(-1))-1];
-    const amount=row.kind==='house'?week.house:row.kind==='rollover-note'?week.rollover:prize?.amount;
+    const bonus=firstBonusFor(row.week,modeOf(row));
+    if(row.kind==='prize-bonus'&&!bonus)throw Error('invalid bonus scope');
+    const prize=row.kind==='prize-bonus'?expected.prizes[0]:row.kind==='participation'?expected.participation?.find(p=>p.wallet===row.wallet):expected.prizes[Number(row.kind.slice(-1))-1];
+    const amount=row.kind==='prize-bonus'?bonus.amountWei:row.kind==='house'?week.house:row.kind==='rollover-note'?week.rollover:prize?.amount;
     const destination=row.kind==='house'?HOUSE:row.kind==='rollover-note'?COLLECT:prize?.wallet;
     if(row.amount!==amount||row.wallet!==destination)throw Error('row differs from weekly plan');
   }
@@ -42,7 +45,7 @@ export function validateState(state) {
     if(expected.pool!==week.pool||expected.rollover!==week.rollover||expected.house!==week.house)throw Error('invalid weekly totals');
     const mine=r=>r.week===week.week&&modeOf(r)===modeOf(week);
     const refund=sum(state.rows.filter(r=>mine(r)&&r.kind==='refund'));
-    const budget=units(week.pool)+units(week.house)+refund;
+    const budget=units(week.pool)+units(week.house)+refund+BigInt(firstBonusFor(week.week,modeOf(week))?.amountWei??'0');
     if(state.rows.some(r=>mine(r)&&units(r.amount)>budget))throw Error('transfer exceeds weekly funds');
     if(!Number.isFinite(Date.parse(week.pay_at)))throw Error('invalid payout time');
   }
@@ -58,7 +61,7 @@ function matches(tx,row,config) {
 export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.now,pause=sleep,approvedWeek=null,expectedRows=null,atReset=false}) {
   if(approvedWeek!==null&&(!Number.isSafeInteger(approvedWeek)||approvedWeek<0))throw Error('invalid approved week');
   if(expectedRows!==null&&!Array.isArray(expectedRows))throw Error('invalid approved preview');
-  const allowed=row=>approvedWeek===null||row.week===approvedWeek&&/^(prize[1-5]|participation|house)$/.test(row.kind);
+  const allowed=row=>approvedWeek===null||row.week===approvedWeek&&/^(prize[1-5]|prize-bonus|participation|house)$/.test(row.kind);
   const financial=row=>({id:row.id,week:row.week,mode:modeOf(row),kind:row.kind,wallet:row.wallet,amount:row.amount});
   const owner=randomUUID();
   const call=async(name,args={})=>{
@@ -92,6 +95,10 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
         state=await call('read');await renew();
       }
     }
+    if(now()>=FIRST_BONUS.fundedAt&&(approvedWeek===null||approvedWeek===FIRST_BONUS.week)&&state.weeks.some(w=>firstBonusFor(w.week,modeOf(w)))) {
+      if((await call('first_bonus')).ok!==true)throw Error('first-place bonus unavailable');
+      state=await call('read');
+    }
     // The notice claim is durable, so a retry cannot announce the same week twice. (Normal keeps its older notice name.)
     for(const week of state.weeks) {
       const mode=modeOf(week),rows=state.rows.filter(r=>r.week===week.week&&modeOf(r)===mode),refunds=rows.filter(r=>r.kind==='refund');
@@ -100,7 +107,8 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       const activityNotice=week.week>=1?`\nParticipation: ${participation.length} wallets, ${dmt(sum(participation))} DMT (${week.reward_version===2?'10% eligible DMT contributed':'10% qualifying runs'} + 10% active seconds; uncapped).`:'';
       const winners=week.top.slice(0,5).map((p,i)=>{
         const amount=rows.find(r=>r.kind==='prize'+(i+1))?.amount??'0';
-        return `${i+1}. ${clean(p.name)} ${short(p.wallet)} ${score(p)}: ${dmt(amount)} DMT`;
+        const bonus=rows.find(r=>r.kind==='prize-bonus'&&r.wallet===p.wallet);
+        return `${i+1}. ${clean(p.name)} ${short(p.wallet)} ${score(p)}: ${dmt(amount)} DMT${bonus?' + '+dmt(bonus.amount)+' DMT first-place bonus':''}`;
       }).join('\n')||'No ranked finishers.';
       await notice('week:'+week.week+(mode==='normal'?'':':'+mode),`${config.live?'':'DRY RUN — ' }Week ${week.week} ${RACE[mode]} ranked results\nWinners\n${winners}${activityNotice}\nHouse: ${dmt(week.house)} DMT. Rollover: ${dmt(week.rollover)} DMT.\nRefunds: ${refunds.length}, ${dmt(sum(refunds))} DMT; eligible after source finality.\nPrizes/house due ${week.pay_at}.${config.live?'':' Sending is disabled.'}\nHold a winner before sending (holds cover both races):\nnode tools/payout/hold.mjs ${week.week} <wallet> "<reason>"\nUse the full wallet from the ledger. A hold after sending does nothing.`);
     }
@@ -227,7 +235,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
     };
     for(const row of proposed){
       try{
-        const ready=row.kind==='refund'?await verifyRefund(row):(await finalizedHead()).at>=weekEnd(row.week);
+        const ready=row.kind==='refund'?await verifyRefund(row):(await finalizedHead()).at>=weekEnd(row.week)&&(row.kind!=='prize-bonus'||await verifyRefund({source_tx:FIRST_BONUS.tx,wallet:HOUSE,amount:row.amount}));
         if(!ready){
           log(`${row.nonce==null?'HELD BACK':'FOLLOW UP'} row ${row.id}: waiting for finalized ${row.kind==='refund'?'source payment':'week'}`);
           if(row.nonce!=null)return;
@@ -244,7 +252,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       for(const row of recover)if(units(row.amount)>config.transferCap||(row.kind!=='refund'&&pot(row.week)>config.weekCap))throw Error('DMT cap'); // signed rows keep the old stop
       const balances=await chain.balances(config.wallet);
       // Plans cover their awards/rollover; unplanned fees and late refunds remain separate liabilities.
-      let reserve=0n;
+      let reserve=now()>=FIRST_BONUS.fundedAt&&!state.rows.some(r=>r.kind==='prize-bonus')?BigInt(FIRST_BONUS.amountWei):0n;
       for(const mode of ['normal','hard']){const latest=state.weeks.filter(w=>modeOf(w)===mode).sort((a,b)=>a.week-b.week).at(-1);if(latest)reserve+=units(latest.rollover);}
       const currentWeek=weekOf(now()),knownRefunds=new Map(state.rows.filter(r=>r.kind==='refund').map(r=>[hash(r.source_tx),units(r.amount)])),seenRefunds=new Set();
       try{
@@ -259,7 +267,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
           if(open&&!planned)reserve+=paid;
           for(const refund of report.refunds){
             const tx=hash(refund?.tx),amount=units(refund?.paid);
-            if(!tx||!amount||seenRefunds.has(tx))throw Error('invalid reserve refund');
+            if(!tx||tx===FIRST_BONUS.tx||!amount||seenRefunds.has(tx))throw Error('invalid reserve refund');
             seenRefunds.add(tx);
             if(knownRefunds.has(tx)){if(knownRefunds.get(tx)!==amount)throw Error('reserve refund mismatch');}
             else reserve+=amount;
@@ -304,8 +312,8 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
         await mark(row,'sending',{p_hash:signed.hash,p_raw:signed.raw});
       }
       savedTransaction(row,config);await renew();
-      if(row.kind==='refund'){
-        try{if(!await verifyRefund(row)){log(`FOLLOW UP row ${row.id}: waiting for finalized source payment`);return;}}
+      if(row.kind==='refund'||row.kind==='prize-bonus'){
+        try{if(!await verifyRefund(row.kind==='prize-bonus'?{source_tx:FIRST_BONUS.tx,wallet:HOUSE,amount:row.amount}:row)){log(`FOLLOW UP row ${row.id}: waiting for finalized source payment`);return;}}
         catch{await alert('unverified refund row '+row.id);return;}
       }
       // An ambiguous broadcast stays in flight. Never create a replacement transaction.

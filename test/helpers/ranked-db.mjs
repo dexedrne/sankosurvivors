@@ -1,3 +1,4 @@
+import {firstBonusFor} from '../../src/first-bonus.js';
 // Offline SQL double. Keep this in step with ranked.sql; the optional PGlite
 // conformance runner executes the same lifecycle against real PostgreSQL.
 // Its ranking is src/ranked.js compareRuns (the game's own rule); test/ranked-sql.test.mjs checks SQL agrees.
@@ -22,8 +23,9 @@ export class RankedDB {
       return rows.filter((e, i) => rows.findIndex(x => x.wallet === e.wallet) === i);
     };
     const hard = (m) => (m === 'hard' ? 'Hard ' : '');
-    if (!['sqs_ranked_board', 'sqs_ranked_board_v2', 'sqs_ranked_settle', 'sqs_ranked_log'].includes(fn) && p.p_server_key !== 'server-key') return error('forbidden');
+    if (!['sqs_ranked_board', 'sqs_ranked_board_v2', 'sqs_ranked_bonus', 'sqs_ranked_settle', 'sqs_ranked_log'].includes(fn) && p.p_server_key !== 'server-key') return error('forbidden');
     switch (fn) {
+      case 'sqs_ranked_bonus': {const bonus=firstBonusFor(week,mode);return{amountWei:bonus?.amountWei??'0',tx:bonus?.tx??null};}
       case 'sqs_ranked_can_enter_v2': { const result=await this.rpc('sqs_ranked_can_enter',p);return result.error?result:{...result,reward_version:2}; }
       case 'sqs_ranked_enter_v2': return this.rpc('sqs_ranked_enter',p);
       case 'sqs_ranked_board_v2': return {...await this.rpc('sqs_ranked_board',p),reward_version:week>=1?2:0};

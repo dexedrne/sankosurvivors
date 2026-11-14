@@ -16,6 +16,16 @@ Each prize pool pays **40% / 25% / 15% / 12% / 8%**. Missing places roll over;
 the last actual winner gets rounding dust. A manual invocation defaults to dry
 run: plans and previews, no key loading, signing or sending.
 
+## Private contribution and Apache-bonus candidate
+
+SQL19 is owner-applied and verified. The matching frontend/worker is not yet released: Normal entries can be1or10DMT into the same board/pool. Entry fees remain10%house/90%pool; the pool splits80%placing,10%eligiblepaidDMT,10%active simulated time. Completed accepted runs>=30seconds participate; placing still requires180seconds. Existing accepted pruned-log participation remains held for review.
+
+The maker separately funded20DMT for week1Apache Normal first place. Proposed SQL20 adds a single `prize-bonus` row for the immutable reviewed winner, with existing prize holds/claim guards. This is additional to the usual `prize1` row, with no house deduction or participation split. The fixed deposit cannot also be an entry or refund source. If no run qualifies,20DMT remains reserved for owner review rather than rolling into the normal pool.
+
+The new worker reserves20DMT from its verified deposit time until a valid bonus row exists. Outstanding/held rows then protect it; confirmed rows release that reserve. The canonical finalized incoming transfer is verified before signing work and again before broadcasting saved signed bytes. Row scope/recipient/amount, caps, nonce recovery and idempotence remain checked. Missing SQL20 stops bonus creation before key loading. SQL20 must be owner-pasted WHOLE after19 and LAST; do not paste this unfinished migration until final review/acceptance is complete.
+
+This source change does not authorize starting a wallet job or extend the bounded week0schedule. No week1automatic schedule is created here. The existing owner-started activation and approved live-operation rules still apply.
+
 ## Approved week-0 schedule
 
 `scheduled.mjs --week 0` runs only from9November00:00UTC until11November00:00UTC.

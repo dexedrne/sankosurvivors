@@ -1,3 +1,4 @@
+import {FIRST_BONUS} from '../src/first-bonus.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
@@ -6,7 +7,7 @@ const epoch=Date.UTC(2026,10,2), originalNow=Date.now;
 async function week(week,boards) {
   Date.now=()=>epoch+week*7*86400000+3600000;
   let result;
-  try { await handle('ranked-week',{method:'GET'},{},{rpc:async(_,p)=>boards[p.p_mode],send:(_,status,json)=>{result={status,json};}}); }
+  try { await handle('ranked-week',{method:'GET'},{},{rpc:async(fn,p)=>fn==='sqs_ranked_bonus'?{amountWei:FIRST_BONUS.amountWei,tx:FIRST_BONUS.tx}:boards[p.p_mode],send:(_,status,json)=>{result={status,json};}}); }
   finally {Date.now=originalNow;}
   return result;
 }

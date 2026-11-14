@@ -8,3 +8,5 @@ export { dmtText } from '../../src/prize-display.js';
 export { clockPolicy, CLOSE_MS, UPLOAD_MS, IDLE_MS } from '../../src/ranked-clock.js';
 export {entryForWeek,entryOptions,entryMessage} from '../../src/ranked-entry-price.js';
 export {rewardPolicy} from '../../src/reward-policy.js';
+
+export {firstBonusFor} from '../../src/first-bonus.js';

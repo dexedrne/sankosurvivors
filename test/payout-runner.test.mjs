@@ -71,8 +71,8 @@ test('rollover from an empty week is added exactly once to next week prizes',asy
   f.db.reports.set(1,{week:1,paid:'10000000000000000000',top:[{wallet:wallet(1),name:'Next',t:900},{wallet:wallet(2),t:899},{wallet:wallet(3),t:898}],refunds:[]});
   await run(f.config,f.ports);await run(f.config,f.ports);
   const week=f.db.weeks.find(w=>w.week===1);assert.equal(week.incoming,'9000000000000000000');
-  assert.deepEqual(f.db.rows.filter(r=>r.week===1&&r.kind.startsWith('prize')).map(r=>r.amount),['5760000000000000000','3600000000000000000','2160000000000000000']);
-  assert.equal(f.chain.broadcasts.length,6);
+  assert.deepEqual(f.db.rows.filter(r=>r.week===1&&/^prize[1-5]$/.test(r.kind)).map(r=>r.amount),['5760000000000000000','3600000000000000000','2160000000000000000']);
+  assert.equal(f.db.rows.find(r=>r.kind==='prize-bonus').amount,'20000000000000000000');assert.equal(f.chain.broadcasts.length,7);
 });
 test('repeated and late refunds to a paid wallet are paid separately once, including the active week',async()=>{
   const f=fixture(3);await run(f.config,f.ports);
@@ -163,7 +163,8 @@ test('week 1 settles the Normal and Hard pots separately (KPM rules, 3:00 minimu
   // Normal: 2 DMT paid → 0.2 house, 1.8 pool + week 0's rollover; two winners (Steady 30/min, Slow 13.3/min)
   const n1=plan(1,'normal'), n0=plan(0,'normal');
   assert.equal(n1.house,e18(0.2)); assert.equal(n1.incoming,n0.rollover); assert.equal(BigInt(n1.pool),BigInt(e18(1.8))+BigInt(n0.rollover));
-  assert.deepEqual(f.db.rows.filter(r=>r.week===1&&r.mode==='normal'&&r.kind.startsWith('prize')).map(r=>r.wallet),[wallet(22),wallet(23)]);
+  assert.deepEqual(f.db.rows.filter(r=>r.week===1&&r.mode==='normal'&&/^prize[1-5]$/.test(r.kind)).map(r=>r.wallet),[wallet(22),wallet(23)]);
+  assert.deepEqual(f.db.rows.filter(r=>r.kind==='prize-bonus').map(r=>[r.mode,r.wallet,r.amount]),[['normal',wallet(22),e18(20)]]);
   // Hard: 4.5 DMT → 0.45 house to the same house wallet, 4.05 pool, only Brave can win (1st place, 40%); the four
   // unclaimed places (60%) roll into week 2's Hard pot
   const h1=plan(1,'hard');

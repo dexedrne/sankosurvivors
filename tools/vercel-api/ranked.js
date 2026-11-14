@@ -184,6 +184,10 @@ async function handle(route, req, res, ctx) {
             seenActivity.add(row.wallet);activity.push({wallet:row.wallet,runs:row.runs,seconds:row.seconds,paid:row.paid});
           }
         }
+        const bonus=g.firstBonusFor?.(week,mode);
+        if(week===1&&mode==='normal'&&!bonus)throw Error('bonus rules unavailable');
+        const bonusQuote=bonus?await rpc('sqs_ranked_bonus',{p_week:week,p_mode:mode}):{amountWei:'0',tx:null};
+        if(!bonusQuote||bonusQuote.amountWei!==(bonus?.amountWei??'0')||bonusQuote.tx!==(bonus?.tx??null))throw Error('bonus unavailable');
         const paid = BigInt(board.paid), house = paid / 10n, entryPool = paid - house;
         if(activity.reduce((n,r)=>n+BigInt(r.paid),0n)>paid || activity.reduce((n,r)=>n+BigInt(r.runs),0n)>BigInt(board.entries))throw Error('activity exceeds paid entries');
         const first = week === (mode === 'hard' ? g.RANKED.kpmWeek : 0);
@@ -192,7 +196,7 @@ async function handle(route, req, res, ctx) {
         const incoming = first ? 0n : rolloverReady ? BigInt(board.incoming) : null;
         const pool = incoming === null ? null : entryPool + incoming;
         if (pool !== null && pool >= 1n << 256n) throw Error('pool overflow');
-        races[mode] = { mode, week, ...(week>=1?{rewardActivity:activity}:{activity}), rewards: week>=1?{version:2,placing:80,paid:10,seconds:10,minSeconds:30,placeMinSeconds:180,capped:false}:{version:0,placing:100,runs:0,seconds:0,minSeconds:0,capped:false}, entryOptions: g.entryOptions?.(week,mode)||[{tier:'standard',entryDmt:price.dmt,entryWei:String(price.wei)}], name: price.name, entryDmt: price.dmt, entries: board.entries, rows: board.rows,
+        races[mode] = { mode, week, firstBonusWei:bonusQuote.amountWei, firstBonusTx:bonusQuote.tx, ...(week>=1?{rewardActivity:activity}:{activity}), rewards: week>=1?{version:2,placing:80,paid:10,seconds:10,minSeconds:30,placeMinSeconds:180,capped:false}:{version:0,placing:100,runs:0,seconds:0,minSeconds:0,capped:false}, entryOptions: g.entryOptions?.(week,mode)||[{tier:'standard',entryDmt:price.dmt,entryWei:String(price.wei)}], name: price.name, entryDmt: price.dmt, entries: board.entries, rows: board.rows,
           paidWei: String(paid), houseWei: String(house), entryPoolWei: String(entryPool), incomingWei: incoming === null ? null : String(incoming), poolWei: pool === null ? null : String(pool), rolloverReady,
           // Compatibility estimate for older pages; new displays use the exact base-unit fields above.
           poolDmt: Number(pool ?? entryPool) / 1e18 };

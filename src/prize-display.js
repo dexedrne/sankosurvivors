@@ -1,3 +1,4 @@
+import {firstBonusFor} from './first-bonus.js';
 import {allocateRewards} from './reward-policy.js';
 const amount = value => typeof value === 'string' && /^(0|[1-9]\d{0,77})$/.test(value) && BigInt(value) < 1n << 256n ? BigInt(value) : null;
 
@@ -25,6 +26,7 @@ export function poolReadout(race) {
 export function prizeNotes(race, estimate) {
   if (!estimate) return [race.rolloverReady === false ? 'Rollover pending settlement; prizes unavailable.' : 'Pool details are updating. Refresh shortly.'];
   const notes = ['Estimates at current standings, before review.'];
+  if(race.firstBonusWei===firstBonusFor(race.week,race.mode??'normal')?.amountWei) notes.push('Funded bonus: 20 DMT for first place, separate from the pool.');
   if (dmtText(race.incomingWei) !== '0') notes.push(`Includes ${dmtText(race.incomingWei)} DMT rollover.`);
   if (race.week>=1 && estimate.rollover!=='0') notes.push(`Unfilled rewards: ${dmtText(estimate.rollover)} DMT rollover.`);
   else if (estimate.prizes.length < 5) notes.push(`Unfilled places: ${dmtText(estimate.rollover)} DMT rollover.`);
@@ -37,7 +39,16 @@ export function prizeEstimate(race, places, payouts) {
   if (pool === null || race.rolloverReady !== true || !Array.isArray(payouts) || payouts.length !== 5) return null;
   const weights = payouts.map(p => Math.round(p * 100));
   if (weights.some(p => !Number.isInteger(p) || p < 0) || weights.some((p,i)=>p!==[40,25,15,12,8][i])) return null;
-  try { const version=race.rewards?.version??1; return allocateRewards(pool,Math.min(places.filter(p=>p>=0).length,5),race.week??0,version===2?race.rewardActivity:race.activity,version); }
+  try {
+    const version=race.rewards?.version??1,bonus=firstBonusFor(race.week,race.mode??'normal');let extra=0n;
+    if(race.firstBonusWei!==undefined||race.firstBonusTx!==undefined){
+      if(race.firstBonusWei!==(bonus?.amountWei??'0')||race.firstBonusTx!==(bonus?.tx??null))return null;
+      extra=BigInt(race.firstBonusWei);
+    }
+    const estimate=allocateRewards(pool,Math.min(places.filter(p=>p>=0).length,5),race.week??0,version===2?race.rewardActivity:race.activity,version);
+    if(estimate.prizes.length)estimate.prizes[0]=String(BigInt(estimate.prizes[0])+extra);
+    return estimate;
+  }
   catch { return null; }
 }
 
