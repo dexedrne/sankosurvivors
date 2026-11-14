@@ -53,7 +53,7 @@ function queuePageReload(text, delay) {
 
 export function transformMain(source) {
   let s = source;
-  for (const file of ['coop-client', 'coop-revive-ui', 'ranked', 'ranked-play', 'ranked-client', 'ranked-clock', 'ranked-clock-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'swap-planner', 'wallet-connect', 'wallet', 'bun-companions']) {
+  for (const file of ['coop-client', 'coop-revive-ui', 'ranked', 'ranked-play', 'ranked-client', 'ranked-entry-price', 'ranked-clock', 'ranked-clock-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'swap-planner', 'wallet-connect', 'wallet', 'bun-companions']) {
     const re = new RegExp(`^import .+ from './${file}\\.js';\\n`, 'm');
     assert.ok(re.test(s), `Expected import ${file}`); s = s.replace(re, '');
   }

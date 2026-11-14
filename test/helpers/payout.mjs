@@ -8,12 +8,12 @@ export class FakePayoutDB {
   constructor(){this.weeks=[];this.rows=[];this.holds=[];this.notices=new Set();this.reports=new Map();this.refunds=[];this.owner=null;this.until=0;this.next=1;this.now=Date.UTC(2026,10,10,1);}
   row(week,kind,wallet,amount,extra={}){const r={id:String(this.next++),week,mode:'normal',kind,wallet,amount,status:'planned',nonce:null,tx_hash:null,raw_tx:null,scan_block:null,source_entry_id:null,...extra};this.rows.push(r);return r;}
   // a race's settlement report: reports.get(week) is Normal, reports.get(week+':hard') is Hard
-  report(week,mode){const r=this.reports.get(mode==='hard'?week+':hard':week);return week>=1?{...(r??{week,mode,paid:'0',top:[]}),activity:r?.activity??[]} :r;}
+  report(week,mode,version=1){const r=this.reports.get(mode==='hard'?week+':hard':week);return week>=1?{...(r??{week,mode,paid:'0',top:[]}),reward_version:version,activity:(r?.activity??[]).map(row=>version===2?{...row,paid:row.paid??String(BigInt(row.runs)*10n**18n)}:row)} :r;}
   async rpc(fn,p={}) {
     const copy=x=>structuredClone(x),err=error=>({error});
-    if(fn==='sqs_ranked_settle'){
+    if(fn==='sqs_ranked_settle'||fn==='sqs_ranked_settle_v2'){
       if(p.p_key!=='reports-key')return err('forbidden');
-      const mode=p.p_mode??'normal',report=copy(this.report(p.p_week,mode)??{week:p.p_week,mode,paid:'0',top:[]});
+      const mode=p.p_mode??'normal',report=copy(this.report(p.p_week,mode,fn.endsWith('_v2')?2:1)??{week:p.p_week,mode,paid:'0',top:[]});
       if(!Object.hasOwn(report,'week'))report.week=p.p_week;
       if(!Object.hasOwn(report,'mode'))report.mode=mode;
       if(!Object.hasOwn(report,'refunds'))report.refunds=[];
@@ -26,16 +26,17 @@ export class FakePayoutDB {
     if(p.p_key!=='payout-key')return err('forbidden');
     switch(fn.replace('sqs_payout_','')) {
       case 'read':return copy({weeks:this.weeks.filter(w=>p.p_week==null||w.week===p.p_week),rows:this.rows.filter(r=>p.p_week==null||r.week===p.p_week).map(r=>this.badAddress&&r.kind==='prize1'?{...r,wallet:'bad'}:r),holds:this.holds});
+      case 'plan_v2':
       case 'plan':{
         const week=p.p_week,mode=p.p_mode??'normal';
         if(!['normal','hard'].includes(mode)||week<firstWeek(mode))return err('no such race that week');
         if(this.weeks.some(w=>w.week===week&&w.mode===mode))return {ok:true,again:true};
         if(week<0||this.now<EPOCH+(week+1)*WEEK+GRACE_MS)return err('submission grace');
         const prev=this.weeks.find(w=>w.week===week-1&&w.mode===mode);if(week>firstWeek(mode)&&!prev)return err('previous week missing');
-        const report=this.report(week,mode)??{paid:'0',top:[]},incoming=prev?.rollover??'0',plan=makePlan(report,incoming,week);
+        const report=this.report(week,mode,fn==='sqs_payout_plan_v2'?2:1)??{paid:'0',top:[]},incoming=prev?.rollover??'0',plan=makePlan(report,incoming,week);
         if(JSON.stringify(p.p_plan)!==JSON.stringify(plan))return err('plan differs from settlement');
         const winners=new Set(plan.prizes.map(x=>x.wallet));
-        this.weeks.push({week,mode,paid:report.paid,incoming,...plan,activity:copy(report.activity),top:copy(report.top.filter(x=>winners.has(x.wallet.toLowerCase()))),pay_at:new Date(EPOCH+(week+1)*WEEK+86400000).toISOString()});
+        this.weeks.push({week,mode,paid:report.paid,incoming,...plan,...(week>=1?{reward_version:report.reward_version}:{}),activity:copy(report.activity),top:copy(report.top.filter(x=>winners.has(x.wallet.toLowerCase()))),pay_at:new Date(EPOCH+(week+1)*WEEK+86400000).toISOString()});
         plan.prizes.forEach((prize,i)=>{if(BigInt(prize.amount)>0n)this.row(week,'prize'+(i+1),prize.wallet,prize.amount,{mode,status:this.holds.some(h=>h.week===week&&h.wallet===prize.wallet)?'held':'planned'});});
         for(const prize of plan.participation??[])if(BigInt(prize.amount)>0n)this.row(week,'participation',prize.wallet,prize.amount,{mode,status:this.holds.some(h=>h.week===week&&h.wallet===prize.wallet)?'held':'planned'});
         if(BigInt(plan.house)>0n)this.row(week,'house',HOUSE,plan.house,{mode});

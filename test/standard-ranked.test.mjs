@@ -20,7 +20,7 @@ test('the actual menu excludes Hard even with cached two-race metadata',()=>{
 test('week-one API publishes only Standard and refuses Hard before eligibility writes',async()=>{
  const now=Date.now,enabled=process.env.SQS_RANKED;Date.now=()=>rules.weekStart(1)+3600000;process.env.SQS_RANKED='on';
  const loaded=load(),game=loaded.game;loaded.game={...game,clockPolicy};
- const calls=[],send=(_,status,json)=>({status,json}),rpc=async(fn,p)=>{calls.push({fn,p});return{activity:[],entries:0,paid:'0',incoming:'0',incoming_ready:true,rows:[]};};
+ const calls=[],send=(_,status,json)=>({status,json}),rpc=async(fn,p)=>{calls.push({fn,p});return{reward_version:2,activity:[],entries:0,paid:'0',incoming:'0',incoming_ready:true,rows:[]};};
  const ctx={send,rpc,unsign:x=>x};
  try{
   const board=await handle('ranked-week',{method:'GET'},{},ctx);

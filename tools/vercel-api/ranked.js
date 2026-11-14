@@ -1,5 +1,5 @@
 // Ranked weekly DMT runs, server side. Off until SQS_RANKED=on. From week 1 there are two races each week, each with its
-// own entry price, pot and board. New entries are Standard only: 0.5 DMT in week0, then1 DMT.
+// own entry price, pot and board. New entries are Standard only:0.5DMT in week0, then optional1/10DMT into the same pool.
 //   GET  /api/ranked-week                       this week's map, both races' pools and standings (public)
 //   GET  /api/ranked-nonce?wallet=&mode=        a message for the wallet to sign before it pays (mode: normal | hard)
 //   POST /api/ranked-enter {tx, signature, nonce}  checks the race's payment on Arbitrum, returns an entry ticket
@@ -8,7 +8,7 @@
 //   POST /api/ranked-submit {run, name, log}    replays the run on the server; only what the inputs earned counts
 //   POST /api/ranked-void {run}                 an interrupted run restarts; closed admission records an owed refund
 // The entry fee goes to the ranked entry wallet. Per race: 10% is the house fee (sent on to the dev's wallet); 90% is the
-// race's prize pool. Week0 pays top5; week1+ pays 80% placing, 10% qualifying runs and 10% active seconds. The database serializes
+// race's prize pool. Week0 pays top5; current week1+ policy pays80%placing,10%eligible DMT and10%active seconds. The database serializes
 // eligibility and run state changes.
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -52,19 +52,24 @@ function load(id = currentSim()) {
   return loaded.get(id);
 }
 
-function raceIn(g, week, mode) {
-  const race = g?.raceForWeek?.(week, mode);
+function raceIn(g, week, mode, tier = 'standard') {
+  const race = typeof g?.entryForWeek === 'function' ? g.entryForWeek(week,mode,tier) : tier === 'standard' ? g?.raceForWeek?.(week, mode) : null;
+  if(tier!=='standard'&&!race)return null;
   return race ? { ...race, wei: BigInt(race.entryWei), dmt: race.entryDmt } : RACES[mode];
 }
 const dmtAmount = wei => load().game.dmtText(String(wei));
 // Week0 text stays byte-identical so saved signatures keep checking out.
-const enterMessage = (nonce, week, mode = 'normal', deadline) => {
+const enterMessage = (nonce, week, mode = 'normal', deadline, tier = 'standard') => {
+  const game=load()?.game;
+  if(typeof game?.entryMessage==='function')return game.entryMessage(nonce,week,mode,deadline,tier);
+  if(tier!=='standard')return null;
   const price = raceIn(load()?.game, week, mode).dmt;
   const message = mode === 'hard'
     ? `SankoQuest Survivors ranked\n\nSign to enter this week's Hard ranked race (week ${week}). Signing is free. Your wallet asks separately before sending the ${price} DMT entry.\n\nNonce: ${nonce}`
     : `SankoQuest Survivors ranked\n\nSign to enter this week's ranked runs (week ${week}). Signing is free. Your wallet asks separately before sending the ${price} DMT entry.\n\nNonce: ${nonce}`;
   return Number.isSafeInteger(deadline) ? message + `\n\nI acknowledge this run stops at ${new Date(deadline).toISOString()} and keeps the score earned by then.` : message;
 };
+const tierOf = x => x?.h===1?'high':'standard';
 const modeOf = (x) => (x && x.m === 'hard' ? 'hard' : 'normal'); // tickets from before the Hard race are Normal
 // the game version's rules for a week (older versions: one 15-minute Normal race)
 const racesIn = (g, w) => (typeof g.entryRacesOf === 'function' ? g.entryRacesOf(w) : ['normal']);
@@ -168,25 +173,26 @@ async function handle(route, req, res, ctx) {
     try {
       await Promise.all(racesIn(g, week).map(async (mode) => {
         const price = raceIn(g, week, mode);
-        const board = await rpc('sqs_ranked_board', { p_week: week, p_mode: mode });
+        const board = await rpc('sqs_ranked_board_v2', { p_week: week, p_mode: mode });
         const units = value => typeof value === 'string' && /^(0|[1-9]\d{0,77})$/.test(value) && BigInt(value) < 1n << 256n;
         if (!board || board.error || !units(board.paid) || !Number.isSafeInteger(board.entries) || board.entries < 0 || !Array.isArray(board.rows)) throw Error('pool unavailable');
         const activity=[] , seenActivity=new Set();
         if (week >= 1) {
-          if (!Array.isArray(board.activity)) throw Error('activity unavailable');
+          if (board.reward_version!==2 || !Array.isArray(board.activity)) throw Error('activity unavailable');
           for (const row of board.activity) {
-            if (!row || !/^0x[0-9a-f]{40}$/.test(row.wallet) || /^0x0{40}$/.test(row.wallet) || row.wallet==='0x9d506ba29843a232409d85e289edece8d6a7b452' || seenActivity.has(row.wallet) || !units(row.runs) || !units(row.seconds) || BigInt(row.runs)<=0n || BigInt(row.seconds)<180n*BigInt(row.runs)) throw Error('invalid activity');
-            seenActivity.add(row.wallet);activity.push({wallet:row.wallet,runs:row.runs,seconds:row.seconds});
+            if (!row || !/^0x[0-9a-f]{40}$/.test(row.wallet) || /^0x0{40}$/.test(row.wallet) || row.wallet==='0x9d506ba29843a232409d85e289edece8d6a7b452' || seenActivity.has(row.wallet) || !units(row.runs) || !units(row.seconds) || BigInt(row.runs)<=0n || BigInt(row.seconds)<30n*BigInt(row.runs) || !units(row.paid) || BigInt(row.paid)<=0n) throw Error('invalid activity');
+            seenActivity.add(row.wallet);activity.push({wallet:row.wallet,runs:row.runs,seconds:row.seconds,paid:row.paid});
           }
         }
         const paid = BigInt(board.paid), house = paid / 10n, entryPool = paid - house;
+        if(activity.reduce((n,r)=>n+BigInt(r.paid),0n)>paid || activity.reduce((n,r)=>n+BigInt(r.runs),0n)>BigInt(board.entries))throw Error('activity exceeds paid entries');
         const first = week === (mode === 'hard' ? g.RANKED.kpmWeek : 0);
         const rolloverReady = first || board.incoming_ready === true;
         if (rolloverReady && !first && !units(board.incoming)) throw Error('rollover unavailable');
         const incoming = first ? 0n : rolloverReady ? BigInt(board.incoming) : null;
         const pool = incoming === null ? null : entryPool + incoming;
         if (pool !== null && pool >= 1n << 256n) throw Error('pool overflow');
-        races[mode] = { mode, week, activity, rewards: week>=1?{version:1,placing:80,runs:10,seconds:10,minSeconds:180,capped:false}:{version:0,placing:100,runs:0,seconds:0,minSeconds:0,capped:false}, name: price.name, entryDmt: price.dmt, entries: board.entries, rows: board.rows,
+        races[mode] = { mode, week, ...(week>=1?{rewardActivity:activity}:{activity}), rewards: week>=1?{version:2,placing:80,paid:10,seconds:10,minSeconds:30,placeMinSeconds:180,capped:false}:{version:0,placing:100,runs:0,seconds:0,minSeconds:0,capped:false}, entryOptions: g.entryOptions?.(week,mode)||[{tier:'standard',entryDmt:price.dmt,entryWei:String(price.wei)}], name: price.name, entryDmt: price.dmt, entries: board.entries, rows: board.rows,
           paidWei: String(paid), houseWei: String(house), entryPoolWei: String(entryPool), incomingWei: incoming === null ? null : String(incoming), poolWei: pool === null ? null : String(pool), rolloverReady,
           // Compatibility estimate for older pages; new displays use the exact base-unit fields above.
           poolDmt: Number(pool ?? entryPool) / 1e18 };
@@ -210,12 +216,13 @@ async function handle(route, req, res, ctx) {
     if (!admit({build:q.get('build'), sim:q.get('sim')})) return;
     if (!policy.admissionOpen) return send(res, 400, {error:'ranked admission is closed', closed:true, ...policy});
     if (q.get('deadline') !== String(policy.deadline)) return send(res, 400, {error:'acknowledge the ranked deadline before entering'});
-    const price = raceIn(g, week, mode);
-    const can = await rpc('sqs_ranked_can_enter', { p_server_key: SERVER_KEY, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
-    if (!can || can.error) return send(res, 400, can || { error: 'could not check your entries' });
+    const tier=q.get('tier')??'standard',price=raceIn(g,week,mode,tier);
+    if(!['standard','high'].includes(tier)||!price)return send(res,400,{error:'that entry wager is not available'});
+    const can = await rpc('sqs_ranked_can_enter_v2', { p_server_key: SERVER_KEY, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
+    if (!can || can.error || can.reward_version!==2 || can.ok!==true || !Number.isSafeInteger(can.left) || can.left<=0) return send(res, 400, can?.error?can:{error:'could not verify the current reward policy; no payment was requested'});
     // the race is part of the signed nonce: the payment is checked against that race's price and enters that race
-    const nonce = signed({ k: 'rnonce', w: week, d: policy.deadline, c: 1, s: Date.now(), n: crypto.randomBytes(9).toString('base64url'), ...(mode === 'normal' ? {} : { m: mode }) });
-    return send(res, 200, { nonce, message: enterMessage(nonce, week, mode, policy.deadline), deadline: policy.deadline, closesAt: policy.closesAt, serverNow: Date.now(), clockVersion: 1, week, mode, left: can.left, collect: COLLECT, dmt: DMT, amountWei: price.wei.toString(), chainId: 42161 });
+    const nonce = signed({ k: 'rnonce', w: week, d: policy.deadline, c: 1, s: Date.now(), n: crypto.randomBytes(9).toString('base64url'), ...(mode === 'normal' ? {} : { m: mode }),...(tier==='high'?{h:1}:{}) });
+    return send(res, 200, { nonce, tier, message: enterMessage(nonce, week, mode, policy.deadline,tier), deadline: policy.deadline, closesAt: policy.closesAt, serverNow: Date.now(), clockVersion: 1, week, mode, left: can.left, collect: COLLECT, dmt: DMT, amountWei: price.wei.toString(), chainId: 42161 });
   }
 
   if (route === 'ranked-enter' && req.method === 'POST') {
@@ -224,10 +231,11 @@ async function handle(route, req, res, ctx) {
     // cannot become an entry is written down as a refund the house owes.
     const b = await readBody(req); if (b.tooBig) return send(res, 413, { error: 'too big' });
     const n = unsign(b.nonce);
-    if (!n || n.k !== 'rnonce' || (n.w !== week && n.w !== week - 1) || Date.now() - n.s > 8 * 24 * 3600 * 1000) return send(res, 400, { error: 'that sign-in expired, start again' });
-    const mode = modeOf(n);
-    const price = raceIn(g, week, mode), signedPrice = raceIn(g, n.w, mode);
-    const wallet = typeof b.signature === 'string' ? recoverSigner(enterMessage(b.nonce, n.w, mode, n.c === 1 ? n.d : undefined), b.signature) : null;
+    if (!n || n.k !== 'rnonce' || (n.h!==undefined&&n.h!==1) || (n.w !== week && n.w !== week - 1) || Date.now() - n.s > 8 * 24 * 3600 * 1000) return send(res, 400, { error: 'that sign-in expired, start again' });
+    const mode = modeOf(n),tier=tierOf(n);
+    const price = raceIn(g, week, mode,tier), signedPrice = raceIn(g, n.w, mode,tier);
+    if(!price||!signedPrice)return send(res,400,{error:'that entry wager is not available'});
+    const wallet = typeof b.signature === 'string' ? recoverSigner(enterMessage(b.nonce, n.w, mode, n.c === 1 ? n.d : undefined,tier), b.signature) : null;
     if (!wallet) return send(res, 400, { error: 'the signature did not check out' });
     const tx = typeof b.tx === 'string' ? b.tx.toLowerCase() : ''; if (!TXH.test(tx)) return send(res, 400, { error: 'bad transaction id' });
     const gate = await rpc('sqs_ranked_receipt_gate', { p_server_key: SERVER_KEY, p_ip_hash: ipHash(ip, week, TICKET_KEY) });
@@ -258,7 +266,7 @@ async function handle(route, req, res, ctx) {
       if (!owe.error) return send(res, 400, { error: `That race is not open this week. Your ${price.dmt} DMT will be sent back.`, refund: true });
     }
     const seed = crypto.randomInt(1, 2 ** 31 - 1);
-    const out = await rpc('sqs_ranked_enter', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_paid: pay.paid.toString(), p_seed: seed, p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
+    const out = await rpc('sqs_ranked_enter_v2', { p_server_key: SERVER_KEY, p_tx: tx, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_paid: pay.paid.toString(), p_seed: seed, p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
     if (out?.refund && typeof out.error === 'string') out.error = out.error.replace(/Your [0-9]+(?:\.[0-9]+)? DMT will be sent back\.$/, `Your ${dmtAmount(pay.paid)} DMT will be sent back.`);
     if (!out || out.error) return send(res, 400, out || { error: 'could not save the entry' });
     // a retried payment answers with the race it was first entered in

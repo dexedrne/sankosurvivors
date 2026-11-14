@@ -37,7 +37,7 @@ export function prizeEstimate(race, places, payouts) {
   if (pool === null || race.rolloverReady !== true || !Array.isArray(payouts) || payouts.length !== 5) return null;
   const weights = payouts.map(p => Math.round(p * 100));
   if (weights.some(p => !Number.isInteger(p) || p < 0) || weights.some((p,i)=>p!==[40,25,15,12,8][i])) return null;
-  try { return allocateRewards(pool,Math.min(places.filter(p=>p>=0).length,5),race.week??0,race.activity); }
+  try { const version=race.rewards?.version??1; return allocateRewards(pool,Math.min(places.filter(p=>p>=0).length,5),race.week??0,version===2?race.rewardActivity:race.activity,version); }
   catch { return null; }
 }
 

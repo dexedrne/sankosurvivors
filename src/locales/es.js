@@ -1,5 +1,19 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "One pool, more ways to contribute": "Un fondo, más formas de contribuir",
+  "Ranked offers 1 or 10 DMT entries into the same weekly board and pool. Scoring, starting loadout and placement prizes are identical for both.": "Clasificatoria ofrece entradas de 1 o 10 DMT para la misma tabla y fondo semanal. La puntuación, el equipo inicial y los premios por puesto son iguales para ambas.",
+  "Of the prize pool, 80% rewards placement, 10% follows eligible DMT contributed and 10% follows active playtime. Verified completed runs of at least 30 seconds earn participation; placement still requires 3 minutes. Existing eligible entries count.": "Del fondo, el 80% premia los puestos, el 10% corresponde al DMT aportado elegible y el 10% al tiempo activo. Las partidas verificadas y terminadas de al menos 30 segundos cuentan para participación; para clasificar siguen haciendo falta 3 minutos. Las entradas anteriores elegibles cuentan.",
+  "Grand Theft Sanko: forge and equip the original Steel Pickaxe from two Steel Bars. It mines in 1.5 seconds per ore. Recipe and speed are GTS adaptations.": "Grand Theft Sanko: fabrica y equipa el Steel Pickaxe original con dos Steel Bars. Extrae cada mineral en 1,5 segundos. La receta y la velocidad son adaptaciones de GTS.",
+  "Casual results now show Submitted after an accepted score, including automatic submission.": "Los resultados casuales muestran Enviado cuando se acepta la puntuación, incluso si se envió automáticamente.",
+  "Standard entry": "Entrada estándar",
+  "High wager": "Apuesta alta",
+  "Entry wager": "Apuesta de entrada",
+  "Submitted": "Enviado",
+  "participation only": "solo participación",
+  "that entry wager is not available": "esa apuesta de entrada no está disponible",
+  "could not verify the current reward policy; no payment was requested": "no se pudo verificar la política de premios actual; no se solicitó ningún pago",
+  "Prize pool: 80% placing, 10% eligible DMT contributed, 10% active playtime. Verified completed runs of at least 0:30 earn participation; placing requires 3:00. No run cap. Pauses earn no participation. The developer earns no prizes.": "Premios: 80% por clasificación, 10% por DMT aportado elegible y 10% por tiempo de juego activo. Las partidas verificadas y completadas de al menos 0:30 cuentan para participación; para clasificar se requieren 3:00. Sin límite de partidas. Las pausas no cuentan. El desarrollador no recibe premios.",
+  "All entry sizes share one leaderboard and prize pool. A higher wager changes only contribution weight, not your score or playtime weight. The house fee is 10% of each entry; 90% joins the pool. Placement uses 40/25/15/12/8. Score is kills plus whole seconds. Ties use exact KPM, kills, earlier finish, then entry order. All runs use standard rules: any regular adventurer, no gear, skills or holder perks. One wallet per player per connection each week. Human play only; bots, scripts, tool assistance and rewinds are disqualified. Reload recovery is allowed. Unfilled rewards roll over.": "Todas las entradas comparten una clasificación y un fondo de premios. Una apuesta mayor solo cambia el peso de tu aportación, no el de tu puntuación o tiempo jugado. El 10% de cada entrada es la comisión de la casa y el 90% va al fondo. Los puestos se reparten 40/25/15/12/8. La puntuación suma bajas y segundos enteros. Los empates usan KPM exacto, bajas, llegada más temprana y orden de entrada. Reglas estándar: cualquier aventurero normal, sin equipo, habilidades ni ventajas por tener tokens. Una cartera por jugador y conexión cada semana. Solo juego humano: bots, scripts, asistencia y retrocesos descalifican. Se permite continuar tras recargar. Los premios sin asignar pasan a la siguiente semana.",
   "Co-op: revive a fallen teammate with a 3-second hold. A successful revive restores 30% health.": "Cooperativo: reanima a un compañero caído manteniendo pulsado durante 3 segundos. Una reanimación exitosa restaura un 30 % de vida.",
   "Use F, controller B or the touch button. Moving or taking damage resets the hold. Yellow markers help you find fallen teammates.": "Usa F, B del mando o el botón táctil. Moverte o recibir daño reinicia el progreso. Los marcadores amarillos te ayudan a encontrar a los compañeros caídos.",
   "Teammate revival": "Reanimación de compañero",
@@ -1931,6 +1945,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Score: {1}. Runs under {2} cannot place.", "Puntuación: {1}. Las partidas de menos de {2} no pueden clasificar."],
  ["Rank: {0}", "Rango: {0}"],
  ["Quantity: {0}", "Cantidad: {0}"],
  ["Remaining: {0} s", "Restante: {0} s"],

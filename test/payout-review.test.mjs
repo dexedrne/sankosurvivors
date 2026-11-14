@@ -111,10 +111,10 @@ test('the ranked rules say runs must be played live by a person (all three rules
 });
 test('week1 review includes every qualifying participation run once, including outside the top5',async t=>{
  t.mock.method(console,'log',()=>{});
- const first=row(1,1),outside=row(20,20),repeat=row(21,20);
+ const first=row(1,1),outside=row(20,20),repeat=row(21,20),short=row(22,21,{t:30});
  const f=fakeDb({normal:[first],hard:[],logs:new Map()});
- const db=async(fn,p)=>{const r=await f.db(fn,p);return fn==='sqs_ranked_settle'?{...r,activity_runs:p.p_mode==='normal'?[first,outside,repeat]:[]}:r;};
+ const db=async(fn,p)=>{const r=await f.db(fn,p);return fn==='sqs_ranked_settle'?{...r,activity_runs:p.p_mode==='normal'?[first,outside,repeat,short]:[]}:r;};
  const result=await main(['1'],{config:{reportsKey:'reports-key'},db});
- assert.equal(result.length,3);assert.deepEqual(f.calls.filter(([fn])=>fn==='sqs_ranked_log').map(([,p])=>p.p_id),[1,20,21]);
+ assert.equal(result.length,4);assert.deepEqual(f.calls.filter(([fn])=>fn==='sqs_ranked_log').map(([,p])=>p.p_id),[1,20,21,22]);
  await assert.rejects(main(['1'],{config:{reportsKey:'reports-key'},db:async()=>({top:[]})}),/participation review unavailable/);
 });

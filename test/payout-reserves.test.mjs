@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {fixture,wallet} from './helpers/payout.mjs';
 import {decimal} from '../tools/payout/core.mjs';
@@ -132,7 +133,7 @@ test('a registered credit after balance read can defer safely and succeeds on re
 });
 
 test('real SQL reserve reports keep active fees and exclude refunds from gross paid', {skip:!process.env.SQS_PGLITE},async()=>{
-  const f=fixture(5),pg=await sqlDB({current:true});f.db.now=Date.UTC(2026,10,17,1);f.config.live=false;f.chain.dmt=decimal('10.5');
+  const f=fixture(5),pg=await sqlDB({current:true});await pg.db.exec(await readFile(new URL('../tools/supabase/update19.sql',import.meta.url),'utf8'));f.db.now=Date.UTC(2026,10,17,1);f.config.live=false;f.chain.dmt=decimal('10.5');
   try{
     for(let n=1;n<=5;n++)await pg.db.exec(`insert into sqs_ranked_entries(week,wallet,tx,paid,ip_hash,seed,verdict,t,kills,won,finished_at,name) values(0,'${wallet(n)}','0x${String(n).repeat(64)}',2000000000000000000,'fixture',1,'ok',${900-n},100,false,now(),'Fixture');`);
     await pg.db.exec(`insert into sqs_ranked_entries(week,wallet,tx,paid,ip_hash,seed) values(2,'${wallet(9)}','0x${'9'.repeat(64)}',5000000000000000000,'fixture',1);`);

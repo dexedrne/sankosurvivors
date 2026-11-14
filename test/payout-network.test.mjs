@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
@@ -43,7 +44,7 @@ test('two actual Node processes through HTTP cannot pay the same row twice',asyn
   }finally{await s.close();}
 });
 test('the full runner uses real SQL over fake Supabase and fake Arbitrum HTTP', {skip:!process.env.SQS_PGLITE},async()=>{
-  const f=fixture(3),pg=await sqlDB({current:true});f.db.now=Date.UTC(2026,10,17,1);
+  const f=fixture(3),pg=await sqlDB({current:true});await pg.db.exec(await readFile(new URL('../tools/supabase/update19.sql',import.meta.url),'utf8'));f.db.now=Date.UTC(2026,10,17,1);
   for(const n of [1,2,3,4]) await pg.db.exec(`insert into sqs_ranked_entries(week,wallet,tx,paid,ip_hash,seed,verdict,t,kills,won,finished_at,refund_reason,name) values (0,'${wallet(n)}','0x${String(n).repeat(64)}',1000000000000000000,'${n}',1,${n===4?'null':"'ok'"},${900-n},1,false,now(),${n===4?"'reset'":'null'},'Player');`);
   f.db.onRefund({source_tx:'0x'+'4'.repeat(64),wallet:wallet(4),amount:'1000000000000000000'}); // entry 4's payment, which its refund repays
   const s=await server(f,pg.rpc);

@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {raceForWeek,entryRacesOf} from '../src/ranked.js';
+import {entryForWeek} from '../src/ranked-entry-price.js';
 import {MIN_BUY_DMT,MAX_BUY_DMT} from '../src/swap.js';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const click=main.slice(main.indexOf("$('rankedenter').onclick ="),main.indexOf('async function startRankedEntry'));
 function fixture(info,mode='normal',balance={dmt:10,eth:1},onBalance=()=>{}){
  if(info&&!Object.hasOwn(info,'races'))info.races=Object.fromEntries((info.week>=1?['normal','hard']:['normal']).map(m=>[m,raceForWeek(info.week,m)]));
  const nodes=new Map(),calls=[];let pending,balances=0;const $=id=>{if(!nodes.has(id))nodes.set(id,{replaceChildren(){}});return nodes.get(id);};
- Function('$','walletNow','raceList','rankedWeek','rankedMode','raceForWeek','raceOf','rankedAction','rankedMessage','refreshBalances','ETH_FOR_GAS','plain','payEntry','BASE','arbiscanTx','BUILD','SIM_ID','rankedConsent',click)($,()=>({w:{}}),Function('entryRacesOf','return '+main.match(/const raceList = ([^\n]+);/)[1])(entryRacesOf),info,mode,raceForWeek,(d,m)=>d?.races?.[m]||(m==='normal'&&d?d:null),fn=>{pending=fn;},()=>{},async()=>{balances++;onBalance();return balance;},.000005,m=>new Error(m),async(...args)=>{calls.push(args);},'/',()=>'', 'fixture-build','abcdefabcdef',()=>1234567890000);
+ Function('$','walletNow','raceList','rankedWeek','rankedMode','raceForWeek','raceOf','rankedAction','rankedMessage','refreshBalances','ETH_FOR_GAS','plain','payEntry','BASE','arbiscanTx','BUILD','SIM_ID','rankedConsent','rankedTier','entryForWeek',click)($,()=>({w:{}}),Function('entryRacesOf','return '+main.match(/const raceList = ([^\n]+);/)[1])(entryRacesOf),info,mode,raceForWeek,(d,m)=>d?.races?.[m]||(m==='normal'&&d?d:null),fn=>{pending=fn;},()=>{},async()=>{balances++;onBalance();return balance;},.000005,m=>new Error(m),async(...args)=>{calls.push(args);},'/',()=>'', 'fixture-build','abcdefabcdef',()=>1234567890000,'standard',entryForWeek);
  return{run(){nodes.get('rankedenter').onclick();return pending();},calls,balances:()=>balances};
 }
 test('ranked cannot start a payment before the displayed week is loaded',async()=>{

@@ -31,10 +31,11 @@ test('every packaged and shared route dependency matches its recorded bytes', ()
  assert.equal(m.source.commit,inputs.commit);
  assert.equal(m.source.rulesVersion,inputs.rulesVersion);assert.match(inputs.rulesVersion,/^[0-9a-f]{12}$/);
  assert.match(m.source.commit,/^[a-f0-9]{40}$/);
- assert.equal(m.shared.length,307);
+ assert.equal(m.shared.length,309);
  for(const name of ['Coal','Steel_Bar','Steel_Helmet'])assert(m.shared.some(f=>f.path==='/assets/ui/items/item_'+name+'.png'));
  assert(m.shared.some(f=>f.path==='/assets/models/playerCharacter/Head/Clothing/Steel Helmet.glb'));
  for(const name of ['Iron_Ore','Iron_Bar','Iron_Pickaxe','Bronze_Helmet','Bronze_Chestplate','Bronze_Leggings','Bronze_Boots','Iron_Chestplate','Iron_Leggings','Iron_Boots'])assert(m.shared.some(f=>f.path==='/assets/ui/items/item_'+name+'.png'));
+ for(const name of ['/assets/models/equipment/equipment/pickaxe/steel_pickaxe.glb','/assets/ui/items/item_Steel_Pickaxe.png'])assert(m.shared.some(f=>f.path===name));
  for(const item of [...m.files,...m.shared]) {
   assert.match(item.path,/^\/(?:fun\/racers|assets|draco)\//);
   assert.ok(!item.path.includes('..'));

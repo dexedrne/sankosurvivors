@@ -17,7 +17,7 @@ export function validateState(state) {
   if(!Array.isArray(state.rows)||!Array.isArray(state.weeks))throw Error('invalid payout ledger');
   const ids=new Set(),nonces=new Set(),transfers=new Set();
   const expectedPlans=new Map();
-  const expectedFor=week=>{if(!expectedPlans.has(week))expectedPlans.set(week,makePlan({paid:week.paid,top:week.top,activity:week.activity},week.incoming,week.week));return expectedPlans.get(week);};
+  const expectedFor=week=>{if(!expectedPlans.has(week))expectedPlans.set(week,makePlan({paid:week.paid,top:week.top,activity:week.activity,reward_version:week.reward_version??1},week.incoming,week.week));return expectedPlans.get(week);};
   for(const row of state.rows) {
     if(!/^\d+$/.test(row.id)||ids.has(row.id)||!Number.isInteger(row.week)||row.week< -1)throw Error('invalid payout identity');ids.add(row.id);
     address(row.wallet);units(row.amount);
@@ -82,11 +82,11 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       if(approvedWeek!==null&&w!==approvedWeek)continue;
       for(const mode of racesOf(w)) {
         if(state.weeks.some(p=>p.week===w&&modeOf(p)===mode))continue;
-        const report=await rpc('sqs_ranked_settle',{p_key:config.reportsKey,p_week:w,p_mode:mode});
-        if(report.error)throw Error('settlement unavailable');
+        const report=await rpc(w>=1?'sqs_ranked_settle_v2':'sqs_ranked_settle',{p_key:config.reportsKey,p_week:w,p_mode:mode});
+        if(report.error || w>=1&&report.reward_version!==2)throw Error('settlement unavailable');
         const incoming=w===firstWeek(mode)?'0':state.weeks.find(p=>p.week===w-1&&modeOf(p)===mode)?.rollover;
         if(incoming==null)throw Error('previous plan missing');
-        const planned=await rpc('sqs_payout_plan',{p_key:config.payoutKey,p_week:w,p_mode:mode,p_plan:makePlan(report,incoming,w)});
+        const planned=await rpc(w>=1?'sqs_payout_plan_v2':'sqs_payout_plan',{p_key:config.payoutKey,p_week:w,p_mode:mode,p_plan:makePlan(report,incoming,w)});
         if(atReset&&['submission grace','replay in progress'].includes(planned?.error)){log('WAIT: week '+w+' '+mode+' '+planned.error);continue;}
         if(planned?.error||planned?.ok!==true)throw Error('payout database rejected plan');
         state=await call('read');await renew();
@@ -97,7 +97,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       const mode=modeOf(week),rows=state.rows.filter(r=>r.week===week.week&&modeOf(r)===mode),refunds=rows.filter(r=>r.kind==='refund');
       const score=p=>kpmWeek(week.week)?`${rankedPoints(p.kills,p.t)} points · ${kpm(p.kills,p.t).toFixed(2)} KPM (${p.kills} kills in ${Math.floor(p.t/60)}m ${p.t%60}s)`:`${Math.floor(p.t/60)}m ${p.t%60}s`;
       const participation=rows.filter(r=>r.kind==='participation');
-      const activityNotice=week.week>=1?`\nParticipation: ${participation.length} wallets, ${dmt(sum(participation))} DMT (10% qualifying runs + 10% active seconds; uncapped).`:'';
+      const activityNotice=week.week>=1?`\nParticipation: ${participation.length} wallets, ${dmt(sum(participation))} DMT (${week.reward_version===2?'10% eligible DMT contributed':'10% qualifying runs'} + 10% active seconds; uncapped).`:'';
       const winners=week.top.slice(0,5).map((p,i)=>{
         const amount=rows.find(r=>r.kind==='prize'+(i+1))?.amount??'0';
         return `${i+1}. ${clean(p.name)} ${short(p.wallet)} ${score(p)}: ${dmt(amount)} DMT`;

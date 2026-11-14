@@ -36,7 +36,7 @@ export function makePlan(report, incoming = '0', week = report.week ?? 0) {
   const top = report.top.filter((winner)=>!NO_PRIZE.has(address(winner.wallet)) && placeable(week, winner));
   const seen = new Set();
   for(const winner of top){const wallet=address(winner.wallet);if(seen.has(wallet))throw Error('duplicate winner');seen.add(wallet);}
-  const allocation=allocateRewards(pool,Math.min(top.length,5),week,report.activity);
+  const allocation=allocateRewards(pool,Math.min(top.length,5),week,report.activity,report.reward_version??1);
   const prizes=allocation.prizes.map((amount,i)=>({wallet:address(top[i].wallet),amount}));
   return {house:String(house),pool:String(pool),prizes,rollover:allocation.rollover,...(week>=1?{participation:allocation.participation}:{})};
 }

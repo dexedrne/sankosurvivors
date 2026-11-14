@@ -711,7 +711,7 @@ test('legacy SQL refund wording still shows the actual new Standard payment amou
 // New admission never gates an already-paid registration or archived submission.
 test('current-build admission is uncached and rejects old UI before eligibility or start RPC', async t => {
   const w=wallet(), token=signed({k:'rentry',id:1,a:w.address,w:0});
-  const calls=[]; t.mock.method(db,'rpc',async(fn)=>{calls.push(fn);return {left:100,seed:1,adv:'adventurer',started:now,clockVersion:0,deadline:null,clock:null};});
+  const calls=[]; t.mock.method(db,'rpc',async(fn)=>{calls.push(fn);return {ok:true,reward_version:2,left:100,seed:1,adv:'adventurer',started:now,clockVersion:0,deadline:null,clock:null};});
   const responseHeaders={};const version=await call('ranked-version',undefined,{responseHeaders}); assert.equal(version.code,200);assert.equal(responseHeaders['cache-control'],'no-store'); assert.deepEqual(version.json,CLIENT);
   for(const claim of [{},{build:'old',sim:cur},{build:BUILD_TEST,sim:'123456123456'},{build:{},sim:cur},{build:'dev',sim:cur},{build:'x'.repeat(81),sim:cur}]) {
     const q=new URLSearchParams({wallet:w.address,...claim});
@@ -721,7 +721,7 @@ test('current-build admission is uncached and rejects old UI before eligibility 
   assert.deepEqual(calls,[]);
   assert.equal((await call('ranked-nonce?'+new URLSearchParams({wallet:w.address,...CLIENT,deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs}))).code,200);
   assert.equal((await call('ranked-start',{entry:token,adv:'adventurer',...CLIENT,deadline:epoch+(Math.floor((now-epoch)/weekMs)+1)*weekMs})).code,200);
-  assert.deepEqual(calls,['sqs_ranked_can_enter','sqs_ranked_clock_start']);
+  assert.deepEqual(calls,['sqs_ranked_can_enter_v2','sqs_ranked_clock_start']);
 });
 test('missing or inconsistent admission metadata fails closed before RPC, without changing paid recovery',async t=>{
   const w=wallet(),e=await enter(w),{auth,tx}=e;
@@ -834,4 +834,29 @@ test('credited new-policy interruption older than9660seconds reaches guarded res
  const old=signed({...decode(run.run),v:OLD_ID});
  const out=await call('ranked-void',{run:old});assert.equal(out.code,200,JSON.stringify(out));
  const fresh=await start({...e,entry:out.json.entry});assert.notEqual(fresh.started,run.started);assert.equal(fresh.clock.creditMs,0);
+});
+
+
+test('high wager binds10DMT in the signed nonce and shares the normal race without duplicate payments',async()=>{
+ now=epoch+weekMs+12*3600000;const w=wallet();
+ const high=await call(nonceRoute(w)+'&tier=high');assert.equal(high.code,200);
+ assert.equal(high.json.amountWei,'10000000000000000000');assert.equal(high.json.tier,'high');assert.equal(decode(high.json.nonce).h,1);assert.match(high.json.message,/sending the 10 DMT entry/);
+ const auth={nonce:high.json.nonce,signature:w.sign(high.json.message)},tx=payment(w,{amount:10000000000000000000n});
+ const entered=await call('ranked-enter',{...auth,tx});assert.equal(entered.code,200,JSON.stringify(entered));assert.equal(entered.json.mode,'normal');
+ const begun=await start(entered.json);assert.equal(begun.mode,'normal');const highSim=rankedSim({seed:begun.seed,mapId:begun.map,adv:begun.adv,ground:null,week:begun.week,mode:begun.mode});assert.equal(highSim.hard,false);assert.deepEqual(highSim.players[0].gear,{});
+ const again=await call('ranked-enter',{...auth,tx});assert.equal(again.code,200);assert.equal(again.json.id,entered.json.id);assert.equal(db.rows.filter(r=>r.refund_reason==null).length,1);
+ const low=await enter(w);assert.notEqual(low.id,entered.json.id);assert(db.rows.every(r=>r.mode==='normal'));
+ const under=await call('ranked-enter',{...auth,tx:payment(w,{amount:1000000000000000000n})});assert.equal(under.code,400);assert.match(under.json.error,/did not send 10 DMT/);
+ const standard=await nonce(w),over=await call('ranked-enter',{nonce:standard.nonce,signature:standard.signature,tx:payment(w,{amount:10000000000000000000n})});assert.equal(over.code,400);assert.equal(over.json.refund,true,'a standard authorization never silently becomes a high wager');
+ const decoded=decode(auth.nonce);delete decoded.h;const tampered=Buffer.from(JSON.stringify(decoded)).toString('base64url')+'.'+auth.nonce.split('.')[1];assert.equal((await call('ranked-enter',{...auth,nonce:tampered,tx})).code,400);
+ for(const tier of ['10','HIGH','constructor'])assert.equal((await call(nonceRoute(w)+'&tier='+tier)).code,400);
+});
+
+
+test('eligibility readiness must include an affirmative admission and positive integral entries left',async t=>{
+ const w=wallet();let result;
+ t.mock.method(db,'rpc',async()=>result);
+ for(const value of [null,{ok:true,left:1},{reward_version:2,left:1},{ok:false,reward_version:2,left:1},{ok:true,reward_version:2,left:0},{ok:true,reward_version:2,left:'1'},{ok:true,reward_version:2,left:1.2}]){
+  result=value;const response=await call(nonceRoute(w));assert.equal(response.code,400);assert.match(response.json.error,/reward policy/);assert.equal(response.json.nonce,undefined);
+ }
 });

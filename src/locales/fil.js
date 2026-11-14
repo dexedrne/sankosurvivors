@@ -1,5 +1,19 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "One pool, more ways to contribute": "Isang pondo, mas maraming paraan ng pag-ambag",
+  "Ranked offers 1 or 10 DMT entries into the same weekly board and pool. Scoring, starting loadout and placement prizes are identical for both.": "May pagpipiliang 1 o 10 DMT sa ranked para sa iisang lingguhang leaderboard at pondo. Pareho ang score, panimulang gamit at gantimpala ayon sa puwesto sa dalawa.",
+  "Of the prize pool, 80% rewards placement, 10% follows eligible DMT contributed and 10% follows active playtime. Verified completed runs of at least 30 seconds earn participation; placement still requires 3 minutes. Existing eligible entries count.": "80% ng pondo ang para sa puwesto, 10% ayon sa kwalipikadong DMT na inambag at 10% ayon sa aktibong oras ng paglalaro. Kasali sa pakikilahok ang na-verify at natapos na takbong hindi bababa sa 30 segundo; kailangan pa rin ng 3 minuto para sa puwesto. Kasama ang mga dati nang kwalipikadong pagsali.",
+  "Grand Theft Sanko: forge and equip the original Steel Pickaxe from two Steel Bars. It mines in 1.5 seconds per ore. Recipe and speed are GTS adaptations.": "Grand Theft Sanko: gawin at isuot ang orihinal na Steel Pickaxe gamit ang dalawang Steel Bars. Nakakakuha ito ng bawat ore sa 1.5 segundo. GTS na bersiyon ang recipe at bilis.",
+  "Casual results now show Submitted after an accepted score, including automatic submission.": "Ipinapakita na sa casual results ang Naipadala matapos tanggapin ang score, kasama ang awtomatikong pagpapadala.",
+  "Standard entry": "Karaniwang pagsali",
+  "High wager": "Mataas na taya",
+  "Entry wager": "Taya sa pagsali",
+  "Submitted": "Naipadala",
+  "participation only": "para sa pakikilahok lamang",
+  "that entry wager is not available": "hindi available ang tayang iyon sa pagsali",
+  "could not verify the current reward policy; no payment was requested": "hindi ma-verify ang kasalukuyang patakaran sa gantimpala; walang hiniling na bayad",
+  "Prize pool: 80% placing, 10% eligible DMT contributed, 10% active playtime. Verified completed runs of at least 0:30 earn participation; placing requires 3:00. No run cap. Pauses earn no participation. The developer earns no prizes.": "Gantimpala: 80% para sa puwesto, 10% ayon sa kwalipikadong DMT na inambag, 10% sa aktibong oras ng paglalaro. Kasali sa gantimpala sa pakikilahok ang na-verify at natapos na takbong hindi bababa sa 0:30; kailangan ng 3:00 para sa puwesto. Walang limitasyon sa dami ng takbo. Hindi binibilang ang pag-pause. Walang premyo ang developer.",
+  "All entry sizes share one leaderboard and prize pool. A higher wager changes only contribution weight, not your score or playtime weight. The house fee is 10% of each entry; 90% joins the pool. Placement uses 40/25/15/12/8. Score is kills plus whole seconds. Ties use exact KPM, kills, earlier finish, then entry order. All runs use standard rules: any regular adventurer, no gear, skills or holder perks. One wallet per player per connection each week. Human play only; bots, scripts, tool assistance and rewinds are disqualified. Reload recovery is allowed. Unfilled rewards roll over.": "Iisa ang leaderboard at pondo ng gantimpala para sa lahat ng halaga ng pagsali. Ang mas mataas na taya ay nagpapabigat lamang sa ambag, hindi sa score o oras ng paglalaro. 10% ng bawat bayad ang sa laro; 90% ang sa pondo. Ang hati ayon sa puwesto ay 40/25/15/12/8. Pinagsasama sa score ang napaslang at buong segundo. Sa tabla, ginagamit ang eksaktong KPM, napaslang, mas maagang pagtapos at pagkakasunod ng pagsali. Pare-pareho ang karaniwang patakaran: kahit anong regular na adventurer, walang gear, skill o bonus sa paghawak ng token. Isang wallet bawat manlalaro at koneksiyon kada linggo. Tao lamang ang dapat maglaro; bawal ang bot, script, tulong ng tool at pagbalik sa lumang save. Puwedeng magpatuloy matapos mag-reload. Dadalhin sa susunod ang hindi naipamahaging gantimpala.",
   "Co-op: revive a fallen teammate with a 3-second hold. A successful revive restores 30% health.": "Co-op: buhayin ang bumagsak na kakampi sa pamamagitan ng pagpindot nang 3 segundo. Ibinabalik ng matagumpay na pagbuhay ang 30% na buhay.",
   "Use F, controller B or the touch button. Moving or taking damage resets the hold. Yellow markers help you find fallen teammates.": "Gamitin ang F, B sa controller o ang touch button. Nire-reset ang pagpindot kapag gumalaw o napinsala. Tumutulong ang dilaw na mga marka para mahanap ang bumagsak na kakampi.",
   "Teammate revival": "Pagbuhay muli ng kakampi",
@@ -1931,6 +1945,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Score: {1}. Runs under {2} cannot place.", "Score: {1}. Hindi makakakuha ng puwesto ang mga takbong mas maikli sa {2}."],
  ["Rank: {0}", "Ranggo: {0}"],
  ["Quantity: {0}", "Dami: {0}"],
  ["Remaining: {0} s", "Natitira: {0} s"],

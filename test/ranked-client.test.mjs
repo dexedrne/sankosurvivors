@@ -2,6 +2,7 @@ import test, {beforeEach} from 'node:test';
 import {paymentBrowser,CLIENT,mockRankedFetch} from './helpers/payment-browser.mjs';
 beforeEach(paymentBrowser);
 import assert from 'node:assert/strict';
+import {entryMessage} from '../src/ranked-entry-price.js';
 import * as actualClient from '../src/ranked-client.js';
 const client={...actualClient,payEntry:(...args)=>{args[6]=CLIENT;return actualClient.payEntry(...args);}};
 const address = '0x' + '12'.repeat(20), token = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8', collect = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', tx = '0x' + 'ab'.repeat(32);
@@ -133,4 +134,26 @@ test('displayed week1 refuses a stale week0 nonce before signing or paying',asyn
  const requests=[];mockRankedFetch(t,async()=>response(nonce));
  await assert.rejects(client.payEntry(payingWallet(requests),'/',()=>{},()=>{},'normal',1),/Invalid entry details/);
  assert.ok(!requests.some(r=>['personal_sign','eth_sendTransaction','wallet_switchEthereumChain'].includes(r.method)));
+});
+
+
+test('high wager sends exactly10DMT once and recovery keeps the same normal-race payment',async t=>{
+ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage()});
+ const n={...nonce,nonce:'high-fixture',week:1,tier:'high',amountWei:'10000000000000000000',message:entryMessage('high-fixture',1,'normal',undefined,'high')},requests=[];
+ mockRankedFetch(t,async(url,options)=>{
+  if(url.includes('nonce')){assert.match(url,/tier=high/);return response(n);}
+  const body=JSON.parse(options.body);assert.equal(body.nonce,n.nonce);return response({entry:'high-ticket',id:10,week:1,mode:'normal'});
+ });
+ const wallet={p:{request:async r=>{requests.push(r);if(r.method==='eth_requestAccounts')return[address];if(r.method==='eth_chainId')return'0xa4b1';if(r.method==='personal_sign')return'sig';if(r.method==='eth_sendTransaction')return tx;}}};
+ await client.payEntry(wallet,'/',()=>{},()=>{},'normal',1,CLIENT,'high');
+ const sends=requests.filter(r=>r.method==='eth_sendTransaction');assert.equal(sends.length,1);assert.equal(sends[0].params[0].data.slice(-64),BigInt(n.amountWei).toString(16).padStart(64,'0'));
+ assert.deepEqual(JSON.parse(localStorage.getItem('sq-ranked-entries')),[{entry:'high-ticket',id:10,week:1,mode:'normal'}]);assert.equal(localStorage.getItem('sq-ranked-payment'),null);
+});
+for(const changed of [{amountWei:'1000000000000000000'},{tier:undefined},{message:'Sign for1DMT'},{week:0}])test('high wager refuses mismatched authorization before signing or broadcasting '+JSON.stringify(changed),async t=>{
+ Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage()});
+ const n={...nonce,nonce:'high-fixture',week:1,tier:'high',amountWei:'10000000000000000000',message:entryMessage('high-fixture',1,'normal',undefined,'high'),...changed},methods=[];
+ mockRankedFetch(t,async()=>response(n));
+ const wallet={p:{request:async({method})=>{methods.push(method);if(method==='eth_requestAccounts')return[address];throw Error('Wallet must not reach '+method);}}};
+ await assert.rejects(client.payEntry(wallet,'/',()=>{},()=>{},'normal',1,CLIENT,'high'),/Invalid entry details/);
+ assert.deepEqual(methods,['eth_requestAccounts']);
 });

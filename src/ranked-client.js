@@ -1,3 +1,4 @@
+import {entryForWeek,entryMessage} from './ranked-entry-price.js';
 import { hex } from './dmt.js';
 // where entry fees go, fixed here so a tampered server answer can never redirect a payment (security pass, 3 Nov)
 const ENTRY_WALLET = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', DMT_CONTRACT = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8';
@@ -111,8 +112,8 @@ export async function clearUnsentPayment() {
 
 // onTx(hash) hears about the payment as soon as the wallet sends it (for an Arbiscan link while it confirms).
 // The wallet is only ever asked for the selected week's exact race price.
-export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'normal', expectedWeek, client) {
-  if (!Object.hasOwn(RANKED.races, mode)) throw new Error('Pick a ranked race first.');
+export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'normal', expectedWeek, client, tier = 'standard') {
+  if (!['standard','high'].includes(tier) || !Object.hasOwn(RANKED.races, mode)) throw new Error('Pick a ranked race first.');
   return paymentLock(async () => {
     if (readRanked(PAYMENT)) throw plain('Check your saved payment before entering again.');
     writeRanked(ENTRIES, readRanked(ENTRIES, []));
@@ -122,9 +123,9 @@ export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'no
     const [address] = await p.request({ method:'eth_requestAccounts' });
     if (!/^0x[\da-f]{40}$/i.test(address || '')) throw new Error('No account was shared.');
     onStep('Checking your entries for this week…');
-    const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${mode === 'normal' ? '' : `&mode=${mode}`}&build=${encodeURIComponent(client.build)}&sim=${encodeURIComponent(client.sim)}${Number.isSafeInteger(client.deadline) ? `&deadline=${client.deadline}` : ''}`);
-    const race = raceForWeek(n.week, mode);
-    if (!Number.isSafeInteger(n.week) || n.week < 0 || (expectedWeek !== undefined && n.week !== expectedWeek) || !n.message || !n.nonce || n.chainId !== 42161 || String(n.dmt).toLowerCase() !== DMT_CONTRACT || String(n.collect).toLowerCase() !== ENTRY_WALLET || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
+    const n = await rankedApi(base, `nonce?wallet=${encodeURIComponent(address)}${tier==='high'?'&tier=high':''}${mode === 'normal' ? '' : `&mode=${mode}`}&build=${encodeURIComponent(client.build)}&sim=${encodeURIComponent(client.sim)}${Number.isSafeInteger(client.deadline) ? `&deadline=${client.deadline}` : ''}`);
+    const race = entryForWeek(n.week, mode,tier);
+    if (!race || (n.tier??'standard')!==tier || tier==='high'&&n.message!==entryMessage(n.nonce,n.week,mode,n.clockVersion===1?n.deadline:undefined,tier) || !Number.isSafeInteger(n.week) || n.week < 0 || (expectedWeek !== undefined && n.week !== expectedWeek) || !n.message || !n.nonce || n.chainId !== 42161 || String(n.dmt).toLowerCase() !== DMT_CONTRACT || String(n.collect).toLowerCase() !== ENTRY_WALLET || n.amountWei !== race.entryWei || (n.mode ?? 'normal') !== mode) throw new Error('Invalid entry details. No payment was requested.');
     if (n.clockVersion === 1 && (client.deadline !== n.deadline || !Number.isSafeInteger(n.deadline) || !Number.isFinite(n.serverNow) || clockPolicy(n.week, n.serverNow).deadline !== n.deadline || !clockPolicy(n.week, n.serverNow).admissionOpen)) throw plain('Read and acknowledge the weekly cutoff before paying or starting.');
     onStep('Switch to Arbitrum One in your wallet…');
     const chain = { chainId:'0xa4b1' };

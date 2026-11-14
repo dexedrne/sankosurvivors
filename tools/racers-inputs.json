@@ -1,6 +1,6 @@
 {
-  "commit": "df4bc3bc23eb9487b28d0bd4ce45e22cce5d860b",
-  "implementation": "df4bc3bc23eb9487b28d0bd4ce45e22cce5d860b",
+  "commit": "cac25beb555888b3102e4583936efd27a28acf8e",
+  "implementation": "cac25beb555888b3102e4583936efd27a28acf8e",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2943,9 +2943,9 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-CHbS7sx9.js",
-      "bytes": 1745751,
-      "sha256": "f15d6230056bc2775aaa031af5102cfa4c9045539faaa33586742642289a7e9d",
+      "path": "assets/index-CSyUrlsj.js",
+      "bytes": 1746452,
+      "sha256": "b48b61e332d0fc9b00c126c028100de82ca7dfaaaa678c566db0d0b78a2a346a",
       "role": "client"
     },
     {
@@ -2956,8 +2956,8 @@
     },
     {
       "path": "assets/inventory.json",
-      "bytes": 45832,
-      "sha256": "2e4c7b3fb9bcdbfa927d38102e90b5e0ac8e0114f852f369a51035b67586fb56",
+      "bytes": 46165,
+      "sha256": "fe1e5ed662a04991b4f07e195bfd9e4c61c8cdab83124ded44f1dce86cdbe69b",
       "role": "omit-unused"
     },
     {
@@ -3072,6 +3072,12 @@
       "path": "assets/models/equipment/equipment/pickaxe/iron_pickaxe.glb",
       "bytes": 3316,
       "sha256": "06ab0080ac39ea971e186d14dc79c270d4422690c9e63961e042a4afb092e432",
+      "role": "shared"
+    },
+    {
+      "path": "assets/models/equipment/equipment/pickaxe/steel_pickaxe.glb",
+      "bytes": 3284,
+      "sha256": "df2ffad0254807fe5b64a03b5df3994af7b4047cb4ce63707d0272547356125f",
       "role": "shared"
     },
     {
@@ -3378,6 +3384,12 @@
       "path": "assets/ui/items/item_Steel_Helmet.png",
       "bytes": 14582,
       "sha256": "d9c4e660ce6813b4c4450f36310c6cf9ade408ec03ff05beb609659448b4e4ef",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Steel_Pickaxe.png",
+      "bytes": 4424,
+      "sha256": "a315a37ac6e128e7c488fafddcbe784ac14373b94969944961e3b66752c755cd",
       "role": "shared"
     },
     {
@@ -4943,7 +4955,7 @@
     {
       "path": "index.html",
       "bytes": 13240,
-      "sha256": "50e9f454a0871cb92c125d7f85161c42d372b1371bb7a8ab49c487d93123c305",
+      "sha256": "2a30139d165b33e1665fa74f1c8f5dc6d49747b6888119ce9f3c7937b93bcd17",
       "role": "entry"
     }
   ],
@@ -4952,5 +4964,5 @@
     "bytes": 669454,
     "sha256": "f802a64a319badc7950199713c322e3848783a6563eb3a680f1393a422876cc8"
   },
-  "rulesVersion": "6fb6f476b2db"
+  "rulesVersion": "eb932477091c"
 }

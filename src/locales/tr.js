@@ -1,5 +1,19 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "One pool, more ways to contribute": "Tek havuz, katkı için daha fazla seçenek",
+  "Ranked offers 1 or 10 DMT entries into the same weekly board and pool. Scoring, starting loadout and placement prizes are identical for both.": "Sıralamalı turlarda aynı haftalık sıralama ve havuz için 1 veya 10 DMT katılım seçeneği var. Her iki seçenekte skor, başlangıç ekipmanı ve sıralama ödülleri aynıdır.",
+  "Of the prize pool, 80% rewards placement, 10% follows eligible DMT contributed and 10% follows active playtime. Verified completed runs of at least 30 seconds earn participation; placement still requires 3 minutes. Existing eligible entries count.": "Ödül havuzunun %80’i sıralamaya, %10’u geçerli DMT katkısına ve %10’u aktif oyun süresine göre dağıtılır. En az 30 saniye süren doğrulanmış ve tamamlanmış turlar katılım payı kazanır; sıralama için hâlâ 3 dakika gerekir. Önceki geçerli katılımlar da sayılır.",
+  "Grand Theft Sanko: forge and equip the original Steel Pickaxe from two Steel Bars. It mines in 1.5 seconds per ore. Recipe and speed are GTS adaptations.": "Grand Theft Sanko: iki Steel Bar ile orijinal Steel Pickaxe üret ve kuşan. Her cevheri 1,5 saniyede kazar. Tarif ve hız GTS uyarlamalarıdır.",
+  "Casual results now show Submitted after an accepted score, including automatic submission.": "Rahat mod sonuçlarında, otomatik gönderim dahil, kabul edilen skorun ardından Gönderildi yazar.",
+  "Standard entry": "Standart katılım",
+  "High wager": "Yüksek bahis",
+  "Entry wager": "Katılım bahsi",
+  "Submitted": "Gönderildi",
+  "participation only": "yalnızca katılım",
+  "that entry wager is not available": "bu katılım bahsi mevcut değil",
+  "could not verify the current reward policy; no payment was requested": "geçerli ödül kuralları doğrulanamadı; ödeme istenmedi",
+  "Prize pool: 80% placing, 10% eligible DMT contributed, 10% active playtime. Verified completed runs of at least 0:30 earn participation; placing requires 3:00. No run cap. Pauses earn no participation. The developer earns no prizes.": "Ödül havuzu: %80 sıralama, %10 geçerli DMT katkısı, %10 aktif oyun süresi. En az 0:30 süren doğrulanmış ve tamamlanmış turlar katılım payı kazanır; sıralama için 3:00 gerekir. Tur sınırı yoktur. Molalar katılım kazandırmaz. Geliştirici ödül almaz.",
+  "All entry sizes share one leaderboard and prize pool. A higher wager changes only contribution weight, not your score or playtime weight. The house fee is 10% of each entry; 90% joins the pool. Placement uses 40/25/15/12/8. Score is kills plus whole seconds. Ties use exact KPM, kills, earlier finish, then entry order. All runs use standard rules: any regular adventurer, no gear, skills or holder perks. One wallet per player per connection each week. Human play only; bots, scripts, tool assistance and rewinds are disqualified. Reload recovery is allowed. Unfilled rewards roll over.": "Tüm katılım tutarları aynı sıralama ve ödül havuzunu paylaşır. Yüksek bahis yalnızca katkı ağırlığını değiştirir; skorunu veya oyun süresi ağırlığını değiştirmez. Her katılımın %10’u oyun payıdır; %90’ı havuza gider. Sıralama payları 40/25/15/12/8 oranındadır. Skor öldürme sayısı ile tam saniyelerin toplamıdır. Eşitlikte tam KPM, öldürme, erken bitiş ve katılım sırası kullanılır. Tüm turlar standarttır: normal bir maceracı, ekipman, beceri veya token sahibi avantajı yoktur. Her hafta bağlantı ve oyuncu başına tek cüzdan. Yalnızca insanlar canlı oynamalıdır; bot, betik, araç yardımı ve eski kayda dönmek elenme nedenidir. Yenilemeden sonra devam edilebilir. Dağıtılmayan ödüller devreder.",
   "Co-op: revive a fallen teammate with a 3-second hold. A successful revive restores 30% health.": "İş birliği: düşen takım arkadaşını 3 saniye basılı tutarak dirilt. Başarılı diriltme %30 can yeniler.",
   "Use F, controller B or the touch button. Moving or taking damage resets the hold. Yellow markers help you find fallen teammates.": "F, kontrolcüde B veya dokunmatik düğmeyi kullan. Hareket etmek ya da hasar almak basılı tutmayı sıfırlar. Sarı işaretler düşen takım arkadaşlarını bulmana yardım eder.",
   "Teammate revival": "Takım arkadaşını canlandırma",
@@ -1931,6 +1945,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Score: {1}. Runs under {2} cannot place.", "Skor: {1}. {2} altındaki turlar sıralama ödülü alamaz."],
  ["Rank: {0}", "Rütbe: {0}"],
  ["Quantity: {0}", "Adet: {0}"],
  ["Remaining: {0} s", "Kalan: {0} sn"],
