@@ -24,3 +24,13 @@ for(const language of['tr','es','fil'])test(language+': every new static guide p
  const guide=html.slice(html.indexOf('<div id="guide"'),html.indexOf('<div id="settings"'));
  for(const [,text]of guide.matchAll(/<(?:summary|p|h2)[^>]*>([^<>]+)<\/(?:summary|p|h2)>/g))assert.notEqual(translateText(text,language),text,text);
 });
+
+function catalogue(kind){const a=main.indexOf('function guideCatalogue('),b=main.indexOf('function guideRecipes(',a);assert(a>=0&&b>a,'guide catalogue uses current content');return Function('WEAPONS','PASSIVES','iconHTML','esc',main.slice(a,b)+';return guideCatalogue;')(WEAPONS,PASSIVES,(kind,id,level,evo,step)=>`<img data-kind="${kind}" data-id="${id}" data-level="${level}" data-evolved="${evo}" data-step="${step}">`,s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])))(kind);}
+test('guide catalogue shows every current weapon/passive with its real description and marks casual-only content',()=>{
+ for(const[kind,items]of[['weapon',WEAPONS],['passive',PASSIVES]]){const text=catalogue(kind);assert.equal((text.match(/class="guidecatalogue-item"/g)||[]).length,Object.keys(items).length);for(const[id,item]of Object.entries(items)){assert(text.includes(item.name),id);assert(text.includes(item.blurb.replace(/&/g,'&amp;')),item.blurb);assert(text.includes(`data-kind="${kind}" data-id="${id}" data-level="1" data-evolved="false" data-step="0"`),id);}assert.equal((text.match(/Casual only/g)||[]).length,Object.values(items).filter(i=>i.casual).length);}
+ for(const id of ['guidecatalogue','guideweapons','guidepassives'])assert(html.includes('id="'+id+'"'));
+ const edition=transformHtml(html);assert(edition.includes('id="guidecatalogue"'));assert(transformMain(main).includes('guideCatalogue'));
+});
+for(const language of['tr','es','fil'])test(language+': catalogue descriptions and scope labels translate',()=>{
+ for(const text of ['Weapons and passives','Run-only upgrades. Permanent skills and worn gear are separate.','Casual only',...Object.values(WEAPONS).map(v=>v.blurb),...Object.values(PASSIVES).map(v=>v.blurb)])assert.notEqual(translateText(text,language),text,text);
+});

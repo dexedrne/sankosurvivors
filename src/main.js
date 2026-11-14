@@ -961,10 +961,15 @@ $('setbtn').onclick = openSettings; $('setbtn2').onclick = openSettings;
 $('setclose').onclick = () => { $('settings').classList.add('hidden'); navFocus($(mode === 'title' ? ($('setbtn').closest('#actions') ? 'setbtn' : 'morebtn') : 'setbtn2')); };
 $('settings').addEventListener('click', (e) => { if (e.target.id === 'settings') $('setclose').click(); });
 
+function guideCatalogue(kind) {
+  return Object.entries(kind === 'weapon' ? WEAPONS : PASSIVES).map(([id, item]) => `<article class="guidecatalogue-item">${iconHTML(kind, id, 1, false, 0)}<div><h4>${esc(item.name)}</h4><p>${esc(item.blurb)}</p>${item.casual ? '<small>Casual only</small>' : ''}</div></article>`).join('');
+}
 function guideRecipes(pace) {
   return Object.entries(EVOLUTIONS).map(([id, evolution]) => `<div class="guiderecipe"><span>${esc(WEAPONS[id].name)}</span> → <b>${esc(evolution.name)}</b><small>${evolutionPassives(id, pace).map(passive => `<span>${esc(PASSIVES[passive].name)}</span>`).join(' / ')}</small></div>`).join('');
 }
 $('guidebtn').onclick = () => {
+  $('guideweapons').innerHTML = guideCatalogue('weapon');
+  $('guidepassives').innerHTML = guideCatalogue('passive');
   $('guidecurrentrecipes').innerHTML = guideRecipes(2);
   const original = $('guideoldrecipes'); if (original) original.innerHTML = guideRecipes(1);
   $('guide').classList.remove('hidden'); navFocus($('guide').querySelector('summary'));
@@ -1310,7 +1315,7 @@ $('sharex').onclick = () => {
   const m = MAP_BY_ID[lastRun.map].name;
   const stats = `${fmtT(lastRun.t)}, level ${lastRun.level}, ${lastRun.kills} monsters slain`;
   const race = lastRun.race === 'hard' ? 'Hard ' : '';
-  const text = lastRun.ranked && lastRun.rank && lastRun.points != null ? `I'm #${lastRun.rank} in this week's SankoSurvivors ${race}ranked race on ${m}: ${lastRun.points.toLocaleString()} points (${lastRun.kills} slain + ${Math.floor(lastRun.t)} seconds survived). Top 5 split the ${race}$DMT pot. Can you knock me off?`
+  const text = lastRun.ranked && lastRun.rank && lastRun.points != null ? `I'm #${lastRun.rank} in this week's SankoSurvivors ${race}ranked race on ${m}: ${lastRun.points.toLocaleString()} points (${lastRun.kills} slain + ${Math.floor(lastRun.t)} seconds survived). Top 5 share 80% of the $DMT prize pool; qualifying runs and playtime share 20%.`
     : lastRun.ranked && lastRun.rank && lastRun.kpm != null ? `I'm #${lastRun.rank} in this week's SankoSurvivors ${race}ranked race on ${m}: ${lastRun.kpm.toFixed(2)} kills per minute (${lastRun.kills} slain in ${fmtT(lastRun.t)}). Top 5 split the ${race}$DMT pot. Can you knock me off?`
     : lastRun.ranked && lastRun.rank ? `I'm #${lastRun.rank} in this week's SankoSurvivors ranked on ${m} (${stats}). Top 5 split the $DMT pot. Can you knock me off?`
     : lastRun.won ? `I cleared ${m} in SankoSurvivors in ${fmtT(lastRun.t)} (level ${lastRun.level}, ${lastRun.kills} monsters slain). Can you beat it?`

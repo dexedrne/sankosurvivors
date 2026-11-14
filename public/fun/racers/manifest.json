@@ -2,15 +2,15 @@
   "aliases": [
     {
       "path": "/racers/index.html",
-      "bytes": 14703,
-      "sha256": "64baf091a6bb0c38ed3e457c41b5f3d7003a1d2c83c916dcadc0ac1eec160370"
+      "bytes": 14925,
+      "sha256": "aa93192430f42326bf34564507472a23cd3b9ebdbe75ed3c4e5633be6ea10245"
     }
   ],
   "source": {
-    "commit": "09e9a0ce2b2737fb17b25a6b82e997ed6a6940de",
-    "implementation": "09e9a0ce2b2737fb17b25a6b82e997ed6a6940de",
-    "rulesVersion": "6931e7d6b043",
-    "clientSha256": "e4ebbabd65d4fe3d52f409679668f050cd39b5af90633fa44d43cef9a1d811e6"
+    "commit": "df4bc3bc23eb9487b28d0bd4ce45e22cce5d860b",
+    "implementation": "df4bc3bc23eb9487b28d0bd4ce45e22cce5d860b",
+    "rulesVersion": "6fb6f476b2db",
+    "clientSha256": "f15d6230056bc2775aaa031af5102cfa4c9045539faaa33586742642289a7e9d"
   },
   "adaptations": {
     "client": [
@@ -76,12 +76,12 @@
         "after": "<title>Grand Theft Sanko · SankoQuest World</title><meta name=\"description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Grand Theft Sanko\"><meta property=\"og:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta property=\"og:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:url\" content=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><link rel=\"canonical\" href=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image:secure_url\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta name=\"twitter:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta name=\"twitter:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\">"
       },
       {
-        "before": "/assets/index-KGmUjGdn.js",
-        "after": "./racers-516c3fc6f0fb91dc.js"
+        "before": "/assets/index-CHbS7sx9.js",
+        "after": "./racers-0060301e232e5149.js"
       },
       {
-        "before": "/assets/index-DP2ggugk.css",
-        "after": "./racers-674517027e31c883.css"
+        "before": "/assets/index-DmrBhZBN.css",
+        "after": "./racers-f09bff91f48c3b74.css"
       },
       {
         "before": "<div id=\"return-slot\"></div>",
@@ -93,18 +93,18 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 14673,
-      "sha256": "e240d6606891720d4481af6e371fda2a8a89c4b1aec9370b1cbd350351db5dfd"
+      "bytes": 14895,
+      "sha256": "77d6ea5607ea7d337b161c48d6507a2b0717c65a0b3c9a8fc58c0c9624078354"
     },
     {
-      "path": "/fun/racers/racers-516c3fc6f0fb91dc.js",
-      "bytes": 1742998,
-      "sha256": "516c3fc6f0fb91dc155c1399618288a85b6efa00676c94eec8f5af2369edcb6b"
+      "path": "/fun/racers/racers-0060301e232e5149.js",
+      "bytes": 1745884,
+      "sha256": "0060301e232e514913c64307496fdb48da30b30440b97e910e32663ed5b1673b"
     },
     {
-      "path": "/fun/racers/racers-674517027e31c883.css",
-      "bytes": 32883,
-      "sha256": "674517027e31c883604814fb2a84a81df4234ee7d83c523ec3200c6d36594362"
+      "path": "/fun/racers/racers-f09bff91f48c3b74.css",
+      "bytes": 34594,
+      "sha256": "f09bff91f48c3b74efcbc0c7cdec93387a47259b52cf22cac0e0a61717ce241c"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -119,7 +119,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 3264,
-      "sha256": "27ef75089233d3b55ecef1c09f30a844386963cc2da576a7456bdb17049ba186"
+      "sha256": "c10f08a4232454260001a50c81eceb29bb0f6d68bd476d3e91317cf20b265232"
     },
     {
       "path": "/fun/racers/CREDITS.txt",
@@ -2779,6 +2779,11 @@
       "sha256": "cda2ec281cb64155b7591d4a1feb9abde70f6612650c1d020af3d09f3770b9c4"
     },
     {
+      "path": "/assets/models/playerCharacter/Head/Clothing/Steel Helmet.glb",
+      "bytes": 41316,
+      "sha256": "968082b3aa6db574faf84370bea541acebbee6617a7b93b04edeb5a60759dc61"
+    },
+    {
       "path": "/assets/models/playerCharacter/Head/Neck.glb",
       "bytes": 30672,
       "sha256": "18447bd9f4ef1ec98cac95b342e7bfb3b189055bc8a3bc39c96d56cdb37036f3"
@@ -2904,6 +2909,11 @@
       "sha256": "17239fde2055ddc0516ed15d17b352b68f46a630b9ca350c96d57c0aee6c1aff"
     },
     {
+      "path": "/assets/ui/items/item_Coal.png",
+      "bytes": 7579,
+      "sha256": "bb6de9d4be4022582f875b3c405e9eb3441e03925f6298aa0b372318102639c8"
+    },
+    {
       "path": "/assets/ui/items/item_Copper_Ore.png",
       "bytes": 3231,
       "sha256": "42b95473a31d0e4b3247dc7c2cdd9edce622023e7777c679ef2ffd7bd9af2567"
@@ -2942,6 +2952,16 @@
       "path": "/assets/ui/items/item_Iron_Pickaxe.png",
       "bytes": 4261,
       "sha256": "c36771a09fd648ce808a8535f993b103a99cd182e853ce01f04116901725dc7b"
+    },
+    {
+      "path": "/assets/ui/items/item_Steel_Bar.png",
+      "bytes": 6272,
+      "sha256": "ce33984496904d16361dbb74b3c3c3e4f59cd13f3d96c6f618053b1d8f3644e7"
+    },
+    {
+      "path": "/assets/ui/items/item_Steel_Helmet.png",
+      "bytes": 14582,
+      "sha256": "d9c4e660ce6813b4c4450f36310c6cf9ade408ec03ff05beb609659448b4e4ef"
     },
     {
       "path": "/assets/ui/items/item_Tin_Ore.png",
@@ -4188,7 +4208,7 @@
     {
       "path": "assets/inventory.json",
       "reason": "No runtime reference (asserted before packaging)",
-      "sha256": "3747998b341e5e07cc9bdac7d14dc1051a8e29607c57fb022e598d45bdb5406a"
+      "sha256": "2e4c7b3fb9bcdbfa927d38102e90b5e0ac8e0114f852f369a51035b67586fb56"
     },
     {
       "path": "assets/world/tiles/fences-923b19cc1732.json",

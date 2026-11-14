@@ -1055,3 +1055,11 @@ body.touch .pausezoom { display:flex; align-items:center; gap:8px; color:var(--c
 @media (max-width:760px), (max-height:480px) {
   body:not(.ds-layout) #wrow, body:not(.ds-layout) #prow { max-width:calc(100vw - 142px); flex-wrap:wrap; }
 }
+
+.guidecatalogue { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:16px; }
+.guidecatalogue-item { display:grid; grid-template-columns:32px minmax(0,1fr); gap:8px; padding:8px; background:var(--deep); border:1px solid var(--line); }
+.guidecatalogue-item img { width:32px; height:32px; object-fit:contain; image-rendering:pixelated; }
+.guidecatalogue-item h4 { font:inherit; color:var(--gold); margin:0 0 4px; }
+#guide .guidecatalogue-item p { font-size:18px; line-height:1.2; margin:0; }
+.guidecatalogue-item small { color:var(--gold); }
+@media(max-width:560px) { .guidecatalogue { grid-template-columns:1fr; } }

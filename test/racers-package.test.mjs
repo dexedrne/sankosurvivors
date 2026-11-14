@@ -31,7 +31,9 @@ test('every packaged and shared route dependency matches its recorded bytes', ()
  assert.equal(m.source.commit,inputs.commit);
  assert.equal(m.source.rulesVersion,inputs.rulesVersion);assert.match(inputs.rulesVersion,/^[0-9a-f]{12}$/);
  assert.match(m.source.commit,/^[a-f0-9]{40}$/);
- assert.equal(m.shared.length,303);
+ assert.equal(m.shared.length,307);
+ for(const name of ['Coal','Steel_Bar','Steel_Helmet'])assert(m.shared.some(f=>f.path==='/assets/ui/items/item_'+name+'.png'));
+ assert(m.shared.some(f=>f.path==='/assets/models/playerCharacter/Head/Clothing/Steel Helmet.glb'));
  for(const name of ['Iron_Ore','Iron_Bar','Iron_Pickaxe','Bronze_Helmet','Bronze_Chestplate','Bronze_Leggings','Bronze_Boots','Iron_Chestplate','Iron_Leggings','Iron_Boots'])assert(m.shared.some(f=>f.path==='/assets/ui/items/item_'+name+'.png'));
  for(const item of [...m.files,...m.shared]) {
   assert.match(item.path,/^\/(?:fun\/racers|assets|draco)\//);
@@ -70,7 +72,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  const css=read(`public${m.files.find(f=>f.path.endsWith('.css')).path}`).toString();
  for(const asset of ['RuneScape-Plain-12.ttf','RuneScape-Quill-8.ttf','frame.png','grey_slot.png','yellow_slot.png'])assert(css.includes(asset),asset);
  assert(html.includes('data-action="handbrake"'));
- for(const id of ['menu-preview','menu-preview-kart','garage-tabs','world-tab','garage-tab','activities-tab','start-walk','aim','wardrobe','zombiemode','slash','couriermode','road-deliveries','road-delivery-best'])assert(html.includes('id="'+id+'"'),id);
+ for(const id of ['world-actions','activity-map-legend','menu-preview','menu-preview-kart','garage-tabs','world-tab','garage-tab','activities-tab','start-walk','aim','wardrobe','zombiemode','slash','couriermode','road-deliveries','road-delivery-best'])assert(html.includes('id="'+id+'"'),id);
  assert(html.includes('id="fire"'));assert(html.includes('id="combat-status"'));assert(js.includes('WILDERNESS'));
  assert(html.includes('id="free-start"'));assert(html.includes('id="vehicle-choice"'));assert(html.includes('Your CrashOut karts'));assert(js.includes('Same handling for every vehicle.'));
  for(const key of ['sanko-racers-world-v1','racers-graphics','racers-volume','racers-muted'])assert(js.includes(key),key);

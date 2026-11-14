@@ -1,6 +1,6 @@
 {
-  "commit": "09e9a0ce2b2737fb17b25a6b82e997ed6a6940de",
-  "implementation": "09e9a0ce2b2737fb17b25a6b82e997ed6a6940de",
+  "commit": "df4bc3bc23eb9487b28d0bd4ce45e22cce5d860b",
+  "implementation": "df4bc3bc23eb9487b28d0bd4ce45e22cce5d860b",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2943,21 +2943,21 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-DP2ggugk.css",
-      "bytes": 32767,
-      "sha256": "f5bd644da2726acfe3809a41bbcf9aac2b563e71492acc9f48b8d013c7b78d49",
-      "role": "stylesheet"
-    },
-    {
-      "path": "assets/index-KGmUjGdn.js",
-      "bytes": 1742865,
-      "sha256": "e4ebbabd65d4fe3d52f409679668f050cd39b5af90633fa44d43cef9a1d811e6",
+      "path": "assets/index-CHbS7sx9.js",
+      "bytes": 1745751,
+      "sha256": "f15d6230056bc2775aaa031af5102cfa4c9045539faaa33586742642289a7e9d",
       "role": "client"
     },
     {
+      "path": "assets/index-DmrBhZBN.css",
+      "bytes": 34478,
+      "sha256": "2e6914de5d901d88cf816d55062e6ec4b2ba5531efbb6d6e682e5cea9c01d129",
+      "role": "stylesheet"
+    },
+    {
       "path": "assets/inventory.json",
-      "bytes": 45198,
-      "sha256": "3747998b341e5e07cc9bdac7d14dc1051a8e29607c57fb022e598d45bdb5406a",
+      "bytes": 45832,
+      "sha256": "2e4c7b3fb9bcdbfa927d38102e90b5e0ac8e0114f852f369a51035b67586fb56",
       "role": "omit-unused"
     },
     {
@@ -3153,6 +3153,12 @@
       "role": "shared"
     },
     {
+      "path": "assets/models/playerCharacter/Head/Clothing/Steel Helmet.glb",
+      "bytes": 41316,
+      "sha256": "968082b3aa6db574faf84370bea541acebbee6617a7b93b04edeb5a60759dc61",
+      "role": "shared"
+    },
+    {
       "path": "assets/models/playerCharacter/Head/Neck.glb",
       "bytes": 30672,
       "sha256": "18447bd9f4ef1ec98cac95b342e7bfb3b189055bc8a3bc39c96d56cdb37036f3",
@@ -3309,6 +3315,12 @@
       "role": "shared"
     },
     {
+      "path": "assets/ui/items/item_Coal.png",
+      "bytes": 7579,
+      "sha256": "bb6de9d4be4022582f875b3c405e9eb3441e03925f6298aa0b372318102639c8",
+      "role": "shared"
+    },
+    {
       "path": "assets/ui/items/item_Copper_Ore.png",
       "bytes": 3231,
       "sha256": "42b95473a31d0e4b3247dc7c2cdd9edce622023e7777c679ef2ffd7bd9af2567",
@@ -3354,6 +3366,18 @@
       "path": "assets/ui/items/item_Iron_Pickaxe.png",
       "bytes": 4261,
       "sha256": "c36771a09fd648ce808a8535f993b103a99cd182e853ce01f04116901725dc7b",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Steel_Bar.png",
+      "bytes": 6272,
+      "sha256": "ce33984496904d16361dbb74b3c3c3e4f59cd13f3d96c6f618053b1d8f3644e7",
+      "role": "shared"
+    },
+    {
+      "path": "assets/ui/items/item_Steel_Helmet.png",
+      "bytes": 14582,
+      "sha256": "d9c4e660ce6813b4c4450f36310c6cf9ade408ec03ff05beb609659448b4e4ef",
       "role": "shared"
     },
     {
@@ -4918,8 +4942,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 13018,
-      "sha256": "2704dfb19e535a03d31f31bc14cf3ff3075796855032d9fca90a9fc229ec72eb",
+      "bytes": 13240,
+      "sha256": "50e9f454a0871cb92c125d7f85161c42d372b1371bb7a8ab49c487d93123c305",
       "role": "entry"
     }
   ],
@@ -4928,5 +4952,5 @@
     "bytes": 669454,
     "sha256": "f802a64a319badc7950199713c322e3848783a6563eb3a680f1393a422876cc8"
   },
-  "rulesVersion": "6931e7d6b043"
+  "rulesVersion": "6fb6f476b2db"
 }

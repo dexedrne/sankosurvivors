@@ -1326,6 +1326,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     return actor;
   }
 
+  function realizeEnemy(a, id) {
+    const root = a.root, rig = batchEnemy(makeEnemy(a.type, id));
+    rig.root.position.copy(root.position); rig.root.rotation.copy(root.rotation);
+    rig.root.rotation.y -= rig.kit?.yaw0 || 0;
+    rig.root.scale.copy(root.scale); rig.root.visible = root.visible;
+    if (a.halo) rig.root.add(a.halo);
+    Object.assign(a, rig, { deferred: false, shadowed: false, flashOn: undefined });
+  }
+
   // soft round shadows under monsters (cheap; the player and bosses get real ones)
   const blobTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, 'rgba(0,0,0,0.55)'); gr.addColorStop(0.6, 'rgba(0,0,0,0.3)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
   const blobMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), 520);
@@ -1971,7 +1980,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       seenE.add(id);
       let a = actors.get(id);
       if (!a) {
-        a = batchEnemy(makeEnemy(type, id)); a.type = type; a.px = x; a.pz = z; a.base = 1; dyn.add(a.root); actors.set(id, a);
+        a = { root: new THREE.Group(), type, px: x, pz: z, base: 1, deferred: true }; actors.set(id, a);
         if (elite) { // golden elite: bigger, with a gold halo on the ground
           a.base = 1.35; const halo = softRing(0xffd34d, 0.72, 1.02, { opacity: 0.75, fill: 0.1, arcs: 2 }); halo.position.y = 0.06; a.root.add(halo); a.halo = halo;
         }
@@ -1984,6 +1993,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       if (rising > 0) { a.riseMax = Math.max(a.riseMax || 0, rising); a.root.position.y -= (ENEMIES[type].h || 1.8) * 0.95 * (rising / a.riseMax); } // climbing out of the ground
       cullSphere.center.set(a.px, a.root.position.y + 1, a.pz); cullSphere.radius = (ENEMIES[type].h || 2) * 0.8 + 1;
       a.root.visible = viewFrustum.intersectsSphere(cullSphere); // monsters off screen are not drawn at all
+      if (a.deferred && a.root.visible) realizeEnemy(a, id);
       // Hidden bones still cost scene transforms; keep ownership while skipping that traversal.
       if (a.root.visible) { if (a.root.parent !== dyn) dyn.add(a.root); }
       else a.root.removeFromParent();
@@ -2001,6 +2011,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const [id, a] of actors) if (!seenE.has(id)) {
       actors.delete(id);
       if (corpses.length > 50) { disposeActor(a.root, a.mixer); continue; }
+      if (a.deferred) realizeEnemy(a, id); // Preserve native death clips and corpse target heights.
       if (a.mats) for (const m of a.mats) m.emissive.setRGB(0, 0, 0);
       if (a.mixer && a.deathClip) { a.mixer.stopAllAction(); const act = a.mixer.clipAction(a.deathClip); act.setLoop(THREE.LoopOnce, 1); act.clampWhenFinished = true; act.reset().play(); }
       corpses.push({ id, a, t: 0, life: a.deathClip ? 1.3 : 0.9, tip: a.deathClip ? 0 : (Math.random() < 0.5 ? 1 : -1), y0: a.root.position.y });

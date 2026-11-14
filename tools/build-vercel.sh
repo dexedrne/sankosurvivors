@@ -49,7 +49,7 @@ cat > .vercel/output/config.json <<'JSON'
 {"version":3,"routes":[
   {"src":"/(.*)","headers":{"X-Content-Type-Options":"nosniff","Referrer-Policy":"strict-origin-when-cross-origin","Permissions-Policy":"camera=(), microphone=(), geolocation=(), payment=()","X-Frame-Options":"DENY","Content-Security-Policy":"frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'"},"continue":true},
   {"src":"^/assets/[^/]+-[A-Za-z0-9_-]{8,}\\.(js|css)$","headers":{"Cache-Control":"public, max-age=31536000, immutable"},"continue":true},
-  {"src":"^/assets/(models|world|music|sound|anim|ui|draco)/.*$","headers":{"Cache-Control":"public, max-age=86400, stale-while-revalidate=604800"},"continue":true},
+  {"src":"^/assets/(models|world|music|sound|anim|ui|draco|racers/(cars|karts|crashout|weapons))/.*$","headers":{"Cache-Control":"public, max-age=86400, stale-while-revalidate=604800"},"continue":true},
   {"src":"^/fun/racers/(racers-[0-9a-f]{16}\\.(js|css)|preview-[0-9a-f]{12}\\.png)$","headers":{"Cache-Control":"public, max-age=31536000, immutable"},"continue":true},
   {"src":"^/assets/racers/world/tiles/(fences-[0-9a-f]{12}\\.json|surfaces-[0-9a-f]{12}\\.bin)$","headers":{"Cache-Control":"public, max-age=31536000, immutable"},"continue":true},
   {"src":"^/(index\\.html)?$","has":[{"type":"host","value":{"eq":"gts.sankosurvivors.quest"}}],"dest":"/racers/index.html"},
