@@ -1,0 +1,33 @@
+Name: SankoSurvivors
+Subtitle: Survive the SankoQuest world
+Bundle ID: quest.sankosurvivors.casual
+SKU: sankosurvivors-ios
+Version: 1.0.0
+Primary category: Games
+Suggested game categories: Action, Role Playing
+Price: Free
+
+Description:
+The town is overrun. Pick your adventurer, find a build, and survive the hordes in the SankoQuest world.
+
+Collect experience, choose weapons and passive upgrades, discover evolutions and take on bosses. Survive a map, then carry your build into Endless. Unlock ordinary companions, finish quests and achievements, and grow your adventurer between runs.
+
+• Native SankoQuest models, world and music
+• Touch controls, Tumble and a visible Pause button
+• Casual, Hard and Endless runs
+• Local progress with progress-code backup and transfer
+• Bundled game content for offline play
+
+This iPhone edition is a separate casual game with no paid entries, purchases or cryptocurrency features. Progress is stored on this device.
+
+Beta review notes:
+No account or login is required. Tap Enter the field to start. Pause is at the top right; use Pause → Quit run to view results. Settings has separate music/effects controls and graphics options. The first music playback may require a tap, as required by WebKit. There are no wallet prompts or paid modes. A first local save is created on this installation; existing website/PWA progress can be imported only through the user's progress code.
+
+Rating questionnaire notes to verify against the submitted build:
+Cartoon/fantasy combat; alcohol references (Tin of Beer); no purchases, real-money contests, chat or user-generated content. Do not select the Kids category. Apple assigns the final age rating from the completed questionnaire.
+
+Before external review:
+- Confirm the owner's rights/permission documentation for artwork and music.
+- Publish and verify the casual-edition privacy policy/support URL.
+- Complete privacy and age-rating declarations accurately in App Store Connect.
+- Attach actual native screenshots; do not use generated artwork.

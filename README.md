@@ -14,7 +14,7 @@ Owned Bun companions use SankoQuest’s original facial expressions while catchi
 
 Adventure and Endless can offer one rare extra weapon or passive slot from level 10 when a row is full. It adds space for a later item, once per player per run; Strength or Prayer training can bring that row to 7 slots. Each co-op teammate can earn their own, and continuing a victory as Endless retains the same run bonus.
 
-This private candidate adds Air, Water, Earth, Fire and Void Shard passives for projectile speed, healing, knockback, magic damage and critical damage. Max Spells can choose one eligible Air, Water, Earth or Fire Blast with its matching shard; Void Shard, Wizard Hat or Cape unlock Void Spells. Ground Air Shards remain experience pickups. Repeated page cycles keep the same ranked replay prefix instead of filling the input log. These additions are not live until the matching build and ranked version pass the release gates.
+Air, Water, Earth, Fire and Void Shard passives provide bonuses to projectile speed, healing, knockback, magic damage and critical damage. Max Spells can choose one eligible Air, Water, Earth or Fire Blast with its matching shard; Void Shard, Wizard Hat or Cape unlock Void Spells. Ground Air Shards remain experience pickups.
 
 - **Adventure:** choose an adventurer and map, collect experience, pick upgrades and combine weapons with passives to evolve them. Casual upgrades have rarity and quality; weapon metal tiers and casket equipment are explained separately in the in-game Guide.
 - **Endless:** keep the same live build after a normal casual victory, or start an Endless run. After normal upgrades are exhausted, level-ups can keep adding small stat boosts. Continuing a finished map requires the same open tab; a reload does not restore the running simulation.
@@ -29,6 +29,8 @@ The eligible first-place wallet in week1Apache Normal has a separate, owner-fund
 
 - **Results:** inspect your full final build and save or copy a native-styled PNG card with item icons and level tracks. If image clipboard access is blocked, save the image to attach it. File sharing appears where the browser supports it; exporting an image does not submit a score or post anything.
 
+Casket choices show **Sell** and the exact coin amount. Item key bindings are saved on this device.
+
 The menu's **Guide** explains weapons, evolutions, caskets, gear, skills, food and controls. **Updates** lists changes with copy buttons. Use **More → Report a bug** to send feedback.
 
 From ranked week 2, food stacks hold at most five portions per type. An extra pickup is eaten immediately. Stored food automatically heals before an otherwise fatal hit when enough food can save you, using the belt from left to right; manual eating still works. Beer, Pumpkin and Warp Shard are never used automatically. Earlier ranked weeks, casual and co-op keep their existing food rules.
@@ -39,7 +41,7 @@ From ranked week 2, food stacks hold at most five portions per type. An extra pi
 | --- | --- |
 | Move | WASD / arrow keys |
 | Tumble | Space; current rules clear eligible low fences, buildings stay solid |
-| Use belt item | 1–4 |
+| Use belt item | 1–4 by default; change them in Settings → Item keys |
 | Choose upgrade | 1–3 or arrows and Enter |
 | Reroll / skip / banish | R / X / B on the upgrade screen |
 | Enlarge map | Hold Tab during play |
@@ -98,6 +100,9 @@ Changes to simulation/content/ranked rules or ground data require a new simulati
 | `tools/vercel-api/` | Website APIs and admission checks |
 | `tools/supabase/` | Owner-applied database functions |
 | `tools/wavedash/` | Separate wallet-free casual edition |
+| `tools/ios/` | Bundled casual iPhone app and native smoke test |
+
+The separate iPhone beta packages the casual game for offline play, with its own local save and progress-code transfer. It excludes wallets, paid ranked runs and cryptocurrency perks. Web compilation stays on the build host; native compilation and signing use Xcode on the owner's Mac. See [iPhone build instructions](tools/ios/README.md). TestFlight processing and App Review are separate release steps.
 
 ## Credits
 

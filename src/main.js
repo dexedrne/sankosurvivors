@@ -1,4 +1,5 @@
 import {lowHealthOpacity} from './health-warning.js';
+import {bindItemKeys} from './item-keys.js';
 import {entryForWeek} from './ranked-entry-price.js';
 import { captureRunBuild } from './run-build.js';
 import { pauseBuild, pauseBuildHTML } from './pause-build.js';
@@ -911,6 +912,8 @@ $('pets').addEventListener('click', e => { if (e.target.id === 'pets') $('petscl
 $('gearclose').onclick = () => { $('gear').classList.add('hidden'); navFocus($('gearbtn')); };
 
 // ---- settings ---------------------------------------------------------------------------------------------------------
+const itemKeyControls = bindItemKeys($('itemkeys'), load('sq-item-keys', null), value => localStorage.setItem('sq-item-keys', JSON.stringify(value)), value => translateText(value, document.documentElement.lang));
+for (const control of document.querySelectorAll('[data-language]')) control.addEventListener('change', () => itemKeyControls.refresh());
 const SETTINGS = [
   { head: 'Display' },
   { id: 'layout', name: 'Screen layout', opts: [['auto', 'Auto'], ['standard', 'Standard'], ['ds', 'Flex mode']] },
@@ -945,7 +948,7 @@ const SETTINGS = [
   { note: "Your device's Reduce Motion setting disables screen shake." },
   { id: 'autoequip', name: 'Auto equip safe armour upgrades (this device)', opts: [[true, 'On'], [false, 'Off']] },
   { note: 'Keeps every stat and any set you have started. Weapons stay manual.' },
-  { id: 'autoalch', name: 'Auto high alch caskets that are not better', opts: [[true, 'On'], [false, 'Off']] },
+  { id: 'autoalch', name: 'Automatically sell casket items that are not upgrades', opts: [[true, 'On'], [false, 'Off']] },
 ];function buildSettings() {
   const cur = { ...renderer.getSettings(), sound: !audio.muted, autoalch: autoAlchOn(), autoequip: autoEquipOn(), keepplaying: keepPlayingUnfocused(), layout: screenLayout.mode };
   const groups = [...$('setlist').querySelectorAll('details[data-section]')], expanded = new Set(groups.filter(el => el.open).map(el => el.dataset.section));
@@ -2058,8 +2061,8 @@ function endRun() {
       for (const a of ADVENTURERS) if (a.unlock === receipt.cleared.length) unlockNote += ` · ${a.name} unlocked`;
     }
     const lootNotes = receipt.loot.map(({ name: n, wasAlched, fresh, on }) => {
-      if (isWeaponItem(n)) return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}` : 'this run only'}</em>`;
-      return `${imgTag(n)} ${n} <em>${wasAlched ? `high alched, +${alchValue(n)}${fresh ? ', new' : ''}` : on ? (fresh ? 'worn this run, new' : 'worn this run') : fresh ? 'new' : 'sold, +25 coins'}</em>`;
+      if (isWeaponItem(n)) return `${imgTag(n)} ${n} <em>${wasAlched ? `sold, +${alchValue(n)}` : 'this run only'}</em>`;
+      return `${imgTag(n)} ${n} <em>${wasAlched ? `sold, +${alchValue(n)}${fresh ? ', new' : ''}` : on ? (fresh ? 'worn this run, new' : 'worn this run') : fresh ? 'new' : 'sold, +25 coins'}</em>`;
     });
     const questNotes = receipt.quests.map(q => q.achievement ? `Achievement unlocked: <b>${q.name}</b>` : `Quest complete: <b>${q.name}</b> · +${q.coins} coins${q.item ? ` · ${imgTag(q.item)} ${q.item}` : ''}`);
     // damage by weapon, Run Escape style
@@ -2086,7 +2089,7 @@ function endRun() {
       buildAdventurers(); updateModePicker();
     }
     $('endtext').textContent = `Survived ${fmtT(sim.t)} · level ${sim.level} · ${sim.kills} monsters slain${kpmNote}${bestNote}${unlockNote}`;
-    $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from high alch</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
+    $('endcoins').innerHTML = `${imgTag('Gold')} +${earned} coins${alchCoins ? ` <em class="alchnote">incl. ${alchCoins} from sales</em>` : ''}${dmtOn ? ' <em class="dmtnote">DMT +25%</em>' : ''}`;
     if (sim.variant === 'boss') $('endcoins').textContent = 'Practice run: no GP or gear saved.';
     renderEndBuild(result);
     $('end').classList.remove('hidden');
@@ -2179,7 +2182,7 @@ addEventListener('keydown', (e) => {
     return;
   }
   if (k === 'm') { audio.setMuted(!audio.muted); banner(audio.muted ? 'Sound off' : 'Sound on', 900); }
-  if (mode === 'play' && k >= '1' && k <= '4') pendingUse = Number(k) - 1;
+  if (mode === 'play') { const slot = itemKeyControls.slot(e); if (slot >= 0) { pendingUse = slot; e.preventDefault(); } }
   if (mode === 'play' && k === ' ') { hop(); e.preventDefault(); }
   if (k === 'escape' && !navBack() && mode === 'play') pause(true);
   if ((k === 'enter' || k === ' ') && (mode === 'title' && !$('start').disabled || mode === 'end') && MENU_SCREENS.every((id) => $(id).classList.contains('hidden'))) startRun();
@@ -2495,7 +2498,7 @@ function showCasket() {
   const pend = sim.pending[PLAYER]; if (!pend || !pend.casket) return;
   const c = pend.casket;
   // Settings: a piece that improves nothing is high alched without stopping the run (still a recorded choice in ranked)
-  if (!pend.merchantPurchase && autoAlchOn() && !c.anyUp) { toast(`${imgTag(c.item)} <span>Auto high alch<br><b>${c.item}</b> +${c.alch} coins</span>`); pickCasket(1, true); return; }
+  if (!pend.merchantPurchase && autoAlchOn() && !c.anyUp) { toast(`${imgTag(c.item)} <span>Auto sell<br><b>${c.item}</b> +${c.alch} coins</span>`); pickCasket(1, true); return; }
   if (!pend.merchantPurchase && autoEquipOn() && canAutoEquip(sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0], c.item, sim.pace)) { pickCasket(0, true); return; }
   $('coopcaskettimer').hidden = !sim.coop;
   shownPending = rewardWasShown = true; mode = 'casket'; selCard = pend.rec; audio.duck(true);
@@ -2512,10 +2515,10 @@ function showCasket() {
   $('ckset').innerHTML = setLine;
   $('ckdelta').innerHTML = `<ul>${rows.join('')}</ul>`;
   $('ckwear').innerHTML = `<span class="kb">1</span><span class="kb">A</span>${wpn ? 'Upgrade weapon' : 'Wear'}`;
-  $('ckalch').innerHTML = `<span class="kb">2</span><span class="kb">B</span>High alch for ${c.alch} coins`;
+  $('ckalch').innerHTML = `<span class="kb">2</span><span class="kb">B</span>Sell for ${c.alch} coins`;
   // the recommended choice is the game's green accept button, the other one grey
   $('ckwear').classList.toggle('ghost', pend.rec !== 0); $('ckalch').classList.toggle('ghost', pend.rec !== 1);
-  $('ckrec').textContent = pend.rec === 0 ? wpn ? 'Recommended: upgrade weapon' : 'Recommended: wear it' : c.anyUp ? 'Recommended: high alch (not better overall)' : 'Recommended: high alch (not better)';
+  $('ckrec').textContent = pend.rec === 0 ? wpn ? 'Recommended: upgrade weapon' : 'Recommended: wear it' : c.anyUp ? 'Recommended: sell (not better overall)' : 'Recommended: sell (not better)';
   $('ckmore').textContent = pend.more ? `${pend.more} more casket${pend.more > 1 ? 's' : ''} after this` : '';
   markCasket(); $('casket').classList.remove('hidden');
   if ($('equipmenthud').contains(document.activeElement)) $(pend.rec === 0 ? 'ckwear' : 'ckalch').focus({ preventScroll: true });
@@ -2675,12 +2678,12 @@ function updateHud(view) {
   const boss = view.enemies.find((e) => ENEMIES[e[1]].boss);
   $('bossbar').classList.toggle('hidden', !boss);
   if (boss) { $('bossname').textContent = bossName(sim && sim.map, boss[1]); $('bossfill').style.width = boss[5] + '%'; }
-  const bk = JSON.stringify(me.belt || []);
+  const bk = JSON.stringify([me.belt || [], itemKeyControls.keys]);
   if (bk !== slotCache.b) {
     for (const dispose of beltDisposers) dispose(); beltDisposers = [];
     slotCache.b = bk; const BELT_ICON = { beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', ...Object.fromEntries(Object.entries(FOOD).map(([kind, food]) => [kind, food.item])) };
     const BELT_TIP = { beer: sim.pace >= 2 ? 'Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running, up to 60 seconds remaining; the speed bonus stays +35%.' : 'Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.', pumpkin: 'Blasts nearby enemies. Damage grows with run time.', warp: 'Pulls all dropped bones and coins to you.' };
-    $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i], count = me.beltCounts?.[i] || 1; return `<button type="button" class="bslot${k ? '' : ' empty'}" data-i="${i}" data-kind="${k || ''}" data-count="${count}" ${k ? `aria-label="${BELT_ICON[k]}${count > 1 ? ` ×${count}` : ''}" aria-describedby="belttip${i}"` : 'disabled aria-label="Empty item slot"'}>${k ? imgTag(BELT_ICON[k]) : ''}<small>${i + 1}</small>${k ? `<b class="beltcount" translate="no"${count <= 1 ? ' hidden' : ''}>${count > 1 ? `×${count}` : ''}</b>` : ''}${k ? `<span id="belttip${i}" class="belttip" role="tooltip" hidden><b>${BELT_ICON[k]}</b><span>${FOOD[k] ? `Restores ${FOOD[k].heal} health, boosted by healing bonuses.` : BELT_TIP[k]}</span>${FOOD[k] && sim.rankedFood ? '<span>Ranked food: up to 5 per type. Automatically eaten before a fatal hit when enough food can save you.</span>' : ''}<em>Tap to use. Hold to inspect.</em></span>` : ''}</button>`; }).join('');
+    $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i], count = me.beltCounts?.[i] || 1; return `<button type="button" class="bslot${k ? '' : ' empty'}" data-i="${i}" data-kind="${k || ''}" data-count="${count}" aria-keyshortcuts="${itemKeyControls.keys[i]}" ${k ? `aria-label="${BELT_ICON[k]}${count > 1 ? ` ×${count}` : ''}" aria-describedby="belttip${i}"` : 'disabled aria-label="Empty item slot"'}>${k ? imgTag(BELT_ICON[k]) : ''}<small translate="no">${itemKeyControls.keys[i].toUpperCase()}</small>${k ? `<b class="beltcount" translate="no"${count <= 1 ? ' hidden' : ''}>${count > 1 ? `×${count}` : ''}</b>` : ''}${k ? `<span id="belttip${i}" class="belttip" role="tooltip" hidden><b>${BELT_ICON[k]}</b><span>${FOOD[k] ? `Restores ${FOOD[k].heal} health, boosted by healing bonuses.` : BELT_TIP[k]}</span>${FOOD[k] && sim.rankedFood ? '<span>Ranked food: up to 5 per type. Automatically eaten before a fatal hit when enough food can save you.</span>' : ''}<em>Tap to use. Hold to inspect.</em></span>` : ''}</button>`; }).join('');
     for (const el of $('belt').children) if (el.dataset.kind) {
       const i = Number(el.dataset.i), kind = el.dataset.kind;
       beltDisposers.push(bindBeltItem(el, { use: () => { pendingUse = i; }, canUse: () => mode === 'play' && !waitingForMove && !sim.pending[PLAYER] && !sim.over && (sim.coop ? sim.players.find(p => p.id === PLAYER) : sim.players[0]).belt[i] === kind }));
@@ -2721,7 +2724,7 @@ function updateHud(view) {
     }
     else if (f.k === 'casket' && f.worn && f.weapon) { toast(`${imgTag(f.item)} <span>${WEAPON_ITEMS[f.item] && WEAPON_ITEMS[f.item].kind === 'arrow' ? 'The Bow now shoots' : `${WEAPONS[f.weapon].name}, now`}<br><b>${f.item}</b></span>`); }
     else if (f.k === 'casket' && f.worn) { toast(`${imgTag(f.item)} <span>${f.old ? 'Now wearing' : 'Reward casket, now worn'}<br><b>${f.item}</b></span>`); }
-    else if (f.k === 'alch' && !autoAlchOn()) { toast(`${imgTag('Gold')} <span>High alch<br><b>${f.item}</b> +${f.coins} coins</span>`); }
+    else if (f.k === 'alch' && !autoAlchOn()) { toast(`${imgTag('Gold')} <span>Sold<br><b>${f.item}</b> +${f.coins} coins</span>`); }
   }
 }
 

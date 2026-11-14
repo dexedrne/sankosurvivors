@@ -10,7 +10,7 @@ test('ranked disclosure appears only from week2',()=>{
 });
 test('actual belt markup shows the food safety explanation only when the simulation rule is active',()=>{
  const a=main.indexOf('  const bk = JSON.stringify('),b=main.indexOf('  const wk = JSON.stringify(',a);assert(a>=0&&b>a);
- const render=Function('FOOD','enabled',`const belt={children:[],innerHTML:''},$=()=>belt,me={belt:['cheese'],beltCounts:[5]},sim={pace:2,rankedFood:enabled},slotCache={},BELT_SIZE=4,imgTag=()=>'';let beltDisposers=[];${main.slice(a,b)}return belt.innerHTML;`);
+ const render=Function('FOOD','enabled',`const belt={children:[],innerHTML:''},$=()=>belt,me={belt:['cheese'],beltCounts:[5]},sim={pace:2,rankedFood:enabled},slotCache={},itemKeyControls={keys:['1','2','3','4']},BELT_SIZE=4,imgTag=()=>'';let beltDisposers=[];${main.slice(a,b)}return belt.innerHTML;`);
  assert(!render(FOOD,false).includes(tip));assert(render(FOOD,true).includes(tip));assert.match(main,/f\.k === 'auto-food'/);assert(main.includes(saved));
 });
 test('new food disclosure, tooltip and feedback translate in all ordinary languages',()=>{for(const lang of['tr','es','fil'])for(const message of[rules,tip,saved])assert.notEqual(translateText(message,lang),message,lang+': '+message);});

@@ -18,3 +18,11 @@ tools/supabase/update2.sql
 
 dist-coop
 dist-coop-native
+
+# Native iPhone outputs (source project stays tracked)
+tools/ios/www/
+tools/ios/build-manifest.json
+tools/ios/ios/App/App/public/
+tools/ios/ios/App/build/
+tools/ios/ios/App/DerivedData/
+*.xcuserstate

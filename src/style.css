@@ -300,6 +300,9 @@ body.touch .card .key { display: none; }
 #petlist button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: #58432c; }
 #setlist { display: flex; flex-direction: column; gap: 6px; text-align: left; margin-bottom: 8px; }
 .setrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--cream); }
+#itemkeys > summary { cursor:pointer; min-height:44px; padding:10px 0 6px; font-size:20px; }
+#itemkeys .setrow { margin:6px 0; }
+#itemkeys .seg button { min-width:110px; min-height:44px; font-family:RSPlain,sans-serif; font-size:20px; }
 .seg { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 .seg button { margin: 0; padding: 0 10px; font-size: 16px; }
 .seg button.on { border-image: url(../assets/ui/sq/yellow_slot.png) 14 fill stretch; color: #2a1d08; text-shadow: none; }

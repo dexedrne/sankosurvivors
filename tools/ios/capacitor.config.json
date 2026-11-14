@@ -1,0 +1,25 @@
+{
+  "appId": "quest.sankosurvivors.casual",
+  "appName": "SankoSurvivors",
+  "webDir": "www",
+  "loggingBehavior": "debug",
+  "includePlugins": [],
+  "server": {
+    "hostname": "localhost",
+    "iosScheme": "capacitor"
+  },
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "preferredContentMode": "mobile",
+    "allowsLinkPreview": false,
+    "webContentsDebuggingEnabled": false,
+    "backgroundColor": "#1e1710"
+  },
+  "plugins": {
+    "SystemBars": {
+      "hidden": true,
+      "animation": "NONE"
+    }
+  }
+}

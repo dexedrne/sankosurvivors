@@ -1,0 +1,21 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 60;
+ objects = {
+  A10000000000000000000001 = {isa = PBXProject; buildConfigurationList = A10000000000000000000002; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; mainGroup = A10000000000000000000003; productRefGroup = A10000000000000000000004; projectDirPath = ""; projectRoot = ""; targets = (A10000000000000000000005,); };
+  A10000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000006,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+  A10000000000000000000003 = {isa = PBXGroup; children = (A10000000000000000000007,A10000000000000000000004,); sourceTree = "<group>"; };
+  A10000000000000000000004 = {isa = PBXGroup; children = (A10000000000000000000008,); name = Products; sourceTree = "<group>"; };
+  A10000000000000000000005 = {isa = PBXNativeTarget; buildConfigurationList = A10000000000000000000009; buildPhases = (A1000000000000000000000A,); buildRules = (); dependencies = (); name = Smoke; productName = Smoke; productReference = A10000000000000000000008; productType = "com.apple.product-type.bundle.ui-testing"; };
+  A10000000000000000000006 = {isa = XCBuildConfiguration; buildSettings = {SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SWIFT_VERSION = 5.0; CLANG_ENABLE_MODULES = YES; }; name = Debug; };
+  A10000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
+  A10000000000000000000008 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = Smoke.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+  A10000000000000000000009 = {isa = XCConfigurationList; buildConfigurations = (A1000000000000000000000B,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+  A1000000000000000000000A = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000000000000000000000C,); runOnlyForDeploymentPostprocessing = 0; };
+  A1000000000000000000000B = {isa = XCBuildConfiguration; buildSettings = {PRODUCT_BUNDLE_IDENTIFIER = quest.sankosurvivors.casual.smoke; PRODUCT_NAME = "$(TARGET_NAME)"; GENERATE_INFOPLIST_FILE = YES; CODE_SIGN_STYLE = Automatic; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Debug; };
+  A1000000000000000000000C = {isa = PBXBuildFile; fileRef = A10000000000000000000007; };
+ };
+ rootObject = A10000000000000000000001;
+}

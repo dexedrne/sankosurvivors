@@ -1,0 +1,16 @@
+SankoSurvivors for iPhone — privacy
+Effective 14 November 2026
+
+This policy describes the separate, bundled casual iPhone edition, not the website or installed web app.
+
+The game stores progress and preferences on your device. It has no account login, advertising, tracking, analytics, cryptocurrency wallet, purchases, chat or developer-operated cloud save. It does not send your gameplay or progress to the developer. Bundled maps, models, music and sounds work offline.
+
+Move progress creates a code containing your game progress. Copying or sharing that code is your choice. The game does not upload it. Save and share actions use the destinations you select. Device backups and third-party apps you choose have their own privacy practices.
+
+Links to community and creator pages open external services, whose privacy policies apply. TestFlight feedback and Apple diagnostics are handled by Apple under its settings and privacy terms; these may include information you choose to submit.
+
+Deleting the app removes its local data from that installation. Keep a progress-code backup before deleting it. We cannot restore an unbacked local save.
+
+For support or privacy questions: https://x.com/dexedrne
+
+Submission note (remove before publishing): publish this policy at a stable HTTPS URL and verify it before App Store review. This file alone is not a published privacy policy URL.
