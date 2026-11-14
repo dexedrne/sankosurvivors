@@ -116,3 +116,5 @@ Grand Theft Sanko workshops offer **Make max**; the bank offers **Bank max** and
 How to play includes the complete weapon/passive catalogue with original icons and descriptions, separate from permanent skills and worn gear. Enemy target metadata stays available off-screen while native rigs load on first visibility or death. This reduces hidden spawn allocation without changing combat rules. Ranked share text describes the current80% placing/20% participation prize allocation.
 
 GTS starts world rendering after initial loading and blends its chase framing into reverse. Original kart and weapon assets use the existing bounded native-art cache; mutable world metadata still revalidates.
+
+Casual Gold passive rewards coin pickups and high alch with damage (up to +50%), alongside Rusty Key. Below 25% health, a steady screen-edge warning remains visible with colour grading off.

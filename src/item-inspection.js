@@ -1,4 +1,4 @@
-import {WEAPONS,EVOLUTIONS,GEAR,GEAR_SLOT_NAMES,GEAR_SLOTS,GEAR_MAX_LV,weaponDisplay,weaponStep,weaponMetal,weaponStats,evolveStats,evolutionPassives,PASSIVES,passiveTitle,passiveStrength,MAX_PASSIVE_LEVEL,gearPieceBonus,bonusText} from './content.js';
+import {WEAPONS,EVOLUTIONS,GEAR,GEAR_SLOT_NAMES,GEAR_SLOTS,GEAR_MAX_LV,weaponDisplay,weaponStep,weaponMetal,weaponStats,evolveStats,evolutionPassives,PASSIVES,passiveTitle,passiveStrength,fortuneBonus,MAX_PASSIVE_LEVEL,gearPieceBonus,bonusText} from './content.js';
 const statRows=[['dmg','Base damage'],['cd','Cooldown',' s'],['count','Projectiles'],['pierce','Pierce'],['range','Range'],['radius','Radius'],['r','Size'],['speed','Projectile speed'],['burst','Burst radius']];
 export function itemInspection(player,kind,id,pace=2) {
   if(!player)return null;
@@ -7,6 +7,7 @@ export function itemInspection(player,kind,id,pace=2) {
     const level=player.passives[id];if(!Number.isInteger(level)||level<1||level>MAX_PASSIVE_LEVEL)return null;
     const strength=passiveStrength(player,id),details=[`Level: ${level}`,PASSIVES[id].blurb];
     if(Number.isFinite(strength)&&strength!==level)details.push(`Effective level: ${Number(strength.toFixed(3))}`);
+    if(id==='fortune')details.push(`Current damage bonus: +${Math.round(fortuneBonus(player)*10000)/100}%`);
     const evolves=Object.keys(EVOLUTIONS).filter(w=>evolutionPassives(w,pace).includes(id));
     if(evolves.length)details.push(`Evolves ${evolves.map(w=>WEAPONS[w].name).join(', ')}.`);
     return {title:passiveTitle(id,level),details};

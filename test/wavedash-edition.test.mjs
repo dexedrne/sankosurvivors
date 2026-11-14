@@ -1,3 +1,4 @@
+import {lowHealthOpacity} from '../src/health-warning.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -154,7 +155,7 @@ test('hidden or unfocused iframe returns before simulation/reward timers and cle
 });
 test('title backdrop can render before the player first focuses the iframe', () => {
   const code=transformMain(main),start=code.indexOf('function loop(ts)'),end=code.indexOf('  const cap =',start);
-  const result=Function('document','suspendPage',`let last=0,acc=0;const mode='title',sim=null,inspectedElement=null,petViewer=null,requestAnimationFrame=()=>{},setMapPeek=()=>{},hideItemInspection=()=>{};${code.slice(start,end)}return 'title can render';}return loop(5000);`)({hidden:false,hasFocus:()=>false},()=>assert.fail('no live run to suspend'));
+  const result=Function('document','suspendPage','lowHealthOpacity',`let last=0,acc=0;const $=()=>({style:{setProperty(){}}}),PLAYER='p1',mode='title',sim=null,inspectedElement=null,petViewer=null,requestAnimationFrame=()=>{},setMapPeek=()=>{},hideItemInspection=()=>{};${code.slice(start,end)}return 'title can render';}return loop(5000);`)({hidden:false,hasFocus:()=>false},()=>assert.fail('no live run to suspend'),lowHealthOpacity);
   assert.equal(result,'title can render');
 });
 

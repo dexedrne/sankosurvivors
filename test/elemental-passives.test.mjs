@@ -6,7 +6,7 @@ const close=(a,b)=>assert(Math.abs(a-b)<1e-9,`${a} != ${b}`),ids=['air','water',
 function fresh(options={}){const sim=S.createSim({seed:1106,pace:2,...options});sim.spawnAcc=-1e9;sim.bossIndex=99;sim.eventT=sim.shrineT=1e9;return{sim,p:sim.players[0]};}
 test('five original shards are selectable pace2 passives without changing existing Spirit/Warp or pace1 offers',()=>{
  for(const id of ids){assert.equal(C.PASSIVES[id]?.item,id[0].toUpperCase()+id.slice(1)+' Shard');assert.equal(C.PASSIVES[id].pace,2);for(const ranked of [true,false])assert(C.passiveIdsAt(2,ranked).includes(id));assert(!C.passiveIdsAt(1).includes(id));}
- assert.equal(C.PASSIVES.haste.item,'Spirit Shard');assert.equal(C.PASSIVES.magnet.item,'Warp Shard');assert.equal(C.gemItem(),'Air Shard');assert.equal(C.PASSIVE_IDS.length,18);
+ assert.equal(C.PASSIVES.haste.item,'Spirit Shard');assert.equal(C.PASSIVES.magnet.item,'Warp Shard');assert.equal(C.gemItem(),'Air Shard');assert.equal(C.PASSIVE_IDS.length,19);
 });
 for(const [id,key,base,gain]of [['air','projectileSpeed',1,.05],['water','heal',1,.1],['earth','knockback',1,.1],['fire','magic',1,.06],['void','critM',1.8,.2]])for(const rank of [1,5])test(`${id} rank${rank} affects only its documented stat`,()=>{
  const{p}=fresh();const before=S.playerStats(p);p.passives={[id]:rank};const after=S.playerStats(p);close(after[key],base+gain*rank);

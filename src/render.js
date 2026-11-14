@@ -2273,7 +2273,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     renderer.info.autoReset = false; renderer.info.reset(); // count every pass of the frame (shadows, scene, effects)
     if (torch.intensity > 0) torch.position.set(cam.x, gy + 3.2, cam.z);
     grade.uniforms.uTime.value = time; grade.uniforms.uHurt.value = Math.min(1, cam.flash * 3); grade.uniforms.uFlash.value = Math.max(0, cam.white || 0); cam.white = Math.max(0, (cam.white || 0) - dt * 2.5);
-    if (me) grade.uniforms.uLow.value = me.al && me.hp / me.mhp < 0.3 ? 1 : 0;
+    if (me) grade.uniforms.uLow.value = 0; // The steady HUD warning also works with colour grading off.
     if (settings.dof) bokeh.uniforms.focus.value = camera.position.distanceTo(tmpV.set(cam.x, gy + 1, cam.z));
     // Additive spells need linear blending before ACES/sRGB even with every optional effect off.
     composer.render(dt);

@@ -1,4 +1,4 @@
-import {ADVENTURER_BY_ID,MAX_WEAPON_LEVEL,MAX_PASSIVE_LEVEL,WEAPONS,PASSIVES,GEAR,GEAR_SLOTS,GEAR_SLOT_NAMES,GEAR_MAX_LV,SKILLS,clampSkills,weaponDisplay,weaponStep,weaponSlotItem,passiveItem,passiveTitle,itemIconFile} from './content.js';
+import {ADVENTURER_BY_ID,MAX_WEAPON_LEVEL,MAX_PASSIVE_LEVEL,WEAPONS,PASSIVES,GEAR,GEAR_SLOTS,GEAR_SLOT_NAMES,GEAR_MAX_LV,SKILLS,clampSkills,weaponDisplay,weaponStep,weaponSlotItem,passiveItem,passiveTitle,itemIconFile,fortuneBonus} from './content.js';
 import {playerStats,FOOD,BELT_SIZE,beltCount} from './sim.js';
 import {VARIANTS} from './game-modes.js';
 
@@ -17,7 +17,7 @@ export function captureRunBuild(sim,player,{name='Adventurer',ranked=false,versi
  });
  sections.push({title:'Weapons',rows:weapons});
  sections.push({title:'Passives',rows:Object.entries(player.passives||{}).filter(([id,level])=>Object.hasOwn(PASSIVES,id)&&Number.isInteger(level)&&level>0&&level<=MAX_PASSIVE_LEVEL).map(([id,level])=>{
-  const quality=number(player.quality?.passives?.[id]);return{name:passiveTitle(id,level),icon:icon(passiveItem(id,level)),level,maxLevel:MAX_PASSIVE_LEVEL,evolved:false,details:[`Level: ${level}`,...(quality?[`Effective level: ${rounded(level+quality/100)}`]:[])]};
+  const quality=number(player.quality?.passives?.[id]);return{name:passiveTitle(id,level),icon:icon(passiveItem(id,level)),level,maxLevel:MAX_PASSIVE_LEVEL,evolved:false,details:[`Level: ${level}`,...(id==='fortune'?[`Current damage bonus: +${rounded(fortuneBonus(player)*100)}%`]:[]),...(quality?[`Effective level: ${rounded(level+quality/100)}`]:[])]};
  })});
  sections.push({title:'Equipment',rows:GEAR_SLOTS.flatMap(slot=>{
   const name=player.gear?.[slot];if(!Object.hasOwn(GEAR,name)||GEAR[name].slot!==slot)return[];

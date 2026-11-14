@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "+1% damage per 25 GP collected this run, per level (max +50%). Counts coin pickups and high alch.": "+1% de daño por cada 25 GP recogidos en esta partida, por nivel (máx. +50%). Cuenta monedas y alquimia mayor. Solo casual.",
+  "Gold and a warning": "Oro y una advertencia",
+  "Gold is a casual passive: collected coin pickups and high alch increase damage, up to +50%. Pair it with Rusty Key. Inspect Gold to see its current bonus.": "Oro es una pasiva casual: las monedas recogidas y la alquimia mayor aumentan el daño hasta +50%. Combínalo con Llave Oxidada. Inspecciona Oro para ver su bonificación actual.",
+  "A steady red screen edge warns below 25% health, including with colour grading off. It clears when healed or outside play.": "Un borde rojo fijo avisa al bajar del 25% de salud, incluso sin corrección de color. Desaparece al curarte o salir de la partida.",
+
   "EVOLVES SPELLS": "EVOLUCIONA Hechizos",
   "Choose your Blast": "Elige tu explosión",
   "Air, Water, Earth, Fire and Void Shards can appear as passive upgrades. Max Spells can choose one eligible Blast evolution; Wizard Hat and Cape still unlock Void Spells. Ground Air Shards still give experience.": "Los Fragmentos de Aire, Agua, Tierra, Fuego y Vacío pueden aparecer como mejoras pasivas. Hechizos al máximo puede elegir una evolución de Explosión disponible; el Sombrero de Mago y la Capa siguen desbloqueando Hechizos del Vacío. Los Fragmentos de Aire del suelo siguen dando experiencia.",
@@ -1982,6 +1987,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Current damage bonus: +{0}%", "Bonificación de daño actual: +{0}%"],
   ["Run ends in {1} · Monday, 00:00 UTC.", "Tu partida termina en {1} · lunes, 00:00 UTC."],
   ["Score: {1}. Runs under {2} cannot place.", "Puntuación: {1}. Las partidas de menos de {2} no pueden clasificar."],
  ["Rank: {0}", "Rango: {0}"],

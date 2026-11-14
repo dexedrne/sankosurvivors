@@ -1,3 +1,4 @@
+import {lowHealthOpacity} from './health-warning.js';
 import {entryForWeek} from './ranked-entry-price.js';
 import { captureRunBuild } from './run-build.js';
 import { pauseBuild, pauseBuildHTML } from './pause-build.js';
@@ -2403,7 +2404,7 @@ function showLevelUp() {
     } else {
       const stats = p => ({ ...playerStats(p), cardLuck: cardLuck(p.meta, { greed: passiveStrength(p, 'greed') }) });
       before = stats(me); next = stats(after);
-      rows = { might: [['might', 'Damage multiplier', '×']], haste: [['haste', 'Cooldown multiplier', '×']], boots: [['speed', 'Movement speed']], magnet: [['magnet', 'Pickup range']], armor: [['armor', 'Armor']], growth: [['growth', 'XP multiplier', '×']], vigor: [['maxHp', 'Maximum health'], ['regen', 'Health per second']], greed: [['coin', 'Coin multiplier', '×'], ['casket', 'Casket multiplier', '×'], ['cardLuck', 'Card luck', '%']], area: [['area', 'Area multiplier', '×']], amount: [['amount', 'Extra projectiles'], ['reach', 'Reach multiplier', '×']], crit: [['critC', 'Critical chance', '%'], ['critM', 'Critical multiplier', '×']], thorns: [['thorns', 'Thorns damage']], air: [['projectileSpeed', 'Projectile speed multiplier', '×']], water: [['heal', 'Healing multiplier', '×']], earth: [['knockback', 'Knockback multiplier', '×']], fire: [['magic', 'Magic damage multiplier', '×']], void: [['critM', 'Critical multiplier', '×']] }[c.id];
+      rows = { fortune: [['might', 'Damage multiplier', '×']], might: [['might', 'Damage multiplier', '×']], haste: [['haste', 'Cooldown multiplier', '×']], boots: [['speed', 'Movement speed']], magnet: [['magnet', 'Pickup range']], armor: [['armor', 'Armor']], growth: [['growth', 'XP multiplier', '×']], vigor: [['maxHp', 'Maximum health'], ['regen', 'Health per second']], greed: [['coin', 'Coin multiplier', '×'], ['casket', 'Casket multiplier', '×'], ['cardLuck', 'Card luck', '%']], area: [['area', 'Area multiplier', '×']], amount: [['amount', 'Extra projectiles'], ['reach', 'Reach multiplier', '×']], crit: [['critC', 'Critical chance', '%'], ['critM', 'Critical multiplier', '×']], thorns: [['thorns', 'Thorns damage']], air: [['projectileSpeed', 'Projectile speed multiplier', '×']], water: [['heal', 'Healing multiplier', '×']], earth: [['knockback', 'Knockback multiplier', '×']], fire: [['magic', 'Magic damage multiplier', '×']], void: [['critM', 'Critical multiplier', '×']] }[c.id];
     }
     const number = (n, unit) => (unit === '×' ? '×' : '') + Number((unit === '%' ? n * 100 : n).toFixed(4)) + (unit && unit !== '×' ? unit : '');
     return '<div class="upstats">' + (c.kind === 'weapon' ? '<div>Base weapon stats</div>' : '') + rows.filter(([key]) => typeof next[key] === 'number').map(([key, label, unit]) => `<div><span>${label}</span><b>${fresh ? '' : number(before[key], unit) + ' → '}${number(next[key], unit)}</b></div>`).join('') + '</div>';
@@ -2867,6 +2868,7 @@ function drawMinimap(view) {
 let lastDrawn = 0, lastMenuDrawn = -Infinity;
 function loop(ts) {
   requestAnimationFrame(loop);
+  $('hurt').style.setProperty('--low-health', lowHealthOpacity(sim?.players.find(p => p.id === PLAYER), ['play', 'levelup', 'casket'].includes(mode) && !sim?.over));
   enforceRankedDeadline();
   syncRankedClock();
   if (mode !== 'play' || document.hidden) setMapPeek(false);

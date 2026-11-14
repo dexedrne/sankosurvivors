@@ -213,6 +213,12 @@ export function passiveStrength(p, id) {
   return (p.passives[id] || 0) + (p.quality?.passives?.[id] || 0) / 100;
 }
 
+export function fortuneBonus(p) {
+  if (!(p.pace >= 2) || !p.passives.fortune) return 0;
+  const gold = Math.max(0, (p.coins || 0) * 3 + (p.alch || 0));
+  return Math.min(0.5, gold * 0.0004 * passiveStrength(p, 'fortune'));
+}
+
 // ---- passives -----------------------------------------------------------
 // Each passive is a real SankoQuest item (names and icons from the item catalog).
 export const PASSIVES = {
@@ -235,6 +241,7 @@ export const PASSIVES = {
   water:   { name: 'Water Shard',  item: 'Water Shard',  pace: 2, blurb: '+10% healing from food, drinks and restoration choices per level.' },
   earth:   { name: 'Earth Shard',  item: 'Earth Shard',  pace: 2, blurb: '+10% attack knockback per level. Bosses remain immune to knockback.' },
   fire:    { name: 'Fire Shard',   item: 'Fire Shard',   pace: 2, blurb: '+6% magic damage per level. Affects Spells and the Lighter.' },
+  fortune: { name: 'Gold', item: 'Gold', pace: 2, casual: true, blurb: '+1% damage per 25 GP collected this run, per level (max +50%). Counts coin pickups and high alch.' },
   void:    { name: 'Void Shard',   item: 'Void Shard',   pace: 2, blurb: '+0.20 critical damage multiplier per level. Critical chance stays the same.' },
 };
 export const ARMOR_TIERS = ['Bronze', 'Iron', 'Steel', 'Mithril', 'Adamantite', 'Runite'];

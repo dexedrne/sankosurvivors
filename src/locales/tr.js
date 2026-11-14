@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "+1% damage per 25 GP collected this run, per level (max +50%). Counts coin pickups and high alch.": "Bu koşuda toplanan her 25 GP ve seviye başına +%1 hasar (en fazla +%50). Yerden alınan altın ve yüksek simya sayılır. Yalnızca serbest oyun.",
+  "Gold and a warning": "Altın ve bir uyarı",
+  "Gold is a casual passive: collected coin pickups and high alch increase damage, up to +50%. Pair it with Rusty Key. Inspect Gold to see its current bonus.": "Altın serbest oyun pasifidir: toplanan altın ve yüksek simya hasarı en fazla %50 artırır. Paslı Anahtar ile birleştirin. Güncel bonus için Altını inceleyin.",
+  "A steady red screen edge warns below 25% health, including with colour grading off. It clears when healed or outside play.": "Can %25 altına inince, renk düzenleme kapalıyken de sabit kırmızı kenar görünür. İyileşince veya oyundan çıkınca kaybolur.",
+
   "EVOLVES SPELLS": "EVRİMLEŞEN: Büyüler",
   "Choose your Blast": "Patlamanı seç",
   "Air, Water, Earth, Fire and Void Shards can appear as passive upgrades. Max Spells can choose one eligible Blast evolution; Wizard Hat and Cape still unlock Void Spells. Ground Air Shards still give experience.": "Hava, Su, Toprak, Ateş ve Boşluk Parçaları pasif yükseltmeler olarak çıkabilir. En üst seviyedeki Büyüler, uygun Patlama evrimlerinden birini seçebilir; Büyücü Şapkası ve Pelerin hâlâ Boşluk Büyülerini açar. Yerdeki Hava Parçaları hâlâ deneyim verir.",
@@ -1982,6 +1987,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Current damage bonus: +{0}%", "Güncel hasar bonusu: +%{0}"],
   ["Run ends in {1} · Monday, 00:00 UTC.", "Turun {1} sonra biter · Pazartesi, 00:00 UTC."],
   ["Score: {1}. Runs under {2} cannot place.", "Skor: {1}. {2} altındaki turlar sıralama ödülü alamaz."],
  ["Rank: {0}", "Rütbe: {0}"],

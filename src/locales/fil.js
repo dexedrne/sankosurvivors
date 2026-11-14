@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "+1% damage per 25 GP collected this run, per level (max +50%). Counts coin pickups and high alch.": "+1% pinsala kada 25 GP na nakolekta sa run na ito, kada level (hanggang +50%). Kasama ang coins at high alch. Casual lamang.",
+  "Gold and a warning": "Ginto at babala",
+  "Gold is a casual passive: collected coin pickups and high alch increase damage, up to +50%. Pair it with Rusty Key. Inspect Gold to see its current bonus.": "Casual passive ang Gold: dagdag pinsala mula sa coins at high alch, hanggang +50%. Ipares sa Rusty Key. Suriin ang Gold para makita ang kasalukuyang bonus.",
+  "A steady red screen edge warns below 25% health, including with colour grading off. It clears when healed or outside play.": "May tuloy-tuloy na pulang gilid kapag mas mababa sa 25% ang health, kahit naka-off ang colour grading. Nawawala kapag gumaling o lumabas sa laro.",
+
   "EVOLVES SPELLS": "EVOLVE: Mga Mahika",
   "Choose your Blast": "Piliin ang Pagsabog mo",
   "Air, Water, Earth, Fire and Void Shards can appear as passive upgrades. Max Spells can choose one eligible Blast evolution; Wizard Hat and Cape still unlock Void Spells. Ground Air Shards still give experience.": "Maaaring lumabas ang mga Piraso ng Hangin, Tubig, Lupa, Apoy at Kawalan bilang mga passive upgrade. Kapag sagad na ang Mahika, makakapili ng isang kwalipikadong ebolusyong Pagsabog; binubuksan pa rin ng Sumbrero ng Mago at Kapa ang Mahika ng Kawalan. Nagbibigay pa rin ng karanasan ang mga Piraso ng Hangin sa lupa.",
@@ -1982,6 +1987,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["Current damage bonus: +{0}%", "Kasalukuyang bonus sa pinsala: +{0}%"],
   ["Run ends in {1} · Monday, 00:00 UTC.", "Matatapos ang takbo sa {1} · Lunes, 00:00 UTC."],
   ["Score: {1}. Runs under {2} cannot place.", "Score: {1}. Hindi makakakuha ng puwesto ang mga takbong mas maikli sa {2}."],
  ["Rank: {0}", "Ranggo: {0}"],

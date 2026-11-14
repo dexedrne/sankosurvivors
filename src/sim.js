@@ -3,7 +3,7 @@ import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in e
 import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
   ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, spellEvolutions, spellEvolutionChoices, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
-  WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength,
+  WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength, fortuneBonus,
   weaponSlotItem, TUMBLE, PASTURE_NAV, OASIS_WATER_NAV, SNOW_WAVE_AT, isSnowEnemy,
 } from './content.js';
 import { MERCHANT, merchantEligible, merchantStock } from './merchant.js';
@@ -346,7 +346,7 @@ export function playerStats(p, meta = p.meta || {}) {
   const B = (ADVENTURER_BY_ID[p.adv] || {}).bonus || {};
   const G = p.gb || {}; // worn gear
   const bf = p.buffs || {}; // timed boons: beer, a blizzard's chill, the shrines' Strength, Agility and Magic
-  const might = (1 + 0.12 * passiveStrength(p, 'might') + 0.04 * m('combat') + (B.dmg || 0) + (G.dmg || 0)) * (bf.strength > 0 ? 1.3 : 1);
+  const might = (1 + 0.12 * passiveStrength(p, 'might') + 0.04 * m('combat') + (B.dmg || 0) + (G.dmg || 0)) * (bf.strength > 0 ? 1.3 : 1) * (1 + fortuneBonus(p));
   const haste = Math.max(0.3, 1 - 0.07 * passiveStrength(p, 'haste') - 0.03 * m('fletching') - (B.haste || 0) - (G.haste || 0));
   const stats = {
     might, haste,
