@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {sqlDB} from './helpers/payout-sql-db.mjs';
+import {makePlan} from '../tools/payout/core.mjs';
+import {prizeEstimate} from '../src/prize-display.js';
+const unit=10n**18n,a='0x'+'1'.repeat(40),b='0x'+'2'.repeat(40),c='0x'+'3'.repeat(40);
+test('SQL21 admits exact1/10/25 once, preserves rows and policy, independently settles actual contributions',{skip:!process.env.SQS_PGLITE},async()=>{
+ const {db,rpc}=await sqlDB({current:true});
+ try{
+  for(const n of [19,20])await db.exec(await readFile(new URL(`../tools/supabase/update${n}.sql`,import.meta.url),'utf8'));
+  await db.exec("create or replace function pg_catalog.now() returns timestamptz language sql stable as $$select '2026-11-14T12:00:00Z'::timestamptz$$; create or replace function pg_catalog.clock_timestamp() returns timestamptz language sql volatile as $$select now()$$;");
+  let serial=0;
+  const enter=(wallet,paid,tx='0x'+String(++serial).padStart(64,'0'),week=1,mode='normal',key='server-key')=>rpc('sqs_ranked_enter_v2',{p_server_key:key,p_tx:tx,p_wallet:wallet,p_week:week,p_ip_hash:wallet,p_paid:paid,p_seed:1,p_max:1000000,p_mode:mode});
+  const first=await enter(a,String(unit));assert(first.ok);
+  const before=(await db.query('select * from sqs_ranked_entries')).rows;
+  const sql=await readFile(new URL('../tools/supabase/update21.sql',import.meta.url),'utf8');await db.exec(sql);await db.exec(sql);
+  assert.deepEqual((await db.query('select * from sqs_ranked_entries')).rows,before);
+  const ready=await rpc('sqs_ranked_can_enter_v2',{p_server_key:'server-key',p_wallet:a,p_week:1,p_ip_hash:a,p_max:1000000,p_mode:'normal'});
+  assert.equal(ready.entry_version,3);assert.equal(ready.reward_version,2);assert(ready.ok);
+  const tx='0x'+'f'.repeat(64),max=await enter(b,String(25n*unit),tx);assert(max.ok,JSON.stringify(max));
+  assert.equal((await enter(b,String(25n*unit),tx)).id,max.id);
+  const high=await enter(c,String(10n*unit));assert(high.ok);
+  for(const paid of [null,'0','1',String(24n*unit),String(26n*unit),String(25n*unit+1n),'NaN','Infinity'])assert.equal((await enter(a,paid)).error,'bad entry amount');
+  assert.equal((await enter(a,String(25n*unit),undefined,0)).error,'bad entry amount');
+  assert.equal((await enter(a,String(25n*unit),undefined,1,'hard')).error,'bad entry amount');
+  assert.equal((await enter(a,String(25n*unit),undefined,1,'normal','bad')).error,'forbidden');
+  const denied=await rpc('sqs_ranked_can_enter_v2',{p_server_key:'server-key',p_wallet:b,p_week:1,p_ip_hash:a,p_max:1000000,p_mode:'normal'});assert(denied.error);assert.equal(denied.entry_version,undefined);
+  await db.query("update sqs_ranked_entries set started_at=now(),claimed_at=now(),finished_at=now(),verdict='ok',t=180,kills=10,level=1,name='fixture',log='fixture-log',log_sha='sha'");
+  await db.exec("insert into sqs_ranked_payout_weeks(week,mode,paid,house,pool,incoming,rollover,top,pay_at) values(0,'normal',0,0,0,0,0,'[]',now()); create or replace function pg_catalog.now() returns timestamptz language sql stable as $$select '2026-11-17T01:00:00Z'::timestamptz$$;");
+  const report=await rpc('sqs_ranked_settle_v2',{p_key:'reports-key',p_week:1,p_mode:'normal'}),plan=makePlan(report,'0',1);
+  assert.equal(report.paid,String(36n*unit));assert.deepEqual(report.activity.map(r=>r.paid),[String(unit),String(25n*unit),String(10n*unit)]);
+  assert.deepEqual(await rpc('sqs_payout_plan_v2',{p_key:'payout-key',p_week:1,p_mode:'normal',p_plan:plan}),{ok:true});
+  const estimate=prizeEstimate({week:1,poolWei:plan.pool,rolloverReady:true,rewards:{version:2},rewardActivity:report.activity,rows:report.top},[0,1,2],[.4,.25,.15,.12,.08]);
+  assert.deepEqual(estimate.participation,plan.participation);
+  assert(BigInt(plan.participation.find(r=>r.wallet===b).amount)>BigInt(plan.participation.find(r=>r.wallet===c).amount));
+  assert.equal(BigInt(plan.house)+BigInt(plan.rollover)+[...plan.prizes,...plan.participation].reduce((n,r)=>n+BigInt(r.amount),0n),36n*unit);
+  const state=await rpc('sqs_payout_read',{p_key:'payout-key',p_week:1});await db.exec(sql);assert.deepEqual(await rpc('sqs_payout_read',{p_key:'payout-key',p_week:1}),state);
+  const grants=(await db.query("select has_function_privilege('anon','sqs_ranked_enter_v2(text,text,text,integer,text,numeric,bigint,integer,text)','execute') enter,has_function_privilege('authenticated','sqs_ranked_enter_v2(text,text,text,integer,text,numeric,bigint,integer,text)','execute') auth,has_function_privilege('anon','sqs_ranked_can_enter_v2(text,text,integer,text,integer,text)','execute') ready")).rows[0];assert.deepEqual(grants,{enter:true,auth:false,ready:true});
+ }finally{await db.close();}
+});

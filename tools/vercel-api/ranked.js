@@ -69,7 +69,7 @@ const enterMessage = (nonce, week, mode = 'normal', deadline, tier = 'standard')
     : `SankoQuest Survivors ranked\n\nSign to enter this week's ranked runs (week ${week}). Signing is free. Your wallet asks separately before sending the ${price} DMT entry.\n\nNonce: ${nonce}`;
   return Number.isSafeInteger(deadline) ? message + `\n\nI acknowledge this run stops at ${new Date(deadline).toISOString()} and keeps the score earned by then.` : message;
 };
-const tierOf = x => x?.h===1?'high':'standard';
+const tierOf = x => x?.h===2?'max':x?.h===1?'high':'standard';
 const modeOf = (x) => (x && x.m === 'hard' ? 'hard' : 'normal'); // tickets from before the Hard race are Normal
 // the game version's rules for a week (older versions: one 15-minute Normal race)
 const racesIn = (g, w) => (typeof g.entryRacesOf === 'function' ? g.entryRacesOf(w) : ['normal']);
@@ -221,11 +221,12 @@ async function handle(route, req, res, ctx) {
     if (!policy.admissionOpen) return send(res, 400, {error:'ranked admission is closed', closed:true, ...policy});
     if (q.get('deadline') !== String(policy.deadline)) return send(res, 400, {error:'acknowledge the ranked deadline before entering'});
     const tier=q.get('tier')??'standard',price=raceIn(g,week,mode,tier);
-    if(!['standard','high'].includes(tier)||!price)return send(res,400,{error:'that entry wager is not available'});
+    if(!['standard','high','max'].includes(tier)||!price)return send(res,400,{error:'that entry wager is not available'});
     const can = await rpc('sqs_ranked_can_enter_v2', { p_server_key: SERVER_KEY, p_wallet: wallet, p_week: week, p_ip_hash: ipHash(ip, week, TICKET_KEY), p_max: g.RANKED.maxEntriesPerWallet, p_mode: mode });
     if (!can || can.error || can.reward_version!==2 || can.ok!==true || !Number.isSafeInteger(can.left) || can.left<=0) return send(res, 400, can?.error?can:{error:'could not verify the current reward policy; no payment was requested'});
+    if(tier==='max'&&can.entry_version!==3)return send(res,400,{error:'could not verify the 25 DMT entry update; no payment was requested'});
     // the race is part of the signed nonce: the payment is checked against that race's price and enters that race
-    const nonce = signed({ k: 'rnonce', w: week, d: policy.deadline, c: 1, s: Date.now(), n: crypto.randomBytes(9).toString('base64url'), ...(mode === 'normal' ? {} : { m: mode }),...(tier==='high'?{h:1}:{}) });
+    const nonce = signed({ k: 'rnonce', w: week, d: policy.deadline, c: 1, s: Date.now(), n: crypto.randomBytes(9).toString('base64url'), ...(mode === 'normal' ? {} : { m: mode }),...(tier==='max'?{h:2}:tier==='high'?{h:1}:{}) });
     return send(res, 200, { nonce, tier, message: enterMessage(nonce, week, mode, policy.deadline,tier), deadline: policy.deadline, closesAt: policy.closesAt, serverNow: Date.now(), clockVersion: 1, week, mode, left: can.left, collect: COLLECT, dmt: DMT, amountWei: price.wei.toString(), chainId: 42161 });
   }
 
@@ -235,7 +236,7 @@ async function handle(route, req, res, ctx) {
     // cannot become an entry is written down as a refund the house owes.
     const b = await readBody(req); if (b.tooBig) return send(res, 413, { error: 'too big' });
     const n = unsign(b.nonce);
-    if (!n || n.k !== 'rnonce' || (n.h!==undefined&&n.h!==1) || (n.w !== week && n.w !== week - 1) || Date.now() - n.s > 8 * 24 * 3600 * 1000) return send(res, 400, { error: 'that sign-in expired, start again' });
+    if (!n || n.k !== 'rnonce' || (n.h!==undefined&&n.h!==1&&n.h!==2) || (n.w !== week && n.w !== week - 1) || Date.now() - n.s > 8 * 24 * 3600 * 1000) return send(res, 400, { error: 'that sign-in expired, start again' });
     const mode = modeOf(n),tier=tierOf(n);
     const price = raceIn(g, week, mode,tier), signedPrice = raceIn(g, n.w, mode,tier);
     if(!price||!signedPrice)return send(res,400,{error:'that entry wager is not available'});

@@ -463,6 +463,8 @@ body.touch .seg button { min-height: 38px; min-width: 44px; }
 .rkraces { display: flex; gap: 8px; margin: 4px 0 8px; }
 .rkraces:empty { display: none; }
 .rkraces button { flex: 1; min-height: 44px; }
+#rankedwagers button { min-width: 0; padding: 4px 3px; font-size: 16px; }
+#rankedwagers button b { white-space: nowrap; }
 /* the price sits on its own line under the race name, so the buttons stay tidy on phones */
 .rkraces button span, .lbrace button span { display: block; font-size: .8em; opacity: .85; }
 .lbrace { display: flex; gap: 6px; justify-content: center; margin: 2px 0 6px; }
@@ -1109,3 +1111,7 @@ body.ds-layout #cooprevive { position:fixed; bottom:calc(112px + env(safe-area-i
  #ranked .rankedfooter>button { margin-top:0; }
  #ranked .rankedfooter #rankedmsg:empty, #ranked .rankedfooter #rankedtx:empty { display:none; }
 }
+
+#cheeseguard { display:inline-flex; align-items:center; gap:3px; color:var(--gold); font:14px RSPlain,sans-serif; white-space:nowrap; }
+#cheeseguard[hidden] { display:none; }
+#cheeseicon, #cheeseicon img { display:block; width:16px; height:16px; object-fit:contain; }

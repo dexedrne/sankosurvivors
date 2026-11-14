@@ -1,5 +1,20 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Ranked entries and new passives": "Mga entry sa ranked at bagong passive",
+  "Ranked entries now offer 1, 10 or 25 DMT in one leaderboard and prize pool. All use identical gameplay and scoring. Rewards remain 80% placement, 10% eligible DMT contributed and 10% active playtime.": "May 1, 10 o 25 DMT na entry na sa ranked, sa iisang leaderboard at pondo ng gantimpala. Pareho ang gameplay at pagmamarka. Nananatiling 80% para sa puwesto, 10% para sa kwalipikadong DMT na ambag at 10% para sa aktibong oras ng paglalaro ang gantimpala.",
+  "Every 20 seconds, gain a one-hit shield for 2 seconds. Each extra effective level adds 0.5 seconds, up to 5 seconds.": "Bawat 20 segundo, magkakaroon ng 2 segundong kalasag na haharang sa isang tama. Bawat dagdag na epektibong antas ay nagdaragdag ng 0.5 segundo, hanggang 5 segundo.",
+  "+2% chance to evade an incoming hit per effective level, up to 20%. A successful evade gives normal hit grace.": "+2% tsansang makaiwas sa isang tama bawat epektibong antas, hanggang 20%. Ang matagumpay na pag-iwas ay nagbibigay ng karaniwang maikling proteksiyon pagkatapos ng tama.",
+  "Cheese shield": "Kalasag na keso",
+  "Shield duration": "Tagal ng kalasag",
+  "Evasion chance": "Tsansang makaiwas",
+  "Blocked": "Hinarang",
+  "Evaded": "Naiwasan",
+  "Blasts nearby enemies. Stack up to 10 bombs; use one at a time. Extra bombs stay on the ground.": "Pinasasabog ang mga kalapit na kalaban. Nag-iipon ng hanggang 10 bomba; isa ang ginagamit sa bawat pindot. Nananatili sa lupa ang sobra.",
+  "Food: up to 5 per type; extra food is eaten immediately. Stored food can save you before a fatal hit. Pumpkin bombs: up to 10 per stack; extras stay on the ground.": "Pagkain: hanggang 5 bawat uri; agad kinakain ang sobra. Maaaring iligtas ka ng nakaimbak na pagkain bago ang nakamamatay na tama. Mga bombang kalabasa: hanggang 10 bawat salansan; naiiwan sa lupa ang sobra.",
+  "Cheese shields and evasion": "Mga kalasag na keso at pag-iwas",
+  "Casual runs can roll Cheese for a brief one-hit shield every 20 seconds, or Beret for a capped chance to evade hits. These are run-only passives, separate from food and worn gear.": "Maaaring makuha sa casual ang Cheese para sa maikling kalasag bawat 20 segundo, o Beret para sa may limitasyong tsansang makaiwas. Mga passive lang ito sa kasalukuyang run, hiwalay sa pagkain at suot na kagamitan.",
+  "From ranked week 2, food stacks hold 5 portions per type and Pumpkin bombs stack up to 10. Extra bombs stay on the ground; each use spends one. Current-week rules are unchanged.": "Mula ranked week 2, hanggang 5 piraso bawat uri ng pagkain at hanggang 10 Pumpkin bomb ang naiipon. Naiiwan sa lupa ang sobrang bomba; isa ang nauubos bawat gamit. Walang pagbabago sa kasalukuyang linggo.",
+  "Grand Theft Sanko: updated tabs coordinate road-log saves where supported, keeping distance, race and delivery increments together. Progress stays on this device.": "Grand Theft Sanko: nagtutulungan ang updated na mga tab sa pag-save ng road log kung suportado, para mapanatili ang dagdag na distansya, karera at delivery. Nananatili sa device na ito ang progreso.",
   "Weapon roles": "Mga papel ng sandata",
   "Katana, Two-handed Sword and Pickaxe hit nearby crowds. Bow, Spells and Short Swords can attack from farther away.": "Tumatama ang Katana, Two-handed Sword at Pickaxe sa mga kalapit na grupo. Nakakaatake mula sa mas malayo ang Bow, Spells at Short Swords.",
   "Try mixing a ranged weapon with a close-range weapon. Keep moving and use Tumble to escape; no weapon makes you safe.": "Subukang pagsamahin ang malayuang sandata at malapitang sandata. Patuloy na gumalaw at gamitin ang Tumble para makatakas; walang sandatang garantiya ng kaligtasan.",
@@ -2019,6 +2034,8 @@ export const text = {
 };
 
 export const patterns = [
+  ["Shield duration: {1} s", "Tagal ng kalasag: {1} s"],
+  ["Current evasion chance: {1}%", "Kasalukuyang tsansang makaiwas: {1}%"],
   ["Sell for {1} coins", "Ibenta sa {1} coins"],
   ["incl. {1} from sales", "kasama ang {1} mula sa benta"],
   ["sold, +{1}, new", "naibenta, +{1}, bago"],

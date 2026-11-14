@@ -401,7 +401,7 @@ function renderRanked() {
     if (choices.length > 1) for (const option of choices) {
       const button=document.createElement('button'); button.type='button'; button.dataset.tier=option.tier;
       button.setAttribute('aria-pressed',String(option.tier===rankedTier)); button.className=option.tier===rankedTier?'on':'ghost';
-      button.innerHTML=`<b>${esc(option.entryDmt)} DMT</b><span>${option.tier==='high'?'High wager':'Standard entry'}</span>`;
+      button.innerHTML=`<b>${esc(option.entryDmt)} DMT</b><span>${option.tier!=='standard'?'High wager':'Standard entry'}</span>`;
       button.disabled=rankedBusy||!!live||!!readRanked('sq-ranked-payment');
       button.onclick=()=>{ if(rankedBusy||rankedLive()||readRanked('sq-ranked-payment'))return; rankedTier=option.tier;renderRanked();$('rankedwagers').querySelector(`[data-tier="${rankedTier}"]`).focus(); };
       $('rankedwagers').append(button);
@@ -441,7 +441,7 @@ function renderRanked() {
       : 'Entry is 0.5 DMT on Arbitrum: 10% house fee, 90% prize pool split 40/25/15/12/8 between the top five wallets. Monday to Monday UTC, one map, as many entries as you like, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).';
     if (race.rewards?.version===2) $('rankedrules').textContent='All entry sizes share one leaderboard and prize pool. A higher wager changes only contribution weight, not your score or playtime weight. The house fee is 10% of each entry; 90% joins the pool. Placement uses 40/25/15/12/8. Score is kills plus whole seconds. Ties use exact KPM, kills, earlier finish, then entry order. All runs use standard rules: any regular adventurer, no gear, skills or holder perks. One wallet per player per connection each week. Human play only; bots, scripts, tool assistance and rewinds are disqualified. Reload recovery is allowed. Unfilled rewards roll over.';
     if (rankedWeek.week >= 2) {
-      const food = document.createElement('span'); food.textContent = 'Food stacks hold up to 5 portions per type. Stored food is automatically eaten before a fatal hit if enough food can save you. Extra pickups are eaten immediately.';
+      const food = document.createElement('span'); food.textContent = 'Food: up to 5 per type; extra food is eaten immediately. Stored food can save you before a fatal hit. Pumpkin bombs: up to 10 per stack; extras stay on the ground.';
       $('rankedrules').append(document.createElement('br'), food);
     }
     rankedTime();
@@ -2407,7 +2407,7 @@ function showLevelUp() {
     } else {
       const stats = p => ({ ...playerStats(p), cardLuck: cardLuck(p.meta, { greed: passiveStrength(p, 'greed') }) });
       before = stats(me); next = stats(after);
-      rows = { fortune: [['might', 'Damage multiplier', '×']], might: [['might', 'Damage multiplier', '×']], haste: [['haste', 'Cooldown multiplier', '×']], boots: [['speed', 'Movement speed']], magnet: [['magnet', 'Pickup range']], armor: [['armor', 'Armor']], growth: [['growth', 'XP multiplier', '×']], vigor: [['maxHp', 'Maximum health'], ['regen', 'Health per second']], greed: [['coin', 'Coin multiplier', '×'], ['casket', 'Casket multiplier', '×'], ['cardLuck', 'Card luck', '%']], area: [['area', 'Area multiplier', '×']], amount: [['amount', 'Extra projectiles'], ['reach', 'Reach multiplier', '×']], crit: [['critC', 'Critical chance', '%'], ['critM', 'Critical multiplier', '×']], thorns: [['thorns', 'Thorns damage']], air: [['projectileSpeed', 'Projectile speed multiplier', '×']], water: [['heal', 'Healing multiplier', '×']], earth: [['knockback', 'Knockback multiplier', '×']], fire: [['magic', 'Magic damage multiplier', '×']], void: [['critM', 'Critical multiplier', '×']] }[c.id];
+      rows = { cheese: [['cheeseShield', 'Shield duration', ' s']], evasion: [['evasion', 'Evasion chance', '%']], fortune: [['might', 'Damage multiplier', '×']], might: [['might', 'Damage multiplier', '×']], haste: [['haste', 'Cooldown multiplier', '×']], boots: [['speed', 'Movement speed']], magnet: [['magnet', 'Pickup range']], armor: [['armor', 'Armor']], growth: [['growth', 'XP multiplier', '×']], vigor: [['maxHp', 'Maximum health'], ['regen', 'Health per second']], greed: [['coin', 'Coin multiplier', '×'], ['casket', 'Casket multiplier', '×'], ['cardLuck', 'Card luck', '%']], area: [['area', 'Area multiplier', '×']], amount: [['amount', 'Extra projectiles'], ['reach', 'Reach multiplier', '×']], crit: [['critC', 'Critical chance', '%'], ['critM', 'Critical multiplier', '×']], thorns: [['thorns', 'Thorns damage']], air: [['projectileSpeed', 'Projectile speed multiplier', '×']], water: [['heal', 'Healing multiplier', '×']], earth: [['knockback', 'Knockback multiplier', '×']], fire: [['magic', 'Magic damage multiplier', '×']], void: [['critM', 'Critical multiplier', '×']] }[c.id];
     }
     const number = (n, unit) => (unit === '×' ? '×' : '') + Number((unit === '%' ? n * 100 : n).toFixed(4)) + (unit && unit !== '×' ? unit : '');
     return '<div class="upstats">' + (c.kind === 'weapon' ? '<div>Base weapon stats</div>' : '') + rows.filter(([key]) => typeof next[key] === 'number').map(([key, label, unit]) => `<div><span>${label}</span><b>${fresh ? '' : number(before[key], unit) + ' → '}${number(next[key], unit)}</b></div>`).join('') + '</div>';
@@ -2625,6 +2625,14 @@ function updateTumbleHud(me) {
   $('tumblebtn').disabled = me.rollCd > 0;
   $('tumblecd').textContent = me.rollCd > 0 ? String(Math.ceil(me.rollCd)) : '';
 }
+function updateCheeseHud() {
+  const p = sim.players.find(p => p.id === PLAYER), left = p?.alive && !sim.ranked ? Math.ceil(p.buffs.cheeseShield || 0) : 0;
+  $('cheeseguard').hidden = left <= 0;
+  if (left <= 0) return;
+  if (!$('cheeseicon').innerHTML) $('cheeseicon').innerHTML = imgTag('Cheese');
+  const label = left + 's';
+  if ($('cheeseleft').textContent !== label) $('cheeseleft').textContent = label;
+}
 function updateBeerHud() {
   const p = sim.players.find(p => p.id === PLAYER), left = p?.alive ? Math.ceil(p.buffs.speed || 0) : 0;
   $('beerboost').hidden = left <= 0;
@@ -2659,6 +2667,7 @@ function updateHud(view) {
   updateShrineHud(view);
   updateTumbleHud(me);
   updateBeerHud();
+  updateCheeseHud();
   updateReviveHud();
   $('modeprogress').classList.toggle('hidden', !sim.variant);
   if (sim.variant) $('modeprogress').innerHTML = `<span>${VARIANTS[sim.variant].name}</span>` + (sim.variant === 'wizard' ? '' : sim.wave != null ? ` · <span>Wave</span> ${sim.wave}${sim.nextWave ? ` · <span>Next wave</span> ${fmtT(Math.max(0, sim.nextWave - sim.t))}` : ''}` : ` · <span>${ENEMIES[sim.trialBoss].name}</span>`);
@@ -2682,7 +2691,7 @@ function updateHud(view) {
   if (bk !== slotCache.b) {
     for (const dispose of beltDisposers) dispose(); beltDisposers = [];
     slotCache.b = bk; const BELT_ICON = { beer: 'Tin of Beer', pumpkin: 'Pumpkin', warp: 'Warp Shard', ...Object.fromEntries(Object.entries(FOOD).map(([kind, food]) => [kind, food.item])) };
-    const BELT_TIP = { beer: sim.pace >= 2 ? 'Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running, up to 60 seconds remaining; the speed bonus stays +35%.' : 'Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.', pumpkin: 'Blasts nearby enemies. Damage grows with run time.', warp: 'Pulls all dropped bones and coins to you.' };
+    const BELT_TIP = { beer: sim.pace >= 2 ? 'Restores 20 health, boosted by healing bonuses. Adds 8 seconds of faster running, up to 60 seconds remaining; the speed bonus stays +35%.' : 'Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.', pumpkin: sim.rankedFood ? 'Blasts nearby enemies. Stack up to 10 bombs; use one at a time. Extra bombs stay on the ground.' : 'Blasts nearby enemies. Damage grows with run time.', warp: 'Pulls all dropped bones and coins to you.' };
     $('belt').innerHTML = Array.from({ length: BELT_SIZE }, (_, i) => { const k = (me.belt || [])[i], count = me.beltCounts?.[i] || 1; return `<button type="button" class="bslot${k ? '' : ' empty'}" data-i="${i}" data-kind="${k || ''}" data-count="${count}" aria-keyshortcuts="${itemKeyControls.keys[i]}" ${k ? `aria-label="${BELT_ICON[k]}${count > 1 ? ` ×${count}` : ''}" aria-describedby="belttip${i}"` : 'disabled aria-label="Empty item slot"'}>${k ? imgTag(BELT_ICON[k]) : ''}<small translate="no">${itemKeyControls.keys[i].toUpperCase()}</small>${k ? `<b class="beltcount" translate="no"${count <= 1 ? ' hidden' : ''}>${count > 1 ? `×${count}` : ''}</b>` : ''}${k ? `<span id="belttip${i}" class="belttip" role="tooltip" hidden><b>${BELT_ICON[k]}</b><span>${FOOD[k] ? `Restores ${FOOD[k].heal} health, boosted by healing bonuses.` : BELT_TIP[k]}</span>${FOOD[k] && sim.rankedFood ? '<span>Ranked food: up to 5 per type. Automatically eaten before a fatal hit when enough food can save you.</span>' : ''}<em>Tap to use. Hold to inspect.</em></span>` : ''}</button>`; }).join('');
     for (const el of $('belt').children) if (el.dataset.kind) {
       const i = Number(el.dataset.i), kind = el.dataset.kind;
@@ -2690,12 +2699,12 @@ function updateHud(view) {
     }
   }
   for (const el of $('belt').children) {
-    const kind = el.dataset.kind; if (!FOOD[kind]) continue;
+    const kind = el.dataset.kind; if (!FOOD[kind] && !(sim.rankedFood && kind === 'pumpkin')) continue;
     const count = me.beltCounts?.[Number(el.dataset.i)] || 1;
     if (el.dataset.count === String(count)) continue;
     el.dataset.count = String(count);
     const badge = el.querySelector('.beltcount'); badge.hidden = count <= 1; badge.textContent = count > 1 ? `×${count}` : '';
-    el.setAttribute('aria-label', `${FOOD[kind].item}${count > 1 ? ` ×${count}` : ''}`);
+    el.setAttribute('aria-label', `${FOOD[kind]?.item || 'Pumpkin'}${count > 1 ? ` ×${count}` : ''}`);
   }
   const wk = JSON.stringify([me.w, me.evo, me.wm, me.spellElement]), pk = JSON.stringify(me.ps);
   if (wk !== slotCache.w) { slotCache.w = wk; $('wrow').innerHTML = Object.entries(me.w).map(([id, l]) => `<div class="slot${me.evo[id] ? ' evo' : ''}" data-inspect="weapon" data-inspect-id="${id}" tabindex="0" role="img" aria-label="${esc(weaponDisplay(id, l, me.evo[id], weaponStep(id, me.wm), me.spellElement).name)}">${iconHTML('weapon', id, l, me.evo[id], weaponStep(id, me.wm), me.spellElement)}<small>${me.evo[id] ? '★' : l}</small></div>`).join(''); }

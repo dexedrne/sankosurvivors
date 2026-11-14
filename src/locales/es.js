@@ -1,5 +1,20 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked entries and new passives": "Entradas clasificatorias y nuevas pasivas",
+  "Ranked entries now offer 1, 10 or 25 DMT in one leaderboard and prize pool. All use identical gameplay and scoring. Rewards remain 80% placement, 10% eligible DMT contributed and 10% active playtime.": "Las entradas clasificatorias ahora permiten 1, 10 o 25 DMT en una sola clasificación y fondo de premios. Todas tienen las mismas reglas y puntuación. Los premios siguen siendo 80% por puesto, 10% por DMT aportado elegible y 10% por tiempo activo.",
+  "Every 20 seconds, gain a one-hit shield for 2 seconds. Each extra effective level adds 0.5 seconds, up to 5 seconds.": "Cada 20 segundos, obtienes un escudo de 2 segundos que bloquea un golpe. Cada nivel efectivo adicional suma 0,5 segundos, hasta 5 segundos.",
+  "+2% chance to evade an incoming hit per effective level, up to 20%. A successful evade gives normal hit grace.": "+2% de probabilidad de esquivar un golpe por nivel efectivo, hasta un 20%. Esquivar concede la protección breve habitual tras un golpe.",
+  "Cheese shield": "Escudo de queso",
+  "Shield duration": "Duración del escudo",
+  "Evasion chance": "Probabilidad de esquivar",
+  "Blocked": "Bloqueado",
+  "Evaded": "Esquivado",
+  "Blasts nearby enemies. Stack up to 10 bombs; use one at a time. Extra bombs stay on the ground.": "Explota contra enemigos cercanos. Acumula hasta 10 bombas y usa una cada vez. Las sobrantes se quedan en el suelo.",
+  "Food: up to 5 per type; extra food is eaten immediately. Stored food can save you before a fatal hit. Pumpkin bombs: up to 10 per stack; extras stay on the ground.": "Comida: hasta 5 por tipo; la sobrante se come al recogerla. La guardada puede salvarte antes de un golpe mortal. Bombas de calabaza: hasta 10 por pila; las sobrantes se quedan en el suelo.",
+  "Cheese shields and evasion": "Escudos de queso y evasión",
+  "Casual runs can roll Cheese for a brief one-hit shield every 20 seconds, or Beret for a capped chance to evade hits. These are run-only passives, separate from food and worn gear.": "En partidas casuales puede aparecer Queso, con un escudo breve cada 20 segundos, o Boina, con probabilidad limitada de esquivar. Son pasivas de la partida, separadas de la comida y el equipo.",
+  "From ranked week 2, food stacks hold 5 portions per type and Pumpkin bombs stack up to 10. Extra bombs stay on the ground; each use spends one. Current-week rules are unchanged.": "Desde la semana 2 de clasificatorias, se guardan 5 porciones por tipo de comida y hasta 10 bombas de calabaza. Las bombas sobrantes se quedan en el suelo; cada uso gasta una. Esta semana no cambia.",
+  "Grand Theft Sanko: updated tabs coordinate road-log saves where supported, keeping distance, race and delivery increments together. Progress stays on this device.": "Grand Theft Sanko: las pestañas actualizadas coordinan los guardados del registro cuando el navegador lo permite, conservando distancia, carreras y entregas. El progreso sigue en este dispositivo.",
   "Weapon roles": "Funciones de las armas",
   "Katana, Two-handed Sword and Pickaxe hit nearby crowds. Bow, Spells and Short Swords can attack from farther away.": "Katana, Espada a dos manos y Pico golpean a grupos cercanos. Arco, Hechizos y Espadas cortas pueden atacar desde más lejos.",
   "Try mixing a ranged weapon with a close-range weapon. Keep moving and use Tumble to escape; no weapon makes you safe.": "Prueba a combinar un arma a distancia con una de corto alcance. Sigue moviéndote y usa Rodar para escapar; ningún arma garantiza tu seguridad.",
@@ -2019,6 +2034,8 @@ export const text = {
 };
 
 export const patterns = [
+  ["Shield duration: {1} s", "Duración del escudo: {1} s"],
+  ["Current evasion chance: {1}%", "Probabilidad actual de esquivar: {1}%"],
   ["Sell for {1} coins", "Vender por {1} monedas"],
   ["incl. {1} from sales", "incluye {1} de ventas"],
   ["sold, +{1}, new", "vendido, +{1}, nuevo"],

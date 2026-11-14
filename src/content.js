@@ -242,6 +242,8 @@ export const PASSIVES = {
   earth:   { name: 'Earth Shard',  item: 'Earth Shard',  pace: 2, blurb: '+10% attack knockback per level. Bosses remain immune to knockback.' },
   fire:    { name: 'Fire Shard',   item: 'Fire Shard',   pace: 2, blurb: '+6% magic damage per level. Affects Spells and the Lighter.' },
   fortune: { name: 'Gold', item: 'Gold', pace: 2, casual: true, blurb: '+1% damage per 25 GP collected this run, per level (max +50%). Counts coin pickups and high alch.' },
+  cheese:  { name: 'Cheese', item: 'Cheese', pace: 2, casual: true, blurb: 'Every 20 seconds, gain a one-hit shield for 2 seconds. Each extra effective level adds 0.5 seconds, up to 5 seconds.' },
+  evasion: { name: 'Beret', item: 'Beret', pace: 2, casual: true, blurb: '+2% chance to evade an incoming hit per effective level, up to 20%. A successful evade gives normal hit grace.' },
   void:    { name: 'Void Shard',   item: 'Void Shard',   pace: 2, blurb: '+0.20 critical damage multiplier per level. Critical chance stays the same.' },
 };
 export const ARMOR_TIERS = ['Bronze', 'Iron', 'Steel', 'Mithril', 'Adamantite', 'Runite'];

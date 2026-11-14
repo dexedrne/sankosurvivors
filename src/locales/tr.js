@@ -1,5 +1,20 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked entries and new passives": "Dereceli katılım ve yeni pasifler",
+  "Ranked entries now offer 1, 10 or 25 DMT in one leaderboard and prize pool. All use identical gameplay and scoring. Rewards remain 80% placement, 10% eligible DMT contributed and 10% active playtime.": "Dereceli katılım artık aynı sıralama ve ödül havuzunda 1, 10 veya 25 DMT sunuyor. Oynanış ve puanlama herkes için aynı. Ödüller %80 sıralama, %10 uygun DMT katkısı ve %10 aktif oyun süresi olarak kalıyor.",
+  "Every 20 seconds, gain a one-hit shield for 2 seconds. Each extra effective level adds 0.5 seconds, up to 5 seconds.": "Her 20 saniyede, tek darbeyi engelleyen 2 saniyelik bir kalkan kazan. Her ek etkin seviye süreye 0,5 saniye ekler; üst sınır 5 saniyedir.",
+  "+2% chance to evade an incoming hit per effective level, up to 20%. A successful evade gives normal hit grace.": "Her etkin seviyede gelen darbelerden sıyrılma şansı +%2; üst sınır %20. Başarılı sıyrılma, darbe sonrası normal korunma süresini verir.",
+  "Cheese shield": "Peynir kalkanı",
+  "Shield duration": "Kalkan süresi",
+  "Evasion chance": "Sıyrılma şansı",
+  "Blocked": "Engellendi",
+  "Evaded": "Sıyrıldı",
+  "Blasts nearby enemies. Stack up to 10 bombs; use one at a time. Extra bombs stay on the ground.": "Yakındaki düşmanları patlatır. En fazla 10 bomba birikir; her kullanımda biri harcanır. Fazla bombalar yerde kalır.",
+  "Food: up to 5 per type; extra food is eaten immediately. Stored food can save you before a fatal hit. Pumpkin bombs: up to 10 per stack; extras stay on the ground.": "Yiyecekler: tür başına en fazla 5; fazlası hemen yenir. Saklanan yiyecek ölümcül darbeden önce seni kurtarabilir. Bal kabağı bombaları: yığında en fazla 10; fazlası yerde kalır.",
+  "Cheese shields and evasion": "Peynir kalkanları ve sıyrılma",
+  "Casual runs can roll Cheese for a brief one-hit shield every 20 seconds, or Beret for a capped chance to evade hits. These are run-only passives, separate from food and worn gear.": "Normal koşularda her 20 saniyede kısa süreli tek darbeli kalkan veren Peynir veya sınırlı sıyrılma şansı veren Bere çıkabilir. Bunlar yiyecekten ve giyilen ekipmandan ayrı, koşuya özel pasiflerdir.",
+  "From ranked week 2, food stacks hold 5 portions per type and Pumpkin bombs stack up to 10. Extra bombs stay on the ground; each use spends one. Current-week rules are unchanged.": "Dereceli 2. haftadan itibaren yiyecekler tür başına 5, Bal Kabağı bombaları 10 adede kadar birikir. Fazla bombalar yerde kalır; her kullanım birini harcar. Bu haftanın kuralları değişmedi.",
+  "Grand Theft Sanko: updated tabs coordinate road-log saves where supported, keeping distance, race and delivery increments together. Progress stays on this device.": "Grand Theft Sanko: güncel sekmeler, desteklenen tarayıcılarda yol kaydı kayıtlarını birlikte düzenler; mesafe, yarış ve teslimat artışları korunur. İlerleme bu cihazda kalır.",
   "Weapon roles": "Silah rolleri",
   "Katana, Two-handed Sword and Pickaxe hit nearby crowds. Bow, Spells and Short Swords can attack from farther away.": "Katana, Çift Elli Kılıç ve Kazma yakındaki kalabalıklara vurur. Yay, Büyüler ve Kısa Kılıçlar daha uzaktan saldırabilir.",
   "Try mixing a ranged weapon with a close-range weapon. Keep moving and use Tumble to escape; no weapon makes you safe.": "Menzilli bir silahla yakın dövüş silahını birlikte dene. Hareket et ve kaçmak için Yuvarlan kullan; hiçbir silah güvenliğini garanti etmez.",
@@ -2019,6 +2034,8 @@ export const text = {
 };
 
 export const patterns = [
+  ["Shield duration: {1} s", "Kalkan süresi: {1} sn"],
+  ["Current evasion chance: {1}%", "Mevcut sıyrılma şansı: %{1}"],
   ["Sell for {1} coins", "{1} altına sat"],
   ["incl. {1} from sales", "satışlardan {1} dahil"],
   ["sold, +{1}, new", "satıldı, +{1}, yeni"],

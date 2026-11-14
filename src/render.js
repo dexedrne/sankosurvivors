@@ -1848,6 +1848,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     for (const f of view.fx) {
       if (f.k === 'dmg') { number(f.x, f.z, f.v, f.c, f.c ? '#ffd34d' : '#ffffff'); spark(f.x, f.z, f.c); spFx.dmg.push(f); }
       else if (f.k === 'hurt') { number(f.x, f.z, '-' + f.v, 0, '#ff5a4d'); if (f.id === localId) { cam.shake = 0.35; cam.flash = 0.3; } spFx.hurt.push(f); }
+      else if (f.k === 'blocked' || f.k === 'evaded') { number(f.x, f.z, f.k === 'blocked' ? 'Blocked' : 'Evaded', 0, '#ffdf82'); ringFx(f.x, f.z, 1.2, f.k === 'blocked' ? 0xffdf82 : 0x8bffd0, 0, 0.35); }
       else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; spSlow = 0.9; } // spSlow: main.js slows the sim 0.3x for 0.9 s here
       else if (f.k === 'die') { if (f.type === 'slimer' || f.type === 'mslimer') slimeBurst(f.x, f.z); pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
       else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(f.player || localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
@@ -1923,6 +1924,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       }
       if (p.fire > 0 && !a.fireRing) { a.fireRing = fireRingFx(); a.root.add(a.fireRing); }
       else if (!(p.fire > 0) && a.fireRing) { disposeActor(a.fireRing); a.fireRing = null; }
+      if (p.guard > 0 && !a.guard) { a.guard = softRing(0xffdf82, 0.78, 1.12, { opacity: 0.65, fill: 0.07 }); a.guard.position.y = 0.1; a.root.add(a.guard); }
+      else if (!(p.guard > 0) && a.guard) { disposeActor(a.guard); a.guard = null; }
       if (a.fireRing) {
         a.fireRing.scale.setScalar(p.fire); a.fireRing.rotation.y = -a.root.rotation.y; stepFireRing(a.fireRing, p.fire, time);
         if (a.root.visible && Math.random() < dt * 14) { const ang = Math.random() * 6.283; emit(a.px + Math.cos(ang) * p.fire, a.root.position.y + 0.2, a.pz + Math.sin(ang) * p.fire, 1, 0.6, { s: 0.7, life: 0.55, color: Math.random() < 0.5 ? 0xff7a2a : 0xffc04d, up: 2.2, g: 0 }); }

@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {translateText} from '../src/i18n.js';import {FOOD} from '../src/sim.js';
 const main=fs.readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
-const rules='Food stacks hold up to 5 portions per type. Stored food is automatically eaten before a fatal hit if enough food can save you. Extra pickups are eaten immediately.';
+const rules='Food: up to 5 per type; extra food is eaten immediately. Stored food can save you before a fatal hit. Pumpkin bombs: up to 10 per stack; extras stay on the ground.';
 const tip='Ranked food: up to 5 per type. Automatically eaten before a fatal hit when enough food can save you.';
 const saved='Stored food saved you.';
 test('ranked disclosure appears only from week2',()=>{

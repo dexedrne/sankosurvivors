@@ -2,12 +2,12 @@ import {raceForWeek} from './ranked.js';
 
 // Wager size changes contribution weight, never the race, physics or scoring.
 export function entryForWeek(week,mode='normal',tier='standard') {
- if(!Number.isSafeInteger(week)||week<0||!['standard','high'].includes(tier))return null;
+ if(!Number.isSafeInteger(week)||week<0||!['standard','high','max'].includes(tier))return null;
  const race=raceForWeek(week,mode);
- if(!race||tier==='high'&&(week<1||mode!=='normal'))return null;
- return {...race,tier,...(tier==='high'?{entryDmt:'10',entryWei:'10000000000000000000'}:{})};
+ if(!race||tier!=='standard'&&(week<1||mode!=='normal'))return null;
+ return {...race,tier,...(tier==='high'?{entryDmt:'10',entryWei:'10000000000000000000'}:tier==='max'?{entryDmt:'25',entryWei:'25000000000000000000'}:{})};
 }
-export const entryOptions=(week,mode='normal')=>['standard','high'].map(tier=>entryForWeek(week,mode,tier)).filter(Boolean);
+export const entryOptions=(week,mode='normal')=>['standard','high','max'].map(tier=>entryForWeek(week,mode,tier)).filter(Boolean);
 
 export function entryMessage(nonce,week,mode='normal',deadline,tier='standard') {
  const price=entryForWeek(week,mode,tier)||(tier==='standard'&&Number.isSafeInteger(week)&&week<0?raceForWeek(week,mode):null);

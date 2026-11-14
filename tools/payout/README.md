@@ -18,7 +18,7 @@ run: plans and previews, no key loading, signing or sending.
 
 ## Private contribution and Apache-bonus candidate
 
-SQL19 is owner-applied and verified. The matching frontend/worker is not yet released: Normal entries can be1or10DMT into the same board/pool. Entry fees remain10%house/90%pool; the pool splits80%placing,10%eligiblepaidDMT,10%active simulated time. Completed accepted runs>=30seconds participate; placing still requires180seconds. Existing accepted pruned-log participation remains held for review.
+SQL19/20/21 are owner-applied and verified. The matching frontend/API supports Normal entries of1,10or25DMT into the same board/pool; SQL21 only adds admission for the25tier. The updated payout worker remains packaged but not activated. Entry fees remain10%house/90%pool; the pool splits80%placing,10%eligiblepaidDMT,10%active simulated time. Completed accepted runs>=30seconds participate; placing still requires180seconds. Existing accepted pruned-log participation remains held for review.
 
 The maker separately funded20DMT for week1Apache Normal first place. Proposed SQL20 adds a single `prize-bonus` row for the immutable reviewed winner, with existing prize holds/claim guards. This is additional to the usual `prize1` row, with no house deduction or participation split. The fixed deposit cannot also be an entry or refund source. If no run qualifies,20DMT remains reserved for owner review rather than rolling into the normal pool.
 

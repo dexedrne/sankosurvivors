@@ -860,3 +860,24 @@ test('eligibility readiness must include an affirmative admission and positive i
   result=value;const response=await call(nonceRoute(w));assert.equal(response.code,400);assert.match(response.json.error,/reward policy/);assert.equal(response.json.nonce,undefined);
  }
 });
+
+test('max wager binds25DMT in the signed nonce and shares the normal race without duplicate payments',async()=>{
+ now=epoch+weekMs+12*3600000;const w=wallet();
+ const max=await call(nonceRoute(w)+'&tier=max');assert.equal(max.code,200);
+ assert.equal(max.json.amountWei,'25000000000000000000');assert.equal(max.json.tier,'max');assert.equal(decode(max.json.nonce).h,2);assert.match(max.json.message,/sending the 25 DMT entry/);
+ const auth={nonce:max.json.nonce,signature:w.sign(max.json.message)},tx=payment(w,{amount:25000000000000000000n});
+ const entered=await call('ranked-enter',{...auth,tx});assert.equal(entered.code,200,JSON.stringify(entered));assert.equal(entered.json.mode,'normal');
+ const begun=await start(entered.json);assert.equal(begun.mode,'normal');const maxSim=rankedSim({seed:begun.seed,mapId:begun.map,adv:begun.adv,ground:null,week:begun.week,mode:begun.mode});assert.equal(maxSim.hard,false);assert.deepEqual(maxSim.players[0].gear,{});
+ const again=await call('ranked-enter',{...auth,tx});assert.equal(again.code,200);assert.equal(again.json.id,entered.json.id);assert.equal(db.rows.filter(r=>r.refund_reason==null).length,1);
+ const low=await enter(w);assert.notEqual(low.id,entered.json.id);assert(db.rows.every(r=>r.mode==='normal'));
+ for(const amount of [1000000000000000000n,10000000000000000000n,26000000000000000000n]){const under=await call('ranked-enter',{...auth,tx:payment(w,{amount})});assert.equal(under.code,400);assert.match(under.json.error,amount>25000000000000000000n?/sent more than the 25 DMT/:/did not send 25 DMT/);assert.equal(under.json.refund,amount>25000000000000000000n?true:undefined);}
+ const standard=await nonce(w),over=await call('ranked-enter',{nonce:standard.nonce,signature:standard.signature,tx:payment(w,{amount:25000000000000000000n})});assert.equal(over.code,400);assert.equal(over.json.refund,true,'a standard authorization never silently becomes a max wager');
+ const decoded=decode(auth.nonce);delete decoded.h;const tampered=Buffer.from(JSON.stringify(decoded)).toString('base64url')+'.'+auth.nonce.split('.')[1];assert.equal((await call('ranked-enter',{...auth,nonce:tampered,tx})).code,400);
+ for(const tier of ['10','HIGH','constructor'])assert.equal((await call(nonceRoute(w)+'&tier='+tier)).code,400);
+});
+
+test('25DMT nonce refuses missing SQL21 readiness before any payment',async t=>{
+ now=epoch+weekMs+12*3600000;const w=wallet();
+ t.mock.method(db,'rpc',async()=>({ok:true,left:100,reward_version:2}));
+ const out=await call(nonceRoute(w)+'&tier=max');assert.equal(out.code,400);assert.equal(out.json.nonce,undefined);
+});

@@ -372,6 +372,8 @@ export function playerStats(p, meta = p.meta || {}) {
     magic: 1 + (G.magic || 0) + (p.pace >= 2 ? 0.06 * passiveStrength(p, 'fire') : 0), // the Minion set: magic weapons (Shard Staff, Lighter) hit harder
   };
   const knockback = knockbackMultiplier(p); if (knockback !== 1) stats.knockback = knockback;
+  if (p.pace >= 2 && passiveStrength(p, 'cheese') > 0) stats.cheeseShield = Math.min(5, 1.5 + 0.5 * passiveStrength(p, 'cheese'));
+  if (p.pace >= 2 && passiveStrength(p, 'evasion') > 0) stats.evasion = Math.min(0.2, 0.02 * passiveStrength(p, 'evasion'));
   if (p.pace >= 2 && p.endlessGrowth) {
     for (const key of ['might', 'maxHp', 'area']) stats[key] *= 1 + 0.01 * p.endlessGrowth[key];
     stats.maxHp = Math.round(stats.maxHp);
@@ -1063,6 +1065,7 @@ function useItem(sim, p, kind) {
 }
 export function beltCount(p, slot) {
   if (!Number.isInteger(slot) || slot < 0 || slot >= p.belt.length || !p.belt[slot]) return 0;
+  if (p.belt[slot] === 'pumpkin' && Number.isSafeInteger(p.pumpkinStack) && p.pumpkinStack > 0) return p.pumpkinStack;
   const count = p.foodStacks?.[p.belt[slot]];
   return FOOD[p.belt[slot]] && Number.isSafeInteger(count) && count > 0 ? count : 1;
 }
@@ -1070,8 +1073,9 @@ export function useBelt(sim, playerId, slot) {
   const p = sim.players.find((q) => q.id === playerId);
   if (!p || !p.alive || !beltCount(p, slot)) return false;
   const kind = p.belt[slot], count = beltCount(p, slot);
-  if (sim.pace >= 2 && FOOD[kind] && count > 1) p.foodStacks[kind] = count - 1;
-  else { p.belt.splice(slot, 1); if (sim.pace >= 2 && FOOD[kind] && p.foodStacks) delete p.foodStacks[kind]; }
+  if (sim.rankedFood && kind === 'pumpkin' && count > 1) p.pumpkinStack = count - 1;
+  else if (sim.pace >= 2 && FOOD[kind] && count > 1) p.foodStacks[kind] = count - 1;
+  else { p.belt.splice(slot, 1); if (kind === 'pumpkin') delete p.pumpkinStack; if (sim.pace >= 2 && FOOD[kind] && p.foodStacks) delete p.foodStacks[kind]; }
   useItem(sim, p, kind); return true;
 }
 
@@ -1320,6 +1324,16 @@ function emergencyFood(sim, p, dmg) {
 
 // ---- boss attacks: every one is telegraphed, so it can be dodged -------------------------------------------------
 function hurtPlayer(sim, tp, dmg, src = 'contact') {
+  if (sim.pace >= 2 && !sim.ranked) {
+    const st = playerStats(tp);
+    const blocked = st.cheeseShield > 0 && tp.buffs.cheeseShield > 0;
+    if (blocked || st.evasion > 0 && sim.rng() < st.evasion) {
+      if (blocked) tp.buffs.cheeseShield = 0;
+      tp.inv = 0.75;
+      sim.fx.push({ k: blocked ? 'blocked' : 'evaded', id: tp.id, x: tp.x, z: tp.z });
+      return false;
+    }
+  }
   sim.hurtBy[src] = (sim.hurtBy[src] || 0) + dmg; // damage taken by source, for balancing
   if (sim.rankedFood && tp.hp <= dmg) emergencyFood(sim, tp, dmg);
   tp.hp -= dmg; tp.inv = 0.75; tp.hurt = 0.25; // a beat to break free after each hit
@@ -1328,6 +1342,7 @@ function hurtPlayer(sim, tp, dmg, src = 'contact') {
     tp.revives--; tp.hp = tp.maxHp * 0.5; tp.inv = 2;
     sim.fx.push({ k: 'revive', id: tp.id, x: tp.x, z: tp.z });
   } else if (tp.hp <= 0) { tp.hp = 0; tp.alive = false; sim.fx.push({ k: 'down', id: tp.id }); }
+  return true;
 }
 const bossDmg = (sim, def, mul) => Math.round(def.dmg * mul * (1 + sim.t / 900) * (sim.hard ? 1.35 : 1));
 // returns a movement override (charging, or holding still while winding up), or null
@@ -1452,6 +1467,11 @@ export function step(sim, inputs = {}, dt = TICK) {
     boundPlayer(sim, p);
     p.inv = Math.max(0, p.inv - dt); p.hurt = Math.max(0, p.hurt - dt);
     for (const b of Object.keys(p.buffs)) p.buffs[b] = Math.max(0, p.buffs[b] - dt);
+    if (sim.pace >= 2 && !sim.ranked && st.cheeseShield > 0) {
+      if (p.buffs.cheeseShield < 1e-9) p.buffs.cheeseShield = 0;
+      p.cheeseCd = Math.max(0, (p.cheeseCd ?? 20) - dt);
+      if (p.cheeseCd < 1e-9) { p.cheeseCd = 20; p.buffs.cheeseShield = st.cheeseShield; }
+    }
     if (!p.godMode) p.maxHp = st.maxHp; // godMode: QA only
     p.regen += st.regen * dt; if (p.regen >= 1) { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.regen)); p.regen %= 1; }
     (sim.crit || (sim.crit = {}))[p.id] = [st.critC, st.critM];
@@ -1541,8 +1561,8 @@ export function step(sim, inputs = {}, dt = TICK) {
       if (touches && contact.inv <= 0 && !e.treasure) {
         const st = playerStats(contact);
         const dmg = Math.max(1, Math.round(def.dmg * 0.85 * (sim.t < 120 ? (sim.pace >= 2 ? 0.8 : 0.7) : 1) * (1 + sim.t / (sim.pace >= 2 ? 750 : 1200)) * (sim.pace >= 2 ? sim.vet * (1 + CURSE.dmg * (sim.curse || 0)) : 1) * (sim.hard ? 1.35 : 1) * (def.boss ? 0.8 : 1) * (e.charge && e.charge.dash > 0 ? 1.5 : 1) * (e.elite ? 1.4 : 1) - st.armor));
-        hurtPlayer(sim, contact, dmg, def.boss ? 'boss-contact' : 'contact');
-        if (st.thorns > 0) { sim.src = 'thorns'; damageEnemy(sim, e, st.thorns * (1 + sim.t / 600), contact.id, 2.2, contact.x, contact.z); } // Scorpion Carapace
+        const hurt = hurtPlayer(sim, contact, dmg, def.boss ? 'boss-contact' : 'contact');
+        if (hurt && st.thorns > 0) { sim.src = 'thorns'; damageEnemy(sim, e, st.thorns * (1 + sim.t / 600), contact.id, 2.2, contact.x, contact.z); } // Scorpion Carapace
       }
     }
   }
@@ -1573,7 +1593,13 @@ export function step(sim, inputs = {}, dt = TICK) {
       if (k.kind === 'chest' && sim.pending[p.id]) continue;
       k.taken = true;
       const st = playerStats(p), beforeHp = p.hp;
-      if (sim.pace >= 2 && FOOD[k.kind]) {
+      if (sim.rankedFood && k.kind === 'pumpkin') {
+        const slot = p.belt.indexOf(k.kind), count = beltCount(p, slot);
+        if (count >= 10 || slot < 0 && p.belt.length >= BELT_SIZE) { k.taken = false; continue; }
+        if (slot < 0) p.belt.push(k.kind);
+        p.pumpkinStack = count + 1;
+      }
+      else if (sim.pace >= 2 && FOOD[k.kind]) {
         const slot = p.belt.indexOf(k.kind), count = beltCount(p, slot);
         if (count < (sim.rankedFood ? RANKED_FOOD_CAP : Number.MAX_SAFE_INTEGER) && (slot >= 0 || p.belt.length < BELT_SIZE)) {
           if (slot < 0) p.belt.push(k.kind);
@@ -1616,7 +1642,7 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
     ...(sim.variant ? { variant: sim.variant, ...(sim.variant === 'boss' ? { trialBoss: sim.trialBoss } : { wave: sim.wave, nextWave: sim.nextWave }) } : {}),
     ...(sim.pace >= 2 ? { snowWave: !!sim.snowWave, storm } : {}),
     t: Math.round(sim.t * 100) / 100, over: sim.over, region: sim.region, weather: sim.pace >= 2 ? storm?.kind || null : sim.event && (sim.event.kind === 'blizzard' || sim.event.kind === 'sandstorm') ? sim.event.kind : null, level: sim.level, xp: Math.round(sim.xp), xpNeed: sim.xpNeed, kills: sim.kills,
-    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, ...(sim.pace >= 2 && p.spellElement ? { spellElement: p.spellElement } : {}), buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { beltCounts: p.belt.map((_, i) => beltCount(p, i)), rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),
+    players: sim.players.map((p) => ({ id: p.id, name: p.name, slot: p.slot, x: r1(p.x), z: r1(p.z), f: Math.round(p.face * 100) / 100, mv: p.moving ? 1 : 0, hp: Math.round(p.hp), mhp: p.maxHp, al: p.alive ? 1 : 0, adv: p.adv, hurt: p.hurt > 0 ? 1 : 0, w: p.weapons, ps: p.passives, evo: p.evo, ...(sim.pace >= 2 && p.spellElement ? { spellElement: p.spellElement } : {}), buf: p.buffs.speed > 0 ? 1 : 0, fire: Math.round((p.fire || 0) * 10) / 10, shields: p.shields, ...(p.buffs.cheeseShield > 0 && sim.pace >= 2 && !sim.ranked ? { guard: Math.ceil(p.buffs.cheeseShield) } : {}), orbit: Math.round(p.orbit * 100) / 100, k: p.kills, gear: p.gear, rr: p.rerolls, coins: p.coins, alch: p.alch, belt: p.belt.slice(), wm: sim.pace >= 2 ? p.wm : null, ...(sim.pace >= 2 ? { beltCounts: p.belt.map((_, i) => beltCount(p, i)), rollT: p.rollT || 0, rollCd: p.rollCd || 0, rollFace: p.rollFace ?? p.face } : {}) })),
     enemies: en.map((e) => [e.id, e.type, r1(e.x), r1(e.z), Math.round(e.face * 20) / 20, Math.max(0, Math.round((e.hp / e.maxHp) * 100)), e.hit > 0 ? 1 : 0, e.elite ? 1 : 0, e.charge && e.charge.wind > 0 ? 1 : 0, e.treasure ? 1 : 0, e.rise > 0 ? Math.round(e.rise * 20) / 20 : 0]),
     hazards: sim.hazards.map((h) => [r1(h.x), r1(h.z), h.r, Math.round((1 - h.t / h.max) * 100) / 100, h.meteor ? 1 : 0]),
     eproj: sim.eproj.map((b) => [b.id, r1(b.x), r1(b.z), b.art]),
