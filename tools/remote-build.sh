@@ -16,7 +16,7 @@ DEPS=$(readlink -e node_modules) || { echo "remote build: dependency directory i
 BUILD=$(git rev-parse --short HEAD)$(git diff --quiet || echo "+$(date +%s)")
 ssh "$H" "mkdir -p $R"
 # --checksum: a file changed on the job box but with the same size and time is put back too (security pass, 3 Nov)
-rsync -a --checksum --delete --exclude .git --exclude node_modules --exclude dist --exclude .vercel --exclude qa-out ./ "$H:$R/"
+rsync -a --checksum --delete --filter='P /qa-kit/***' --filter='P /.test-results/***' --exclude .git --exclude node_modules --exclude dist --exclude .vercel --exclude qa-out ./ "$H:$R/"
 rsync -a --checksum --delete "$DEPS/" "$H:$R/node_modules/"
 ssh "$H" "cd $R && BUILD='$BUILD' VITE_ASSET_BASE_1='${VITE_ASSET_BASE_1:-}' VITE_ASSET_BASE_2='${VITE_ASSET_BASE_2:-}' nice -n 5 bash tools/build-vercel.sh"
 rm -rf .vercel/output dist
@@ -27,7 +27,7 @@ rsync -r --no-links --no-devices --no-specials "$H:$R/dist" ./
 V=$(mktemp -d); trap 'rm -rf "$V"' EXIT
 if [ -n "${VERIFY_HOST:-}" ]; then # a second, independent box must build a byte-identical client
   ssh "$VERIFY_HOST" "mkdir -p $R"
-  rsync -a --checksum --delete --exclude .git --exclude node_modules --exclude dist --exclude .vercel --exclude qa-out ./ "$VERIFY_HOST:$R/"
+  rsync -a --checksum --delete --filter='P /qa-kit/***' --filter='P /.test-results/***' --exclude .git --exclude node_modules --exclude dist --exclude .vercel --exclude qa-out ./ "$VERIFY_HOST:$R/"
   rsync -a --checksum --delete "$DEPS/" "$VERIFY_HOST:$R/node_modules/"
   ssh "$VERIFY_HOST" "cd $R && BUILD='$BUILD' VITE_ASSET_BASE_1='${VITE_ASSET_BASE_1:-}' VITE_ASSET_BASE_2='${VITE_ASSET_BASE_2:-}' nice -n 5 bash tools/build-vercel.sh"
   rsync -r --no-links --no-devices --no-specials "$VERIFY_HOST:$R/dist" "$V/"

@@ -41,7 +41,7 @@ for (let i = 0; i < argv.length; i++) {
   if (a === '--exclude') ex.push(argv[++i]);
   else if (a === '--delete') del = true;
   else if (a === '--no-links') links = false;
-  else if (['--checksum', '--no-devices', '--no-specials'].includes(a)) {}
+  else if (a.startsWith('--filter=') || ['--checksum', '--no-devices', '--no-specials'].includes(a)) {}
   else if (/^-[arL]+$/.test(a)) { if (a.includes('a')) links = true; if (a.includes('L')) follow = true; }
   else if (a.startsWith('-')) { console.error('fake rsync: unknown option ' + a); process.exit(1); }
   else pos.push(a);
