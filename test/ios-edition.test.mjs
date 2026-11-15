@@ -37,3 +37,11 @@ test('installable OS minimum includes the Web Locks API required to protect loca
  for(const [,major,minor] of targets)assert(+major>15 || +major===15 && +minor>=4,'iOS15.0–15.3 cannot acquire the profile save lock');
  assert.equal([...source('tools/ios/ios/App/App.xcodeproj/project.pbxproj').matchAll(/TARGETED_DEVICE_FAMILY = "?1"?;/g)].length,2,'first beta is scoped to iPhone');
 });
+
+test('native frame diagnostics produce valid JavaScript and stay local',async()=>{
+ const {transform}=await import('esbuild');const p=iosEdition(),main=p.transform(source('src/main.js'),'/src/main.js').code;
+ await transform(main,{loader:'js',target:'esnext'});
+ assert.match(main,/iosFrames.frame\(ts, mode, !document.hidden\)/);
+ const html=p.transformIndexHtml.handler(source('index.html'));assert(html.includes('id="iosframeinfo"'));
+ const meter=source('tools/ios/frame-meter.mjs');assert.doesNotMatch(meter,/fetch|localStorage|indexedDB|sendBeacon/);
+});

@@ -2357,7 +2357,11 @@ const hop = () => {
     if (p?.alive && !sim.pending[PLAYER] && !sim.over && !(p.rollCd > 0)) pendingUse = 4;
   } else if (renderer?.hop) { renderer.hop(); audio.play('choose', { minGap: 0.3, vol: 0.3, rate: 1.6 }); }
 };
-$('tumblebtn').onclick = hop;
+$('tumblebtn').onpointerdown = e => {
+  if (e.pointerType === 'touch' || e.button === 0) { e.preventDefault(); hop(); }
+};
+// Secondary touch contacts may never generate a click; detail 0 keeps keyboard activation.
+$('tumblebtn').onclick = e => { if (e.detail === 0) hop(); };
 
 
 let padPrev = [], padId = null, pendingUse = null, slowmo = 0, stickDir = null, stickNext = 0; // belt slot to use on the next tick (1-4, a tap, or LB/RB/X/Y)
@@ -2936,7 +2940,8 @@ function loop(ts) {
   if (mode === 'title' || mode === 'end') {
     if (edges.a && mode === 'title' && !$('start').disabled && navScreen()?.id === 'title') startRun(); else if (edges.a && mode === 'end' && navScreen()?.id === 'end') startRun();
     if (!sim) { // title backdrop: the chosen adventurer standing in the chosen map
-      if (ts - lastMenuDrawn >= 1000 / 30 - 0.1) {
+      if (ts - lastMenuDrawn >= 1000 / 60 - 0.1) {
+        const titleDt = Number.isFinite(lastMenuDrawn) ? Math.min(0.1, (ts - lastMenuDrawn) / 1000) : 1 / 60;
         lastMenuDrawn = ts;
         if (!window.__idleSim) {
           const T = renderer.terrain;
@@ -2955,8 +2960,8 @@ function loop(ts) {
         const menuTop = Math.max(headerBottom, Math.min(canvasBox.bottom - 24, $('menu').getBoundingClientRect().top - 16));
         renderer.setShift(0, Math.max(0.1, Math.min(0.9, ((headerBottom + menuTop) / 2 - canvasBox.top) / (canvasBox.height || 1))));
         if (compactMenu.matches) renderer.setYaw(0);
-        else if (!params.has('qa')) renderer.setYaw(renderer.getYaw() + 0.0045); // the desktop title camera drifts slowly
-        renderer.update(v, 0.033, PLAYER);
+        else if (!params.has('qa')) renderer.setYaw(renderer.getYaw() + 0.135 * titleDt); // the desktop title camera drifts slowly
+        renderer.update(v, titleDt, PLAYER);
       }
       return;
     }

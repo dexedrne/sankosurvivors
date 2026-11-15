@@ -14,3 +14,11 @@ for(const[weapon,original,alternative]of routes){
   assert.deepEqual(offers(weapon,{[alternative]:1},{pace:1}),[]);assert.deepEqual(offers(weapon,{}),[]);assert.deepEqual(offers(weapon,{[alternative]:0}),[]);assert.deepEqual(offers(weapon,{[alternative]:1},{level:5}),[]);assert.deepEqual(offers(weapon,{[original]:1},{evolved:true}),[]);
  });
 }
+
+for(const [weapon,passive] of [['shield','cheese'],['shortsword','evasion']])test(`${passive} unlocks ${weapon} evolution without changing legacy routes`,()=>{
+ assert.deepEqual(offers(weapon,{[passive]:1}),[weapon]);
+ assert.deepEqual(offers(weapon,{[passive]:1},{pace:1}),[]);
+ assert.deepEqual(offers(weapon,{[passive]:0}),[]);
+ assert.deepEqual(offers(weapon,{[passive]:1},{level:5}),[]);
+ assert.deepEqual(offers(weapon,{[passive]:1},{evolved:true}),[]);
+});

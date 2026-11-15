@@ -13,7 +13,7 @@ function fixture(){
 }
 test('real shared Space/A/mobile handler queues only one ready pace2 action and never a cosmetic jump',()=>{
  const h=fixture();h.app.hop();assert.equal(h.app.pending(),4);assert.equal(h.hops(),0);assert.equal(typeof h.$('tumblebtn').onclick,'function');
- h.app.clear();h.p.rollCd=1;h.$('tumblebtn').onclick();assert.equal(h.app.pending(),null);h.p.rollCd=0;
+ h.app.clear();h.p.rollCd=1;h.$('tumblebtn').onclick({detail:0});assert.equal(h.app.pending(),null);h.p.rollCd=0;
  for(const mode of ['levelup','casket','pause','title','end']){h.app.setMode(mode);h.app.hop();assert.equal(h.app.pending(),null,mode);}
  h.app.setMode('play');h.sim.pending.p1={choices:[]};h.app.hop();assert.equal(h.app.pending(),null);delete h.sim.pending.p1;h.p.alive=false;h.app.hop();assert.equal(h.app.pending(),null);
 });
@@ -32,4 +32,15 @@ test('native rig tumble pivots the body around its waist and restores it without
   pose(a,{rollT:.1});assert.equal(a.rollPivot.parent,root);assert.equal(holder.parent,a.rollPivot);assert.ok(Math.abs(a.rollPivot.rotation.x-Math.PI)<1e-8);assert.equal(a.rollPivot.position.y,1.6);assert.equal(ring.parent,root);assert.equal(ring.rotation.x,0);holder.updateMatrix();assert.deepEqual(holder.matrix,original);
   pose(a,{rollT:0});assert.equal(a.rollPivot.rotation.x,0);assert.equal(a.rollPivot.position.length(),0);pose(a,{});assert.equal(a.rollPivot.position.length(),0);
  }
+});
+
+test('second-finger Tumble presses immediately and compatibility click cannot queue another roll',()=>{
+ const h=fixture(),button=h.$('tumblebtn');let prevented=0;
+ const touch={pointerType:'touch',pointerId:2,isPrimary:false,button:0,preventDefault(){prevented++;}};
+ assert.equal(typeof button.onpointerdown,'function');button.onpointerdown(touch);
+ assert.equal(h.app.pending(),4);assert.equal(prevented,1);
+ h.app.clear();button.onclick({detail:1});assert.equal(h.app.pending(),null);
+ button.onclick({detail:0});assert.equal(h.app.pending(),4,'keyboard and assistive click remain usable');
+ h.app.clear();button.onpointerdown({...touch,pointerType:'mouse',button:2});assert.equal(h.app.pending(),null,'right click is not an action');
+ button.onpointerdown({...touch,pointerType:'mouse',button:0});assert.equal(h.app.pending(),4,'primary mouse press remains usable');
 });

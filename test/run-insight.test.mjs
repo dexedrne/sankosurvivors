@@ -62,16 +62,16 @@ test('mouse and keyboard inspect accessibly and blocked gameplay never queues us
  f.setActive(false);f.fire('click');f.fire('pointerdown');f.tick(50);f.fire('pointerup');assert.equal(f.uses(),1);
 });
 function loopFixture({fps='max',initialMode='title'}={}){
- let draws=0,inputs=0;const start=main.indexOf('let lastDrawn ='),end=main.indexOf('\nboot().then',start);assert.ok(start>=0&&end>start);
+ let draws=0,inputs=0,elapsed=0;const start=main.indexOf('let lastDrawn ='),end=main.indexOf('\nboot().then',start);assert.ok(start>=0&&end>start);
  const nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{disabled:false,style:{setProperty(){}},classList:{toggle(){},contains:()=>true},getBoundingClientRect:()=>({x:0,y:0,left:id==='topright'?300:0,right:id==='brand'?180:393,top:id==='menu'?600:0,bottom:id==='brand'?160:852,width:393,height:852})});return nodes.get(id);};
  const bunCompanions=createBunCompanions({walletNow:()=>null,walletRevision:()=>0,onChange:()=>{}});
- const context={lowHealthOpacity,coop:null,enforceRankedDeadline:()=>false,syncRankedClock(){},setMapPeek(){},hideItemInspection(){},inspectedElement:null,document:{hidden:false},petViewer:null,bunCompanions,bunChoice,selectedPet:null,requestAnimationFrame(){},renderer:{getSettings:()=>({fps}),getYaw:()=>0,setYaw(){},setShift(){},update(){draws++;return 0;}},readInput(){inputs++;return{pad:[]};},padEdges:()=>({}),navMove(){},navBack(){},navPress(){},navScreen:()=>({id:'title'}),$,
+ const context={lowHealthOpacity,coop:null,enforceRankedDeadline:()=>false,syncRankedClock(){},setMapPeek(){},hideItemInspection(){},inspectedElement:null,document:{hidden:false},petViewer:null,bunCompanions,bunChoice,selectedPet:null,requestAnimationFrame(){},renderer:{getSettings:()=>({fps}),getYaw:()=>0,setYaw(){},setShift(){},update(view,dt){draws++;elapsed+=dt;return 0;}},readInput(){inputs++;return{pad:[]};},padEdges:()=>({}),navMove(){},navBack(){},navPress(){},navScreen:()=>({id:'title'}),$,
  snapshot:()=>({players:[{f:0}],fx:[]}),compactMenu:{matches:true},params:{has:()=>true},window:{__idleSim:{}},performance:{now:()=>0},PLAYER:'p1',audio:{onFx(){}},MAP_BY_ID:{},updateHud(){},drawMinimap(){},console};
  vm.createContext(context);vm.runInContext(`let mode='${initialMode}',sim=${initialMode==='pause'?"{players:[],map:{world:false,music:''},proj:[],eproj:[]}":'null'},last=0,frame=0,acc=0,hudT=0,slowmo=0;const TICK=1/30;${main.slice(start,end)};globalThis.frameAt=loop;`,context);
- return{run(ts){context.frameAt(ts);},draws:()=>draws,inputs:()=>inputs};
+ return{run(ts){context.frameAt(ts);},draws:()=>draws,inputs:()=>inputs,elapsed:()=>elapsed};
 }
-for(const hz of [60,144,240])test(`actual title loop caps rendering at30FPS on${hz}Hz and keeps input polling`,()=>{
- const f=loopFixture();for(let i=0;i<hz;i++)f.run(1000+i*1000/hz);assert.ok(f.draws()>=28&&f.draws()<=31,`draws=${f.draws()}`);assert.equal(f.inputs(),hz);
+for(const hz of [60,144,240])test(`title rendering stays within60FPS on${hz}Hz and keeps input polling`,()=>{
+ const f=loopFixture();for(let i=0;i<hz;i++)f.run(1000+i*1000/hz);assert.ok(f.draws()>=47&&f.draws()<=61,`draws=${f.draws()}`);assert.equal(f.inputs(),hz);
 });
 test('actual pause loop caps rendering without throttling controls',()=>{
  const f=loopFixture({initialMode:'pause'});for(let i=0;i<144;i++)f.run(1000+i*1000/144);assert.ok(f.draws()>=28&&f.draws()<=31,`draws=${f.draws()}`);assert.equal(f.inputs(),144);
@@ -111,4 +111,14 @@ test('run insight and belt effects have actual text in every supported language'
  const {translateText}=await import('../src/i18n.js');
  const messages=['Know your build',"See each weapon's recent damage from the minimap or Tab. Hold a belt item to read what it does without using it.",'Menus now render at up to 30 frames per second while controls stay responsive.','Show weapon damage','Weapon damage','Last 8 seconds. Includes overkill.','Total damage','No damage yet.','Empty item slot','Restores 20 health, boosted by healing bonuses. Run faster for 8 seconds.','Blasts nearby enemies. Damage grows with run time.','Pulls all dropped bones and coins to you.','Tap to use. Hold to inspect.'];
  for(const language of ['tr','es','fil'])for(const m of messages)assert.notEqual(translateText(m,language),m,language+': '+m);
+});
+
+for(const fps of ['60','max'])test(`title respects ${fps} setting on a60Hz display`,()=>{
+ const f=loopFixture({fps});for(let i=0;i<60;i++)f.run(1000+i*1000/60);
+ assert.ok(f.draws()>=59&&f.draws()<=60,`draws=${f.draws()}`);
+});
+
+test('60FPS title animation advances at real time',()=>{
+ const f=loopFixture();for(let i=0;i<60;i++)f.run(1000+i*1000/60);
+ assert.ok(Math.abs(f.elapsed()-1)<.025,`elapsed=${f.elapsed()}`);
 });

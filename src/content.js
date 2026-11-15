@@ -365,12 +365,12 @@ export function spellEvolutionChoices(player, pace, page = 0) {
   if (pages > 1) choices.push({ kind: 'spell-page', id: 'staff', level: (page + 1) % pages });
   return choices;
 }
-const EVOLUTION_ALTERNATIVES = { katana: 'thorns', bow: 'crit', axe: 'amount', shield: 'thorns', staff: 'area', pickaxe: 'area', greatsword: 'armor', shortsword: 'boots', baseball: 'might', lighter: 'growth' };
+const EVOLUTION_ALTERNATIVES = { katana: ['thorns'], bow: ['crit'], axe: ['amount'], shield: ['thorns', 'cheese'], staff: ['area'], pickaxe: ['area'], greatsword: ['armor'], shortsword: ['boots', 'evasion'], baseball: ['might'], lighter: ['growth'] };
 export function evolutionPassives(id, pace) {
   if (!Object.hasOwn(EVOLUTIONS, id)) return [];
   if (id === 'staff' && pace >= 2) return [...new Set(Object.values(SPELL_EVOLUTIONS).flatMap(branch => branch.passives))];
   const original = EVOLUTIONS[id].passive, alternative = pace >= 2 && EVOLUTION_ALTERNATIVES[id];
-  return alternative ? [original, alternative] : [original];
+  return alternative ? [original, ...alternative] : [original];
 }
 export function weaponDisplay(id, level, evo, step = null, spellElement = null) {
   if (id === 'staff' && evo && Object.hasOwn(SPELL_EVOLUTIONS, spellElement)) { const branch = SPELL_EVOLUTIONS[spellElement]; return { name: branch.name, item: branch.item }; }
