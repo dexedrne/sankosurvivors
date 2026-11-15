@@ -2,15 +2,15 @@
   "aliases": [
     {
       "path": "/racers/index.html",
-      "bytes": 15663,
-      "sha256": "4ec0397ab897b9ebff9041e776e8cd7ed3b0240db39752fdc64cf6dbb398e0b6"
+      "bytes": 15656,
+      "sha256": "b1d0bc4b2735be3d77a38f114a2d28afb2155b8f86784676005c1f1bf56a640d"
     }
   ],
   "source": {
-    "commit": "282058fcf935c87e871bfeac7b9e94acd4d02a69",
-    "implementation": "282058fcf935c87e871bfeac7b9e94acd4d02a69",
+    "commit": "66cf339f943aaabd6c0dea7fbe1a4d9ec1907f32",
+    "implementation": "66cf339f943aaabd6c0dea7fbe1a4d9ec1907f32",
     "rulesVersion": "eb932477091c",
-    "clientSha256": "5bee1cbc197a27c86e078469ee46e622ff6dc876253ee89e8ce25f6f4117b5a2"
+    "clientSha256": "1934ec59078c44f8f8c37d9409096296d3bf27e48fccba054f71455851d26083"
   },
   "adaptations": {
     "client": [
@@ -72,12 +72,12 @@
     ],
     "html": [
       {
-        "before": "<title>Grand Theft Sanko · SankoQuest World</title>",
-        "after": "<title>Grand Theft Sanko · SankoQuest World</title><meta name=\"description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"Grand Theft Sanko\"><meta property=\"og:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta property=\"og:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta property=\"og:url\" content=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><link rel=\"canonical\" href=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image:secure_url\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"Grand Theft Sanko · Public World Hub\"><meta name=\"twitter:description\" content=\"Explore the SankoQuest world in CrashOut karts or on foot. Meet other players and join Need for Sanko races.\"><meta name=\"twitter:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\">"
+        "before": "<title>2Glock2Sanko · SankoQuest World</title>",
+        "after": "<title>2Glock2Sanko · SankoQuest World</title><meta name=\"description\" content=\"CrashOut karts. Sanko streets. Explore on foot, meet other players and race in Need for Sanko.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"2Glock2Sanko\"><meta property=\"og:title\" content=\"2Glock2Sanko · Public World Hub\"><meta property=\"og:description\" content=\"CrashOut karts. Sanko streets. Explore on foot, meet other players and race in Need for Sanko.\"><meta property=\"og:url\" content=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><link rel=\"canonical\" href=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image:secure_url\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"2Glock2Sanko · Public World Hub\"><meta name=\"twitter:description\" content=\"CrashOut karts. Sanko streets. Explore on foot, meet other players and race in Need for Sanko.\"><meta name=\"twitter:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\">"
       },
       {
-        "before": "/assets/index-TE9UzLoj.js",
-        "after": "./racers-dbaf0d7b81358f7d.js"
+        "before": "/assets/index-ZL_5AbdZ.js",
+        "after": "./racers-ba6d4e237e59c23e.js"
       },
       {
         "before": "/assets/index-BSJKQg_6.css",
@@ -93,13 +93,13 @@
   "files": [
     {
       "path": "/fun/racers/index.html",
-      "bytes": 15633,
-      "sha256": "aebc6d01c00fbbf5a05f2b95d57e4951bcda580e6076fd59ff955c032815fa87"
+      "bytes": 15626,
+      "sha256": "9009fc22082bb07ea335f366abdef7ce271bc7da319bc0c1e106906ad3bbbbdd"
     },
     {
-      "path": "/fun/racers/racers-dbaf0d7b81358f7d.js",
-      "bytes": 1750888,
-      "sha256": "dbaf0d7b81358f7de4fa186a609c0a0946412140efe7621123cde8c027e041d8"
+      "path": "/fun/racers/racers-ba6d4e237e59c23e.js",
+      "bytes": 1751648,
+      "sha256": "ba6d4e237e59c23e575328d322b1b73f30f94da0cef04c2d95a3d9343b844060"
     },
     {
       "path": "/fun/racers/racers-24144ad5536c3c6b.css",
@@ -119,7 +119,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 3264,
-      "sha256": "09db8ed924cbf895fa4f0a0a5a65abd8b13511d83b63d7b907c631660652d40e"
+      "sha256": "be489bf50da3462f523abaaa4659067da35c67172ff9e0a403b307d130f105f7"
     },
     {
       "path": "/fun/racers/CREDITS.txt",

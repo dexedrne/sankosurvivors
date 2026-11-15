@@ -7,6 +7,7 @@ import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
+import {createHmac} from 'node:crypto';
 import {createSim} from '../src/sim.js';
 import {startRunStats,captureRunStats} from '../src/run-stats.js';
 const dir=mkdtempSync(path.join(tmpdir(),'sqs-stats-api-')),id='abcdefabcdef';mkdirSync(path.join(dir,id));
@@ -40,4 +41,33 @@ test('normal-to-endless uses the same run identity, while retryable storage fail
  const tickets=await getTicket();now+=1200000;const first=data(),normal=await call('run-stats',{ticket:tickets.statsTicket,data:first});assert.equal(normal.code,200);const key=calls[0].body.p_run_key;
  const end={...first,endless:true,won:false,t:1200};assert.equal((await call('run-stats',{ticket:tickets.statsTicket,data:end})).code,200);assert.equal(calls[1].body.p_run_key,key);
  reply={error:'slow down'};assert.equal((await call('run-stats',{ticket:tickets.statsTicket,data:end})).code,429);reply={error:'database unavailable'};assert.equal((await call('run-stats',{ticket:tickets.statsTicket,data:end})).code,503);
+});
+test('statistics refuse other ticket purposes and invalid signed claims before database access',async()=>{
+ const tickets=await getTicket(),nonce=await call('nonce');now+=900000;
+ const signFixture=value=>{const body=Buffer.from(JSON.stringify(value)).toString('base64url');return body+'.'+createHmac('sha256','ticket-secret').update(body).digest('base64url');};
+ const claims=JSON.parse(Buffer.from(tickets.statsTicket.split('.')[0],'base64url'));
+ const tokens=[tickets.ticket,tickets.endlessTicket,nonce.data.nonce,
+  ...[c=>c.k='dmt',c=>c.s=now+1,c=>c.s=now-73*3600000,c=>c.s='1',c=>c.s=null,c=>c.n='',c=>c.n='a'.repeat(13),c=>c.n='../bad-nonce',c=>c.j='ranked',c=>c.m='apache',c=>c.a='ranger',c=>c.h=true,c=>c.e=true].map(change=>{const c={...claims};change(c);return signFixture(c);}),
+  tickets.statsTicket.slice(0,-1)+(tickets.statsTicket.endsWith('a')?'b':'a')];
+ for(const ticket of tokens)assert.equal((await call('run-stats',{ticket,data:data()})).code,400);
+ assert.equal(calls.length,0,'Rejected tickets cannot reach the keyed database RPC');
+});
+test('statistics reject malformed envelopes, identity fields and oversized input before database access',async()=>{
+ const tickets=await getTicket();now+=900000;const packet={ticket:tickets.statsTicket,data:data()};
+ const malformed=[null,[],true,'report',{},[packet],{...packet,name:'private'},
+  {...packet,data:{...packet.data,name:'private'}},
+  {...packet,data:JSON.parse(JSON.stringify(packet.data).slice(0,-1)+',"__proto__":{"polluted":true}}')},
+  ...[d=>d.t=0,d=>d.t=14401,d=>d.t=900.5,d=>d.kills=-1,d=>d.kills=1000001,d=>d.level=0,d=>d.level=10001,d=>d.week=1,d=>d.endless=true,d=>d.sim='../bad',d=>d.build='x'.repeat(81),d=>d.stats.chosen.weapon.katana=20001,d=>d.stats.quality.weapons.unknown=1,d=>d.stats.gear.head='x'.repeat(21000)].map(change=>{const d=structuredClone(packet.data);change(d);return{ticket:packet.ticket,data:d};})];
+ for(const value of malformed)assert.equal((await call('run-stats',value)).code,400);
+ assert.equal(calls.length,0,'Malformed reports cannot consume database writes');
+ assert.equal({}.polluted,undefined);
+});
+test('statistics never acknowledge incomplete database responses and rotate the daily network rate key',async()=>{
+ const tickets=await getTicket();now+=900000;const packet={ticket:tickets.statsTicket,data:data()};
+ for(const response of [null,[],false,{}, {ok:false},{ok:'true'},{ok:true,error:'not saved'}]){reply=response;const out=await call('run-stats',packet);assert.equal(out.code,503);assert.notEqual(out.data.ok,true);}
+ reply={ok:true};assert.equal((await call('run-stats',packet)).code,200);const previous=calls.at(-1).body;
+ now+=24*3600000;assert.equal((await call('run-stats',packet)).code,200);const current=calls.at(-1).body;
+ assert.equal(previous.p_run_key,current.p_run_key,'A retry retains the run identity');
+ assert.notEqual(previous.p_ip,current.p_ip,'The network rate key rotates each UTC day');
+ assert.equal(current.p_data.wallet,undefined);assert.equal(current.p_data.name,undefined);
 });

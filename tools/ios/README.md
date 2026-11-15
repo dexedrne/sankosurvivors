@@ -1,6 +1,8 @@
 # SankoSurvivors iPhone edition
 
-First beta:1.0.0, bundle identifier`quest.sankosurvivors.casual`. Bundled solo casual game, local saves/backups, ordinary pets, original assets/music. No wallet, paid ranked, token perks, purchases, co-op, GTS, website updater, remote API or platform SDK. Separate app storage leaves website/PWA saves in place. Progress codes remain the explicit import/export path. App review, asset permissions and Apple signing remain distinct from compiling a web bundle.
+Prepared beta2:1.0.0/build2, bundle identifier`quest.sankosurvivors.casual`. Bundled solo casual game, local saves/backups, ordinary pets, original assets/music. No wallet, paid ranked, token perks, purchases, co-op, GTS, website updater, remote API or platform SDK. Separate app storage leaves website/PWA saves in place. Progress codes remain the explicit import/export path. App review, asset permissions and Apple signing remain distinct from compiling a web bundle.
+
+Build2 refreshes the bundled game from website0.45.51, including item-key settings, Cheese/Beret passives and current help. The signed build1 archive/IPA remain preserved. Both unsigned Simulator and iPhoneOS builds pass, with the audited web files verified in each app. Native system/device acceptance and signing remain separate; paid Apple enrollment is still pending, so no signed beta2 IPA or TestFlight release is claimed.
 
 Web compilation and tests run on alexbl only. Native compilation/signing/simulator/device work requires the owner's M2 MacBook Air with Xcode. Use`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` per command; no global developer-tool change or administrator prompt is needed. Never read signing credentials/keychain data/API keys; Xcode uses its existing account opaquely. No wallet action is part of this workflow.
 
@@ -24,7 +26,7 @@ After installing the app in a simulator, run the single standalone native smoke 
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project smoke/Smoke.xcodeproj -scheme Smoke -destination 'platform=iOS Simulator,id=YOUR_SIMULATOR_ID' -derivedDataPath SmokeData -resultBundlePath smoke.xcresult -only-testing:Smoke/SmokeTests/testBundledGame CODE_SIGNING_ALLOWED=NO test
 ```
 
-The core test uses real XCTest taps, starts/quits a run, manually pauses/resumes and verifies that the displayed best record survives relaunch. Run`Smoke/SmokeTests/testSystemTransitions`separately for landscape and background pause. Current Duo simulation did not deliver rotation or an interruption callback; the standard simulator stalled on orientation before launching the game. Those system checks remain unverified. Neither test proves physical-device audio or performance. Keep derived data/results outside the repository.
+The core test uses real XCTest taps, starts/quits a run, manually pauses/resumes and verifies that the displayed best record survives relaunch. Run`Smoke/SmokeTests/testSystemTransitions`separately for landscape and background pause. The earlier Duo simulation did not deliver rotation or an interruption callback. The latest standard-simulator system check failed during accessibility test-runner initialization before any app test; it does not establish an app defect or a fix. Those system checks remain unverified. Neither test proves physical-device audio or performance. Keep derived data/results outside the repository.
 
 Transfer only the iOS project and audited bundled web files to`~/Developer/SankoSurvivors/`on the Mac. Preserve build logs, screenshots, source fingerprints and manifests outside the mutable build root. Do not copy website credentials or runtime configuration. Keep outputs/private Xcode user state out of git.
 

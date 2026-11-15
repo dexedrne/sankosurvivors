@@ -55,7 +55,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
   assert.ok(fs.existsSync(new URL(`public/fun/racers/${relative.slice(2)}`,root)),relative);
  assert.match(html,/href="https:\/\/sankosurvivors\.quest\/\?menu=fun"[^>]*>Back to SankoSurvivors<\/a>/);
  assert.doesNotMatch(html,/<iframe\b/i);
- assert.match(html, /property="og:title" content="Grand Theft Sanko · Public World Hub"/);
+ assert.match(html, /property="og:title" content="2Glock2Sanko · Public World Hub"/);
  assert.match(html, /property="og:url" content="https:\/\/gts\.sankosurvivors\.quest\/"/);
  assert.match(html, /name="twitter:card" content="summary_large_image"/);
  const image=html.match(/property="og:image" content="([^"]+)"/)[1];

@@ -8,7 +8,7 @@ Equipped Magician's, Warrior's and Power amulets use their original SankoQuest m
 
 Owned Bun companions use SankoQuest’s original facial expressions while catching up, when your health is low, and in the rotating pet preview. Special head designs retain their original details; pets remain cosmetic.
 
-**[Play SankoSurvivors](https://sankosurvivors.quest)** · **[Enter Grand Theft Sanko](https://gts.sankosurvivors.quest/)** · [Need for Sanko races](https://gts.sankosurvivors.quest/?mode=online) · [@dexedrne](https://x.com/dexedrne)
+**[Play SankoSurvivors](https://sankosurvivors.quest)** · **[Enter 2Glock2Sanko](https://gts.sankosurvivors.quest/)** · [Need for Sanko races](https://gts.sankosurvivors.quest/?mode=online) · [@dexedrne](https://x.com/dexedrne)
 
 ## Play
 
@@ -31,7 +31,7 @@ The eligible first-place wallet in week1Apache Normal has a separate, owner-fund
 
 Casket choices show **Sell** and the exact coin amount. Item key bindings are saved on this device.
 
-The menu's **Guide** explains weapon roles, evolutions, caskets, gear, skills, food and controls. Grand Theft Sanko's World menu has a short **Mining and crafting** guide. **Updates** lists changes with copy buttons. Use **More → Report a bug** to send feedback.
+The menu's **Guide** explains weapon roles, evolutions, caskets, gear, skills, food and controls. 2Glock2Sanko's World menu has a short **Mining and crafting** guide. **Updates** lists changes with copy buttons. Use **More → Report a bug** to send feedback.
 
 From ranked week 2, food stacks hold at most five portions per type and Pumpkin bombs stack up to ten. An extra pickup is eaten immediately. Stored food automatically heals before an otherwise fatal hit when enough food can save you, using the belt from left to right; manual eating still works. Beer, Pumpkin and Warp Shard are never used automatically. Earlier ranked weeks, casual and co-op keep their existing food rules.
 
@@ -60,11 +60,11 @@ Casual progress is kept on the device. Optional wallet sign-in enables cloud pro
 
 WalletConnect and supported injected wallets connect from the original game page. Ranked payments, the optional DMT holder check, and Buy DMT are explicit separate actions. Buy DMT compares Arbitrum quotes and estimated gas; displayed estimates can change before a transaction. The calculator does not automatically split purchases. An Ethereum-to-Arbitrum bridge service is under investigation and is **not included**.
 
-Grand Theft Sanko adds on-foot copper/tin/iron/coal mining, bronze, iron and steel smelting, craftable Bronze Short Swords, Bronze, Iron and Steel Pickaxes, full Bronze/Iron cosmetic armour sets and a Steel Helmet, banker storage and town shops. Bronze mines one ore in 2.5 seconds, Iron takes 2 seconds and Steel takes 1.5 seconds. Changing tools cancels the current attempt. Workshops show required bars and mining time; crafting quantities, prices and mining speeds are GTS adaptations. Open Backpack / I to equip head, chest, legs and boots; nearby hub players see the native armour, robe and sword. Its bounded inventory saves on the current device and origin, independently of Road Log, Survivors and wallets. Save errors retain the previous inventory. Armour is cosmetic; the bronze sword uses the existing safe-town/Wilderness combat rules.
+2Glock2Sanko adds on-foot copper/tin/iron/coal mining, bronze, iron and steel smelting, craftable Bronze Short Swords, Bronze, Iron and Steel Pickaxes, full Bronze/Iron cosmetic armour sets and a Steel Helmet, banker storage and town shops. Bronze mines one ore in 2.5 seconds, Iron takes 2 seconds and Steel takes 1.5 seconds. Changing tools cancels the current attempt. Workshops show required bars and mining time; crafting quantities, prices and mining speeds are GTS adaptations. Open Backpack / I to equip head, chest, legs and boots; nearby hub players see the native armour, robe and sword. Its bounded inventory saves on the current device and origin, independently of Road Log, Survivors and wallets. Save errors retain the previous inventory. Armour is cosmetic; the bronze sword uses the existing safe-town/Wilderness combat rules.
 
 Track a recipe from Backpack or any workshop to see the next ore, bank, smelting, forging or equipment step. Existing bars and banked items count toward that goal. Sell max shows its quantity and exact proceeds; mining confirms the carried ore total after saving.
 
-Grand Theft Sanko and its Need for Sanko racing modes keep their own device-local Road Log and settings. Browser saves belong to each address: existing saves remain available at the [previous Racers link](https://sankosurvivors.quest/racers/); they are not migrated to the GTS subdomain. Its public hub has no ranked prizes and does not share Survivors progression. The separate Wavedash casual edition omits wallets, blockchain features and the website's ranked/cloud systems.
+2Glock2Sanko and its Need for Sanko racing modes keep their own device-local Road Log and settings. Browser saves belong to each address: existing saves remain available at the [previous Racers link](https://sankosurvivors.quest/racers/); they are not migrated to the GTS subdomain. Its public hub has no ranked prizes and does not share Survivors progression. The separate Wavedash casual edition omits wallets, blockchain features and the website's ranked/cloud systems.
 
 Online GTS players use a short buffer of confirmed server positions for steadier cars, walkers and map markers. Local driving remains predicted immediately. Brief buffering reduces packet jitter. Sustained missing server updates show a waiting warning and hold local movement until valid authority returns; an online race continues on the server during the interruption. Poor connections can still be visible.
 
@@ -114,11 +114,11 @@ Made by [@dexedrne](https://x.com/dexedrne) for the Sanko community. SankoQuest 
 
 [Sanko Telegram](https://t.me/sankogamecorp) · [Sanko on X](https://x.com/SankoGameCorp)
 
-Grand Theft Sanko now has more accurate south Greentown fence and house-wall clearance, with the same slightly smaller collision body for every kart. Need for Sanko uses matching server collision rules.
+2Glock2Sanko now has more accurate south Greentown fence and house-wall clearance, with the same slightly smaller collision body for every kart. Need for Sanko uses matching server collision rules.
 
-Grand Theft Sanko Garage includes the supplied CrashOut Auto Rifle, Gatling and Heavy Cannon for all fourteen stock karts. The local selection persists; mounted weapons use the existing combat rules and on-foot play keeps the Glock.
+2Glock2Sanko Garage includes the supplied CrashOut Auto Rifle, Gatling and Heavy Cannon for all fourteen stock karts. The local selection persists; mounted weapons use the existing combat rules and on-foot play keeps the Glock.
 
-Grand Theft Sanko workshops offer **Make max**; the bank offers **Bank max** and **Take max** with the exact quantity that fits. Existing single-item controls remain. Device-local inventory rules and existing recipes/prices are preserved; the new pickaxe and armour recipes extend the same workshop.
+2Glock2Sanko workshops offer **Make max**; the bank offers **Bank max** and **Take max** with the exact quantity that fits. Existing single-item controls remain. Device-local inventory rules and existing recipes/prices are preserved; the new pickaxe and armour recipes extend the same workshop.
 
 ## Guides and rendering
 
