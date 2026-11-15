@@ -6,6 +6,9 @@ Version: 1.0.0
 Primary category: Games
 Suggested game categories: Action, Role Playing
 Price: Free
+Privacy Policy URL: https://sankosurvivors.quest/ios-privacy.html
+Marketing URL: https://sankosurvivors.quest/
+Support URL: https://x.com/dexedrne
 
 Description:
 The town is overrun. Pick your adventurer, find a build, and survive the hordes in the SankoQuest world.
@@ -28,6 +31,6 @@ Cartoon/fantasy combat; alcohol references (Tin of Beer); no purchases, real-mon
 
 Before external review:
 - Confirm the owner's rights/permission documentation for artwork and music.
-- Publish and verify the casual-edition privacy policy/support URL.
+- Verify the published casual-edition privacy policy and support URL.
 - Complete privacy and age-rating declarations accurately in App Store Connect.
 - Attach actual native screenshots; do not use generated artwork.
