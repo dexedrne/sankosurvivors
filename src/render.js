@@ -932,7 +932,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // how SankoQuest itself attaches each held item to the hand bones (from its client): offset, scale, rotation
   const MAIN = { offset: [10, 8, 2], scale: [200, 200, 200], rotation: [-Math.PI / 2, 0, -Math.PI / 2] };
   const HELD_FIX = {
-    katana: MAIN, axe: MAIN, pickaxe: MAIN, greatsword: MAIN, shortsword: MAIN,
+    katana: MAIN, axe: MAIN, pickaxe: MAIN, greatsword: MAIN, shortsword: MAIN, rod: MAIN,
     staff: { ...MAIN, offset: [10, 0, 2], rotation: [-Math.PI / 2, 0.5, -Math.PI / 2] },
     bow: { offset: [-4, 7, 1.5], scale: [200, 200, 200], rotation: [-Math.PI / 2, -0.5, Math.PI / 2] },
     shield: { offset: [0, 0, 0], scale: [200, 200, 200], rotation: [Math.PI, 0, Math.PI / 2] },
@@ -949,7 +949,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     staff:   { tip: [0, 1, 0], thin: [0, 0, 1], flip: true },
     bow:     { tip: [0, 1, 0], thin: [0, 0, 1] },
     shield:  { tip: [0, 1, 0], thin: [0, 0, 1] },
+    dagger:  { tip: [1, 0.15, 0], thin: [0, 0, 1] }, // a world prop, not hand equipment: aimed from its own shape
   };
+  // props that were not made for the hand come at their own world size
+  const AIM_SCALE = { dagger: 0.42 };
   // make sure the models for worn gear are loaded before a character puts them on
   const GEAR_FOLDER = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back', neck: 'Neck' };
   // (a shield is a held item: its model loads with the other hand-held items)
@@ -1549,6 +1552,27 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2.1, r * 2.1).rotateX(-Math.PI / 2), splashMat(color, kind));
     m.position.set(x, groundAt(x, z) + 0.14, z); m.userData.shader = true; addEffect(m, life, 0);
   }
+  // the Fishing Net where it landed: a drawn rope lattice that fades over the time its slow lasts (one shared texture;
+  // every cast is an ordinary budgeted flat effect)
+  const netTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    g.beginPath(); g.arc(64, 64, 60, 0, 6.283); g.clip(); g.strokeStyle = 'rgba(222,204,160,0.95)'; g.lineWidth = 2;
+    for (let i = -128; i <= 256; i += 14) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 128, 128); g.stroke(); g.beginPath(); g.moveTo(i, 128); g.lineTo(i + 128, 0); g.stroke(); }
+    g.lineWidth = 5; g.strokeStyle = 'rgba(150,120,78,1)'; g.beginPath(); g.arc(64, 64, 57, 0, 6.283); g.stroke();
+    return new THREE.CanvasTexture(c); })();
+  function netFx(x, z, r, t, evo) {
+    if (![x, z, r, t].every(Number.isFinite) || r <= 0 || r > 40) return;
+    ringFx(x, z, r, evo ? 0x9bddf2 : 0xdccba0, 0, 0.4);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: netTex, color: evo ? 0xbfe9f5 : 0xffffff, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    m.position.set(x, groundAt(x, z) + 0.07, z); addEffect(m, Math.max(0.5, Math.min(6, t)), 0);
+  }
+  // the Fishing Rod's line: a short-lived ribbon from the angler to the hooked monster, and a glint where it bites
+  function hookFx(x, z, tx, tz, evo) {
+    const len = Math.hypot(tx - x, tz - z);
+    if (![x, z, tx, tz].every(Number.isFinite) || len < 0.05 || len > 60) return;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.09, len).rotateX(-Math.PI / 2).translate(0, 0, len / 2), new THREE.MeshBasicMaterial({ color: evo ? 0x9bddf2 : 0xf1ead6, transparent: true, depthWrite: false }));
+    m.position.set(x, Math.max(groundAt(x, z), groundAt(tx, tz)) + 0.9, z); m.rotation.y = Math.atan2(tx - x, tz - z); addEffect(m, 0.22, 0);
+    meleeFx.hit(tx, tz, false);
+  }
   // a dark scorch left on the ground by slams, meteors and blasts, fading slower than the flash
   const scorchTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
     for (let i = 0; i < 26; i++) { const a = Math.random() * 6.283, d = Math.random() * 34, x = 64 + Math.cos(a) * d, y = 64 + Math.sin(a) * d, rr = 14 + Math.random() * 22;
@@ -1851,7 +1875,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'blocked' || f.k === 'evaded') { number(f.x, f.z, f.k === 'blocked' ? 'Blocked' : 'Evaded', 0, '#ffdf82'); ringFx(f.x, f.z, 1.2, f.k === 'blocked' ? 0xffdf82 : 0x8bffd0, 0, 0.35); }
       else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; spSlow = 0.9; } // spSlow: main.js slows the sim 0.3x for 0.9 s here
       else if (f.k === 'die') { if (f.type === 'slimer' || f.type === 'mslimer') slimeBurst(f.x, f.z); pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
-      else if (f.k === 'slash') { slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(f.player || localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
+      else if (f.k === 'slash') { if (f.stab) meleeFx.stab(f.x, f.z, f.a, f.range, f.stab === 2); else slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(f.player || localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'shrine-done') { const c = SHRINE_COLORS[f.kind] || 0xffffff; ringFx(f.x, f.z, 4, c, 1, 0.7); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 50, 6, { s: 1, life: 1.1, color: c, up: 9 }); cam.shake = Math.max(cam.shake, 0.2); }
       else if (f.k === 'shrine') emit(f.x, groundAt(f.x, f.z) + 0.5, f.z, 24, 3, { s: 0.8, life: 1, color: SHRINE_COLORS[f.kind] || 0xffffff, up: 6 });
       else if (f.k === 'land-hop') emit(f.x, groundAt(f.x, f.z) + 0.1, f.z, 8, 2.2, { s: 0.6, life: 0.4, color: 0xc9b38a, up: 1.2, g: 6 });
@@ -1867,6 +1891,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'aim') aimFx(f.x, f.z, f.a, f.len, f.t);
       else if (f.k === 'volley') spFx.volley.push(f); // where the boss stood: its shots start there (the game shows no cast puff; the cast sound stays in audio.js)
       else if (f.k === 'quake') { meleeFx.quake(f.x, f.z, f.r); cam.shake = Math.max(cam.shake, 0.18); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
+      else if (f.k === 'net') { netFx(f.x, f.z, f.r, f.t, f.evo); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
+      else if (f.k === 'hook') { hookFx(f.x, f.z, f.tx, f.tz, f.evo); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'burst') spFx.burst.push(f); // the staff's splash: a thin ring in the spell's colour when the bolt lands (spellLand)
       else if (f.k === 'boss') cam.shake = 0.5;
       else if (f.k === 'nuke') { ringFx(f.x, f.z, f.r, 0xff9a3c, 1, 0.7); ringFx(f.x, f.z, f.r * 0.55, 0xfff2a8, 0, 0.45); scorchFx(f.x, f.z, f.r * 0.8); cam.shake = 0.4; }
@@ -1957,7 +1983,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           a.heldSig = sig;
           const urlFor = (id) => (id === 'worn' ? GEAR[wornShield].model : id === 'katana' && p.evo.katana ? 'shadowfang.glb' : weaponModelPath(id, p.w[id], 'model', step(id)));
           const tintFor = (id) => (id === 'worn' ? GEAR[wornShield].tint : undefined);
-          Promise.all([rightId ? item(urlFor(rightId), tintFor(rightId)) : null, leftId ? item(urlFor(leftId), tintFor(leftId)) : null]).then(([r, l]) => { if (a.heldSig === sig) a.kit.setHeld({ right: r && r.gltf, left: l && l.gltf, rightFix: heldFix(rightId, p.evo[rightId]), leftFix: heldFix(leftId === 'worn' ? 'shield' : leftId), rightAim: HELD_AIM[rightId], leftAim: HELD_AIM[leftId === 'worn' ? 'shield' : leftId], rightScale: HS ? Number(HS) : 1, leftScale: HS ? Number(HS) : 1 }); });
+          Promise.all([rightId ? item(urlFor(rightId), tintFor(rightId)) : null, leftId ? item(urlFor(leftId), tintFor(leftId)) : null]).then(([r, l]) => { if (a.heldSig === sig) a.kit.setHeld({ right: r && r.gltf, left: l && l.gltf, rightFix: heldFix(rightId, p.evo[rightId]), leftFix: heldFix(leftId === 'worn' ? 'shield' : leftId), rightAim: HELD_AIM[rightId], leftAim: HELD_AIM[leftId === 'worn' ? 'shield' : leftId], rightScale: HS ? Number(HS) : (AIM_SCALE[rightId] || 1), leftScale: HS ? Number(HS) : 1 }); });
         }
         a.kit.setMoving(!!p.mv, 1);
         a.mixer.update(dt);

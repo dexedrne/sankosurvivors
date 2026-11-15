@@ -195,8 +195,31 @@ export const WEAPONS = {
     stats: (l) => ({ dmg: L(l, 6.5, 2.2), radius: L(l, 2.6, 0.28), tick: 0.45 }),
     next: (l) => ['+radius', '+damage', '+radius', '+damage', '+radius', 'Inferno ready'][l - 1] || 'max',
   },
+  // owner 15 Nov: "maybe we need more weapons" (Dagger, Fishing Net, "fishing rod also maybe"). Casual pace 2 only, like
+  // the Cheese and Beret: ranked and week-0 runs are never offered these, so their card rolls stay exactly as they were.
+  // Keep them after the original ten: tests and saved builds rely on the older weapons' order.
+  dagger: {
+    name: 'Dagger', icon: 'dagger', model: 'environment/hand_dagger.glb', pace: 2, casual: true,
+    blurb: 'Rapid stabs at the nearest monster in reach. Stabs hit much harder for a moment after a Tumble.',
+    stats: (l) => ({ dmg: L(l, 5, 1.5), cd: Math.max(0.12, L(l, 0.4, -0.03)), range: L(l, 2.3, 0.12), arc: 50, boost: Math.min(3, L(l, 1.6, 0.08)), boostT: l >= 4 ? 2 : 1.5, kb: 0.4 }),
+    next: (l) => ['+damage', 'faster', 'longer Tumble boost', '+damage', 'faster', 'Runite point'][l - 1] || 'max',
+  },
+  net: {
+    name: 'Fishing Net', icon: 'net', model: null, pace: 2, casual: true,
+    blurb: 'Casts a net over the nearest group. Caught monsters take damage and move slower for a while. Bosses are not slowed.',
+    stats: (l) => ({ dmg: L(l, 6, 2), cd: Math.max(0.8, L(l, 3.2, -0.2)), radius: L(l, 2.2, 0.2), slow: Math.min(0.6, L(l, 0.35, 0.03)), slowT: Math.min(4, L(l, 2, 0.2)), cast: 9 }),
+    next: (l) => ['+radius', '+damage', 'slows longer', '+radius', '+damage', 'Heavy net'][l - 1] || 'max',
+  },
+  rod: {
+    name: 'Fishing Rod', icon: 'rod', model: 'equipment/equipment/fishingrod/fishingrod.glb', pace: 2, casual: true,
+    blurb: 'Hooks one monster from afar and reels it toward you. Bosses are hurt but hold their ground.',
+    stats: (l) => ({ dmg: L(l, 14, 4.5), cd: Math.max(0.6, L(l, 2.4, -0.18)), range: L(l, 9, 0.6), pull: Math.min(9, L(l, 4, 0.4)), hooks: 1 }),
+    next: (l) => ['+damage', '+range', 'faster', '+damage', '+range', 'Strong line'][l - 1] || 'max',
+  },
 };
 export const WEAPON_IDS = Object.keys(WEAPONS);
+/** the weapons a run can be offered: pace 1 and every ranked run know only the original ten (see passiveIdsAt) */
+export const weaponIdsAt = (pace, ranked = false) => WEAPON_IDS.filter((id) => !(WEAPONS[id].pace > (pace || 1)) && !(ranked && WEAPONS[id].casual));
 
 // Only continuous growth uses quality; projectile counts and unlocks keep the real level.
 export function weaponStats(p, id) {
@@ -206,7 +229,7 @@ export function weaponStats(p, id) {
   if (!points) return stats;
   const stronger = WEAPONS[id].stats(level + points / 100);
   // shortcut: classify new continuous stats here when adding weapons.
-  for (const key of ['dmg', 'cd', 'range', 'arc', 'r', 'radius', 'spin', 'burst']) if (typeof stats[key] === 'number') stats[key] = stronger[key];
+  for (const key of ['dmg', 'cd', 'range', 'arc', 'r', 'radius', 'spin', 'burst', 'boost', 'slow', 'slowT', 'pull']) if (typeof stats[key] === 'number') stats[key] = stronger[key];
   return stats;
 }
 export function passiveStrength(p, id) {
@@ -272,6 +295,9 @@ export function weaponItem(id, level, step = null) {
     case 'bow': return ['Bow', 'Oak Bow', 'Oak Bow', 'Cherry Bow', 'Cherry Bow', 'Glacial Bow'][level - 1] || 'Bow';
     case 'baseball': return 'Baseball';
     case 'lighter': return 'Lighter';
+    case 'dagger': return 'Dagger';
+    case 'net': return 'Fishing Net';
+    case 'rod': return 'Fishing Rod';
     default: return 'Staff';
   }
 }
@@ -346,6 +372,9 @@ export const EVOLUTIONS = {
   shortsword: { passive: 'magnet', name: 'Swordstorm',  item: 'Adamantite Short Sword', blurb: 'A ring of swords in every direction that pierces everything.' },
   baseball: { passive: 'amount', name: 'Home Run',      item: 'Baseball',       blurb: 'Two balls at once that bounce eight times and knock monsters flying.' },
   lighter:  { passive: 'crit',   name: 'Inferno',       item: 'Fire Shard',     blurb: 'A wide blazing ring that burns twice as hard.' },
+  dagger:   { passive: 'boots',  name: 'Twin Daggers',  item: 'Dagger',         blurb: 'Stabs in front and behind, harder, and the Tumble boost lasts twice as long.' },
+  net:      { passive: 'area',   name: 'Dragnet',       item: 'Fishing Net',    blurb: 'A far wider, heavier net that slows monsters more and for longer.' },
+  rod:      { passive: 'magnet', name: 'Longline',      item: 'Fishing Rod',    blurb: 'Hooks three monsters at once and hits them harder.' },
 };
 export const SPELL_EVOLUTIONS = {
   air: { name: 'Air Blast', item: 'Air Shard', passives: ['air'], blurb: 'More bolts that burst in huge blasts.' },
@@ -365,13 +394,15 @@ export function spellEvolutionChoices(player, pace, page = 0) {
   if (pages > 1) choices.push({ kind: 'spell-page', id: 'staff', level: (page + 1) % pages });
   return choices;
 }
-const EVOLUTION_ALTERNATIVES = { katana: ['thorns'], bow: ['crit'], axe: ['amount'], shield: ['thorns', 'cheese'], staff: ['area'], pickaxe: ['area'], greatsword: ['armor'], shortsword: ['boots', 'evasion'], baseball: ['might'], lighter: ['growth'] };
+const EVOLUTION_ALTERNATIVES = { katana: ['thorns'], bow: ['crit'], axe: ['amount'], shield: ['thorns', 'cheese'], staff: ['area'], pickaxe: ['area'], greatsword: ['armor'], shortsword: ['boots', 'evasion'], baseball: ['might'], lighter: ['growth'], dagger: ['evasion'], net: ['water'], rod: ['greed'] };
 export function evolutionPassives(id, pace) {
   if (!Object.hasOwn(EVOLUTIONS, id)) return [];
   if (id === 'staff' && pace >= 2) return [...new Set(Object.values(SPELL_EVOLUTIONS).flatMap(branch => branch.passives))];
   const original = EVOLUTIONS[id].passive, alternative = pace >= 2 && EVOLUTION_ALTERNATIVES[id];
   return alternative ? [original, ...alternative] : [original];
 }
+/** the weapons a passive can evolve in this kind of run: ranked and week-0 text never names a casual-only weapon */
+export const evolvedBy = (passive, pace, ranked = false) => weaponIdsAt(pace, ranked).filter((id) => evolutionPassives(id, pace).includes(passive));
 export function weaponDisplay(id, level, evo, step = null, spellElement = null) {
   if (id === 'staff' && evo && Object.hasOwn(SPELL_EVOLUTIONS, spellElement)) { const branch = SPELL_EVOLUTIONS[spellElement]; return { name: branch.name, item: branch.item }; }
   if (evo && EVOLUTIONS[id]) return { name: EVOLUTIONS[id].name, item: EVOLUTIONS[id].item };
@@ -390,6 +421,9 @@ export function evolveStats(id, s) {
     case 'shortsword': s.ring = true; s.count = 10; s.pierce = 99; s.dmg *= 1.2; break;
     case 'baseball': s.count += 1; s.bounces = 8; s.dmg *= 1.4; s.kb = 4; s.cd *= 0.8; break;
     case 'lighter': s.radius *= 1.5; s.dmg *= 2; s.tick *= 0.8; break;
+    case 'dagger': s.both = true; s.dmg *= 1.5; s.boostT *= 2; break;
+    case 'net': s.radius *= 1.4; s.dmg *= 1.6; s.slow = Math.min(0.75, s.slow + 0.15); s.slowT *= 1.5; break;
+    case 'rod': s.hooks = 3; s.dmg *= 1.4; break;
   }
   return s;
 }

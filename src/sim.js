@@ -2,7 +2,7 @@ import {noteRunOffers,noteRunChoice} from './run-stats.js';
 // Game simulation. No DOM, no three.js: runs in node (tests) and in the host's browser.
 import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in every browser and on the server (ranked replays)
 import {
-  ENEMIES, MAPS, WEAPONS, WEAPON_IDS, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
+  ENEMIES, MAPS, WEAPONS, WEAPON_IDS, weaponIdsAt, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
   ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, spellEvolutions, spellEvolutionChoices, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength, fortuneBonus,
   weaponSlotItem, TUMBLE, PASTURE_NAV, OASIS_WATER_NAV, SNOW_WAVE_AT, isSnowEnemy,
@@ -619,7 +619,7 @@ function recycleStrays(sim, dt) {
 function slotOptions(sim, p, st = playerStats(p)) {
   if (sim.pace < 2 || sim.ranked || sim.variant && sim.variant !== 'normal' || sim.level < 10 || sim.over || !p.alive || p.slotUpgrade) return [];
   const kinds = [];
-  if (Object.keys(p.weapons).length === st.weaponSlots && WEAPON_IDS.some(id => !p.weapons[id] && !p.banished.includes('weapon:' + id))) kinds.push('weapon');
+  if (Object.keys(p.weapons).length === st.weaponSlots && weaponIdsAt(sim.pace, sim.ranked).some(id => !p.weapons[id] && !p.banished.includes('weapon:' + id))) kinds.push('weapon');
   if (Object.keys(p.passives).length === st.passiveSlots && passiveIdsAt(sim.pace, false).some(id => !p.passives[id] && !p.banished.includes('passive:' + id))) kinds.push('passive');
   return kinds;
 }
@@ -628,7 +628,8 @@ export function rollChoices(sim, p) {
   for (const id of Object.keys(EVOLUTIONS)) {
     if ((p.weapons[id] || 0) >= MAX_WEAPON_LEVEL && !p.evo[id] && evolutionPassives(id, sim.pace).some(key => (p.passives[key] || 0) >= 1)) opts.push({ kind: 'evolve', id, level: 1, w: 1000 });
   }
-  for (const id of WEAPON_IDS) {
+  // only the weapons this run admits are listed, before any roll: ranked and pace 1 keep the original ten and their rolls
+  for (const id of weaponIdsAt(sim.pace, sim.ranked)) {
     if (sim.pace >= 2 && p.banished.includes('weapon:' + id)) continue;
     const lvl = p.weapons[id] || 0;
     if (lvl >= MAX_WEAPON_LEVEL) continue;
@@ -867,6 +868,9 @@ function withPassives(id, s, st) {
   return s;
 }
 const NO_METAL = { dmg: 1, pierce: 0 };
+// Fishing Rod: a knockback impulse k moves a monster k * TICK / (1 - 0.86) in all (the decay in step()), so this turns
+// a distance to reel in into the impulse for it. The cap bounds two rods (co-op, Longline) landing on one monster.
+const HOOK_IMPULSE = (1 - 0.86) / TICK, HOOK_MAX = 9 * HOOK_IMPULSE;
 function fireWeapons(sim, p, dt, st) {
   p.orbit += dt;
   for (const id of Object.keys(p.weapons)) {
@@ -881,9 +885,9 @@ function fireWeapons(sim, p, dt, st) {
     if (metal.pierce) s = { ...s, pierce: (s.pierce || 0) + metal.pierce };
     p.cd[id] = (p.cd[id] ?? 0.2) - dt;
     if (p.cd[id] > 0) continue;
-    const reach = id === 'pickaxe' ? 7 : id === 'katana' || id === 'greatsword' ? s.range + 1.5 : id === 'shortsword' ? 20 : id === 'baseball' ? 14 : 18;
-    const melee = sim.pace >= 2 && (id === 'katana' || id === 'greatsword');
-    const target = nearestEnemy(sim, p.x, p.z, melee ? s.range : reach, undefined, melee);
+    const reach = id === 'pickaxe' ? 7 : id === 'katana' || id === 'greatsword' ? s.range + 1.5 : id === 'shortsword' ? 20 : id === 'baseball' ? 14 : id === 'net' ? s.cast : id === 'rod' ? s.range : 18;
+    const melee = sim.pace >= 2 && (id === 'katana' || id === 'greatsword' || id === 'dagger');
+    const target = nearestEnemy(sim, p.x, p.z, melee ? s.range : reach, undefined, melee || id === 'rod'); // the Rod's hook reaches a body's edge, as its picks do
     if (!target && id !== 'pickaxe') { p.cd[id] = 0; continue; }
     sim.src = id;
     p.cd[id] = s.cd * st.haste;
@@ -947,6 +951,56 @@ function fireWeapons(sim, p, dt, st) {
       if (!sim.enemies.some((e) => sim.pace >= 2 ? hyp(e.x - p.x, e.z - p.z) <= s.radius + ENEMIES[e.type].r : hyp(e.x - p.x, e.z - p.z) < s.radius + 2)) { p.cd[id] = 0.3; continue; }
       sim.fx.push({ k: 'quake', x: p.x, z: p.z, r: s.radius, lvl, ...(sim.coop ? { player: p.id } : {}) });
       for (const e of sim.enemies) if (hyp(e.x - p.x, e.z - p.z) <= s.radius + ENEMIES[e.type].r) damageEnemy(sim, e, dmg, p.id, s.kb, p.x, p.z);
+    } else if (id === 'dagger') {
+      const a = datan2(target.x - p.x, target.z - p.z);
+      p.face = a;
+      // the Tumble's own cooldown tells how long ago it began, so the boost needs no state of its own to save or replay
+      const boosted = p.rollCd > TUMBLE.cooldown - TUMBLE.duration - s.boostT;
+      const stab = dmg * (boosted ? s.boost : 1), half = (s.arc * Math.PI / 180) / 2;
+      for (const dir of s.both ? [a, a + Math.PI] : [a]) {
+        sim.fx.push({ k: 'slash', x: p.x, z: p.z, a: dir, range: s.range, arc: s.arc, lvl, stab: boosted ? 2 : 1, ...(sim.coop ? { player: p.id } : {}) });
+        for (const e of sim.enemies) {
+          const dx = e.x - p.x, dz = e.z - p.z, d = hyp(dx, dz);
+          if (d > s.range + ENEMIES[e.type].r) continue;
+          const da = Math.abs(((datan2(dx, dz) - dir + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+          if ((da > half || d < 0.001) && d > 0.9) continue;
+          damageEnemy(sim, e, stab, p.id, s.kb, p.x, p.z);
+        }
+      }
+    } else if (id === 'net') {
+      // lands on the nearest monster and catches the group round it; the slow is a timer on each monster (see step()),
+      // refreshed rather than stacked, and bosses only take the damage
+      const nx = target.x, nz = target.z;
+      sim.fx.push({ k: 'net', x: nx, z: nz, r: s.radius, t: s.slowT, lvl, evo: p.evo.net ? 1 : 0, ...(sim.coop ? { player: p.id } : {}) });
+      for (const e of sim.enemies) {
+        if (e.dead || hyp(e.x - nx, e.z - nz) > s.radius + ENEMIES[e.type].r) continue;
+        if (!ENEMIES[e.type].boss && !(e.rise > 0)) { e.slow = Math.max(e.slowT > 0 ? e.slow || 0 : 0, s.slow); e.slowT = Math.max(e.slowT || 0, s.slowT); }
+        damageEnemy(sim, e, dmg, p.id);
+      }
+    } else if (id === 'rod') {
+      // one pass picks who to hook: a runaway treasure goblin, then elites, then whoever is farthest; bosses last
+      const picks = [];
+      for (const e of sim.enemies) {
+        if (e.dead || e.rise > 0) continue;
+        const def = ENEMIES[e.type], d = hyp(e.x - p.x, e.z - p.z);
+        if (d > s.range + def.r) continue;
+        const score = (def.boss ? -1000 : e.treasure ? 2000 : e.elite || e.champion ? 1000 : 0) + d;
+        let at = picks.length; while (at > 0 && picks[at - 1].score < score) at--;
+        if (at < s.hooks) { picks.splice(at, 0, { e, d, score }); picks.length = Math.min(picks.length, s.hooks); }
+      }
+      if (!picks.length) { p.cd[id] = 0.3; continue; }
+      for (const { e, d } of picks) {
+        const def = ENEMIES[e.type];
+        // reeled in only along an open line, and then by the walking mover like any knockback: never through a wall
+        // or a fence. Bosses keep their ground, as with every other shove.
+        const want = !def.boss && clearPath(sim, e.x, e.z, p.x, p.z) ? Math.max(0, Math.min(s.pull, d - def.r - PLAYER_BASE.radius - 0.4)) : 0;
+        sim.fx.push({ k: 'hook', x: p.x, z: p.z, tx: e.x, tz: e.z, pull: want > 0 ? 1 : 0, lvl, evo: p.evo.rod ? 1 : 0, ...(sim.coop ? { player: p.id } : {}) });
+        if (want > 0) {
+          e.kx += ((p.x - e.x) / d) * want * HOOK_IMPULSE; e.kz += ((p.z - e.z) / d) * want * HOOK_IMPULSE;
+          const k = hyp(e.kx, e.kz); if (k > HOOK_MAX) { e.kx *= HOOK_MAX / k; e.kz *= HOOK_MAX / k; }
+        }
+        damageEnemy(sim, e, dmg, p.id);
+      }
     }
   }
   // the lighter: a ring of fire that burns everything inside it every half second
@@ -1514,6 +1568,11 @@ export function step(sim, inputs = {}, dt = TICK) {
       if (sim.variant === 'wizard' && wizardAct(sim, e, tp, d, dx, dz, dt)) { mx = mz = 0; }
       if (e.treasure) { mx = -(dx / d) * e.speed; mz = -(dz / d) * e.speed; } // it runs from you
       if (sim.pace >= 2 && sim.tick <= 7200) { mx *= 1.05; mz *= 1.05; } // first four minutes at 30 Hz; no permanent spawn-speed change
+      // Fishing Net (casual): a timed slow on this monster's own walking; e.speed itself and any shove are untouched
+      if (e.slowT > 0) {
+        if (!bossMove) { const f = 1 - Math.min(0.75, e.slow || 0); mx *= f; mz *= f; }
+        e.slowT -= dt; if (e.slowT < 1e-9) { e.slowT = 0; e.slow = 0; }
+      }
       // soft separation
       const cx = Math.floor(e.x / cell), cz = Math.floor(e.z / cell);
       for (let ix = -1; ix <= 1; ix++) for (let iz = -1; iz <= 1; iz++) {

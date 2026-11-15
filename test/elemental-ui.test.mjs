@@ -13,7 +13,7 @@ test('all six actual passive cards show their documented stat preview without mi
  for(const id of ['air','water','earth','fire','void','fortune']){const c=setup();c.p.passives={};c.sim.pending.p1={left:20,choices:[{kind:'passive',id,level:1,from:0,rarity:'common'}]};c.ctx.showLevelUp();assert.match(c.$('cards').children[0].innerHTML,/upstats/);assert.match(c.$('cards').children[0].innerHTML,new RegExp(C.PASSIVES[id].name));}
 });
 test('actual guide lists each Blast with its own prerequisite and retains original pace1 recipes',()=>{
- const a=source.indexOf('function guideRecipes('),b=source.indexOf('\n}',a)+2;assert(a>=0&&b>a);const context={...C,esc:String};vm.runInNewContext(source.slice(a,b),context);const rows=context.guideRecipes(2).match(/<div class="guiderecipe">.*?<\/div>/g);assert.equal(rows.length,14);
+ const a=source.indexOf('function guideRecipes('),b=source.indexOf('\n}',a)+2;assert(a>=0&&b>a);const context={...C,esc:String};vm.runInNewContext(source.slice(a,b),context);const rows=context.guideRecipes(2).match(/<div class="guiderecipe">.*?<\/div>/g);assert.equal(rows.length,17);
  for(const element of ['air','water','earth','fire']){const branch=C.SPELL_EVOLUTIONS[element],row=rows.find(r=>r.includes('<b>'+branch.name+'</b>'));assert(row);assert(row.includes('<span>'+branch.item+'</span>'));for(const other of ['air','water','earth','fire'])if(other!==element)assert(!row.includes(C.SPELL_EVOLUTIONS[other].item));}
  const old=context.guideRecipes(1);assert.equal((old.match(/class="guiderecipe"/g)||[]).length,10);assert(!old.includes('Air Blast'));
 });

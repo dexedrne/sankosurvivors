@@ -98,5 +98,7 @@ export function createMeleeVfx({group,camera,groundAt,colorOut,fxOnly}) {
     hit(x,z,critical=false){add(5,x,z,0,critical ? .24 : .16,1,critical?0xffcf68:0xf3ebcf,.16,0);if(critical)add(5,x+.05,z-.05,0,.13,1,0xffdf9a,.12,0);},
     axe(x,z,spin,evolved=false){add(2,x,z,spin,.55,Math.PI*2,evolved?0x9bddf2:0xe6c697,.14,1);},
     sword(x,z,a,evolved=false){add(3,x,z,a,1,1,evolved?0x9bddf2:0xe9e4d5,.12,1,.1);},
+    // a dagger thrust: the streak's head at the point of the stab, its tail back toward the hand; gold after a Tumble
+    stab(x,z,a,range,boosted=false){if(!Number.isFinite(range)||range<=0)return;add(3,x+Math.sin(a)*range,z+Math.cos(a)*range,a,range,1,boosted?0xffd27a:0xe9e4d5,.12,1,boosted?.2:.12);},
   };
 }

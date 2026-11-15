@@ -1,7 +1,7 @@
-import {WEAPONS,EVOLUTIONS,GEAR,GEAR_SLOT_NAMES,GEAR_SLOTS,GEAR_MAX_LV,weaponDisplay,weaponStep,weaponMetal,weaponStats,evolveStats,evolutionPassives,PASSIVES,passiveTitle,passiveStrength,fortuneBonus,MAX_PASSIVE_LEVEL,gearPieceBonus,bonusText} from './content.js';
+import {WEAPONS,EVOLUTIONS,GEAR,GEAR_SLOT_NAMES,GEAR_SLOTS,GEAR_MAX_LV,weaponDisplay,weaponStep,weaponMetal,weaponStats,evolveStats,evolutionPassives,evolvedBy,PASSIVES,passiveTitle,passiveStrength,fortuneBonus,MAX_PASSIVE_LEVEL,gearPieceBonus,bonusText} from './content.js';
 import {playerStats} from './sim.js';
-const statRows=[['dmg','Base damage'],['cd','Cooldown',' s'],['count','Projectiles'],['pierce','Pierce'],['range','Range'],['radius','Radius'],['r','Size'],['speed','Projectile speed'],['burst','Burst radius']];
-export function itemInspection(player,kind,id,pace=2) {
+const statRows=[['dmg','Base damage'],['cd','Cooldown',' s'],['count','Projectiles'],['pierce','Pierce'],['range','Range'],['radius','Radius'],['r','Size'],['speed','Projectile speed'],['burst','Burst radius'],['boost','Tumble boost','×'],['boostT','Tumble boost time',' s'],['slow','Slow','%'],['slowT','Slow time',' s'],['pull','Pull distance'],['hooks','Hooks']];
+export function itemInspection(player,kind,id,pace=2,ranked=false) {
   if(!player)return null;
   if(kind==='passive') {
     if(!Object.hasOwn(PASSIVES,id)||!Object.hasOwn(player.passives||{},id))return null;
@@ -11,7 +11,7 @@ export function itemInspection(player,kind,id,pace=2) {
     if(id==='fortune')details.push(`Current damage bonus: +${Math.round(fortuneBonus(player)*10000)/100}%`);
     if(id==='cheese'&&playerStats(player).cheeseShield>0)details.push(`Shield duration: ${playerStats(player).cheeseShield} s`);
     if(id==='evasion'&&playerStats(player).evasion>0)details.push(`Current evasion chance: ${Math.round(playerStats(player).evasion*10000)/100}%`);
-    const evolves=Object.keys(EVOLUTIONS).filter(w=>evolutionPassives(w,pace).includes(id));
+    const evolves=evolvedBy(id,pace,ranked);
     if(evolves.length)details.push(`Evolves ${evolves.map(w=>WEAPONS[w].name).join(', ')}.`);
     return {title:passiveTitle(id,level),details};
   }
@@ -28,7 +28,7 @@ export function itemInspection(player,kind,id,pace=2) {
   if(pace>=2){const metal=weaponMetal(id,player.wm);if(Number.isFinite(stats.dmg))stats.dmg*=metal.dmg;if(metal.pierce)stats.pierce=(stats.pierce||0)+metal.pierce;}
   const title=weaponDisplay(id,level,evolved,pace>=2?weaponStep(id,player.wm):null,pace>=2?player.spellElement:null).name;
   const details=[`Level: ${level}`,evolved?EVOLUTIONS[id].blurb:WEAPONS[id].blurb];
-  for(const[key,label,suffix='']of statRows)if(Number.isFinite(stats[key]))details.push(`${label}: ${Math.round(stats[key]*100)/100}${suffix}`);
+  for(const[key,label,suffix='']of statRows)if(Number.isFinite(stats[key]))details.push(`${label}: ${suffix==='×'?'×':''}${Math.round(stats[key]*(suffix==='%'?100:1)*100)/100}${suffix==='×'?'':suffix}`);
   details.push('Weapon values before shared bonuses.');
   if(!evolved&&EVOLUTIONS[id])details.push('Evolves with '+evolutionPassives(id,pace).map(p=>PASSIVES[p].name).join(' or ')+'.');
   return {title,details};
