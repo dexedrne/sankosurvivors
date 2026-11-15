@@ -996,7 +996,6 @@ $('guidebtn').onclick = () => {
   $('guideweapons').innerHTML = guideCatalogue('weapon');
   $('guidepassives').innerHTML = guideCatalogue('passive');
   $('guidecurrentrecipes').innerHTML = guideRecipes(2);
-  const original = $('guideoldrecipes'); if (original) original.innerHTML = guideRecipes(1);
   $('guide').classList.remove('hidden'); navFocus($('guide').querySelector('summary'));
 };
 $('guideclose').onclick = () => { $('guide').classList.add('hidden'); navFocus($('morebtn')); };

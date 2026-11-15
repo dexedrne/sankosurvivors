@@ -66,7 +66,6 @@ export function transformMain(source) {
   s = once(s, "addEventListener('keyup', (e) => { keys.delete(e.key.toLowerCase()); coopReviveUi.keyUp(e.key); });", "addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));");
   s = s.replaceAll('coopReviveUi.clear(); ', '');
   s = between(s, '// ---- ranked: paid tickets', '// ---- skills');
-  s = once(s, "  const original = $('guideoldrecipes'); if (original) original.innerHTML = guideRecipes(1);\n");
   s = between(s, '// ---- version, leaderboard', '// ---- DMT holder perks', records);
   s = between(s, '// ---- DMT holder perks', '// ---- cloud save');
   s = between(s, '// ---- cloud save', 'function syncTitleProgress()', progress);
