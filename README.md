@@ -6,6 +6,8 @@ Survive the SankoQuest world, build a ridiculous loadout, and take on the weekly
 
 **Need for Sanko:** online hosts can choose the full World Circuit, Apache Sprint (267 m) or Southern Sprint (517 m). Guests use the same server-owned course. All three courses are also available as solo time trials or races against the Guard and Priest, with separate time-trial bests on this device. GP and DMT race stakes are not enabled.
 
+**2Glock2Sanko inventory:** open Inventory & equipment in World for a rotating original3Dcharacter, equipment slots and carried item cards. Gear remains in the backpack; copies are grouped and capacity counts units. Existing banking, shops, crafting and save rules are preserved.
+
 Survivors build cards keep names, levels and final stats exportable when an item image cannot load; a notice identifies the missing art.
 
 Equipped Magician's, Warrior's and Power amulets use their original SankoQuest models on your character. Their existing bonuses are unchanged.

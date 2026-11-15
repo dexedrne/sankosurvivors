@@ -1,5 +1,9 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Your character and gear": "Tu personaje y equipo",
+  "2Glock2Sanko: open Inventory & equipment in World for a rotating 3D character, equipment slots and clearer backpack cards.": "2Glock2Sanko: abre Inventory & equipment en World para ver un personaje 3D que puedes girar, ranuras de equipo y tarjetas de mochila más claras.",
+  "Equipped items still count toward backpack capacity. Banking, shops, crafting and existing inventory saves keep their rules.": "Los objetos equipados siguen contando para la capacidad de la mochila. El banco, las tiendas, la fabricación y los inventarios guardados mantienen sus reglas.",
+
   "Practice your race route": "Practica tu circuito",
   "Need for Sanko: choose Apache Sprint, Southern Sprint or World Circuit for a time trial or a race against the Guard and Priest.": "Need for Sanko: elige Apache Sprint, Southern Sprint o World Circuit para una contrarreloj o una carrera contra el Guard y el Priest.",
   "Each course keeps its own personal best on this device. Original World Circuit records are preserved.": "Cada circuito guarda su mejor tiempo personal en este dispositivo. Se conservan los récords originales de World Circuit.",

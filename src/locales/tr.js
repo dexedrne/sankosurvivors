@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Your character and gear": "Karakterin ve ekipmanın",
+  "2Glock2Sanko: open Inventory & equipment in World for a rotating 3D character, equipment slots and clearer backpack cards.": "2Glock2Sanko: döndürülebilen bir 3D karakter, ekipman yuvaları ve daha anlaşılır çanta kartları için World bölümünde Inventory & equipment menüsünü aç.",
+  "Equipped items still count toward backpack capacity. Banking, shops, crafting and existing inventory saves keep their rules.": "Kuşanılan eşyalar çanta kapasitesinden sayılmaya devam eder. Banka, mağaza, üretim ve mevcut envanter kayıtlarının kuralları değişmez.",
+
   "Practice your race route": "Yarış parkurunda antrenman yap",
   "Need for Sanko: choose Apache Sprint, Southern Sprint or World Circuit for a time trial or a race against the Guard and Priest.": "Need for Sanko: zamana karşı yarışmak veya Guard ve Priest ile yarışmak için Apache Sprint, Southern Sprint ya da World Circuit seç.",
   "Each course keeps its own personal best on this device. Original World Circuit records are preserved.": "Her parkurun kişisel en iyi süresi bu cihazda ayrı tutulur. Mevcut World Circuit rekorları korunur.",

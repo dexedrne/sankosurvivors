@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Your character and gear": "Ang iyong karakter at kagamitan",
+  "2Glock2Sanko: open Inventory & equipment in World for a rotating 3D character, equipment slots and clearer backpack cards.": "2Glock2Sanko: buksan ang Inventory & equipment sa World para sa naiiikot na 3D karakter, mga puwesto ng kagamitan at mas malinaw na backpack card.",
+  "Equipped items still count toward backpack capacity. Banking, shops, crafting and existing inventory saves keep their rules.": "Kasama pa rin sa kapasidad ng backpack ang suot na kagamitan. Pareho pa rin ang mga tuntunin sa bangko, tindahan, paggawa at naka-save na imbentaryo.",
+
   "Practice your race route": "Magsanay sa iyong ruta",
   "Need for Sanko: choose Apache Sprint, Southern Sprint or World Circuit for a time trial or a race against the Guard and Priest.": "Need for Sanko: pumili ng Apache Sprint, Southern Sprint o World Circuit para sa time trial o karera laban kina Guard at Priest.",
   "Each course keeps its own personal best on this device. Original World Circuit records are preserved.": "May sariling pinakamagandang oras ang bawat ruta sa device na ito. Mananatili ang orihinal na mga rekord sa World Circuit.",

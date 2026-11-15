@@ -1,6 +1,6 @@
 {
-  "commit": "3febf20b35ad3e978a37ea27f1c2b38930defee5",
-  "implementation": "3febf20b35ad3e978a37ea27f1c2b38930defee5",
+  "commit": "2373c6c6035d553bfef30de938c268b120ea34a1",
+  "implementation": "2373c6c6035d553bfef30de938c268b120ea34a1",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2943,16 +2943,16 @@
       "role": "unique"
     },
     {
-      "path": "assets/index-BSJKQg_6.css",
-      "bytes": 34855,
-      "sha256": "193aacf62341d5f36508a115fec3a7874819dc9452d33778df238391c6616311",
-      "role": "stylesheet"
+      "path": "assets/index-CNJnYgYd.js",
+      "bytes": 1760170,
+      "sha256": "78962c6afbb99ee69700e54182b209b93833d68a88aff1ff7f6a8ae25e6aa405",
+      "role": "client"
     },
     {
-      "path": "assets/index-BvbswI5q.js",
-      "bytes": 1754725,
-      "sha256": "7d3d742ebde81cf0b327ac67f50f9b823dcb1256dae9085f214593eb9cd31e97",
-      "role": "client"
+      "path": "assets/index-CwEq5QrO.css",
+      "bytes": 39256,
+      "sha256": "616fb3f40abbecce413408cfc18a822290845dc35512838e6cb9e7d584f2afc9",
+      "role": "stylesheet"
     },
     {
       "path": "assets/inventory.json",
@@ -4954,8 +4954,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 14137,
-      "sha256": "549c7eef108feabb8ed468f8caef0febc41b85d486634d5796146ac432b0c2bd",
+      "bytes": 14144,
+      "sha256": "4d0f7779cc17a660b2910fa7569cc842c50b2a87fc5b1fce01aa93839efa141e",
       "role": "entry"
     }
   ],
