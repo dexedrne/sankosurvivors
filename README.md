@@ -4,6 +4,10 @@
 
 Survive the SankoQuest world, build a ridiculous loadout, and take on the weekly ranked board.
 
+**Need for Sanko:** online hosts can choose the full World Circuit, Apache Sprint (267 m) or Southern Sprint (517 m). Guests use the same server-owned course. GP and DMT race stakes are not enabled.
+
+Survivors build cards keep names, levels and final stats exportable when an item image cannot load; a notice identifies the missing art.
+
 Equipped Magician's, Warrior's and Power amulets use their original SankoQuest models on your character. Their existing bonuses are unchanged.
 
 Owned Bun companions use SankoQuest’s original facial expressions while catching up, when your health is low, and in the rotating pet preview. Special head designs retain their original details; pets remain cosmetic.
