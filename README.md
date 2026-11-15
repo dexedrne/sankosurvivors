@@ -4,7 +4,7 @@
 
 Survive the SankoQuest world, build a ridiculous loadout, and take on the weekly ranked board.
 
-**Need for Sanko:** online hosts can choose the full World Circuit, Apache Sprint (267 m) or Southern Sprint (517 m). Guests use the same server-owned course. GP and DMT race stakes are not enabled.
+**Need for Sanko:** online hosts can choose the full World Circuit, Apache Sprint (267 m) or Southern Sprint (517 m). Guests use the same server-owned course. All three courses are also available as solo time trials or races against the Guard and Priest, with separate time-trial bests on this device. GP and DMT race stakes are not enabled.
 
 Survivors build cards keep names, levels and final stats exportable when an item image cannot load; a notice identifies the missing art.
 

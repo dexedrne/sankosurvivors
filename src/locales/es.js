@@ -1,5 +1,9 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Practice your race route": "Practica tu circuito",
+  "Need for Sanko: choose Apache Sprint, Southern Sprint or World Circuit for a time trial or a race against the Guard and Priest.": "Need for Sanko: elige Apache Sprint, Southern Sprint o World Circuit para una contrarreloj o una carrera contra el Guard y el Priest.",
+  "Each course keeps its own personal best on this device. Original World Circuit records are preserved.": "Cada circuito guarda su mejor tiempo personal en este dispositivo. Se conservan los récords originales de World Circuit.",
+
   "Pick your race": "Elige tu carrera",
   "Need for Sanko online hosts can choose World Circuit, Apache Sprint or Southern Sprint. Guests inherit the route, with matching starts and server-owned checkpoints.": "Quien crea una carrera online de Need for Sanko puede elegir World Circuit, Apache Sprint o Southern Sprint. Los invitados usan la misma ruta, con la misma salida y controles del servidor.",
   "Build cards can still be saved when an item image fails to load. Names, levels and final stats remain included, with a notice for missing images.": "Puedes guardar la tarjeta de tu configuración aunque no se cargue una imagen. Se incluyen los nombres, niveles y estadísticas finales, con un aviso sobre las imágenes que faltan.",

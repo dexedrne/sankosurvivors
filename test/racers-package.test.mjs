@@ -69,7 +69,7 @@ test('static entry resolves relative code and styles and returns to the Fun menu
  assert.match(js,/sanko-racers-world-v2/);assert.match(js,/sanko-racers-world-v1/);assert(html.includes('id="surface-state"'));assert(html.includes('id="previous-best"'));
  assert(m.files.some(f=>/^\/assets\/racers\/world\/tiles\/surfaces-[0-9a-f]{12}\.bin$/.test(f.path)));
  assert(js.includes('minX:0,maxX:512,minZ:0,maxZ:512'));
- for(const phrase of ['FREE DRIVE · SANKOQUEST WORLD','WORLD RACE · GUARD & PRIEST','handbrake'])assert(js.includes(phrase),phrase);
+ for(const phrase of ['FREE DRIVE · SANKOQUEST WORLD',' · GUARD & PRIEST','handbrake'])assert(js.includes(phrase),phrase);
  const css=read(`public${m.files.find(f=>f.path.endsWith('.css')).path}`).toString();
  for(const asset of ['RuneScape-Plain-12.ttf','RuneScape-Quill-8.ttf','frame.png','grey_slot.png','yellow_slot.png'])assert(css.includes(asset),asset);
  assert(html.includes('data-action="handbrake"'));

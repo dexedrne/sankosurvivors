@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Practice your race route": "Magsanay sa iyong ruta",
+  "Need for Sanko: choose Apache Sprint, Southern Sprint or World Circuit for a time trial or a race against the Guard and Priest.": "Need for Sanko: pumili ng Apache Sprint, Southern Sprint o World Circuit para sa time trial o karera laban kina Guard at Priest.",
+  "Each course keeps its own personal best on this device. Original World Circuit records are preserved.": "May sariling pinakamagandang oras ang bawat ruta sa device na ito. Mananatili ang orihinal na mga rekord sa World Circuit.",
+
   "Pick your race": "Piliin ang karera mo",
   "Need for Sanko online hosts can choose World Circuit, Apache Sprint or Southern Sprint. Guests inherit the route, with matching starts and server-owned checkpoints.": "Maaaring pumili ang online host ng Need for Sanko ng World Circuit, Apache Sprint o Southern Sprint. Parehong ruta, simula at server-controlled checkpoint ang gagamitin ng mga bisita.",
   "Build cards can still be saved when an item image fails to load. Names, levels and final stats remain included, with a notice for missing images.": "Mase-save pa rin ang build card kahit hindi ma-load ang isang larawan. Kasama pa rin ang mga pangalan, level at huling stats, na may abiso para sa nawawalang larawan.",

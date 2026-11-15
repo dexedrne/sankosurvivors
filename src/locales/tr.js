@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Practice your race route": "Yarış parkurunda antrenman yap",
+  "Need for Sanko: choose Apache Sprint, Southern Sprint or World Circuit for a time trial or a race against the Guard and Priest.": "Need for Sanko: zamana karşı yarışmak veya Guard ve Priest ile yarışmak için Apache Sprint, Southern Sprint ya da World Circuit seç.",
+  "Each course keeps its own personal best on this device. Original World Circuit records are preserved.": "Her parkurun kişisel en iyi süresi bu cihazda ayrı tutulur. Mevcut World Circuit rekorları korunur.",
+
   "Pick your race": "Yarışını seç",
   "Need for Sanko online hosts can choose World Circuit, Apache Sprint or Southern Sprint. Guests inherit the route, with matching starts and server-owned checkpoints.": "Need for Sanko çevrimiçi yarışının kurucusu World Circuit, Apache Sprint veya Southern Sprint seçebilir. Konuklar aynı başlangıç ve sunucunun yönettiği kontrol noktalarıyla aynı parkurda yarışır.",
   "Build cards can still be saved when an item image fails to load. Names, levels and final stats remain included, with a notice for missing images.": "Bir eşya görseli yüklenemese de geliştirme kartını kaydedebilirsin. İsimler, seviyeler ve son istatistikler korunur; eksik görseller için bir uyarı gösterilir.",
