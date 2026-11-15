@@ -1,5 +1,9 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Build records and crafting goals": "Registros de equipo y objetivos de fabricación",
+  "New completed runs retain their builds for balance reviews. Starting items are counted separately from upgrades; casual reports and verified ranked replays stay separate.": "Las nuevas partidas completadas conservan su equipo para revisar el equilibrio. Los objetos iniciales se cuentan aparte de las mejoras; los informes casuales y las repeticiones clasificatorias verificadas se mantienen separados.",
+  "Grand Theft Sanko: track a crafting goal in Backpack or workshops to see the next ore, bank or crafting step. Sell max shows exact proceeds, and mining confirms how much ore you carry.": "Grand Theft Sanko: elige un objetivo de fabricación en la mochila o los talleres para ver el siguiente paso de minería, banco o fabricación. Vender todo muestra el importe exacto, y la minería confirma cuánto mineral llevas.",
+
   "Ranked entries and new passives": "Entradas clasificatorias y nuevas pasivas",
   "Ranked entries now offer 1, 10 or 25 DMT in one leaderboard and prize pool. All use identical gameplay and scoring. Rewards remain 80% placement, 10% eligible DMT contributed and 10% active playtime.": "Las entradas clasificatorias ahora permiten 1, 10 o 25 DMT en una sola clasificación y fondo de premios. Todas tienen las mismas reglas y puntuación. Los premios siguen siendo 80% por puesto, 10% por DMT aportado elegible y 10% por tiempo activo.",
   "Every 20 seconds, gain a one-hit shield for 2 seconds. Each extra effective level adds 0.5 seconds, up to 5 seconds.": "Cada 20 segundos, obtienes un escudo de 2 segundos que bloquea un golpe. Cada nivel efectivo adicional suma 0,5 segundos, hasta 5 segundos.",

@@ -10,3 +10,5 @@ export {entryForWeek,entryOptions,entryMessage} from '../../src/ranked-entry-pri
 export {rewardPolicy} from '../../src/reward-policy.js';
 
 export {firstBonusFor} from '../../src/first-bonus.js';
+
+export {normalizeRunStats,normalizeRunSummary,runStatsScope} from '../../src/run-stats.js';

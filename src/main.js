@@ -1,3 +1,5 @@
+import {startRunStats,captureCasualRunSummary} from './run-stats.js';
+import {openRunStatsStore,createRunStatsOutbox,queueFinishedRunStats} from './run-stats-client.js';
 import {lowHealthOpacity} from './health-warning.js';
 import {bindItemKeys} from './item-keys.js';
 import {entryForWeek} from './ranked-entry-price.js';
@@ -1759,12 +1761,39 @@ function toast(html) { const el = document.createElement('div'); el.className = 
 // ---- run lifecycle ----------------------------------------------------------------------------------------------------
 let runTicket = null;
 let casualRun = null;
+// Web telemetry uses independent storage; a failure cannot block player progress.
+const statsSessions=new WeakMap();
+const statsOutbox=createRunStatsOutbox(openRunStatsStore(),async packet=>{
+  const control=new AbortController(),timeout=setTimeout(()=>control.abort(),10000);
+  try{const response=await fetch(`${BASE}api/run-stats`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(packet),signal:control.signal});const result=await response.json().catch(()=>null);return{ok:response.ok&&result?.ok===true,status:response.status};}
+  finally{clearTimeout(timeout);}
+});
+let statsRetry=null,statsDelay=5000;
+async function flushRunStats(){
+  if(navigator.onLine===false)return;
+  try{await statsOutbox.flush();const status=await statsOutbox.inspect();if(status.pending){if(statsRetry===null)statsRetry=setTimeout(()=>{statsRetry=null;void flushRunStats();},statsDelay);statsDelay=Math.min(statsDelay*2,300000);}else{clearTimeout(statsRetry);statsRetry=null;statsDelay=5000;}}
+  catch{} // Preserve unavailable storage; ordinary progress and submissions remain independent.
+}
+window.addEventListener('online',()=>{statsDelay=5000;void flushRunStats();});void flushRunStats();
+function startStatsSession(session){
+  if(statsSessions.has(session.sim))return;
+  const p=session.sim.players.find(p=>p.id===(session.player||PLAYER));if(!p)return;
+  if(session.sim.tick===0)startRunStats(p);
+  statsSessions.set(session.sim,session);loadCasualTickets(session);
+}
+function retainRunStats(s,p){
+  const session=statsSessions.get(s);if(!session)return;
+  try{const summary=captureCasualRunSummary(s,p,BUILD,SIM_ID);if(summary)void queueFinishedRunStats(session,summary,statsOutbox).then(()=>flushRunStats()).catch(()=>{});}catch{}
+}
 function loadCasualTickets(session) {
-  if (session.sim.variant) return;
-  const s = session.sim, query = new URLSearchParams({ map: s.map.id, adv: s.players[0].adv, hard: s.hard ? '1' : '0', endless: s.endless ? '1' : '0' });
+  const s=session.sim,p=s.players.find(p=>p.id===(session.player||PLAYER)),kind=s.coop?'coop':s.variant||'casual';
+  if(!p)return;
+  const query = new URLSearchParams({ map: s.map.id, adv: p.adv, hard: s.hard ? '1' : '0', endless: s.endless ? '1' : '0',stats:'1',kind });
   session.tickets = fetch(`${BASE}api/run?${query}`).then(r => r.ok ? r.json() : null).then(d => {
-    if (casualRun !== session || sim !== s) return;
+    session.statsTicket=d?.statsTicket||null;
+    if(kind!=='casual')return;
     session.ticket = d?.ticket || null; session.endlessTicket = d?.endlessTicket || null;
+    if (casualRun !== session || sim !== s) return;
     runTicket = session.phase === 'endless' ? session.endlessTicket : session.ticket;
   }).catch(() => {});
 }
@@ -1835,6 +1864,7 @@ function openCoop() {
     },
     onRun:(run,game,localId) => {
       if (coop !== c) return; coopReviveUi.clear(); PLAYER = localId; sim = run.sim; coopDecision = -1; rankedRun = rankedRec = null; runTicket = null;
+      startStatsSession({sim,player:localId,phase:'playing'});
       renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
       for (const id of ['title','end','pause','levelup','casket',...MENU_SCREENS]) $(id).classList.add('hidden');
       $('hud').classList.remove('hidden'); $('cooppause').classList.remove('hidden'); $('coopwait').classList.remove('hidden');
@@ -1918,7 +1948,7 @@ async function startRun(live = null) {
       persistRanked();
       $('updatebtn').classList.add('hidden'); $('rankedupdate').classList.add('hidden'); renderer.setAura(false);
     } else sim = createSim({ seed, map, variant: selVariant, trialBoss, hard: hardOn, endless: endlessOn, meta: getSkills(), ground: runGround(), players: [{ id: PLAYER, name: 'You', adv: adv.id, weapon: params.get('weapon') || adv.weapon, gear, gearLv: forced ? {} : getGearLv() }] });
-    if (!isRanked) { casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' }; loadCasualTickets(casualRun); }
+    if (!isRanked) { casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' }; startStatsSession(casualRun); }
     renderer.reset(); renderer.setZoom(1); renderer.setShift(0); renderer.setYaw(0); acc = 0; selCard = 0; slotCache.b = null;
     for (const id of ['title', 'end', 'pause', 'levelup', 'casket', 'skills', 'gear', 'quests', 'settings', 'updates', 'board', 'bug', 'tip', 'dmt', 'ranked', 'guide', 'pets', 'more', 'upgrades', 'modemenu']) $(id).classList.add('hidden');
     $('cooppause').classList.add('hidden'); $('coopwait').classList.add('hidden');
@@ -2027,6 +2057,7 @@ function endRun() {
   try { finishedBuilds.set(lastRun, captureRunBuild(sim, p, { name: rankedRun?.name || $('lbname')?.value || p.name, ranked: !!rankedRun, version: LATEST })); }
   catch { finishedBuilds.set(lastRun, null); } // display failures must never prevent saving or submitting a run
   if (sim.variant) { lastRun.variant = sim.variant; lastRun.sent = true; lastRun.ticket = null; }
+  if(!wasRanked)retainRunStats(sim,p);
   const result = lastRun, session = casualRun?.sim === sim ? casualRun : null;
   if (session) session.result = result;
   if (session && canContinueCasual(sim)) { session.normalResult = result; session.phase = 'normal-end'; }

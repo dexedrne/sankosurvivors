@@ -82,11 +82,11 @@ async function setup(t,{pause='login',established=false,holdStart=true,failStart
     ${currentPetSource}
     ${petInitSource}
     ${mapPicker}
-    const playTitleMusic=()=>{};
+    const playTitleMusic=()=>{},startStatsSession=session=>loadCasualTickets(session);
     const audio={init:async()=>{},music(){},applyPreferences:data=>audioApplied.push(data)};
     const getCoins=()=>Number(JSON.parse(localStorage.getItem('sq-coins')||'0')),xferRead=code=>code==='fixture-code'?{data:importData}:{error:'fixture invalid code'};
     const getGear=()=>({}),getGearLv=()=>({}),getSkills=()=>({}),getBests=()=>({}),runGround=()=>null,runAdv=()=>ADVENTURER_BY_ID[MAP_BY_ID[selMap].forceAdv||selAdv],bestKey=()=>'';
-    const makeSim=()=>({map,players:[{}],pending:{},over:null,t:0}),createSim=options=>({...makeSim(),map:options.map,hard:options.hard,endless:options.endless,players:[{adv:options.players[0].adv}]}),resumeRankedAsync=async(log,options,progress)=>{await resumeStage();progress?.(1,1);return{sim:makeSim(),rec:{log:()=>({runs:[]})}};};
+    const makeSim=()=>({map,players:[{}],pending:{},over:null,t:0}),createSim=options=>({...makeSim(),map:options.map,hard:options.hard,endless:options.endless,players:[{id:options.players[0].id,adv:options.players[0].adv}]}),resumeRankedAsync=async(log,options,progress)=>{await resumeStage();progress?.(1,1);return{sim:makeSim(),rec:{log:()=>({runs:[]})}};};
     const banner=()=>{},preloadIcons=()=>{},weaponItem=()=>'',passiveItem=()=>'',clearTouch=()=>{},showLevelUp=()=>{},persistRanked=()=>{},fmtT=s=>String(s),slayName=()=> 'Dragon',kpmWeek=()=>false,liveRace=live=>live;
     const renderWallet=()=>{},renderDmt=()=>{},refreshBalances=()=>{},wallets=()=>[],short=a=>a,renderRanked=()=>{},rankedMessage=()=>{},openRanked=()=>{},why=e=>e.message,plain=s=>Error(s),applyDmt=()=>{},buildAdventurers=()=>{},showBest=()=>{},buildSettings=()=>{},submitRanked=async()=>{};
     const readRanked=(key,fallback=null)=>key==='sq-ranked-live'?storedLive:fallback,writeRanked=(key,value)=>{if(key==='sq-ranked-live')storedLive=value;};

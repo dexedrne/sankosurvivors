@@ -5,7 +5,8 @@ import {iosEdition} from '../tools/ios/edition.mjs';
 const source=n=>fs.readFileSync(new URL('../'+n,import.meta.url),'utf8');
 test('iPhone edition removes paid, wallet and co-op entry points through the established extractor',()=>{
  const p=iosEdition(),main=p.transform(source('src/main.js'),'/src/main.js').code;
- assert.doesNotMatch(main,/fetch\(|rankedApi|payEntry|createCloud|bunCompanions|enterRacers/);
+ assert.doesNotMatch(main,/fetch\(|rankedApi|payEntry|createCloud|bunCompanions|enterRacers|run-stats|RunStats|statsOutbox|statsSessions/);
+ const sim=p.transform(source('src/sim.js'),'/src/sim.js').code;assert.doesNotMatch(sim,/run-stats|noteRunOffers|noteRunChoice/);
  const html=p.transformIndexHtml.handler(source('index.html'));
  for(const id of ['rankedbtn','walletchip','petbuns','racersbtn','coopbtn'])assert(!html.includes('id="'+id+'"'));
  assert(html.includes('id="start"'));assert(html.includes('<title>SankoSurvivors</title>'));

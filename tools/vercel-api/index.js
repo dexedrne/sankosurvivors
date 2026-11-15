@@ -126,6 +126,15 @@ module.exports = async function handler(req, res) {
     }
     if (req.method === 'GET' && path === 'run') {
       if (!TICKET_KEY) return send(res, 503, { error: 'leaderboard not set up yet' });
+      if (u.searchParams.get('stats') === '1') {
+        const q=u.searchParams,m=q.get('map'),a=q.get('adv'),kind=q.get('kind')||'casual',hard=q.get('hard'),endless=q.get('endless'),game=require('./ranked.js').load()?.game;
+        if(typeof game?.runStatsScope!=='function')return send(res,503,{error:'run statistics are updating'});
+        if(kind==='ranked'||!game.runStatsScope(kind,m,a)||!['0','1'].includes(hard)||!['0','1'].includes(endless))return send(res,400,{error:'bad run'});
+        const s=Date.now(),n=crypto.randomBytes(9).toString('base64url'),h=hard==='1',e=endless==='1',statsTicket=signed({k:'stats',s,n,m,a,h,e,j:kind});
+        if(kind!=='casual')return send(res,200,{statsTicket});
+        const child=signed({s,n:sign('casual-endless-v1|'+n).slice(0,12),k:'ce',m,a,h});
+        return send(res,200,e?{ticket:child,statsTicket}:{ticket:signed({s,n,k:'cn',m,a,h}),endlessTicket:child,statsTicket});
+      }
       if (u.searchParams.has('map')) {
         const m = u.searchParams.get('map'), a = u.searchParams.get('adv'), hard = u.searchParams.get('hard'), endless = u.searchParams.get('endless');
         if (!MAPS.has(m) || !/^[a-z]{2,16}$/.test(a || '') || !['0','1'].includes(hard) || !['0','1'].includes(endless)) return send(res, 400, { error: 'bad run' });
@@ -134,6 +143,18 @@ module.exports = async function handler(req, res) {
         return send(res, 200, endless === '1' ? { ticket: child } : { ticket: signed({ s, n, k: 'cn', m, a, h }), endlessTicket: child });
       }
       return send(res, 200, { ticket: makeTicket() });
+    }
+    if (req.method === 'POST' && path === 'run-stats') {
+      const b=await body(req),ticket=unsign(b.ticket),age=ticket&&Date.now()-ticket.s,game=require('./ranked.js').load()?.game;
+      if(Object.keys(b).length!==2||!Object.hasOwn(b,'data')||!ticket||ticket.k!=='stats'||!Number.isSafeInteger(ticket.s)||!Number.isFinite(age)||age<0||age>72*3600000||typeof ticket.n!=='string'||!/^[A-Za-z0-9_-]{12}$/.test(ticket.n))return send(res,400,{error:'bad statistics ticket'});
+      if(typeof game?.normalizeRunSummary!=='function')return send(res,503,{error:'run statistics are updating'});
+      const d=game.normalizeRunSummary(b.data);
+      if(!d||d.kind==='ranked'||d.kind!==ticket.j||d.map!==ticket.m||d.adv!==ticket.a||d.hard!==ticket.h||age/1000<d.t*.97-5||d.endless!==ticket.e&&!(ticket.e===false&&d.kind==='casual'&&d.endless&&d.t>=WIN[d.map][0]))return send(res,400,{error:'bad run statistics'});
+      if(d.kind==='casual'&&d.won&&(d.t<WIN[d.map][0]||d.t>WIN[d.map][1]+10))return send(res,400,{error:'bad run statistics'});
+      const digest=text=>crypto.createHmac('sha256',TICKET_KEY).update(text).digest('hex');
+      const out=await rpc('sqs_record_run_stats',{p_server_key:SERVER_KEY,p_run_key:'c:'+digest('run-stats|'+ticket.n),p_source:'client',p_data:d,p_ip:digest('run-stats-ip|'+Math.floor(Date.now()/86400000)+'|'+ip)});
+      if(!out||out.error||out.ok!==true)return send(res,out?.error==='slow down'?429:503,{error:'could not save run statistics'});
+      return send(res,200,{ok:true});
     }
     if (req.method === 'POST' && path === 'score') {
       const b = await body(req);

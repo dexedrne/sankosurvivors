@@ -12,10 +12,10 @@ test('a special-mode result refuses submission before reading a name, ticket or 
  const fn=Function('$','lastRun',`return ${block('submitScore')}`)(()=>{throw Error('must not read controls');},null);
  for(const variant of ['boss','raid','fun','wizard'])assert.deepEqual(await fn({variant}),{ok:false});
 });
-test('special-mode startup cannot request a campaign leaderboard ticket',()=>{
- let requests=0;const fn=Function('fetch','BASE',`return ${block('loadCasualTickets')}`)(()=>{requests++;throw Error('must not request ticket');},'/');
- for(const variant of ['boss','raid','fun','wizard'])fn({sim:{variant}});
- assert.equal(requests,0);
+test('special-mode startup requests scoped analytics without campaign score tickets',async()=>{
+ const requests=[],fn=Function('fetch','BASE','PLAYER',`return ${block('loadCasualTickets')}`)(async url=>{requests.push(new URL(url,'https://fixture.invalid'));return {ok:true,json:async()=>({statsTicket:'fixture-stats'})};},'/','p1');
+ for(const variant of ['boss','raid','fun','wizard']){const session={sim:{variant,map:{id:'greentown'},players:[{id:'p1',adv:variant==='wizard'?'wise-old-man':'ranger'}]}};fn(session);await session.tickets;assert.equal(session.statsTicket,'fixture-stats');assert.equal(session.ticket,undefined);assert.equal(session.endlessTicket,undefined);assert.equal(requests.at(-1).searchParams.get('kind'),variant);assert.equal(requests.at(-1).searchParams.get('stats'),'1');}
+ assert.equal(requests.length,4);
 });
 test('returning from special co-op re-enables mode controls and restores the fixed kit disclosure',()=>{
  const state=Function(`

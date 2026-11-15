@@ -1,3 +1,4 @@
+import {startRunStats,captureRunStats} from './run-stats.js';
 // Ranked weekly DMT runs: the rules, the run recorder and the replay that checks a run. The game and the server both use
 // this file, so a run replays on the server exactly as it was played (the simulation's maths is deterministic, see
 // dmath.js). Ranked runs start equal: no skills, no gear, no DMT perks, any adventurer.
@@ -132,7 +133,7 @@ export class RunRecorder {
 }
 
 // Replays a recorded run from the same start. Returns what really happened, or { error }.
-export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.week) * 30), allowPartial = false } = {}) {
+export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.week) * 30), allowPartial = false, analytics = false } = {}) {
   if (!log || log.v !== 1 || !Array.isArray(log.runs) || !Array.isArray(log.uses) || !Array.isArray(log.picks)) return { error: 'bad log' };
   // cheap checks first: nothing malformed or oversized reaches the simulation (which is the expensive part)
   let total = 0;
@@ -145,6 +146,7 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
   for (const u of log.uses) if (!Array.isArray(u) || u.length !== 2 || !Number.isInteger(u[0]) || !Number.isInteger(u[1]) || u[1] < 0 || u[1] > 4) return { error: 'bad item use' }; // 0-3 belt slots, 4 a jump
   let sim;
   try { sim = rankedSim(params); } catch { return { error: 'bad ranked run' }; }
+  if (analytics) startRunStats(sim.players[0]);
   let pi = 0, ui = 0, tick = 0;
   const resolve = (partial = false) => {
     let guard = 0;
@@ -181,5 +183,5 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
   const err = resolve(allowPartial); if (err && !sim.over) return { error: err };
   if (ui !== log.uses.length) return { error: 'item uses out of order' };
   if (!sim.over && !allowPartial) return { error: 'the run had not ended' };
-  return { t: Math.floor(sim.t), kills: sim.kills, level: sim.level, won: sim.over === 'win', timeUp: sim.over === 'time', ticks: tick, picksUsed: pi };
+  return { t: Math.floor(sim.t), kills: sim.kills, level: sim.level, won: sim.over === 'win', timeUp: sim.over === 'time', ticks: tick, picksUsed: pi, ...(analytics ? {stats:captureRunStats(sim,sim.players[0])} : {}) };
 }

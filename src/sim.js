@@ -1,3 +1,4 @@
+import {noteRunOffers,noteRunChoice} from './run-stats.js';
 // Game simulation. No DOM, no three.js: runs in node (tests) and in the host's browser.
 import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in every browser and on the server (ranked replays)
 import {
@@ -662,17 +663,17 @@ export function rollChoices(sim, p) {
     if (out.length < 3) out.push(card); else out[replace] = card;
   }
   // pace 1 (ranked week 0): no rarity, one level a card, and no extra rolls, exactly as before
-  if (!(sim.pace >= 2)) return out.map(({ kind, id, level }) => ({ kind, id, level }));
+  if (!(sim.pace >= 2)) return noteRunOffers(p,out.map(({ kind, id, level }) => ({ kind, id, level })));
   // each card rolls its rarity (evolutions are their own reward and do not roll)
   const luck = cardLuck(p.meta || {}, { greed: passiveStrength(p, 'greed') });
-  return out.map(({ kind, id, level }) => {
+  return noteRunOffers(p,out.map(({ kind, id, level }) => {
     if (kind === 'evolve' || kind === 'slot') return { kind, id, level };
     if (id === 'curse') return { kind, id, level, from: level - 1 };
     const r = rarityFromRoll(sim.rng(), luck);
     if (kind === 'heal') return { kind, id, level, rarity: CARD_RARITIES[r] };
     const from = level - 1, max = kind === 'weapon' ? MAX_WEAPON_LEVEL : MAX_PASSIVE_LEVEL;
     return { kind, id, level: Math.min(max, from + CARD_GAIN[r]), from, rarity: CARD_RARITIES[r] };
-  });
+  }));
 }
 // levels a card gives: a rarity card says how many (from -> level); a card without rarity (pace 1) gives one
 const cardGain = (sim, c) => sim.pace >= 2 ? 1 : (c.rarity && typeof c.from === 'number' && c.level > c.from ? c.level - c.from : 1);
@@ -726,6 +727,7 @@ export function applyChoice(sim, p, choice) {
     if (!p.godMode) { const gain = st.maxHp - p.maxHp; p.maxHp = st.maxHp; p.hp = Math.min(p.maxHp, p.hp + Math.max(0, gain)); }
   } else { const r = Math.max(0, CARD_RARITIES.indexOf(choice.rarity)); p.hp = Math.min(p.maxHp, p.hp + CARD_HEAL[r] * playerStats(p).heal); return; }
   if (sim.pace >= 2 && choice.rarity === 'epic' && choice.id !== 'curse' && !p.godMode) p.hp = p.maxHp;
+  noteRunChoice(p,choice);
 }
 
 export function previewChoice(sim, p, choice) {

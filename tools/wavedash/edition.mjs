@@ -53,7 +53,7 @@ function queuePageReload(text, delay) {
 
 export function transformMain(source) {
   let s = source;
-  for (const file of ['coop-client', 'coop-revive-ui', 'ranked', 'ranked-play', 'ranked-client', 'ranked-entry-price', 'ranked-clock', 'ranked-clock-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'swap-planner', 'wallet-connect', 'wallet', 'bun-companions']) {
+  for (const file of ['run-stats','run-stats-client','coop-client', 'coop-revive-ui', 'ranked', 'ranked-play', 'ranked-client', 'ranked-entry-price', 'ranked-clock', 'ranked-clock-client', 'prize-display', 'config', 'dmt', 'cloud', 'swap', 'swap-planner', 'wallet-connect', 'wallet', 'bun-companions']) {
     const re = new RegExp(`^import .+ from './${file}\\.js';\\n`, 'm');
     assert.ok(re.test(s), `Expected import ${file}`); s = s.replace(re, '');
   }
@@ -91,8 +91,9 @@ export function transformMain(source) {
     if (mode === 'recovery') return;
 `);
   s = once(s, 'let runTicket = null;\n');
-  s = between(s, 'function loadCasualTickets(session) {', 'function runGround() {');
-  s = once(s, "    if (!isRanked) { casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' }; loadCasualTickets(casualRun); }", "    casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' };");
+  s = between(s, '// Web telemetry uses independent storage;', 'function runGround() {');
+  s = once(s, '  if(!wasRanked)retainRunStats(sim,p);\n');
+  s = once(s, "    if (!isRanked) { casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' }; startStatsSession(casualRun); }", "    casualRun = { sim, baseline: null, normalCommitted: false, phase: 'playing' };");
   s = between(s, '    // Website submission;', '    // End website submission.');
   s = once(s, '    runTicket = session.endlessTicket || null;\n');
   s = once(s, 'MAP_BY_ID[isRanked ? live.map : selMap]', 'MAP_BY_ID[selMap]');
@@ -242,6 +243,14 @@ function localeSource(language) {
   return `export const text=${JSON.stringify(text)}; export const patterns=${JSON.stringify(patterns)};`;
 }
 
+function transformStatsFreeSim(source){
+  let s=once(source,"import {noteRunOffers,noteRunChoice} from './run-stats.js';\n");
+  s=once(s,'if (!(sim.pace >= 2)) return noteRunOffers(p,out.map(({ kind, id, level }) => ({ kind, id, level })));','if (!(sim.pace >= 2)) return out.map(({ kind, id, level }) => ({ kind, id, level }));');
+  s=once(s,'return noteRunOffers(p,out.map(({ kind, id, level }) => {','return out.map(({ kind, id, level }) => {');
+  s=once(s,'  }));\n}\n// levels a card gives','  });\n}\n// levels a card gives');
+  return once(s,'  noteRunChoice(p,choice);\n');
+}
+
 export function wavedashEdition() {
   return {
     name: 'sqs-wavedash-edition', enforce: 'pre',
@@ -249,6 +258,7 @@ export function wavedashEdition() {
     transform(code, id) {
       if (id.endsWith('/src/start.js')) return { code: once(once(code, "import { carryGate } from './carry-gate.js';\n"), '  if (!await carryGate()) return;\n'), map: null };
       if (id.endsWith('/src/main.js')) return { code: transformMain(code), map: null };
+      if (id.endsWith('/src/sim.js')) return {code:transformStatsFreeSim(code),map:null};
       if (id.endsWith('/src/content.js')) return { code: code.replaceAll("name: 'DMT Protester'", "name: 'Protester'"), map: null };
       if (id.endsWith('/src/render.js')) return { code: transformRender(code), map: null };
       if (id.endsWith('/src/assets.js')) return { code: "export const asset = p => (import.meta.env.BASE_URL || './') + 'assets/' + p; export const assetHost = () => 'local'; export const pickAssetHost = async () => 'local';", map: null };
@@ -257,7 +267,7 @@ export function wavedashEdition() {
       if (locale) return { code: localeSource(locale[1]), map: null };
     },
     generateBundle(_, bundle) {
-      for (const id of this.getModuleIds()) assert.doesNotMatch(id, /\/(?:wallet(?:-connect)?|dmt|ranked(?:-client|-play)?|cloud|swap(?:-planner)?|prize-display|config|carry-(?:progress|gate))\.js$|node_modules\/(?:@walletconnect|qrcode|@reown)/, `Forbidden module in casual build: ${id}`);
+      for (const id of this.getModuleIds()) assert.doesNotMatch(id, /\/(?:run-stats(?:-client)?|wallet(?:-connect)?|dmt|ranked(?:-client|-play)?|cloud|swap(?:-planner)?|prize-display|config|carry-(?:progress|gate))\.js$|node_modules\/(?:@walletconnect|qrcode|@reown)/, `Forbidden module in casual build: ${id}`);
       for (const entry of Object.values(bundle)) if (entry.type === 'chunk') assertCasualBundle(entry.code, [entry.fileName]);
     },
   };

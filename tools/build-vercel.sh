@@ -54,7 +54,7 @@ cat > .vercel/output/config.json <<'JSON'
   {"src":"^/assets/racers/world/tiles/(fences-[0-9a-f]{12}\\.json|surfaces-[0-9a-f]{12}\\.bin)$","headers":{"Cache-Control":"public, max-age=31536000, immutable"},"continue":true},
   {"src":"^/(index\\.html)?$","has":[{"type":"host","value":{"eq":"gts.sankosurvivors.quest"}}],"dest":"/racers/index.html"},
   {"src":"^/(index\\.html)?$","has":[{"type":"header","key":"user-agent","value":".*(TelegramBot|Twitterbot|facebookexternalhit|Discordbot|Slackbot|WhatsApp).*"}],"dest":"/preview"},
-  {"src":"^/api/(scores|score|report|run|nonce|holder|ranked-week|ranked-version|ranked-nonce|ranked-enter|ranked-start|ranked-clock|ranked-submit|ranked-void|save-nonce|save-login|save-get|save-put)$","dest":"/api?route=$1"},
+  {"src":"^/api/(scores|score|report|run|run-stats|nonce|holder|ranked-week|ranked-version|ranked-nonce|ranked-enter|ranked-start|ranked-clock|ranked-submit|ranked-void|save-nonce|save-login|save-get|save-put)$","dest":"/api?route=$1"},
   {"handle":"filesystem"}
 ],"crons":[]}
 JSON

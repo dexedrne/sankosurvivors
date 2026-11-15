@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Build records and crafting goals": "Mga tala ng build at layunin sa paggawa",
+  "New completed runs retain their builds for balance reviews. Starting items are counted separately from upgrades; casual reports and verified ranked replays stay separate.": "Itinatala ang build ng mga bagong natapos na run para sa pagsusuri ng balanse. Hiwalay ang panimulang gamit sa mga upgrade; magkahiwalay ang casual report at beripikadong ranked replay.",
+  "Grand Theft Sanko: track a crafting goal in Backpack or workshops to see the next ore, bank or crafting step. Sell max shows exact proceeds, and mining confirms how much ore you carry.": "Grand Theft Sanko: pumili ng layunin sa paggawa sa Backpack o workshop para makita ang susunod na pagmimina, pagkuha sa bangko o paggawa. Ipinapakita ng Sell max ang eksaktong kita, at kinukumpirma ng pagmimina kung gaano karaming ore ang dala mo.",
+
   "Ranked entries and new passives": "Mga entry sa ranked at bagong passive",
   "Ranked entries now offer 1, 10 or 25 DMT in one leaderboard and prize pool. All use identical gameplay and scoring. Rewards remain 80% placement, 10% eligible DMT contributed and 10% active playtime.": "May 1, 10 o 25 DMT na entry na sa ranked, sa iisang leaderboard at pondo ng gantimpala. Pareho ang gameplay at pagmamarka. Nananatiling 80% para sa puwesto, 10% para sa kwalipikadong DMT na ambag at 10% para sa aktibong oras ng paglalaro ang gantimpala.",
   "Every 20 seconds, gain a one-hit shield for 2 seconds. Each extra effective level adds 0.5 seconds, up to 5 seconds.": "Bawat 20 segundo, magkakaroon ng 2 segundong kalasag na haharang sa isang tama. Bawat dagdag na epektibong antas ay nagdaragdag ng 0.5 segundo, hanggang 5 segundo.",

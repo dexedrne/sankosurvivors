@@ -881,3 +881,13 @@ test('25DMT nonce refuses missing SQL21 readiness before any payment',async t=>{
  t.mock.method(db,'rpc',async()=>({ok:true,left:100,reward_version:2}));
  const out=await call(nonceRoute(w)+'&tier=max');assert.equal(out.code,400);assert.equal(out.json.nonce,undefined);
 });
+test('accepted ranked build statistics come from replay, never a supplied client build',async()=>{
+ const r=await ready();const out=await call('ranked-submit',{run:r.run.run,name:'Tester',log:r.log,stats:{weapons:{bow:6}}});assert.equal(out.code,200);
+ assert(db.stats?.has(r.e.id),'Verified build retained by versioned finish');const saved=db.stats.get(r.e.id);assert.equal(saved.kind,'ranked');assert.equal(saved.week,0);assert.equal(saved.sim,SIM_TEST_ID);assert.equal(saved.stats.complete,true);assert.equal(saved.stats.starter.weapons.katana,1);assert.equal(saved.t,r.result.t);assert.equal(saved.kills,r.result.kills);assert.equal(saved.level,r.result.level);
+ assert.equal((await submit(r)).code,200);assert.equal(db.stats.size,1);
+});
+test('missing analytics migration falls back to the existing finish without losing a paid result',async()=>{
+ const r=await ready(),original=db.rpc.bind(db);let tried=false;
+ db.rpc=async(fn,p)=>{if(fn==='sqs_ranked_finish_v3'){tried=true;throw Error('sqs_ranked_finish_v3 404 not installed');}if(fn==='sqs_ranked_finish_v2')assert.equal(p.p_stats,undefined);return original(fn,p);};
+ const out=await submit(r);assert.equal(out.code,200);assert.equal(tried,true);assert.equal(db.rows[0].verdict,'ok');assert.equal((await submit(r)).code,200);
+});

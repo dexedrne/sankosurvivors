@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Build records and crafting goals": "Yapı kayıtları ve üretim hedefleri",
+  "New completed runs retain their builds for balance reviews. Starting items are counted separately from upgrades; casual reports and verified ranked replays stay separate.": "Yeni tamamlanan koşuların yapıları denge incelemeleri için saklanır. Başlangıç eşyaları yükseltmelerden ayrı sayılır; normal koşu bildirimleri ile doğrulanmış dereceli tekrarlar ayrı tutulur.",
+  "Grand Theft Sanko: track a crafting goal in Backpack or workshops to see the next ore, bank or crafting step. Sell max shows exact proceeds, and mining confirms how much ore you carry.": "Grand Theft Sanko: sıradaki maden, banka veya üretim adımını görmek için Sırt Çantası ya da atölyelerden bir üretim hedefi seç. Tümünü sat kesin kazancı gösterir; madencilik taşıdığın cevher miktarını bildirir.",
+
   "Ranked entries and new passives": "Dereceli katılım ve yeni pasifler",
   "Ranked entries now offer 1, 10 or 25 DMT in one leaderboard and prize pool. All use identical gameplay and scoring. Rewards remain 80% placement, 10% eligible DMT contributed and 10% active playtime.": "Dereceli katılım artık aynı sıralama ve ödül havuzunda 1, 10 veya 25 DMT sunuyor. Oynanış ve puanlama herkes için aynı. Ödüller %80 sıralama, %10 uygun DMT katkısı ve %10 aktif oyun süresi olarak kalıyor.",
   "Every 20 seconds, gain a one-hit shield for 2 seconds. Each extra effective level adds 0.5 seconds, up to 5 seconds.": "Her 20 saniyede, tek darbeyi engelleyen 2 saniyelik bir kalkan kazan. Her ek etkin seviye süreye 0,5 saniye ekler; üst sınır 5 saniyedir.",

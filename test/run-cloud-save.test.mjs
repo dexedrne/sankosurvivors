@@ -38,7 +38,7 @@ function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',respo
   let rankedRun=${ranked?"{week:0,mode:'normal',run:'fixture-run'}":'null'},rankedRec=${ranked?"{log:()=>({runs:[]})}":'null'};
   const {canContinueCasual,captureRewardBaseline,continueCasual,phaseCoins,phaseAlch}=continuation;
   let casualRun=${continuePlay?"{sim,normalCommitted:false,baseline:null,endlessTicket:'child',phase:'playing'}":'null'};
-  const finishedBuilds=new WeakMap(),renderEndBuild=()=>{};
+  const finishedBuilds=new WeakMap(),renderEndBuild=()=>{},retainRunStats=()=>{},startStatsSession=()=>{};
   const LATEST='fixture-version',savedPass=()=>null,DMT_COIN_BONUS=.25;let runTicket='fixture-ticket';
   const keys=new Set(),clearTouch=()=>{},audio={duck(){}},showLevelUp=()=>{},resumeAfterReward=()=>{};let pendingUse=null,slowmo=0,acc=0,shownPending=false,runBest=null,passedBest=false;
   const fmtT=t=>String(t),imgTag=()=>'',buildMaps=()=>{},buildAdventurers=()=>{},showBest=()=>{},stepOf=()=>null,iconHTML=()=>'',weaponDisplay=()=>({name:'Sword'});

@@ -7,7 +7,7 @@ import { clockPolicy } from '../../src/ranked-clock.js';
 import { dmtText } from '../../src/prize-display.js';
 const MODES = ['normal', 'hard'];
 export class RankedDB {
-  constructor({ enforceClock = false } = {}) { this.enforceClock = enforceClock; this.rows = []; this.next = 1; this.finishError = null; }
+  constructor({ enforceClock = false } = {}) { this.enforceClock = enforceClock; this.rows = []; this.next = 1; this.finishError = null; this.stats = new Map(); }
   async rpc(fn, p) {
     const error = (error) => ({ error });
     const mode = p.p_mode ?? 'normal';
@@ -106,6 +106,11 @@ export class RankedDB {
       case 'sqs_ranked_release_v2':
         if (e && e.started_at === p.p_started && e.submit_sha === p.p_log_sha && e.submit_attempt === p.p_attempt && e.finished_at == null) e.submit_until=Date.now();
         return {ok:true};
+      case 'sqs_ranked_finish_v3': {
+        const result=await this.rpc('sqs_ranked_finish_v2',p);
+        if(result?.ok&&result.verdict==='ok'&&p.p_stats&&!this.stats.has(p.p_id))this.stats.set(p.p_id,structuredClone(p.p_stats));
+        return result;
+      }
       case 'sqs_ranked_finish_v2': {
         if (!e || e.started_at !== p.p_started || e.submit_sha !== p.p_log_sha || e.submit_attempt !== p.p_attempt) return error('that run was already sent');
         if (e.submit_result) return e.submit_result;

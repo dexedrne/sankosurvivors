@@ -342,14 +342,19 @@ async function handle(route, req, res, ctx) {
       const real = ((cutoff ? Math.min(claim.received, r.d) : claim.received) - r.s) / 1000;
       const credit = cutoff ? claim.creditMs / 1000 : 0;
       const logTicks = b.log.runs.reduce((n, x) => n + x[0], 0), early = real < (logTicks / 30) * 0.97 - 5;
-      const result = early ? { t: 0, kills: 0, level: 0 } : played.game.replay(b.log, { seed: r.seed, mapId: played.game.weekMap(r.w), adv: r.adv, ground: played.ground, week: r.w, mode: modeOf(r) }, { maxTicks, allowPartial: cutoff && claim.received >= r.d });
+      const result = early ? { t: 0, kills: 0, level: 0 } : played.game.replay(b.log, { seed: r.seed, mapId: played.game.weekMap(r.w), adv: r.adv, ground: played.ground, week: r.w, mode: modeOf(r) }, { maxTicks, allowPartial: cutoff && claim.received >= r.d, analytics:true });
       let verdict = 'ok';
       if (early) verdict = 'rejected: faster than real time';
       else if (result.error) verdict = 'rejected: ' + result.error;
       else if (real < result.t * 0.97 - 5) verdict = 'rejected: faster than real time';
       else if (real - credit > result.t + (g.RANKED.pauseSeconds ?? 1800)) verdict = 'rejected: 30-minute total pause allowance exceeded';
       const ok = verdict === 'ok';
-      const out = await rpc('sqs_ranked_finish_v2', { ...ident, p_name: (typeof b.name === 'string' && clean(b.name, 16)) || 'Adventurer', p_t: ok ? result.t : 0, p_kills: ok ? result.kills : 0, p_level: ok ? result.level : 0, p_won: ok && result.won, p_verdict: verdict, p_log: ok ? zlib.gzipSync(JSON.stringify(b.log)).toString('base64') : null });
+      const finishArgs={ ...ident, p_name: (typeof b.name === 'string' && clean(b.name, 16)) || 'Adventurer', p_t: ok ? result.t : 0, p_kills: ok ? result.kills : 0, p_level: ok ? result.level : 0, p_won: ok && result.won, p_verdict: verdict, p_log: ok ? zlib.gzipSync(JSON.stringify(b.log)).toString('base64') : null };
+      const stats=ok&&result.stats&&typeof played.game.normalizeRunSummary==='function'?played.game.normalizeRunSummary({kind:'ranked',map:played.game.weekMap(r.w),adv:r.adv,hard:modeOf(r)==='hard',endless:true,t:result.t,kills:result.kills,level:result.level,won:!!result.won,build:'sim-'+r.v,sim:r.v,week:r.w,stats:result.stats}):null;
+      let out;
+      try{out=await rpc('sqs_ranked_finish_v3',{...finishArgs,p_stats:stats});}
+      catch(error){if(!/ 404 /.test(String(error.message)))throw error;out=await rpc('sqs_ranked_finish_v2',finishArgs);}
+
       if (!out || out.error) return send(res, 503, { error: out?.error || 'could not save the run', retry: true });
       release = false;
       return reply(out);

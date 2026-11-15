@@ -30,12 +30,12 @@ test('unconfirmed normal score requires explicit fallback and never claims submi
 
 test('ticket response from an abandoned run cannot overwrite the next live run',async()=>{
  const start=source.indexOf('function loadCasualTickets('),end=source.indexOf('function runGround()',start);assert.ok(start>=0&&end>start);
- const requests=[],s=createSim({pace:2}),session={sim:s};const c={sim:s,casualRun:session,runTicket:null,BASE:'/',URLSearchParams,fetch:url=>new Promise(resolve=>requests.push({url,resolve}))};vm.createContext(c);vm.runInContext(source.slice(start,end),c);
+ const requests=[],s=createSim({pace:2}),session={sim:s};const c={sim:s,casualRun:session,runTicket:null,PLAYER:'p1',BASE:'/',URLSearchParams,fetch:url=>new Promise(resolve=>requests.push({url,resolve}))};vm.createContext(c);vm.runInContext(source.slice(start,end),c);
  c.loadCasualTickets(session);assert.match(requests[0].url,/map=greentown&adv=adventurer&hard=0&endless=0/);
  const next={sim:createSim({pace:2})};c.sim=next.sim;c.casualRun=next;c.loadCasualTickets(next);
  requests[1].resolve({ok:true,json:async()=>({ticket:'next',endlessTicket:'next-child'})});await next.tickets;
  requests[0].resolve({ok:true,json:async()=>({ticket:'old',endlessTicket:'old-child'})});await session.tickets;
- assert.equal(c.runTicket,'next');assert.equal(next.endlessTicket,'next-child');assert.equal(session.ticket,undefined);
+ assert.equal(c.runTicket,'next');assert.equal(next.endlessTicket,'next-child');assert.equal(session.ticket,'old');
 });
 
 test('actual captured submit response cannot mark the next result sent or overwrite its status',async()=>{
@@ -53,10 +53,10 @@ test('wallet-free actual continuation uses only the committed local record',asyn
 
 for(const variant of ['normal','wizard'])test(`actual ${variant} startup preserves gear and scopes tickets to eligible casual worlds`,async()=>{
  const {MAP_BY_ID}=await import('../src/content.js');const requests=[],nodes=new Map(),$=id=>{if(!nodes.has(id))nodes.set(id,{disabled:false,textContent:'',classList:{add(){},remove(){}}});return nodes.get(id);};
- const c={coop:null,mode:'title',runStarting:false,coopLoading:false,rankedLive:()=>false,rankedPlaying:()=>false,titleProgressPending:false,cancelPendingLoads(){},rankedRun:null,rankedRec:null,runTicket:null,casualRun:null,WEAPONS:{},PASSIVES:{},preloadIcons(){},mapLoading:false,MAP_BY_ID,loadedMapId:'greentown',selMap:'greentown',audio:{music(){},init:async()=>{}},params:new URLSearchParams(),runAdv:()=>variant==='wizard'?{id:'wise-old-man',weapon:'staff'}:{id:'adventurer',weapon:'sword'},selAdv:'adventurer',selVariant:variant,VARIANTS:(await import('../src/game-modes.js')).VARIANTS,trialBoss:'giant',getGear:()=>({head:'Iron Helmet'}),renderer:{preloadGear:async()=>{},reset(){},setZoom(){},setShift(){},setYaw(){}},createSim,hardOn:variant==='normal',endlessOn:false,getSkills:()=>({}),runGround:()=>null,PLAYER:'p1',getGearLv:()=>({'Iron Helmet':2}),sim:null,URLSearchParams,BASE:'/',fetch:url=>{requests.push(url);return Promise.resolve({ok:true,json:async()=>({ticket:'normal',endlessTicket:'child'})});},acc:1,selCard:1,slotCache:{},$,shownPending:true,waitingForMove:true,rewardWasShown:true,clearTouch(){},pendingUse:1,slowmo:1,runBest:null,profileBest:x=>x,getBests:()=>({}),bestKey:()=>'',passedBest:true,chase:{},fmtT:String,slayName:()=>'',banner(){}};
+ const c={startStatsSession(session){c.loadCasualTickets(session);},coop:null,mode:'title',runStarting:false,coopLoading:false,rankedLive:()=>false,rankedPlaying:()=>false,titleProgressPending:false,cancelPendingLoads(){},rankedRun:null,rankedRec:null,runTicket:null,casualRun:null,WEAPONS:{},PASSIVES:{},preloadIcons(){},mapLoading:false,MAP_BY_ID,loadedMapId:'greentown',selMap:'greentown',audio:{music(){},init:async()=>{}},params:new URLSearchParams(),runAdv:()=>variant==='wizard'?{id:'wise-old-man',weapon:'staff'}:{id:'adventurer',weapon:'sword'},selAdv:'adventurer',selVariant:variant,VARIANTS:(await import('../src/game-modes.js')).VARIANTS,trialBoss:'giant',getGear:()=>({head:'Iron Helmet'}),renderer:{preloadGear:async()=>{},reset(){},setZoom(){},setShift(){},setYaw(){}},createSim,hardOn:variant==='normal',endlessOn:false,getSkills:()=>({}),runGround:()=>null,PLAYER:'p1',getGearLv:()=>({'Iron Helmet':2}),sim:null,URLSearchParams,BASE:'/',fetch:url=>{requests.push(url);return Promise.resolve({ok:true,json:async()=>({ticket:'normal',endlessTicket:'child'})});},acc:1,selCard:1,slotCache:{},$,shownPending:true,waitingForMove:true,rewardWasShown:true,clearTouch(){},pendingUse:1,slowmo:1,runBest:null,profileBest:x=>x,getBests:()=>({}),bestKey:()=>'',passedBest:true,chase:{},fmtT:String,slayName:()=>'',banner(){}};
  const a=source.indexOf('function loadCasualTickets('),b=source.indexOf('function runGround()',a),x=source.indexOf('async function startRun('),y=source.indexOf('let bannerT =',x);vm.createContext(c);vm.runInContext(source.slice(a,b)+source.slice(x,y),c);
  await c.startRun();await c.casualRun.tickets;assert.equal(c.casualRun.sim,c.sim);assert.equal(c.mode,'play');assert.equal(c.runStarting,false);assert.deepEqual(c.sim.players[0].gear,{head:'Iron Helmet'});assert.deepEqual(c.sim.players[0].gearLv,{'Iron Helmet':2});
- if(variant==='wizard'){assert.equal(c.sim.players[0].adv,'wise-old-man');assert.deepEqual(c.sim.players[0].weapons,{staff:1});assert.equal(c.runTicket,null);assert.equal(requests.length,0);}
+ if(variant==='wizard'){assert.equal(c.sim.players[0].adv,'wise-old-man');assert.deepEqual(c.sim.players[0].weapons,{staff:1});assert.equal(c.runTicket,null);assert.equal(requests.length,1);assert.match(requests[0],/kind=wizard/);}
  else{assert.equal(c.runTicket,'normal');assert.equal(c.casualRun.endlessTicket,'child');assert.equal(requests.length,1);assert.match(requests[0],/hard=1&endless=0/);}
 });
 
@@ -69,7 +69,7 @@ test('actual score retry keeps the displayed submitted name after an uncertain r
 
 async function delayedTicketFixture({endless=false}={}) {
  const {submitCasualResult}=await import('../src/casual-continuation.js'),c=setup(),requests=[];
- Object.assign(c,{BASE:'/',URLSearchParams,submitCasualResult,save(){},savedPass:()=>null,MAP_BY_ID:{greentown:{name:'Greentown'}},LATEST:'fixture',rankedRun:null,coopResult:null,finishedBuilds:new WeakMap(),captureRunBuild});
+ Object.assign(c,{retainRunStats(){},BASE:'/',URLSearchParams,submitCasualResult,save(){},savedPass:()=>null,MAP_BY_ID:{greentown:{name:'Greentown'}},LATEST:'fixture',rankedRun:null,coopResult:null,finishedBuilds:new WeakMap(),captureRunBuild});
  c.sim.endless=endless;c.casualRun.phase='playing';c.casualRun.normalResult=null;c.casualRun.endlessTicket=null;c.runTicket=null;c.$('lbname').value='';
  let deliver;
  c.fetch=async(url,options)=>{
