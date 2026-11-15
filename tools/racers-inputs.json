@@ -1,6 +1,6 @@
 {
-  "commit": "66cf339f943aaabd6c0dea7fbe1a4d9ec1907f32",
-  "implementation": "66cf339f943aaabd6c0dea7fbe1a4d9ec1907f32",
+  "commit": "c573eec6599e570091c54c9bcce175152248557e",
+  "implementation": "c573eec6599e570091c54c9bcce175152248557e",
   "files": [
     {
       "path": "CREDITS.txt",
@@ -2949,9 +2949,9 @@
       "role": "stylesheet"
     },
     {
-      "path": "assets/index-ZL_5AbdZ.js",
-      "bytes": 1751515,
-      "sha256": "1934ec59078c44f8f8c37d9409096296d3bf27e48fccba054f71455851d26083",
+      "path": "assets/index-CbI5Yldo.js",
+      "bytes": 1753798,
+      "sha256": "19c0c973fbacc2834bcc0715dc05b52e7edabe5442a793f85cea116717f3c7c9",
       "role": "client"
     },
     {
@@ -4954,8 +4954,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 14028,
-      "sha256": "bd9d1723dbb23a8e235a11e80f00f9b853ea8cd996fd6b06177b22ceb64dd971",
+      "bytes": 14108,
+      "sha256": "51068275a13544196e64440193cacc8f3a14c9aa782b53df02a436fa9d3da370",
       "role": "entry"
     }
   ],
@@ -4964,5 +4964,5 @@
     "bytes": 669454,
     "sha256": "f802a64a319badc7950199713c322e3848783a6563eb3a680f1393a422876cc8"
   },
-  "rulesVersion": "eb932477091c"
+  "rulesVersion": "2344424b1fe7"
 }

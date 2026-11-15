@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Pick your race": "Elige tu carrera",
+  "Need for Sanko online hosts can choose World Circuit, Apache Sprint or Southern Sprint. Guests inherit the route, with matching starts and server-owned checkpoints.": "Quien crea una carrera online de Need for Sanko puede elegir World Circuit, Apache Sprint o Southern Sprint. Los invitados usan la misma ruta, con la misma salida y controles del servidor.",
+  "Build cards can still be saved when an item image fails to load. Names, levels and final stats remain included, with a notice for missing images.": "Puedes guardar la tarjeta de tu configuración aunque no se cargue una imagen. Se incluyen los nombres, niveles y estadísticas finales, con un aviso sobre las imágenes que faltan.",
+
+  "Some images could not load. Your full build is still included.": "Algunas imágenes no se pudieron cargar. Tu configuración completa sigue incluida.",
   "Meet 2Glock2Sanko": "Conoce 2Glock2Sanko",
   "Grand Theft Sanko is now 2Glock2Sanko. CrashOut karts. Sanko streets. Need for Sanko remains the racing mode. Existing links and saved progress still work.": "Grand Theft Sanko ahora es 2Glock2Sanko. CrashOut karts. Sanko streets. Need for Sanko sigue siendo el modo de carreras. Los enlaces y el progreso guardado siguen funcionando.",
   "Tracked crafting recipes show the original item icon, the next step and exact missing materials, counting banked supplies.": "Las recetas seguidas muestran el icono original, el siguiente paso y los materiales que faltan, contando también los del banco.",

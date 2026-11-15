@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Pick your race": "Piliin ang karera mo",
+  "Need for Sanko online hosts can choose World Circuit, Apache Sprint or Southern Sprint. Guests inherit the route, with matching starts and server-owned checkpoints.": "Maaaring pumili ang online host ng Need for Sanko ng World Circuit, Apache Sprint o Southern Sprint. Parehong ruta, simula at server-controlled checkpoint ang gagamitin ng mga bisita.",
+  "Build cards can still be saved when an item image fails to load. Names, levels and final stats remain included, with a notice for missing images.": "Mase-save pa rin ang build card kahit hindi ma-load ang isang larawan. Kasama pa rin ang mga pangalan, level at huling stats, na may abiso para sa nawawalang larawan.",
+
+  "Some images could not load. Your full build is still included.": "Hindi na-load ang ilang larawan. Kasama pa rin ang buong build mo.",
   "Meet 2Glock2Sanko": "Kilalanin ang 2Glock2Sanko",
   "Grand Theft Sanko is now 2Glock2Sanko. CrashOut karts. Sanko streets. Need for Sanko remains the racing mode. Existing links and saved progress still work.": "Ang Grand Theft Sanko ay 2Glock2Sanko na. CrashOut karts. Sanko streets. Need for Sanko pa rin ang racing mode. Gumagana pa rin ang mga dating link at naka-save na progreso.",
   "Tracked crafting recipes show the original item icon, the next step and exact missing materials, counting banked supplies.": "Makikita sa sinusubaybayang recipe ang orihinal na icon, susunod na hakbang at eksaktong kulang na materyales, kasama sa bilang ang nasa bangko.",

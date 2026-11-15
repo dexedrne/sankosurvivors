@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Pick your race": "Yarışını seç",
+  "Need for Sanko online hosts can choose World Circuit, Apache Sprint or Southern Sprint. Guests inherit the route, with matching starts and server-owned checkpoints.": "Need for Sanko çevrimiçi yarışının kurucusu World Circuit, Apache Sprint veya Southern Sprint seçebilir. Konuklar aynı başlangıç ve sunucunun yönettiği kontrol noktalarıyla aynı parkurda yarışır.",
+  "Build cards can still be saved when an item image fails to load. Names, levels and final stats remain included, with a notice for missing images.": "Bir eşya görseli yüklenemese de geliştirme kartını kaydedebilirsin. İsimler, seviyeler ve son istatistikler korunur; eksik görseller için bir uyarı gösterilir.",
+
+  "Some images could not load. Your full build is still included.": "Bazı görseller yüklenemedi. Tam ekipman ve geliştirme bilgilerin yine de dahil.",
   "Meet 2Glock2Sanko": "2Glock2Sanko ile tanışın",
   "Grand Theft Sanko is now 2Glock2Sanko. CrashOut karts. Sanko streets. Need for Sanko remains the racing mode. Existing links and saved progress still work.": "Grand Theft Sanko artık 2Glock2Sanko. CrashOut karts. Sanko streets. Yarış modu Need for Sanko olarak kalıyor. Mevcut bağlantılar ve kayıtlı ilerleme çalışmaya devam eder.",
   "Tracked crafting recipes show the original item icon, the next step and exact missing materials, counting banked supplies.": "Takip edilen üretim tarifleri orijinal eşya simgesini, sonraki adımı ve bankadaki malzemeler de hesaba katılarak eksik malzemeleri gösterir.",

@@ -19,10 +19,13 @@ test('card export is user initiated and never changes the score payload',async()
  assert.equal(f.context.readyRunCard.result,f.result);assert.equal(f.drawn[0].build.points,600);assert.equal(f.node('savecard').disabled,false);assert.equal(f.downloads.length,0);assert.equal(f.shared.length,0);assert.equal(JSON.stringify(f.result),before);
  f.node('savecard').onclick();assert.equal(f.downloads.length,1);assert.match(f.downloads[0].download,/SankoSurvivors-green-61s\.png/);await f.node('sharecard').onclick();assert.equal(f.shared.length,1);assert.equal(f.shared[0].files[0].type,'image/png');assert.equal(f.shared[0].files[0].name,f.downloads[0].download);
 });
-test('failed image exports retain the text build and allow retry with a fresh request',async()=>{
- const f=fixture();f.context.render(f.result);assert.match(f.node('endbuildbody').innerHTML,/Bronze Sword/);f.requests[0].onerror();await settle();assert.equal(f.node('savecard').disabled,false);assert.equal(f.node('savecard').textContent,'Retry build card');assert.equal(f.context.readyRunCard,null);assert.match(f.node('endbuildbody').innerHTML,/Bronze Sword/);
- await f.load();const pending=f.context.prepare(f.result);await f.load();f.finish();await pending;assert(f.context.readyRunCard);assert.equal(f.timers.size,0);
+test('a failed icon keeps the complete build exportable and a later preparation retries that image',async()=>{
+ const f=fixture();f.context.render(f.result);assert.match(f.node('endbuildbody').innerHTML,/Bronze Sword/);f.requests[1].onerror();await f.load();
+ assert(f.hasBlobCallback,'One unavailable image must not prevent PNG preparation');f.finish();await settle();assert(f.context.readyRunCard);assert.equal(f.node('savecard').disabled,false);assert.equal(f.node('savecard').textContent,'Save build card');assert.match(f.node('cardstatus').textContent,/images.*full build/i);assert.match(f.node('endbuildbody').innerHTML,/Bronze Sword/);
+ assert(f.drawn[0].images.get('ui/sq/frame.png'));assert.equal(f.drawn[0].images.get('sword.png'),null);
+ const pending=f.context.prepare(f.result);assert.equal(f.requests.length,1,'Failed image is retried while loaded art is reused');await f.load();f.finish();await pending;assert(f.context.readyRunCard);assert.equal(f.timers.size,0);assert.doesNotMatch(f.node('cardstatus').textContent,/could not load/);
 });
+
 test('an old image or PNG completion cannot replace a newer run or an Endless continuation',async()=>{
  for(const stage of ['images','blob']){const f=fixture(),pending=f.context.prepare(f.result);if(stage==='blob')await f.load();f.context.mode='play';f.context.lastRun={map:'apache'};if(stage==='images')await f.load();else f.finish();await pending;assert.equal(f.context.readyRunCard,null);assert.equal(f.downloads.length,0);assert.equal(f.shared.length,0);}
 });

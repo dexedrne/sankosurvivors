@@ -2000,7 +2000,7 @@ async function prepareEndCard(result) {
   readyRunCard = null; $('copycard').disabled = true; $('savecard').disabled = true; $('savecard').textContent = 'Save build card'; $('sharecard').classList.add('hidden'); $('cardstatus').textContent = 'Preparing build card…';
   try {
     const paths = [...new Set(['ui/sq/frame.png', ...build.sections.flatMap(section => section.rows.map(row => row.icon))])];
-    const images = await Promise.all(paths.map(async path => [path, await cardImage(path)]));
+    const images = await Promise.all(paths.map(async path => { try { return [path, await cardImage(path)]; } catch { return [path, null]; } }));
     let fontTimer;
     try { await Promise.race([document.fonts.ready, new Promise((_, reject) => { fontTimer = setTimeout(() => reject(Error('Font unavailable')), 8000); })]); }
     finally { clearTimeout(fontTimer); }
@@ -2011,7 +2011,7 @@ async function prepareEndCard(result) {
     if (!current()) return;
     if (!blob) throw Error('Image export unavailable');
     const filename = `SankoSurvivors-${String(result.map).replace(/[^a-z0-9_-]/gi, '')}-${build.t}s.png`, file = new File([blob], filename, { type: 'image/png' });
-    readyRunCard = { result, blob, file }; $('savecard').disabled = $('copycard').disabled = false; $('cardstatus').textContent = 'Save the image to attach it to your post.';
+    readyRunCard = { result, blob, file }; $('savecard').disabled = $('copycard').disabled = false; $('cardstatus').textContent = images.some(([, image]) => !image) ? 'Some images could not load. Your full build is still included.' : 'Save the image to attach it to your post.';
     let share = false; try { share = !!navigator.canShare?.({ files: [file] }); } catch { /* download remains available */ }
     $('sharecard').classList.toggle('hidden', !share);
   } catch {
