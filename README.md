@@ -133,3 +133,5 @@ How to play includes the complete weapon/passive catalogue with original icons a
 GTS starts world rendering after initial loading and blends its chase framing into reverse. Original kart and weapon assets use the existing bounded native-art cache; mutable world metadata still revalidates.
 
 Casual Gold passive rewards coin pickups and high alch with damage (up to +50%), alongside Rusty Key. Below 25% health, a steady screen-edge warning remains visible with colour grading off.
+
+Menus use native dark inset text fields, bronze volume sliders and gold keyboard focus. Expandable sections keep clear markers, and 2Glock2Sanko dialog headers keep Close visible while scrolling.

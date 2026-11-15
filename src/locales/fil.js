@@ -1,5 +1,9 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Native menu polish": "Mas maayos na katutubong menu",
+  "Survivors and 2Glock2Sanko menus use consistent dark text fields, bronze volume sliders and gold keyboard focus.": "Pare-pareho na ang madidilim na text field, tansong volume slider at gintong keyboard focus sa mga menu ng Survivors at 2Glock2Sanko.",
+  "Expandable sections are clearer, and 2Glock2Sanko dialog titles and Close controls stay visible while scrolling. Controls and saved settings work as before.": "Mas malinaw ang mga nabubuksang seksyon, at nananatiling nakikita ang pamagat at Close ng 2Glock2Sanko habang nag-scroll. Gaya ng dati ang mga kontrol at naka-save na setting.",
+
   "Your character and gear": "Ang iyong karakter at kagamitan",
   "2Glock2Sanko: open Inventory & equipment in World for a rotating 3D character, equipment slots and clearer backpack cards.": "2Glock2Sanko: buksan ang Inventory & equipment sa World para sa naiiikot na 3D karakter, mga puwesto ng kagamitan at mas malinaw na backpack card.",
   "Equipped items still count toward backpack capacity. Banking, shops, crafting and existing inventory saves keep their rules.": "Kasama pa rin sa kapasidad ng backpack ang suot na kagamitan. Pareho pa rin ang mga tuntunin sa bangko, tindahan, paggawa at naka-save na imbentaryo.",

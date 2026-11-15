@@ -1115,3 +1115,20 @@ body.ds-layout #cooprevive { position:fixed; bottom:calc(112px + env(safe-area-i
 #cheeseguard { display:inline-flex; align-items:center; gap:3px; color:var(--gold); font:14px RSPlain,sans-serif; white-space:nowrap; }
 #cheeseguard[hidden] { display:none; }
 #cheeseicon, #cheeseicon img { display:block; width:16px; height:16px; object-fit:contain; }
+
+/* Native menu controls: dark inset fields, square bronze sliders and gold focus. */
+html{color-scheme:dark;accent-color:#c9a25a}
+:where(input:not([type]),input[type=text],input[type=number],input[type=search],input[type=email],input[type=url],textarea){background:var(--deep);color:var(--cream);border:2px solid #5a4632;border-radius:0;box-shadow:inset 1px 1px #100c08,inset -1px -1px #806344;min-height:44px;max-width:100%;padding:6px 8px;user-select:text}
+:where(input,textarea)::placeholder{color:#b8a079;opacity:1}
+:where(input,textarea)::selection{background:#b49a58;color:#20180e}
+:where(select){color-scheme:dark;border-radius:0}
+select option{background:var(--deep);color:var(--cream)}
+:where(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+summary::marker{color:var(--gold)}
+input[type=range]{-webkit-appearance:none;appearance:none;border:0;border-radius:0;padding:0;background:transparent;box-shadow:none;min-height:44px;max-width:100%;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:10px;background:var(--deep);border:2px solid #806344}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:22px;margin-top:-8px;border:2px solid #50391e;border-radius:0;background:#c9a25a;box-shadow:inset 1px 1px #ffe5a2,inset -1px -1px #806028}
+input[type=range]::-moz-range-track{height:6px;background:var(--deep);border:2px solid #806344}
+input[type=range]::-moz-range-thumb{width:14px;height:18px;border:2px solid #50391e;border-radius:0;background:#c9a25a;box-shadow:inset 1px 1px #ffe5a2,inset -1px -1px #806028}
+#pausebody summary::before{content:'▸';color:var(--gold);margin-right:6px}
+#pausebody details[open]>summary::before{content:'▾'}

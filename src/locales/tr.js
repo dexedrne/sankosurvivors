@@ -1,5 +1,9 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Native menu polish": "Yerel menü düzenlemeleri",
+  "Survivors and 2Glock2Sanko menus use consistent dark text fields, bronze volume sliders and gold keyboard focus.": "Survivors ve 2Glock2Sanko menülerinde tutarlı koyu metin alanları, bronz ses kaydırıcıları ve altın klavye odağı kullanılır.",
+  "Expandable sections are clearer, and 2Glock2Sanko dialog titles and Close controls stay visible while scrolling. Controls and saved settings work as before.": "Açılır bölümler daha belirgindir; 2Glock2Sanko pencere başlıkları ve Close düğmeleri kaydırırken görünür kalır. Kontroller ve kayıtlı ayarlar eskisi gibi çalışır.",
+
   "Your character and gear": "Karakterin ve ekipmanın",
   "2Glock2Sanko: open Inventory & equipment in World for a rotating 3D character, equipment slots and clearer backpack cards.": "2Glock2Sanko: döndürülebilen bir 3D karakter, ekipman yuvaları ve daha anlaşılır çanta kartları için World bölümünde Inventory & equipment menüsünü aç.",
   "Equipped items still count toward backpack capacity. Banking, shops, crafting and existing inventory saves keep their rules.": "Kuşanılan eşyalar çanta kapasitesinden sayılmaya devam eder. Banka, mağaza, üretim ve mevcut envanter kayıtlarının kuralları değişmez.",

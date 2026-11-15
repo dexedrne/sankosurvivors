@@ -3,14 +3,14 @@
     {
       "path": "/racers/index.html",
       "bytes": 15772,
-      "sha256": "8d84683e10601f283042c2467026cde1a8d82338c414510100a9193afae1b465"
+      "sha256": "a4ef1666c720ada7b69dcdc7e2d6e3894cc5bbf834629e444e131cfe8671f98e"
     }
   ],
   "source": {
-    "commit": "2373c6c6035d553bfef30de938c268b120ea34a1",
-    "implementation": "2373c6c6035d553bfef30de938c268b120ea34a1",
+    "commit": "75cc5e2f531311d2dd477d22e2ec8984515de586",
+    "implementation": "75cc5e2f531311d2dd477d22e2ec8984515de586",
     "rulesVersion": "2344424b1fe7",
-    "clientSha256": "78962c6afbb99ee69700e54182b209b93833d68a88aff1ff7f6a8ae25e6aa405"
+    "clientSha256": "ce61710f0b9cdc15280610ceaa7cf97d08b04fbf1e479a516454fa63b644a0b3"
   },
   "adaptations": {
     "client": [
@@ -76,12 +76,12 @@
         "after": "<title>2Glock2Sanko · SankoQuest World</title><meta name=\"description\" content=\"CrashOut karts. Sanko streets. Explore on foot, meet other players and race in Need for Sanko.\"><meta property=\"og:type\" content=\"website\"><meta property=\"og:site_name\" content=\"2Glock2Sanko\"><meta property=\"og:title\" content=\"2Glock2Sanko · Public World Hub\"><meta property=\"og:description\" content=\"CrashOut karts. Sanko streets. Explore on foot, meet other players and race in Need for Sanko.\"><meta property=\"og:url\" content=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><link rel=\"canonical\" href=\"https://gts.sankosurvivors.quest/\"><meta property=\"og:image:secure_url\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\"><meta property=\"og:image:type\" content=\"image/png\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta name=\"twitter:site\" content=\"@dexedrne\"><meta name=\"twitter:creator\" content=\"@dexedrne\"><meta property=\"og:image:alt\" content=\"An original CrashOut kart driving through the SankoQuest world\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:title\" content=\"2Glock2Sanko · Public World Hub\"><meta name=\"twitter:description\" content=\"CrashOut karts. Sanko streets. Explore on foot, meet other players and race in Need for Sanko.\"><meta name=\"twitter:image\" content=\"https://gts.sankosurvivors.quest/fun/racers/preview-f802a64a319b.png\">"
       },
       {
-        "before": "/assets/index-CNJnYgYd.js",
-        "after": "./racers-c0b2c8e56a285d7a.js"
+        "before": "/assets/index-ByMUZdS0.js",
+        "after": "./racers-f029126b9977aaca.js"
       },
       {
-        "before": "/assets/index-CwEq5QrO.css",
-        "after": "./racers-cdc5e3e949b19535.css"
+        "before": "/assets/index-CnxYuW0q.css",
+        "after": "./racers-3ff3afec5c414d31.css"
       },
       {
         "before": "<div id=\"return-slot\"></div>",
@@ -94,17 +94,17 @@
     {
       "path": "/fun/racers/index.html",
       "bytes": 15742,
-      "sha256": "845a2e1990408822f87d017fbc9d6dc5de4349c9aead9272127163b68f2157d5"
+      "sha256": "30f48980aefbedfbbd7b2c26a12240996217aafc6a5dff4c5b23f917696bcb5d"
     },
     {
-      "path": "/fun/racers/racers-c0b2c8e56a285d7a.js",
-      "bytes": 1760303,
-      "sha256": "c0b2c8e56a285d7a5129a102459c3a2ae3297482b9cb2010538f0c6852c2cb69"
+      "path": "/fun/racers/racers-f029126b9977aaca.js",
+      "bytes": 1760623,
+      "sha256": "f029126b9977aaca6bd2a2f5c8b09de1ed823f1308782427ee776411b95af096"
     },
     {
-      "path": "/fun/racers/racers-cdc5e3e949b19535.css",
-      "bytes": 39372,
-      "sha256": "cdc5e3e949b19535d4deb844f3aa883601adfd51a0807daf3efcd6875c0b8637"
+      "path": "/fun/racers/racers-3ff3afec5c414d31.css",
+      "bytes": 41567,
+      "sha256": "3ff3afec5c414d3125ace4490f1dfe4d7ab72ac233549888d89816ca29c6b539"
     },
     {
       "path": "/fun/racers/preview.png",
@@ -119,7 +119,7 @@
     {
       "path": "/fun/racers/INTEGRATION.txt",
       "bytes": 3264,
-      "sha256": "6956f0bf178518e4543ed04863836f7e947702da1bd9ac603e09b65140477d5d"
+      "sha256": "3a974ad8c6cfb393206c3e7ef5ad250b84aac4237ea1ea4cfe4a19bcc810dc95"
     },
     {
       "path": "/fun/racers/CREDITS.txt",

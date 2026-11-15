@@ -1,5 +1,9 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Native menu polish": "Menús con estilo nativo",
+  "Survivors and 2Glock2Sanko menus use consistent dark text fields, bronze volume sliders and gold keyboard focus.": "Los menús de Survivors y 2Glock2Sanko usan campos oscuros, controles de volumen de bronce y enfoque dorado para el teclado.",
+  "Expandable sections are clearer, and 2Glock2Sanko dialog titles and Close controls stay visible while scrolling. Controls and saved settings work as before.": "Las secciones desplegables son más claras, y los títulos y controles Close de 2Glock2Sanko siguen visibles al desplazarse. Los controles y ajustes guardados funcionan como antes.",
+
   "Your character and gear": "Tu personaje y equipo",
   "2Glock2Sanko: open Inventory & equipment in World for a rotating 3D character, equipment slots and clearer backpack cards.": "2Glock2Sanko: abre Inventory & equipment en World para ver un personaje 3D que puedes girar, ranuras de equipo y tarjetas de mochila más claras.",
   "Equipped items still count toward backpack capacity. Banking, shops, crafting and existing inventory saves keep their rules.": "Los objetos equipados siguen contando para la capacidad de la mochila. El banco, las tiendas, la fabricación y los inventarios guardados mantienen sus reglas.",
