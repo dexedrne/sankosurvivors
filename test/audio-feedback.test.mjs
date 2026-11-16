@@ -197,3 +197,13 @@ test('current runs select Snowdrift on actual winter arrival, not the old5:30 ti
 test('legacy runs retain their original music schedule',async()=>{
  const f=fixture();await f.audio.init();f.audio.onFx([],{t:330},'early');await f.settle();assert(f.tracks.some(s=>s.src==='music/snowdrift_mix.mp3'&&!s.paused));
 });
+test('the Glock has a shot, a magazine drop on the last round and a slide sound near the end of the reload, in game time',async()=>{
+ const f=fixture();await f.audio.init();const name=i=>f.sources[i].buffer.fixture.split('/').pop();
+ f.audio.onFx([{k:'shot',a:0}],{t:10},'early');assert.equal(f.sources.length,1);assert.equal(name(0),'poppop.mp3');
+ f.tick();f.audio.onFx([{k:'shot',a:0,reload:1}],{t:10.2},'early');assert.deepEqual([name(1),name(2)],['poppop.mp3','Drop_item.mp3']);
+ f.tick();f.audio.onFx([],{t:10.8},'early');assert.equal(f.sources.length,3,'not before the reload is nearly over');
+ f.audio.onFx([],null,'early');assert.equal(f.sources.length,3,'held while a card is up');
+ f.tick();f.audio.onFx([],{t:11.07},'early');assert.equal(f.sources.length,4);assert.equal(name(3),'Metal_Smith1.mp3');
+ f.audio.onFx([],{t:12},'early');assert.equal(f.sources.length,4,'once');
+ f.tick();f.audio.onFx([{k:'shot',a:0,reload:1}],{t:20},'early');f.audio.onFx([],{t:1},'early');f.audio.onFx([],{t:30},'early');assert(!f.sources.slice(4).some(s=>s.buffer.fixture.endsWith('Metal_Smith1.mp3')),'a new run forgets the old reload');
+});

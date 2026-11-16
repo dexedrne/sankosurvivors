@@ -4,12 +4,15 @@ const BASE = import.meta.env.BASE_URL || './';
 const SFX = {
   hit: ['Sword_Hit1', 'Sword_Hit2', 'Sword_Hit3', 'Sword_Hit4'], die: ['NPC_Death'], hurt: ['goblin_attacked', 'goblin_attacked2', 'goblin_attacked3', 'goblin_attacked4'],
   pickup: ['PickUp_item'], level: ['Teleport'], choose: ['Cash_Register'], quake: ['Mining1', 'Mining2'], axe: ['Tree_Chop'], boss: ['NPC_Attack'], bow: ['NPC_Block'], magic: ['magic-edit-1'],
+  // the Glock: the same original shot 2Glock2Sanko uses, cut short so rapid fire does not pile up; magazine drop and slide
+  shot: ['poppop'], mag: ['Drop_item'], rack: ['Metal_Smith1'],
   drink: ['Bun_Burp_v1'], pop: ['poppop'], slam: ['Mining1', 'Mining2'], smith: ['Metal_Smith1', 'Metal_Smith2'], drop: ['Drop_item'], casket: ['Smelt'],
 };
 const EXT = { 'NPC_Block': 'wav', 'magic-edit-1': 'wav', 'Bun_Burp_v1': 'wav' };
 const TRACKS = { early: 'Fresh_Beginnings', mid: 'Adobe_Fantasy', late: 'snowdrift_mix', boss: 'payasan_town_mix', final: 'grotto1' };
 
 export function createAudio() {
+  const racks = []; let rackClock = 0; // game times at which a reloading Glock's slide goes home
   let ctx = null, sfxGain = null, loading = null, loadingHost = '', resuming = null, current = null, outgoing = null, desired = '', fade = null, muted = false, ducked = false;
   const musicSlots = [];
   // volume sliders, 0-100 each (Settings, Sound): 60 is the old fixed loudness, so there is room both ways
@@ -97,12 +100,14 @@ export function createAudio() {
     for (const slot of musicSlots) if (slot !== current && slot !== outgoing && !slot.primed) attempt(slot);
     await Promise.all([resumed, loadEffects()]);
   }
-  function play(kind, { minGap = 0.05, vol: gain = 1, rate = 1 } = {}) {
+  function play(kind, { minGap = 0.05, vol: gain = 1, rate = 1, len = 0 } = {}) {
     if (!ctx || muted || !vol.s) return;
     const now = ctx.currentTime; if (now - (last[kind] || 0) < minGap) return; last[kind] = now;
     const list = SFX[kind]; const name = list[Math.floor(Math.random() * list.length)]; const buf = buffers.get(name); if (!buf) return;
     const src = ctx.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate * (0.92 + Math.random() * 0.16);
     const g = ctx.createGain(); g.gain.value = gain; src.connect(g); g.connect(sfxGain); src.start();
+    // len: only the first moment of the sound, faded out
+    if (len > 0 && g.gain.setValueAtTime && src.stop) { g.gain.setValueAtTime(gain, now + len * 0.4); g.gain.exponentialRampToValueAtTime(0.001, now + len); src.stop(now + len + 0.02); }
   }
   function music(key) {
     const file = TRACKS[key]; if (!file) return;
@@ -158,8 +163,16 @@ export function createAudio() {
       else if (f.k === 'volley') play('magic', { minGap: 0.2, vol: 0.7, rate: 0.7 });
       else if (f.k === 'aim') play('bow', { vol: 0.6, rate: 0.6 });
       else if (f.k === 'jump') play('choose', { minGap: 0.2, vol: 0.35, rate: 1.6 });
+      else if (f.k === 'shot') {
+        play('shot', { minGap: 0.045, vol: 0.3, rate: 1.15, len: 0.16 });
+        // the last round: the magazine drops now, and the slide goes home near the end of the reload (in game time)
+        if (f.reload > 0) { play('mag', { minGap: 0.2, vol: 0.5, rate: 1.25 }); if (view && racks.length < 8) racks.push(view.t + f.reload * 0.86); }
+      }
     }
     if (view) {
+      if (view.t < rackClock) racks.length = 0; // a new run
+      rackClock = view.t;
+      for (let i = racks.length - 1; i >= 0; i--) if (view.t >= racks[i]) { racks.splice(i, 1); play('rack', { minGap: 0.15, vol: 0.35, rate: 1.8, len: 0.2 }); }
       const t = view.t, winterRules = Object.hasOwn(view, 'snowWave');
       let track = t >= 720 ? 'final' : t >= 540 ? 'boss' : t >= 330 && !winterRules ? 'late' : t >= 150 ? 'mid' : base;
       if (winterRules) { if (view.snowWave) track = 'late'; else if (track === 'late') track = 'early'; }
