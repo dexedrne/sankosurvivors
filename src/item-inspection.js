@@ -1,6 +1,6 @@
 import {WEAPONS,EVOLUTIONS,GEAR,GEAR_SLOT_NAMES,GEAR_SLOTS,GEAR_MAX_LV,weaponDisplay,weaponStep,weaponMetal,weaponStats,evolveStats,evolutionPassives,evolvedBy,PASSIVES,passiveTitle,passiveStrength,fortuneBonus,MAX_PASSIVE_LEVEL,gearPieceBonus,bonusText} from './content.js';
 import {playerStats} from './sim.js';
-const statRows=[['dmg','Base damage'],['cd','Cooldown',' s'],['count','Projectiles'],['pierce','Pierce'],['range','Range'],['radius','Radius'],['r','Size'],['speed','Projectile speed'],['burst','Burst radius'],['boost','Tumble boost','×'],['boostT','Tumble boost time',' s'],['slow','Slow','%'],['slowT','Slow time',' s'],['pull','Pull distance'],['hooks','Hooks'],['mag','Magazine'],['reload','Reload',' s']];
+const statRows=[['dmg','Base damage'],['cd','Cooldown',' s'],['count','Projectiles'],['pierce','Pierce'],['bounces','Bounces'],['range','Range'],['radius','Radius'],['r','Size'],['arc','Arc'],['spin','Orbit speed'],['speed','Projectile speed'],['burst','Burst radius'],['boost','Tumble boost','×'],['boostT','Tumble boost time',' s'],['slow','Slow','%'],['slowT','Slow time',' s'],['pull','Pull distance'],['hooks','Hooks'],['mag','Magazine'],['reload','Reload',' s']];
 export function itemInspection(player,kind,id,pace=2,ranked=false) {
   if(!player)return null;
   if(kind==='passive') {

@@ -1982,8 +1982,10 @@ function cardImage(path) {
     const image = new Image(); image.crossOrigin = 'anonymous';
     const timer = setTimeout(() => { image.onload = image.onerror = null; image.src = ''; reject(Error('Image unavailable')); }, 8000);
     image.onload = () => { clearTimeout(timer); image.onload = image.onerror = null; resolve(image); };
-    image.onerror = () => { clearTimeout(timer); image.onload = image.onerror = null; reject(Error('Image unavailable')); };
-    image.src = asset(path);
+    const fail = () => { clearTimeout(timer); image.onload = image.onerror = null; reject(Error('Image unavailable')); }, url = asset(path);
+    // one file jsDelivr does not deliver: the game's own copy, once (the helper is absent in cut-down builds)
+    image.onerror = () => { const alt = typeof localOf === 'function' ? localOf(url) : ''; if (!alt) return fail(); image.onerror = fail; image.src = alt; };
+    image.src = url;
   }).catch(error => { cardImages.delete(path); throw error; });
   cardImages.set(path, request); return request;
 }
@@ -2467,18 +2469,18 @@ function showLevelUp() {
       text = selecting ? 'Choose one Blast evolution from your matching passives.' : e.blurb; icon = imgTag(e.item, EMOJI[c.id]);
     } else if (c.kind === 'weapon') {
       const w = WEAPONS[c.id], ups = []; for (let l = Math.max(1, from); l < c.level; l++) ups.push(w.next(l));
-      name = weaponTitle(c.id, c.level, stepOf(c.id)); tag = lvTag(); text = from === 0 ? w.blurb + (ups.length ? ` Starts with ${ups.join(', ')}.` : '') : 'Upgrade: ' + ups.join(', '); icon = iconHTML('weapon', c.id, c.level, false, stepOf(c.id));
+      name = weaponTitle(c.id, c.level, stepOf(c.id)); tag = lvTag(); text = from === 0 ? w.blurb + (ups.length ? ` Starts with ${ups.join(', ')}.` : '') : `<span>Upgrade: ${ups.join(', ')}</span>.`; icon = iconHTML('weapon', c.id, c.level, false, stepOf(c.id)); // (its own sentence: what follows used to run on)
       if (c.level === 6) {
         const needs = evolutionPassives(c.id, sim.pace).map(id => PASSIVES[id].name);
         if (c.id === 'staff' && sim.pace >= 2) text += ' <span>Evolves with a matching elemental shard, Wizard Hat or Cape.</span>';
-        else if (needs.length) text += needs.length === 2 ? ` Evolves with ${needs[0]} or ${needs[1]}.` : ` Evolves with ${needs[0]}.`;
+        else if (needs.length) text += ` <span>${needs.length === 2 ? `Evolves with ${needs[0]} or ${needs[1]}.` : `Evolves with ${needs[0]}.`}</span>`;
       }
     } else if (c.kind === 'passive') {
       const p = PASSIVES[c.id]; name = passiveTitle(c.id, c.level); tag = lvTag(); text = sim.pace >= 2 && c.id !== 'curse' ? `<span>Common rank:</span> ${p.blurb}` : p.blurb; icon = iconHTML('passive', c.id, c.level);
       const ev = evolvedBy(c.id, sim.pace, sim.ranked);
       if (ev.length) text += ` Evolves ${ev.map(id => id === 'staff' && sim.pace >= 2 ? WEAPONS.staff.name : weaponTitle(id, 6, stepOf(id))).join(', ')}.`;
     } else { const hp = CARD_HEAL[Math.max(0, ri)]; name = 'Cooked Bubba Bass'; tag = 'Heal'; text = hp >= 9999 ? 'Restore all your health.' : `Restore ${hp} health.`; icon = iconHTML('item', 'Cooked Bubba Bass'); }
-    if (ri === 3 && c.kind !== 'heal') text += ' Heals you to full.';
+    if (ri === 3 && c.kind !== 'heal') text += c.kind === 'weapon' ? ' <span>Heals you to full.</span>' : ' Heals you to full.';
     const rar = (c.kind === 'weapon' && WEAPONS[c.id]?.legendary ? '<div class="legend">Legendary</div>' : '') + (ri >= 0 ? `<div class="rarity">${CARD_RARITY_NAMES[ri]}</div>` : '');
     el.innerHTML = `${c.banished ? '<div class="banished-label">Banished</div>' : ''}${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p>${statLines(c)}<div class="key">[${i + 1}]</div>`;
     el.onfocus = () => { selCard = i; markCard(); }; el.onclick = () => pick(i); wrap.appendChild(el);
