@@ -1,5 +1,10 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked: Tutorial Island": "Clasificatoria: Tutorial Island",
+  "Week 2 ranked takes place on Tutorial Island. Choose your adventurer and survive as long as you can.": "La semana 2 clasificatoria se juega en Tutorial Island. Elige a tu aventurero y sobrevive todo lo que puedas.",
+  "Standard rules, one prize pool: enter for 1, 10 or 25 DMT. Score is monsters slain plus whole seconds survived.": "Reglas estándar, un solo pozo de premios: entra por 1, 10 o 25 DMT. La puntuación suma los monstruos derrotados y los segundos completos sobrevividos.",
+  "Food stacks hold five portions; Pumpkin Bombs hold ten. Participation rewards start at 30 seconds.": "La comida se apila hasta cinco porciones; las Bombas de Calabaza hasta diez. Las recompensas de participación empiezan a los 30 segundos.",
+
   "Three new casual weapons": "Tres nuevas armas casuales",
   "Casual runs can roll the Dagger: rapid stabs in front of you that hit much harder for a moment after a Tumble.": "Las partidas casuales pueden ofrecer la Daga: estocadas rápidas al frente que golpean mucho más fuerte un momento después de un Tumble.",
   "The Fishing Net slows a small group, and the Fishing Rod hooks one monster and reels it toward you. Bosses cannot be slowed or pulled.": "La Red de Pesca ralentiza a un grupo pequeño, y la Caña de Pescar engancha a un monstruo y lo arrastra hacia ti. Los jefes no pueden ser ralentizados ni arrastrados.",

@@ -14,9 +14,10 @@ test('week-one prices preserve week0 and agree in exact DMT base units',()=>{
  }
  assert.equal(rules.raceForWeek(1,'constructor'),null);
 });
-test('Apache Desert is a week1 override while other weeks retain their rotation',()=>{
+test('Apache week1 and Tutorial Island week2 overrides preserve other rotations',()=>{
  assert.equal(rules.weekMap(0),'greentown');assert.equal(rules.weekMap(1),'apache');
- for(const w of[2,3,4,5,6])assert.equal(rules.weekMap(w),rules.RANKED.maps[w%rules.RANKED.maps.length]);
+ assert.equal(rules.weekMap(2),'tutorial');
+ for(const w of[3,4,5,6])assert.equal(rules.weekMap(w),rules.RANKED.maps[w%rules.RANKED.maps.length]);
 });
 test('Tutorial ranked retains regular adventurers, endless KPM and equal starts',()=>{
  const s=rules.rankedSim({week:1,mapId:rules.weekMap(1),adv:'wizard',seed:1106});
@@ -43,4 +44,9 @@ for(const requestedDmt of[.5,10001,undefined])test(`a swap build cannot bypass r
 test('an invalid buy target stops before wallet prompts or route building',async()=>{
  const requests=[],w={p:{request:async({method})=>{requests.push(method);return method==='eth_chainId'?'0xa4b1':[me];}}};globalThis.localStorage={getItem:()=>null,setItem(){},removeItem(){}};await connect(w);requests.length=0;let calls=0;
  await assert.rejects(buyDmt(w,me,{requestedDmt:.5},()=>{},async()=>{calls++;return new Response('{}');}),/1.*10|amount/i);assert.deepEqual(requests,[]);assert.equal(calls,0);disconnect();
+});
+
+test('week2 Tutorial Island keeps ranked adventurer choice and equal endless starts',()=>{
+ const s=rules.rankedSim({week:2,mapId:rules.weekMap(2),adv:'wizard',seed:1116});
+ assert.equal(s.map.id,'tutorial');assert.equal(s.players[0].adv,'wizard');assert.equal(s.ranked,true);assert.equal(s.rankedFood,true);assert.equal(s.endless,true);assert.equal(s.endAt,7200);assert.deepEqual(s.players[0].gear,{});assert.deepEqual(s.players[0].meta,{});
 });

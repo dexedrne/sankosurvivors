@@ -32,7 +32,7 @@ export function pauseRemaining(started, played, now = Date.now(), graceMs = 0) {
 }
 export const weekOf = (ms = Date.now()) => Math.floor((ms - RANKED.weekEpoch) / (7 * 24 * 3600 * 1000));
 export const weekStart = (w) => RANKED.weekEpoch + w * 7 * 24 * 3600 * 1000;
-export const weekMap = (w) => w === 1 ? 'apache' : RANKED.maps[((w % RANKED.maps.length) + RANKED.maps.length) % RANKED.maps.length];
+export const weekMap = (w) => w === 1 ? 'apache' : w === 2 ? 'tutorial' : RANKED.maps[((w % RANKED.maps.length) + RANKED.maps.length) % RANKED.maps.length];
 export function raceForWeek(week, mode = 'normal') {
   if (!Object.hasOwn(RANKED.races, mode)) return null;
   const race = RANKED.races[mode];

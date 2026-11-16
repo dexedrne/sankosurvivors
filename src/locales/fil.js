@@ -1,5 +1,10 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "Ranked: Tutorial Island": "Ranked: Isla ng Tutorial",
+  "Week 2 ranked takes place on Tutorial Island. Choose your adventurer and survive as long as you can.": "Sa Tutorial Island ang ranked sa linggo 2. Piliin ang adventurer mo at mabuhay hangga’t kaya mo.",
+  "Standard rules, one prize pool: enter for 1, 10 or 25 DMT. Score is monsters slain plus whole seconds survived.": "Standard na patakaran, iisang premyo: sumali gamit ang 1, 10 o 25 DMT. Ang score ay bilang ng napatay na halimaw at buong segundong nabuhay.",
+  "Food stacks hold five portions; Pumpkin Bombs hold ten. Participation rewards start at 30 seconds.": "Hanggang limang pagkain bawat stack; hanggang sampung Pumpkin Bomb. Nagsisimula ang participation rewards sa 30 segundo.",
+
   "Three new casual weapons": "Tatlong bagong sandata sa casual",
   "Casual runs can roll the Dagger: rapid stabs in front of you that hit much harder for a moment after a Tumble.": "Maaaring lumabas ang Punyal sa mga casual run: mabibilis na saksak sa harap mo na mas malakas tumama sandali matapos ang Tumble.",
   "The Fishing Net slows a small group, and the Fishing Rod hooks one monster and reels it toward you. Bosses cannot be slowed or pulled.": "Pinababagal ng Lambat ang maliit na grupo, at kinakawit ng Pamingwit ang isang halimaw at hinihila ito palapit sa iyo. Hindi mapababagal o mahihila ang mga boss.",

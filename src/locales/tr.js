@@ -1,5 +1,10 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "Ranked: Tutorial Island": "Dereceli: Tutorial Island",
+  "Week 2 ranked takes place on Tutorial Island. Choose your adventurer and survive as long as you can.": "2. dereceli hafta Tutorial Island haritasında oynanır. Maceracını seç ve dayanabildiğin kadar hayatta kal.",
+  "Standard rules, one prize pool: enter for 1, 10 or 25 DMT. Score is monsters slain plus whole seconds survived.": "Standart kurallar, tek ödül havuzu: 1, 10 veya 25 DMT ile katıl. Puan, öldürülen canavarlar ve hayatta kalınan tam saniyelerin toplamıdır.",
+  "Food stacks hold five portions; Pumpkin Bombs hold ten. Participation rewards start at 30 seconds.": "Yiyecekler beş, Kabak Bombaları on adede kadar istiflenir. Katılım ödülleri 30 saniyeden itibaren başlar.",
+
   "Three new casual weapons": "Üç yeni serbest mod silahı",
   "Casual runs can roll the Dagger: rapid stabs in front of you that hit much harder for a moment after a Tumble.": "Serbest oyunlarda Hançer çıkabilir: önündeki canavara hızlı saplamalar yapar ve bir Tumble'dan hemen sonra çok daha sert vurur.",
   "The Fishing Net slows a small group, and the Fishing Rod hooks one monster and reels it toward you. Bosses cannot be slowed or pulled.": "Balık Ağı küçük bir grubu yavaşlatır, Olta ise bir canavarı yakalayıp sana doğru çeker. Patronlar yavaşlatılamaz ve çekilemez.",
