@@ -134,7 +134,7 @@ const unlockedAdv = (a) => params.has('unlock') || a.unlock <= clearedMaps().siz
 const runAdv = () => selVariant === 'wizard' ? WISE_OLD_MAN : ADVENTURER_BY_ID[selVariant === 'boss' ? BOSS_KIT.adv : (MAP_BY_ID[selMap] && MAP_BY_ID[selMap].forceAdv) || selAdv];
 
 // ---- icons: real SankoQuest item icons -----------------------------------------------------------------
-const EMOJI = { curse: '🎃', baseball: '⚾', lighter: '🔥', dagger: '🗡️', net: '🕸️', rod: '🎣', area: '🧥', amount: '🪶', crit: '🍄', thorns: '🦂', greed: '🗝️', greatsword: '⚔️', shortsword: '🗡️', katana: '🗡️', axe: '🪓', pickaxe: '⛏️', shield: '🛡️', bow: '🏹', staff: '🪄', might: '💪', haste: '💨', vigor: '❤️', boots: '👢', magnet: '🧲', armor: '🛡️', growth: '📖', fish: '🐟' };
+const EMOJI = { curse: '🎃', baseball: '⚾', lighter: '🔥', dagger: '🗡️', net: '🕸️', rod: '🎣', glock: '🔫', area: '🧥', amount: '🪶', crit: '🍄', thorns: '🦂', greed: '🗝️', greatsword: '⚔️', shortsword: '🗡️', katana: '🗡️', axe: '🪓', pickaxe: '⛏️', shield: '🛡️', bow: '🏹', staff: '🪄', might: '💪', haste: '💨', vigor: '❤️', boots: '👢', magnet: '🧲', armor: '🛡️', growth: '📖', fish: '🐟' };
 // upgrade icons are fetched a step ahead, so level-up cards never show up blank
 const iconsAsked = new Set();
 function preloadIcons(names) { for (const n of names) { if (!n || iconsAsked.has(n)) continue; iconsAsked.add(n); const im = new Image(); im.src = `${asset('')}ui/items/${itemIconFile(n)}`; } }
@@ -987,7 +987,7 @@ $('setclose').onclick = () => { $('settings').classList.add('hidden'); navFocus(
 $('settings').addEventListener('click', (e) => { if (e.target.id === 'settings') $('setclose').click(); });
 
 function guideCatalogue(kind) {
-  return Object.entries(kind === 'weapon' ? WEAPONS : PASSIVES).map(([id, item]) => `<article class="guidecatalogue-item">${iconHTML(kind, id, 1, false, 0)}<div><h4>${esc(item.name)}</h4><p>${esc(item.blurb)}</p>${item.casual ? '<small>Casual only</small>' : ''}</div></article>`).join('');
+  return Object.entries(kind === 'weapon' ? WEAPONS : PASSIVES).map(([id, item]) => `<article class="guidecatalogue-item">${iconHTML(kind, id, 1, false, 0)}<div><h4>${esc(item.name)}</h4><p>${esc(item.blurb)}</p>${item.legendary ? '<small>Legendary</small>' : ''}${item.casual ? '<small>Casual only</small>' : ''}</div></article>`).join('');
 }
 function guideRecipes(pace) {
   return Object.entries(EVOLUTIONS).filter(([id]) => weaponIdsAt(pace).includes(id)).flatMap(([id, evolution]) => id === 'staff' && pace >= 2 ? Object.values(SPELL_EVOLUTIONS).map(branch => [id, branch, branch.passives]) : [[id, evolution, evolutionPassives(id, pace)]]).map(([id, evolution, passives]) => `<div class="guiderecipe"><span>${esc(WEAPONS[id].name)}</span> → <b>${esc(evolution.name)}</b><small>${passives.map(passive => `<span>${esc(PASSIVES[passive].name)}</span>`).join(' / ')}</small></div>`).join('');
@@ -2437,7 +2437,7 @@ function showLevelUp() {
     let before, next, rows;
     if (c.kind === 'weapon') {
       before = weaponStats(me, c.id); next = weaponStats(after, c.id);
-      rows = [['dmg', 'Base damage'], ['cd', 'Cooldown', ' s'], ['count', 'Projectiles'], ['pierce', 'Pierce'], ['bounces', 'Bounces'], ['range', 'Range'], ['radius', 'Radius'], ['r', 'Size'], ['arc', 'Arc'], ['spin', 'Orbit speed'], ['burst', 'Burst radius'], ['boost', 'Tumble boost', '×'], ['boostT', 'Tumble boost time', ' s'], ['slow', 'Slow', '%'], ['slowT', 'Slow time', ' s'], ['pull', 'Pull distance'], ['hooks', 'Hooks']];
+      rows = [['dmg', 'Base damage'], ['cd', 'Cooldown', ' s'], ['count', 'Projectiles'], ['pierce', 'Pierce'], ['bounces', 'Bounces'], ['range', 'Range'], ['radius', 'Radius'], ['r', 'Size'], ['arc', 'Arc'], ['spin', 'Orbit speed'], ['burst', 'Burst radius'], ['boost', 'Tumble boost', '×'], ['boostT', 'Tumble boost time', ' s'], ['slow', 'Slow', '%'], ['slowT', 'Slow time', ' s'], ['pull', 'Pull distance'], ['hooks', 'Hooks'], ['mag', 'Magazine'], ['reload', 'Reload', ' s']];
     } else {
       const stats = p => ({ ...playerStats(p), cardLuck: cardLuck(p.meta, { greed: passiveStrength(p, 'greed') }) });
       before = stats(me); next = stats(after);
@@ -2449,7 +2449,7 @@ function showLevelUp() {
   pend.choices.forEach((c, i) => {
     // Rarity strengthens one accepted level; discrete unlocks use the integer level.
     const ri = c.rarity ? Math.max(0, CARD_RARITIES.indexOf(c.rarity)) : -1;
-    const el = document.createElement('div'); el.className = 'card' + (c.banished ? ' banished' : '') + (c.kind === 'slot' ? ' slot-upgrade' : '') + (c.kind === 'evolve' ? ' evo' : '') + (ri >= 0 ? ` rar r-${CARD_RARITIES[ri]}` : ''); el.dataset.i = i; el.setAttribute('role', 'button'); el.setAttribute('aria-disabled', String(!!c.banished)); el.tabIndex = c.banished ? -1 : 0;
+    const el = document.createElement('div'); el.className = 'card' + (c.banished ? ' banished' : '') + (c.kind === 'slot' ? ' slot-upgrade' : '') + (c.kind === 'evolve' ? ' evo' : '') + (c.kind === 'weapon' && WEAPONS[c.id]?.legendary ? ' legendary' : '') + (ri >= 0 ? ` rar r-${CARD_RARITIES[ri]}` : ''); el.dataset.i = i; el.setAttribute('role', 'button'); el.setAttribute('aria-disabled', String(!!c.banished)); el.tabIndex = c.banished ? -1 : 0;
     const from = typeof c.from === 'number' && c.rarity ? c.from : c.level - 1; // the level you have now
     const lvTag = () => (from === 0 ? (c.level > 1 ? `NEW · Lv ${c.level}` : 'NEW') : c.level - from > 1 ? `Lv ${from} → ${c.level}` : `Lv ${c.level}`);
     let name, tag, text, icon;
@@ -2479,7 +2479,7 @@ function showLevelUp() {
       if (ev.length) text += ` Evolves ${ev.map(id => id === 'staff' && sim.pace >= 2 ? WEAPONS.staff.name : weaponTitle(id, 6, stepOf(id))).join(', ')}.`;
     } else { const hp = CARD_HEAL[Math.max(0, ri)]; name = 'Cooked Bubba Bass'; tag = 'Heal'; text = hp >= 9999 ? 'Restore all your health.' : `Restore ${hp} health.`; icon = iconHTML('item', 'Cooked Bubba Bass'); }
     if (ri === 3 && c.kind !== 'heal') text += ' Heals you to full.';
-    const rar = ri >= 0 ? `<div class="rarity">${CARD_RARITY_NAMES[ri]}</div>` : '';
+    const rar = (c.kind === 'weapon' && WEAPONS[c.id]?.legendary ? '<div class="legend">Legendary</div>' : '') + (ri >= 0 ? `<div class="rarity">${CARD_RARITY_NAMES[ri]}</div>` : '');
     el.innerHTML = `${c.banished ? '<div class="banished-label">Banished</div>' : ''}${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p>${statLines(c)}<div class="key">[${i + 1}]</div>`;
     el.onfocus = () => { selCard = i; markCard(); }; el.onclick = () => pick(i); wrap.appendChild(el);
   });

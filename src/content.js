@@ -207,16 +207,26 @@ export const WEAPONS = {
   net: {
     name: 'Fishing Net', icon: 'net', model: null, pace: 2, casual: true,
     blurb: 'Casts a net over the nearest group. Caught monsters take damage and move slower for a while. Bosses are not slowed.',
-    stats: (l) => ({ dmg: L(l, 6, 2), cd: Math.max(0.8, L(l, 3.2, -0.2)), radius: L(l, 2.2, 0.2), slow: Math.min(0.6, L(l, 0.35, 0.03)), slowT: Math.min(4, L(l, 2, 0.2)), cast: 9 }),
+    stats: (l) => ({ dmg: L(l, 8, 5), cd: Math.max(0.8, L(l, 3.2, -0.2)), radius: L(l, 2.2, 0.2), slow: Math.min(0.6, L(l, 0.35, 0.03)), slowT: Math.min(4, L(l, 2, 0.2)), cast: 9 }),
     next: (l) => ['+radius', '+damage', 'slows longer', '+radius', '+damage', 'Heavy net'][l - 1] || 'max',
   },
   rod: {
     name: 'Fishing Rod', icon: 'rod', model: 'equipment/equipment/fishingrod/fishingrod.glb', pace: 2, casual: true,
-    blurb: 'Hooks one monster from afar and reels it toward you. Bosses are hurt but hold their ground.',
-    stats: (l) => ({ dmg: L(l, 14, 4.5), cd: Math.max(0.6, L(l, 2.4, -0.18)), range: L(l, 9, 0.6), pull: Math.min(9, L(l, 4, 0.4)), hooks: 1 }),
-    next: (l) => ['+damage', '+range', 'faster', '+damage', '+range', 'Strong line'][l - 1] || 'max',
+    blurb: 'Hooks a monster from afar and reels it toward you; a second hook comes at level 4. Bosses are hurt but hold their ground.',
+    stats: (l) => ({ dmg: L(l, 14, 8), cd: Math.max(0.6, L(l, 2.4, -0.24)), range: L(l, 9, 0.6), pull: Math.min(9, L(l, 4, 0.4)), hooks: l >= 4 ? 2 : 1 }),
+    next: (l) => ['+damage', '+range', 'second hook', '+damage', '+range', 'Strong line'][l - 1] || 'max',
+  },
+  // The Legendary weapon (owner, 16 Nov): the pistol from 2Glock2Sanko. Casual only, offered far more rarely than the
+  // others (see rollChoices), with no evolution. It empties a magazine fast and then stops to reload.
+  glock: {
+    name: 'SankoCorp Glock', icon: 'glock', model: 'environment/hand_pistol.glb', pace: 2, casual: true, legendary: true,
+    blurb: 'Legendary. Rapid shots at the nearest monster, then a quick reload. Rarely offered; it has no evolution.',
+    stats: (l) => ({ dmg: L(l, 10, 5), cd: Math.max(0.1, L(l, 0.2, -0.015)), mag: 12 + (l >= 3 ? 3 : 0) + (l >= 5 ? 3 : 0), reload: Math.max(0.8, L(l, 1.6, -0.12)), speed: 34, pierce: l >= 6 ? 2 : l >= 4 ? 1 : 0, life: 0.7 }),
+    next: (l) => ['+damage', 'bigger magazine', 'pierces', 'bigger magazine', 'pierces twice', 'SankoCorp rounds'][l - 1] || 'max',
   },
 };
+/** how often a weapon you do not hold yet is offered, against 2 for an ordinary one */
+export const LEGENDARY_WEIGHT = 0.6;
 export const WEAPON_IDS = Object.keys(WEAPONS);
 /** the weapons a run can be offered: pace 1 and every ranked run know only the original ten (see passiveIdsAt) */
 export const weaponIdsAt = (pace, ranked = false) => WEAPON_IDS.filter((id) => !(WEAPONS[id].pace > (pace || 1)) && !(ranked && WEAPONS[id].casual));
@@ -229,7 +239,7 @@ export function weaponStats(p, id) {
   if (!points) return stats;
   const stronger = WEAPONS[id].stats(level + points / 100);
   // shortcut: classify new continuous stats here when adding weapons.
-  for (const key of ['dmg', 'cd', 'range', 'arc', 'r', 'radius', 'spin', 'burst', 'boost', 'slow', 'slowT', 'pull']) if (typeof stats[key] === 'number') stats[key] = stronger[key];
+  for (const key of ['dmg', 'cd', 'range', 'arc', 'r', 'radius', 'spin', 'burst', 'boost', 'slow', 'slowT', 'pull', 'reload']) if (typeof stats[key] === 'number') stats[key] = stronger[key];
   return stats;
 }
 export function passiveStrength(p, id) {
@@ -298,6 +308,7 @@ export function weaponItem(id, level, step = null) {
     case 'dagger': return 'Dagger';
     case 'net': return 'Fishing Net';
     case 'rod': return 'Fishing Rod';
+    case 'glock': return 'SankoCorp Glock';
     default: return 'Staff';
   }
 }

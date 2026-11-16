@@ -2,7 +2,7 @@ import {noteRunOffers,noteRunChoice} from './run-stats.js';
 // Game simulation. No DOM, no three.js: runs in node (tests) and in the host's browser.
 import { dsin, dcos, datan2, dhypot } from './dmath.js'; // the same answer in every browser and on the server (ranked replays)
 import {
-  ENEMIES, MAPS, WEAPONS, WEAPON_IDS, weaponIdsAt, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
+  ENEMIES, MAPS, WEAPONS, WEAPON_IDS, weaponIdsAt, LEGENDARY_WEIGHT, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
   ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, spellEvolutions, spellEvolutionChoices, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength, fortuneBonus,
   weaponSlotItem, TUMBLE, PASTURE_NAV, OASIS_WATER_NAV, SNOW_WAVE_AT, isSnowEnemy,
@@ -634,7 +634,7 @@ export function rollChoices(sim, p) {
     const lvl = p.weapons[id] || 0;
     if (lvl >= MAX_WEAPON_LEVEL) continue;
     if (!lvl && Object.keys(p.weapons).length >= st.weaponSlots) continue;
-    opts.push({ kind: 'weapon', id, level: lvl + 1, w: lvl ? 3 : 2 });
+    opts.push({ kind: 'weapon', id, level: lvl + 1, w: lvl ? 3 : WEAPONS[id].legendary ? LEGENDARY_WEIGHT : 2 }); // (a Legendary is casual-only, so ranked weights never change)
   }
   for (const id of passiveIdsAt(sim.pace, sim.ranked)) {
     if (sim.pace >= 2 && p.banished.includes('passive:' + id)) continue;
@@ -863,11 +863,12 @@ function withPassives(id, s, st) {
   if (s.burst) s.burst *= A;
   if (s.r && (id === 'axe' || id === 'baseball')) s.r *= A;
   if (id === 'bow' || id === 'shortsword') s.hit = 0.45 * A; // arrows and thrown swords hit wider with the Cape
-  if (s.life && st.reach > 1 && ['bow', 'axe', 'staff', 'shortsword', 'baseball'].includes(id)) s.life *= st.reach;
-  if (st.amount && ['bow', 'axe', 'staff', 'shortsword', 'baseball', 'shield'].includes(id) && !s.ring) s.count = (s.count || 1) + st.amount;
+  if (s.life && st.reach > 1 && ['bow', 'axe', 'staff', 'shortsword', 'baseball', 'glock'].includes(id)) s.life *= st.reach;
+  if (st.amount && ['bow', 'axe', 'staff', 'shortsword', 'baseball', 'shield', 'glock'].includes(id) && !s.ring) s.count = (s.count || 1) + st.amount;
   return s;
 }
 const NO_METAL = { dmg: 1, pierce: 0 };
+const GLOCK_EXTRA = 0.35; // what each of the Feather's extra Glock rounds does, against the aimed round
 // Fishing Rod: a knockback impulse k moves a monster k * TICK / (1 - 0.86) in all (the decay in step()), so this turns
 // a distance to reel in into the impulse for it. The cap bounds two rods (co-op, Longline) landing on one monster.
 const HOOK_IMPULSE = (1 - 0.86) / TICK, HOOK_MAX = 9 * HOOK_IMPULSE;
@@ -967,6 +968,20 @@ function fireWeapons(sim, p, dt, st) {
           damageEnemy(sim, e, stab, p.id, s.kb, p.x, p.z);
         }
       }
+    } else if (id === 'glock') {
+      // one aimed shot; the count of shots since the last reload is the only state, so a bigger magazine from a
+      // level-up applies at once. The reload is this weapon's cooldown, and the fx carries its length for the animation.
+      // The Feather adds lighter rounds beside the aimed one. At this rate of fire a full extra round would double the
+      // weapon, where the Feather gives the Bow about a quarter more, so each extra does GLOCK_EXTRA of the damage.
+      const a = datan2(target.x - p.x, target.z - p.z), rounds = s.count || 1;
+      for (let i = 0; i < rounds; i++) {
+        const b = a + (i % 2 ? 1 : -1) * Math.floor((i + 1) / 2) * 0.09;
+        sim.proj.push({ id: sim.nextId++, art: 'bullet', evo: false, owner: p.id, x: p.x, z: p.z, vx: dsin(b) * s.speed, vz: dcos(b) * s.speed, dmg: i ? dmg * GLOCK_EXTRA : dmg, pierce: s.pierce, life: s.life, r: 0.4, hit: [], lvl });
+      }
+      const fired = (p.shots || 0) + 1, empty = fired >= s.mag;
+      p.shots = empty ? 0 : fired;
+      if (empty) p.cd[id] = s.reload * st.haste;
+      sim.fx.push({ k: 'shot', x: p.x, z: p.z, a, lvl, ...(empty ? { reload: p.cd[id] } : {}), ...(sim.coop ? { player: p.id } : {}) });
     } else if (id === 'net') {
       // lands on the nearest monster and catches the group round it; the slow is a timer on each monster (see step()),
       // refreshed rather than stacked, and bosses only take the damage
@@ -1037,7 +1052,7 @@ function fireWeapons(sim, p, dt, st) {
 }
 
 function stepProjectiles(sim, dt) {
-  const ART_SRC = { arrow: 'bow', axe: 'axe', bolt: 'staff', sword: 'shortsword', ball: 'baseball' };
+  const ART_SRC = { arrow: 'bow', axe: 'axe', bolt: 'staff', sword: 'shortsword', ball: 'baseball', bullet: 'glock' };
   for (const pr of sim.proj) {
     pr.life -= dt; sim.src = ART_SRC[pr.art] || pr.art;
     if (pr.art === 'bolt') {
@@ -1050,11 +1065,17 @@ function stepProjectiles(sim, dt) {
         pr.vx = dsin(na) * pr.speed; pr.vz = dcos(na) * pr.speed;
       }
     }
+    const ox = pr.x, oz = pr.z;
     pr.x += pr.vx * dt; pr.z += pr.vz * dt;
     if (pr.art === 'axe') { pr.spin = (pr.spin || 0) + dt * 14; }
     for (const e of sim.enemies) {
       if (e.dead) continue;
-      if (hyp(e.x - pr.x, e.z - pr.z) > pr.r + ENEMIES[e.type].r) continue;
+      if (pr.art === 'bullet') {
+        // a fast round: test the whole step, not only where it ends, so it cannot step over a small monster
+        const sx = pr.x - ox, sz = pr.z - oz, l2 = sx * sx + sz * sz;
+        const k = l2 ? Math.max(0, Math.min(1, ((e.x - ox) * sx + (e.z - oz) * sz) / l2)) : 1;
+        if (hyp(e.x - (ox + sx * k), e.z - (oz + sz * k)) > pr.r + ENEMIES[e.type].r) continue;
+      } else if (hyp(e.x - pr.x, e.z - pr.z) > pr.r + ENEMIES[e.type].r) continue;
       if (pr.art === 'axe') {
         if ((pr.hitAt[e.id] || 0) > sim.t) continue;
         pr.hitAt[e.id] = sim.t + 0.35;
@@ -1069,7 +1090,7 @@ function stepProjectiles(sim, dt) {
         }
         pr.life = 0; break;
       }
-      if (pr.art === 'arrow' || pr.art === 'sword') { if (pr.pierce-- <= 0) { pr.life = 0; break; } }
+      if (pr.art === 'arrow' || pr.art === 'sword' || pr.art === 'bullet') { if (pr.pierce-- <= 0) { pr.life = 0; break; } }
       if (pr.art === 'ball') { // ricochet to the nearest monster it has not hit yet
         if (pr.pierce-- <= 0) { pr.life = 0; break; }
         const next = nearestEnemy(sim, pr.x, pr.z, 9, new Set(pr.hit));

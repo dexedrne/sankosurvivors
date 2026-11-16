@@ -1,5 +1,20 @@
 // Filipino display text only; game IDs, proper map names and payment values stay unchanged.
 export const text = {
+  "SankoCorp Glock": "Glock ng SankoCorp",
+  "Legendary. Rapid shots at the nearest monster, then a quick reload. Rarely offered; it has no evolution.": "Maalamat. Mabibilis na putok sa pinakamalapit na halimaw, tapos mabilis na pagkakarga. Bihirang ialok; wala itong ebolusyon.",
+  "bigger magazine": "mas malaking magasin",
+  "pierces": "tumatagos",
+  "SankoCorp rounds": "mga bala ng SankoCorp",
+  "Magazine": "Magasin",
+  "Reload": "Pagkakarga",
+  "Legendary: SankoCorp Glock": "Maalamat: Glock ng SankoCorp",
+  "Casual runs can now, rarely, offer a Legendary weapon: the SankoCorp Glock from 2Glock2Sanko. Its card is gold.": "Ang mga casual na laro ay maaari nang mag-alok, paminsan-minsan, ng maalamat na sandata: ang Glock ng SankoCorp mula sa 2Glock2Sanko. Ginto ang baraha nito.",
+  "It fires fast at the nearest monster, then stops to reload. Levels add damage, a bigger magazine and piercing shots. It has no evolution.": "Mabilis itong pumuputok sa pinakamalapit na halimaw, tapos humihinto para magkarga. Nagdaragdag ang mga level ng pinsala, mas malaking magasin at mga putok na tumatagos. Wala itong ebolusyon.",
+  "The Fishing Rod gains a second hook at level 4, and its damage and speed grow faster. The Fishing Net hits harder from the start and its damage grows much faster; its slow is unchanged.": "May ikalawang kawil ang Pamingwit sa level 4, at mas mabilis lumaki ang pinsala at bilis nito. Mas malakas tumama ang Lambat mula sa simula at mas mabilis lumaki ang pinsala nito; hindi nagbago ang pagpapabagal nito.",
+  "Only casual runs are affected. Ranked runs and their card rolls are unchanged.": "Mga casual na laro lang ang apektado. Hindi nagbago ang mga ranked na laro at ang mga baraha nito.",
+  "Hooks a monster from afar and reels it toward you; a second hook comes at level 4. Bosses are hurt but hold their ground.": "Kinakawit ang isang halimaw mula sa malayo at hinihila ito palapit sa iyo; may ikalawang kawil sa level 4. Nasasaktan ang mga boss pero hindi natitinag.",
+  "second hook": "ikalawang kawil",
+
   "Ranked: Tutorial Island": "Ranked: Isla ng Tutorial",
   "Week 2 ranked takes place on Tutorial Island. Choose your adventurer and survive as long as you can.": "Sa Tutorial Island ang ranked sa linggo 2. Piliin ang adventurer mo at mabuhay hangga’t kaya mo.",
   "Standard rules, one prize pool: enter for 1, 10 or 25 DMT. Score is monsters slain plus whole seconds survived.": "Standard na patakaran, iisang premyo: sumali gamit ang 1, 10 o 25 DMT. Ang score ay bilang ng napatay na halimaw at buong segundong nabuhay.",
@@ -24,7 +39,6 @@ export const text = {
   "Longline!": "Mahabang Kawil!",
   "Rapid stabs at the nearest monster in reach. Stabs hit much harder for a moment after a Tumble.": "Mabibilis na saksak sa pinakamalapit na halimaw na abot mo. Mas malakas tumama ang mga saksak sandali matapos ang Tumble.",
   "Casts a net over the nearest group. Caught monsters take damage and move slower for a while. Bosses are not slowed.": "Naghahagis ng lambat sa pinakamalapit na grupo. Nasasaktan at bumabagal sandali ang mga nahuling halimaw. Hindi bumabagal ang mga boss.",
-  "Hooks one monster from afar and reels it toward you. Bosses are hurt but hold their ground.": "Kinakawit ang isang halimaw mula sa malayo at hinihila ito palapit sa iyo. Nasasaktan ang mga boss pero hindi natitinag.",
   "Stabs in front and behind, harder, and the Tumble boost lasts twice as long.": "Sumasaksak sa harap at likod nang mas malakas, at doble ang tagal ng lakas mula sa Tumble.",
   "A far wider, heavier net that slows monsters more and for longer.": "Mas malawak at mas mabigat na lambat na mas nagpapabagal sa mga halimaw at mas matagal.",
   "Hooks three monsters at once and hits them harder.": "Kinakawit ang tatlong halimaw nang sabay at mas malakas ang tama sa kanila.",

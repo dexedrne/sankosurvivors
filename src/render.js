@@ -950,9 +950,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     bow:     { tip: [0, 1, 0], thin: [0, 0, 1] },
     shield:  { tip: [0, 1, 0], thin: [0, 0, 1] },
     dagger:  { tip: [1, 0.15, 0], thin: [0, 0, 1] }, // a world prop, not hand equipment: aimed from its own shape
+    glock:   { tip: [1, 0, 0], thin: [0, 0, 1] },    // the pistol from 2Glock2Sanko: barrel ahead, flat sides out
   };
   // props that were not made for the hand come at their own world size
-  const AIM_SCALE = { dagger: 0.42 };
+  const AIM_SCALE = { dagger: 0.42, glock: 0.8 };
   // make sure the models for worn gear are loaded before a character puts them on
   const GEAR_FOLDER = { head: 'Head', chest: 'Chest', hands: 'Hands', legs: 'Legs', feet: 'Feet', back: 'Back', neck: 'Neck' };
   // (a shield is a held item: its model loads with the other hand-held items)
@@ -980,6 +981,104 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const corpses = [];         // fallen monsters finishing their death
   const viewFrustum = new THREE.Frustum(), projScreen = new THREE.Matrix4(), cullSphere = new THREE.Sphere();
   const playerActors = new Map();
+  // ---- the SankoCorp Glock in the hand: raised to aim while it fires, a kick on each shot, and the reload ----
+  // The reload (its length comes with the last shot of a magazine): the pistol tips up and cants, the spent magazine
+  // drops out and falls to the ground, the left hand brings a fresh one up into the grip, then the slide is racked and
+  // the pistol levels again.
+  const tracerGeo = new THREE.BoxGeometry(0.05, 0.05, 1.1).translate(0, 0, -0.45), tracerMat = new THREE.MeshBasicMaterial({ color: 0xfff1b8 });
+  const magGeo = new THREE.BoxGeometry(0.045, 0.15, 0.065), magMat = new THREE.MeshStandardMaterial({ color: 0x1d2126, roughness: 0.5, metalness: 0.65 });
+  const spentMags = [], freshOwners = new Set(); // dropped magazines falling to the ground; actors with a fresh one in hand
+  const gk = { a: new THREE.Quaternion(), b: new THREE.Quaternion(), c: new THREE.Quaternion(), m: new THREE.Matrix4(), f: new THREE.Vector3(), r: new THREE.Vector3(), u: new THREE.Vector3(), d: new THREE.Vector3(), n: new THREE.Vector3(), s: new THREE.Vector3(), h: new THREE.Vector3(), t: new THREE.Vector3() };
+  const UP = new THREE.Vector3(0, 1, 0);
+  const smooth = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u)), span = (u, a, b) => smooth((u - a) / (b - a));
+  // swing one arm from the shoulder so its hand points at a spot (weight 0..1); the animation rewrites the bone each frame
+  function reach(a, side, target, w) {
+    const arm = a.kit.bone(`mixamorig_${side}Arm`), hand = a.kit.bone(`mixamorig_${side}Hand`);
+    if (!arm || !hand || !(w > 0.001)) return;
+    arm.getWorldPosition(gk.s); hand.getWorldPosition(gk.h).sub(gk.s).normalize(); gk.t.copy(target).sub(gk.s).normalize();
+    gk.a.setFromUnitVectors(gk.h, gk.t); gk.b.identity().slerp(gk.a, Math.min(1, w));
+    arm.parent.getWorldQuaternion(gk.c);
+    arm.quaternion.premultiply(gk.a.copy(gk.c).invert().multiply(gk.b).multiply(gk.c));
+  }
+  function glockShot(f, localId) {
+    const pa = playerActors.get(f.player || localId), s = Math.sin(f.a), c = Math.cos(f.a), y = groundAt(f.x, f.z) + 1.25;
+    emit(f.x + s * 0.95, y, f.z + c * 0.95, 3, 2.2, { s: 0.5, life: 0.1, color: 0xffd98a, up: 0.3, g: 0 });
+    if (!pa) return;
+    pa.swingA = f.a; pa.swingT = 0.45; pa.kickT = 0.09;
+    if (f.reload > 0) { pa.reloadT = pa.reloadLen = f.reload; pa.magOut = false; pa.racked = false; }
+  }
+  function glockPose(a, dt, rolling) {
+    const h = a.kit && a.kit.held && a.kit.held.right;
+    if (!h || !h.model) return;
+    a.kickT = Math.max(0, (a.kickT || 0) - dt);
+    const reloading = a.reloadT > 0, u = reloading ? 1 - a.reloadT / a.reloadLen : 0;
+    if (reloading) a.reloadT = Math.max(0, a.reloadT - dt);
+    // raised while it fires or reloads, lowered again a moment after the last shot
+    a.aimW = Math.max(0, Math.min(1, (a.aimW || 0) + (a.swingT > 0 || reloading ? dt * 9 : -dt * 4)));
+    if (rolling) a.aimW = 0; // mid-roll the pistol rides the hand with the body; it comes back up after
+    const w = smooth(a.aimW), tip = reloading ? span(u, 0, 0.16) * (1 - span(u, 0.68, 0.82)) : 0;
+    const rack = reloading ? Math.sin(Math.PI * Math.min(1, Math.max(0, (u - 0.82) / 0.13))) : 0, kick = a.kickT / 0.09;
+    gk.f.set(Math.sin(a.yaw), 0, Math.cos(a.yaw)); gk.r.crossVectors(gk.f, UP); // the character's forward and right
+    a.root.updateMatrixWorld(true);
+    const armR = a.kit.bone('mixamorig_RightArm');
+    if (armR && w > 0.001) {
+      armR.getWorldPosition(gk.s);
+      gk.n.copy(gk.s).addScaledVector(gk.f, 1).addScaledVector(UP, -0.12 + tip * 0.3).addScaledVector(gk.r, -0.12 - tip * 0.18);
+      reach(a, 'Right', gk.n, w); a.root.updateMatrixWorld(true);
+    }
+    // the pistol itself: barrel along the aim (tipped up and canted for the reload, kicked up by a shot), sides out
+    const pitch = tip * 0.9 + kick * 0.16, cant = tip * 0.55;
+    gk.d.copy(gk.f).multiplyScalar(Math.cos(pitch)).addScaledVector(UP, Math.sin(pitch));
+    gk.u.copy(UP).multiplyScalar(Math.cos(pitch)).addScaledVector(gk.f, -Math.sin(pitch));
+    gk.n.copy(gk.r).multiplyScalar(-Math.cos(cant)).addScaledVector(gk.u, Math.sin(cant)); // thin axis: across the body, as it rests in the hand
+    gk.t.crossVectors(gk.d, gk.n);
+    gk.a.setFromRotationMatrix(gk.m.makeBasis(gk.d, gk.n, gk.t)).multiply(h.model);
+    h.bone.getWorldQuaternion(gk.c);
+    gk.b.copy(gk.c).invert().multiply(gk.a);
+    h.wrap.quaternion.copy(h.quat).slerp(gk.b, w);
+    gk.c.invert(); // world to the hand bone
+    h.wrap.position.copy(h.pos).addScaledVector(gk.t.copy(gk.d).applyQuaternion(gk.c), -(rack * 0.07 + kick * 0.035) * h.unit);
+    if (!reloading) { if (a.freshMag) { dyn.remove(a.freshMag); a.freshMag = null; } return; }
+    a.root.updateMatrixWorld(true);
+    h.bone.getWorldPosition(gk.h); // the grip is in the hand; the model's own origin is not
+    // the spent magazine drops out of the grip
+    if (!a.magOut && u > 0.14) {
+      a.magOut = true;
+      const m = new THREE.Mesh(magGeo, magMat); m.position.copy(gk.h).addScaledVector(gk.u, -0.06); m.castShadow = true; dyn.add(m);
+      spentMags.push({ m, vx: gk.r.x * 0.5, vy: 0.4, vz: gk.r.z * 0.5, spin: 7, floor: groundAt(gk.h.x, gk.h.z) + 0.04, life: 1.6 });
+    }
+    // the fresh one comes up from the belt in the left hand and seats in the grip
+    const seat = span(u, 0.34, 0.62), show = u > 0.3 && u < 0.64;
+    if (show && !a.freshMag) { a.freshMag = new THREE.Mesh(magGeo, magMat); dyn.add(a.freshMag); freshOwners.add(a); }
+    if (a.freshMag) {
+      a.freshMag.visible = show;
+      if (show) {
+        a.freshMag.position.copy(gk.h).addScaledVector(gk.u, -0.04 - (1 - seat) * 0.4).addScaledVector(gk.r, -(1 - seat) * 0.14);
+        a.freshMag.quaternion.setFromRotationMatrix(gk.m.makeBasis(gk.n, gk.u, gk.d));
+      }
+    }
+    const hold = rolling ? 0 : span(u, 0.2, 0.36) * (1 - span(u, 0.62, 0.78));
+    if (hold > 0.001) reach(a, 'Left', gk.t.copy(gk.h).addScaledVector(gk.u, -0.1 - (1 - seat) * 0.36).addScaledVector(gk.r, -(1 - seat) * 0.14), hold);
+    // the slide is racked: a click of light at the muzzle
+    if (!a.racked && u > 0.86) { a.racked = true; emit(gk.h.x + gk.d.x * 0.25, gk.h.y + 0.1, gk.h.z + gk.d.z * 0.25, 2, 1.2, { s: 0.35, life: 0.12, color: 0xfff1c8, up: 0.5, g: 0 }); }
+  }
+  // magazines belong to no actor's own tree, so they are cleared here: at once on a reset, and each frame for an
+  // actor that has gone (a peer who left, a changed adventurer)
+  function clearMagazines() {
+    for (const s of spentMags) dyn.remove(s.m); spentMags.length = 0;
+    for (const a of freshOwners) if (a.freshMag) { dyn.remove(a.freshMag); a.freshMag = null; } freshOwners.clear();
+  }
+  function stepSpentMags(dt) {
+    for (const a of freshOwners) {
+      if (!a.freshMag) freshOwners.delete(a);
+      else if (![...playerActors.values()].includes(a)) { dyn.remove(a.freshMag); a.freshMag = null; freshOwners.delete(a); }
+    }
+    for (let i = spentMags.length - 1; i >= 0; i--) {
+      const s = spentMags[i]; s.life -= dt;
+      if (s.m.position.y > s.floor) { s.vy -= 9.8 * dt; s.m.position.x += s.vx * dt; s.m.position.y = Math.max(s.floor, s.m.position.y + s.vy * dt); s.m.position.z += s.vz * dt; s.m.rotation.x += s.spin * dt; s.m.rotation.z += s.spin * 0.6 * dt; }
+      if (s.life <= 0) { dyn.remove(s.m); spentMags.splice(i, 1); }
+    }
+  }
   let dmtAura = false; // the local player holds DMT
   const projObjs = new Map(); // proj id -> object
   // SankoQuest's own spell projectile (its client's "magic_sphere"): a bright octahedron head with six trailing pieces in
@@ -1853,6 +1952,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // ---- per-frame update -----------------------------------------------------------
   let time = 0, frameN = 0;
   function update(view, dt, localId) {
+    stepSpentMags(dt);
     castleMarker.visible = !!view.castle;
     if (view.castle) {
       castleMarker.position.set(view.castle.x, groundAt(view.castle.x, view.castle.z), view.castle.z);
@@ -1875,6 +1975,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'blocked' || f.k === 'evaded') { number(f.x, f.z, f.k === 'blocked' ? 'Blocked' : 'Evaded', 0, '#ffdf82'); ringFx(f.x, f.z, 1.2, f.k === 'blocked' ? 0xffdf82 : 0x8bffd0, 0, 0.35); }
       else if (f.k === 'die' && f.boss) { pop(f.x, f.z, 70, 9, true); ringFx(f.x, f.z, 10, 0xfff2a8, 1, 0.6); ringFx(f.x, f.z, 16, 0xff9a3c, 0, 0.8); scorchFx(f.x, f.z, 9); emit(f.x, groundAt(f.x, f.z) + 2, f.z, 50, 8, { s: 1.6, life: 1.2, color: 0xffd36a, up: 9, g: 5 }); cam.white = 0.55; cam.shake = 0.9; spSlow = 0.9; } // spSlow: main.js slows the sim 0.3x for 0.9 s here
       else if (f.k === 'die') { if (f.type === 'slimer' || f.type === 'mslimer') slimeBurst(f.x, f.z); pop(f.x, f.z, f.boss ? 40 : f.elite ? 24 : 6, f.boss ? 7 : f.elite ? 5 : 3.5, f.boss || f.elite); if (f.elite) { ringFx(f.x, f.z, 3, 0xffd34d); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 30, 5, { s: 1, life: 0.9, color: 0xffd34d, up: 6 }); } }
+      else if (f.k === 'shot') glockShot(f, localId);
       else if (f.k === 'slash') { if (f.stab) meleeFx.stab(f.x, f.z, f.a, f.range, f.stab === 2); else slashFx(f.x, f.z, f.a, f.range, f.arc, f.lvl); const pa = playerActors.get(f.player || localId); if (pa && !(pa.swingT > 0.25)) { pa.swingA = f.a; pa.swingT = 0.3; } if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'shrine-done') { const c = SHRINE_COLORS[f.kind] || 0xffffff; ringFx(f.x, f.z, 4, c, 1, 0.7); emit(f.x, groundAt(f.x, f.z) + 1, f.z, 50, 6, { s: 1, life: 1.1, color: c, up: 9 }); cam.shake = Math.max(cam.shake, 0.2); }
       else if (f.k === 'shrine') emit(f.x, groundAt(f.x, f.z) + 0.5, f.z, 24, 3, { s: 0.8, life: 1, color: SHRINE_COLORS[f.kind] || 0xffffff, up: 6 });
@@ -1971,7 +2072,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         }
         // weapon in the right hand; in the left the bow (it needs both hands), else the shield you wear (from a casket or
         // the bank), else the Kiteshield weapon's own shield
-        const wk = Object.keys(p.w); const rightId = wk.find((id) => !['bow', 'shield'].includes(id) && WEAPONS[id] && WEAPONS[id].model);
+        const wk = Object.keys(p.w); const rightId = wk.includes('glock') ? 'glock' : wk.find((id) => !['bow', 'shield'].includes(id) && WEAPONS[id] && WEAPONS[id].model);
         const wornShield = p.gear && Object.hasOwn(GEAR, p.gear.offhand || '') && GEAR[p.gear.offhand].model ? p.gear.offhand : null;
         const leftId = wk.includes('bow') ? 'bow' : wornShield ? 'worn' : wk.includes('shield') ? 'shield' : null; // (the baseball and lighter have no hand model)
         // pace 2: the metal each weapon wears (from caskets), or its evolution's own look; pace 1 (no metals, p.wm null)
@@ -1983,10 +2084,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           a.heldSig = sig;
           const urlFor = (id) => (id === 'worn' ? GEAR[wornShield].model : id === 'katana' && p.evo.katana ? 'shadowfang.glb' : weaponModelPath(id, p.w[id], 'model', step(id)));
           const tintFor = (id) => (id === 'worn' ? GEAR[wornShield].tint : undefined);
-          Promise.all([rightId ? item(urlFor(rightId), tintFor(rightId)) : null, leftId ? item(urlFor(leftId), tintFor(leftId)) : null]).then(([r, l]) => { if (a.heldSig === sig) a.kit.setHeld({ right: r && r.gltf, left: l && l.gltf, rightFix: heldFix(rightId, p.evo[rightId]), leftFix: heldFix(leftId === 'worn' ? 'shield' : leftId), rightAim: HELD_AIM[rightId], leftAim: HELD_AIM[leftId === 'worn' ? 'shield' : leftId], rightScale: HS ? Number(HS) : (AIM_SCALE[rightId] || 1), leftScale: HS ? Number(HS) : 1 }); });
+          Promise.all([rightId ? item(urlFor(rightId), tintFor(rightId)) : null, leftId ? item(urlFor(leftId), tintFor(leftId)) : null]).then(([r, l]) => { if (a.heldSig === sig) a.heldRight = r ? rightId : null; if (a.heldSig === sig) a.kit.setHeld({ right: r && r.gltf, left: l && l.gltf, rightFix: heldFix(rightId, p.evo[rightId]), leftFix: heldFix(leftId === 'worn' ? 'shield' : leftId), rightAim: HELD_AIM[rightId], leftAim: HELD_AIM[leftId === 'worn' ? 'shield' : leftId], rightScale: HS ? Number(HS) : (AIM_SCALE[rightId] || 1), leftScale: HS ? Number(HS) : 1 }); });
         }
         a.kit.setMoving(!!p.mv, 1);
         a.mixer.update(dt);
+        // only once the pistol itself is in the hand; a fallen or hidden player does not reload
+        if (rightId === 'glock' && a.heldRight === 'glock') { if (!p.al) a.reloadT = 0; glockPose(a, dt, p.rollT > 0); }
       } else {
         const bob = p.mv ? Math.sin(time * 14) * 0.08 : 0;
         a.inner.position.y = (playerProto ? -playerProto.minY : 0) + Math.abs(bob);
@@ -2118,6 +2221,8 @@ export async function createRenderer(canvas, onProgress = () => {}) {
           let c = caster == null ? null : view.players.find(p => p.id === caster && p.al), cd = 4;
           if (caster == null) for (const p of view.players) if (p.al) { const d = (p.x - x) ** 2 + (p.z - z) ** 2; if (d < cd) { cd = d; c = p; } }
           if (c && (c.x - x) ** 2 + (c.z - z) ** 2 < 4) spellSample(o.userData, vt - 1, c.x, groundAt(c.x, c.z) + 1.3, c.z, ang);
+        } else if (art === 'bullet') { // the Glock's round: a short bright tracer
+          o.add(fxOnly(new THREE.Mesh(tracerGeo, tracerMat))); o.add(glowSprite(0xffc04a, 0.5, 0.75));
         } else if (art === 'arrow') {
           o.add(arrowOf(mt)); // SankoQuest's flying arrow, as the live game draws it, with the head in the arrows' metal
           Object.assign(o.userData, evo ? { trail: 0x9fe6ff, every: 0.5 } : { trail: 0xb89a6a, every: 0.7 }); // the glacial bow's frost, or a little dust
@@ -2335,7 +2440,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     spTick = -1; spellTime = 0;
     cam.x = curMap.cx; cam.z = curMap.cz;
   }
-  return { hop: () => { hopReq = true; }, zoomBy, update, reset, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v, previewY = null) { cam.shift = v; cam.previewY = previewY; if (previewY == null) camera.clearViewOffset(); }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
+  return { hop: () => { hopReq = true; }, zoomBy, update, reset: () => { clearMagazines(); reset(); }, resize, propCount, groundAt, renderer, loadMap, debugScene: () => ({ scene, camera }), setZoom(z) { cam.zoom = cam.zoomT = z; }, setShift(v, previewY = null) { cam.shift = v; cam.previewY = previewY; if (previewY == null) camera.clearViewOffset(); }, getYaw() { return cam.yaw; }, setYaw(v) { cam.yaw = v; }, setPitch(v) { cam.pitch = v; }, setLookY(v) { cam.lookY = v; },
     preloadGear, setPet: petRenderer.set, petState: petRenderer.state, createPetPreview: canvas => createPetPreview({ canvas, ...petModels }),
     // QA hooks
     setAura(on) { dmtAura = !!on; },

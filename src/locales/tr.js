@@ -1,5 +1,20 @@
 // Turkish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "SankoCorp Glock": "SankoCorp Glock'u",
+  "Legendary. Rapid shots at the nearest monster, then a quick reload. Rarely offered; it has no evolution.": "Efsanevi. En yakın canavara hızlı atışlar, ardından kısa bir şarjör değişimi. Nadiren sunulur; evrimi yoktur.",
+  "bigger magazine": "daha büyük şarjör",
+  "pierces": "deler",
+  "SankoCorp rounds": "SankoCorp mermisi",
+  "Magazine": "Şarjör",
+  "Reload": "Şarjör değişimi",
+  "Legendary: SankoCorp Glock": "Efsanevi: SankoCorp Glock'u",
+  "Casual runs can now, rarely, offer a Legendary weapon: the SankoCorp Glock from 2Glock2Sanko. Its card is gold.": "Gündelik oyunlar artık nadiren efsanevi bir silah sunabilir: 2Glock2Sanko'daki SankoCorp Glock'u. Kartı altın rengidir.",
+  "It fires fast at the nearest monster, then stops to reload. Levels add damage, a bigger magazine and piercing shots. It has no evolution.": "En yakın canavara hızlı ateş eder, sonra şarjör değiştirmek için durur. Seviyeler hasar, daha büyük şarjör ve delici atışlar ekler. Evrimi yoktur.",
+  "The Fishing Rod gains a second hook at level 4, and its damage and speed grow faster. The Fishing Net hits harder from the start and its damage grows much faster; its slow is unchanged.": "Olta 4. seviyede ikinci bir kanca kazanır, hasarı ve hızı daha hızlı artar. Balık Ağı baştan itibaren daha sert vurur ve hasarı çok daha hızlı artar; yavaşlatması değişmedi.",
+  "Only casual runs are affected. Ranked runs and their card rolls are unchanged.": "Yalnızca gündelik oyunlar etkilenir. Dereceli oyunlar ve kart seçenekleri değişmedi.",
+  "Hooks a monster from afar and reels it toward you; a second hook comes at level 4. Bosses are hurt but hold their ground.": "Uzaktaki bir canavarı yakalar ve sana doğru çeker; 4. seviyede ikinci bir kanca gelir. Patronlar hasar alır ama yerinden oynamaz.",
+  "second hook": "ikinci kanca",
+
   "Ranked: Tutorial Island": "Dereceli: Tutorial Island",
   "Week 2 ranked takes place on Tutorial Island. Choose your adventurer and survive as long as you can.": "2. dereceli hafta Tutorial Island haritasında oynanır. Maceracını seç ve dayanabildiğin kadar hayatta kal.",
   "Standard rules, one prize pool: enter for 1, 10 or 25 DMT. Score is monsters slain plus whole seconds survived.": "Standart kurallar, tek ödül havuzu: 1, 10 veya 25 DMT ile katıl. Puan, öldürülen canavarlar ve hayatta kalınan tam saniyelerin toplamıdır.",
@@ -24,7 +39,6 @@ export const text = {
   "Longline!": "Paragat!",
   "Rapid stabs at the nearest monster in reach. Stabs hit much harder for a moment after a Tumble.": "Menzildeki en yakın canavara hızlı saplamalar. Bir Tumble'dan hemen sonra saplamalar çok daha sert vurur.",
   "Casts a net over the nearest group. Caught monsters take damage and move slower for a while. Bosses are not slowed.": "En yakın grubun üzerine ağ atar. Yakalanan canavarlar hasar alır ve bir süre daha yavaş hareket eder. Patronlar yavaşlamaz.",
-  "Hooks one monster from afar and reels it toward you. Bosses are hurt but hold their ground.": "Uzaktaki bir canavarı yakalar ve sana doğru çeker. Patronlar hasar alır ama yerinden oynamaz.",
   "Stabs in front and behind, harder, and the Tumble boost lasts twice as long.": "Öne ve arkaya daha sert saplar; Tumble güçlendirmesi iki kat uzun sürer.",
   "A far wider, heavier net that slows monsters more and for longer.": "Canavarları daha çok ve daha uzun süre yavaşlatan, çok daha geniş ve ağır bir ağ.",
   "Hooks three monsters at once and hits them harder.": "Aynı anda üç canavarı yakalar ve onlara daha sert vurur.",

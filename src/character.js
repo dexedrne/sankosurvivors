@@ -330,16 +330,17 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
     // Items held in the hands. Each item is aimed in the character's own terms (forward / up / outward) from how the
     // hands sit in the idle pose, so a blade points ahead, a staff stands up and a shield faces out, whatever the bone axes are.
     const heldObjs = [];
+    inst.held = {}; inst.bone = (name) => bones.get(name);
     inst.setHeld = (held = {}) => {
       for (const o of heldObjs) disposeActor(o);
-      heldObjs.length = 0; root.updateMatrixWorld(true);
+      heldObjs.length = 0; inst.held = {}; root.updateMatrixWorld(true);
       for (const side of ['Right', 'Left']) {
         const key = side.toLowerCase(), g = held[key], bone = bones.get(`mixamorig_${side}Hand`);
         if (!g || !bone) continue;
         const obj = g.scene.clone(true); obj.traverse((o) => { o.frustumCulled = false; if (o.isMesh) o.castShadow = true; });
         const ws = new THREE.Vector3(); bone.getWorldScale(ws);
         const wrap = new THREE.Group(); wrap.scale.setScalar((holder.scale.x / (ws.x || 1)) * (held[key + 'Scale'] || 1)); wrap.add(obj);
-        const aim = held[key + 'Aim'], fr = inst.handFrame && inst.handFrame[side], fix = held[key + 'Fix'];
+        const aim = held[key + 'Aim'], fr = inst.handFrame && inst.handFrame[side], fix = held[key + 'Fix']; let aimed = null;
         if (fix) { // the game's own attachment: offset, scale and rotation straight in the hand bone's frame
           wrap.position.set(...fix.offset); wrap.scale.set(...fix.scale.map((v) => v * (held[key + 'Scale'] || 1))); wrap.rotation.set(...fix.rotation);
         } else if (aim && fr) {
@@ -349,10 +350,15 @@ export async function createCharacterKit(loadGLB, A, armorNames = []) {
           const tipS = ax.tip.clone().multiplyScalar(aim.flip ? -1 : 1), thinS = ax.thin.clone().multiplyScalar(aim.thinSign || 1);
           const S = new THREE.Matrix4().makeBasis(tipS, thinS, tipS.clone().cross(thinS));
           const T = new THREE.Matrix4().makeBasis(d, n, d.clone().cross(n));
-          wrap.quaternion.setFromRotationMatrix(T.multiply(S.transpose()));
+          S.transpose(); // now the item's own axes to tip / thin
+          const model = new THREE.Quaternion().setFromRotationMatrix(S);
+          wrap.quaternion.setFromRotationMatrix(T.multiply(S));
+          aimed = { model, tip: d, thin: n };
           if (fr.palm) wrap.position.copy(fr.palm); // grip sits in the palm, not at the wrist
         } else if (held[key + 'Rot']) wrap.rotation.set(...held[key + 'Rot']);
         bone.add(wrap); heldObjs.push(wrap);
+        // for a renderer that poses the item itself (the Glock's aim and reload): where it rests, and one metre in the bone's units
+        inst.held[key] = { wrap, bone, pos: wrap.position.clone(), quat: wrap.quaternion.clone(), unit: 1 / (ws.x || 1), ...aimed };
       }
     };
     // Work out which way the rig really faces in its animated pose (toes point forward), so turning is always right.

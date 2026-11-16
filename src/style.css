@@ -613,6 +613,10 @@ body.touch .ckbtns .kb { display: none; }
 .card.r-uncommon { --rar: #77d58d; --glow: rgba(119, 213, 141, .4); }
 .card.r-rare { --rar: #4aa3ff; --glow: rgba(74, 163, 255, .5); }
 .card.r-epic { --rar: #b56bff; --glow: rgba(181, 107, 255, .6); }
+/* the Legendary weapon: gold whatever quality the card rolled, with its own label on the left */
+.card.legendary { position: relative; outline: 3px solid #ffcf4a; outline-offset: -3px; box-shadow: 0 0 18px rgba(255, 207, 74, .75), inset 0 0 22px rgba(255, 207, 74, .16); }
+.card.legendary h3, .card.legendary.rar .tier, .card.legendary .tier { color: #ffcf4a; }
+.card .legend { position: absolute; top: 3px; left: 7px; font-family: RSSmall, sans-serif; font-size: 16px; line-height: 1; color: #ffcf4a; text-shadow: 1px 1px 0 #000, 0 0 6px #000; pointer-events: none; }
 .card .upstats { margin-top: 6px; color: var(--cream); font: 15px/1.15 RSSmall, sans-serif; }
 .upstats > div { display: flex; justify-content: space-between; gap: 8px; }
 .upstats span { text-align: left; }
@@ -1069,6 +1073,7 @@ body.touch .pausezoom { display:flex; align-items:center; gap:8px; color:var(--c
 .guidecatalogue-item h4 { font:inherit; color:var(--gold); margin:0 0 4px; }
 #guide .guidecatalogue-item p { font-size:18px; line-height:1.2; margin:0; }
 .guidecatalogue-item small { color:var(--gold); }
+.guidecatalogue-item small + small { margin-left:8px; }
 @media(max-width:560px) { .guidecatalogue { grid-template-columns:1fr; } }
 
 /* Co-op help stays clear of the belt and tumble button; only its hold control catches touches. */

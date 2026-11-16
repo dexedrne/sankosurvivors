@@ -1,5 +1,20 @@
 // Spanish display text only; English game IDs and proper map names stay unchanged.
 export const text = {
+  "SankoCorp Glock": "Glock de SankoCorp",
+  "Legendary. Rapid shots at the nearest monster, then a quick reload. Rarely offered; it has no evolution.": "Legendaria. Disparos rápidos al monstruo más cercano y luego una recarga breve. Se ofrece muy pocas veces; no tiene evolución.",
+  "bigger magazine": "cargador más grande",
+  "pierces": "atraviesa",
+  "SankoCorp rounds": "munición SankoCorp",
+  "Magazine": "Cargador",
+  "Reload": "Recarga",
+  "Legendary: SankoCorp Glock": "Legendaria: Glock de SankoCorp",
+  "Casual runs can now, rarely, offer a Legendary weapon: the SankoCorp Glock from 2Glock2Sanko. Its card is gold.": "Las partidas casuales ahora pueden ofrecer, muy pocas veces, un arma legendaria: la Glock de SankoCorp de 2Glock2Sanko. Su carta es dorada.",
+  "It fires fast at the nearest monster, then stops to reload. Levels add damage, a bigger magazine and piercing shots. It has no evolution.": "Dispara rápido al monstruo más cercano y luego se detiene a recargar. Los niveles añaden daño, un cargador más grande y disparos que atraviesan. No tiene evolución.",
+  "The Fishing Rod gains a second hook at level 4, and its damage and speed grow faster. The Fishing Net hits harder from the start and its damage grows much faster; its slow is unchanged.": "La Caña de Pescar gana un segundo anzuelo en el nivel 4, y su daño y velocidad crecen más rápido. La Red de Pesca golpea más fuerte desde el principio y su daño crece mucho más rápido; su ralentización no cambia.",
+  "Only casual runs are affected. Ranked runs and their card rolls are unchanged.": "Solo afecta a las partidas casuales. Las partidas clasificatorias y sus cartas no cambian.",
+  "Hooks a monster from afar and reels it toward you; a second hook comes at level 4. Bosses are hurt but hold their ground.": "Engancha a un monstruo desde lejos y lo arrastra hacia ti; en el nivel 4 llega un segundo anzuelo. Los jefes reciben daño pero no se mueven.",
+  "second hook": "segundo anzuelo",
+
   "Ranked: Tutorial Island": "Clasificatoria: Tutorial Island",
   "Week 2 ranked takes place on Tutorial Island. Choose your adventurer and survive as long as you can.": "La semana 2 clasificatoria se juega en Tutorial Island. Elige a tu aventurero y sobrevive todo lo que puedas.",
   "Standard rules, one prize pool: enter for 1, 10 or 25 DMT. Score is monsters slain plus whole seconds survived.": "Reglas estándar, un solo pozo de premios: entra por 1, 10 o 25 DMT. La puntuación suma los monstruos derrotados y los segundos completos sobrevividos.",
@@ -24,7 +39,6 @@ export const text = {
   "Longline!": "¡Palangre!",
   "Rapid stabs at the nearest monster in reach. Stabs hit much harder for a moment after a Tumble.": "Estocadas rápidas al monstruo más cercano a tu alcance. Golpean mucho más fuerte un momento después de un Tumble.",
   "Casts a net over the nearest group. Caught monsters take damage and move slower for a while. Bosses are not slowed.": "Lanza una red sobre el grupo más cercano. Los monstruos atrapados reciben daño y se mueven más despacio durante un rato. Los jefes no se ralentizan.",
-  "Hooks one monster from afar and reels it toward you. Bosses are hurt but hold their ground.": "Engancha a un monstruo desde lejos y lo arrastra hacia ti. Los jefes reciben daño pero no se mueven.",
   "Stabs in front and behind, harder, and the Tumble boost lasts twice as long.": "Estocadas al frente y a la espalda, más fuertes, y la mejora tras el Tumble dura el doble.",
   "A far wider, heavier net that slows monsters more and for longer.": "Una red mucho más ancha y pesada que ralentiza más a los monstruos y durante más tiempo.",
   "Hooks three monsters at once and hits them harder.": "Engancha a tres monstruos a la vez y los golpea más fuerte.",
