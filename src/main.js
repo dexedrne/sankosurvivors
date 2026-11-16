@@ -26,7 +26,7 @@ import { cleanSettings } from './settings.js';
 import { createScreenLayout } from './screen-layout.js';
 import { setupFullscreen } from './fullscreen.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
-import { asset, pickAssetHost } from './assets.js';
+import { asset, pickAssetHost, localOf } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, merchantNear, buyMerchant, FOOD, BELT_SIZE, TICK, SHRINE, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { DamageMeter } from './damage-meter.js';
@@ -721,7 +721,7 @@ function applyImportedPreferences(data) {
 async function boot() {
   if (params.has('qa')) document.body.classList.add('qa');
   try {
-    await pickAssetHost(); // jsDelivr, or the game's own host if it does not answer
+    await pickAssetHost(); // jsDelivr, or the game's own host if it does not answer (whole, then file by file)
     renderer = await createRenderer($('c'), (stage, v) => { $('loadfill').style.width = Math.round(v * 100) + '%'; $('loadtext').textContent = labels[stage] || ''; });
     rendererDefaults = renderer.getSettings();
     $('loadtext').textContent = ''; $('loadbar').classList.add('hidden');
@@ -2875,7 +2875,9 @@ for (const event of ['pointerout','focusout']) $('loadout').addEventListener(eve
 addEventListener('blur', hideItemInspection);
 function drawMinimap(view) {
   if (!view.players.length) return;
-  if (!mmImg.src) mmImg.src = asset('world/world-map-full.webp');
+  if (!mmImg.src) { // (if jsDelivr does not deliver this one file: the game's own copy, once)
+    const url = asset('world/world-map-full.webp'); mmImg.onerror = () => { const alt = localOf(url); mmImg.onerror = null; if (alt) mmImg.src = alt; }; mmImg.src = url;
+  }
   const me = sim.coop ? view.players.find(p => p.id === PLAYER) : view.players[0], W = mm.width, R = W / 2, PX = 2.4; // canvas px per world unit
   const yaw = renderer.getYaw();
   mmx.save(); mmx.clearRect(0, 0, W, W);

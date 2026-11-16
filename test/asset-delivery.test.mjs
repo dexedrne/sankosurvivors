@@ -20,6 +20,30 @@ test('failed CDN admission falls back to local assets including BUN models',asyn
   const m=await assets();assert.equal(await m.pickAssetHost(),'local');assert.equal(m.asset('sanko/buns/Mini.glb'),'./assets/sanko/buns/Mini.glb');
 });
 
+test('one file the CDN does not deliver is fetched from the game host, and nothing else is rerouted',async()=>{
+  const m=await assets(),calls=[],listeners=[];
+  const w={fetch:async(u,o)=>{const url=typeof u==='string'?u:u.url;calls.push([url,o&&o.method]);
+    if(url==='https://two/models/bad.glb')return{ok:false,status:404};if(url==='https://one/world/down.json')throw Error('network');return{ok:true,status:200,url};},addEventListener:(n,f,c)=>listeners.push([n,f,c])};
+  assert.equal(m.installAssetFallback(w),true);assert.equal(m.installAssetFallback(w),false,'installed once');
+  assert.equal((await w.fetch('https://two/models/good.glb')).url,'https://two/models/good.glb');
+  assert.equal((await w.fetch('https://two/models/bad.glb')).url,'./assets/models/bad.glb');
+  assert.equal((await w.fetch({url:'https://one/world/down.json',method:'GET'})).url,'./assets/world/down.json','a Request object and a thrown fetch');
+  assert.equal((await w.fetch('https://elsewhere/api')).url,'https://elsewhere/api');
+  const before=calls.length;assert.equal((await w.fetch('https://two/models/bad.glb',{method:'POST'})).ok,false,'writes are never repeated');assert.equal(calls.length,before+1);
+  const abort=new AbortController();abort.abort();const w2={fetch:async()=>{throw Error('aborted');}};m.installAssetFallback(w2);
+  await assert.rejects(w2.fetch('https://two/models/x.glb',{signal:abort.signal}),/aborted/,'a cancelled load stays cancelled');
+  const[name,onError,capture]=listeners[0];assert.equal(name,'error');assert.equal(capture,true);
+  const img={tagName:'IMG',src:'https://one/ui/items/item_Gold.png',dataset:{}};onError({target:img});assert.equal(img.src,'./assets/ui/items/item_Gold.png');
+  img.src='https://one/ui/items/item_Gold.png';onError({target:img});assert.equal(img.src,'https://one/ui/items/item_Gold.png','tried once only');
+  let stopped=0;const icon={tagName:'IMG',src:'https://one/ui/items/item_Bones.png',dataset:{}};onError({target:icon,stopPropagation:()=>stopped++});assert.equal(stopped,1,'the placeholder handler waits for the local copy');onError({target:icon,stopPropagation:()=>stopped++});assert.equal(stopped,1,'and runs if that fails too');
+  assert.equal(m.localOf('https://two/music/menu.mp3'),'./assets/music/menu.mp3');assert.equal(m.localOf('./assets/x.png'),'');assert.equal(m.localOf(undefined),'');
+  const other={tagName:'IMG',src:'https://elsewhere/a.png',dataset:{}};onError({target:other});assert.equal(other.src,'https://elsewhere/a.png');
+});
+test('with local assets there is nothing to fall back from',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});t.mock.method(globalThis,'fetch',async()=>{throw Error('fixture offline');});
+  const m=await assets();await m.pickAssetHost();const w={fetch:async()=>({ok:true})},f=w.fetch;assert.equal(m.installAssetFallback(w),false);assert.equal(w.fetch,f);
+});
+
 async function fixture(t){
   const root=await mkdtemp(join(tmpdir(),'sqs-assets-'));t.after(()=>rm(root,{recursive:true,force:true}));
   for(const name of ['tools','bin','public/assets/world','public/assets/anim','public/assets/ui','public/assets/sound','public/assets/models','public/assets/music','public/assets/sanko/buns'])await mkdir(join(root,name),{recursive:true});

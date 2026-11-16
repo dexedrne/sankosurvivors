@@ -2124,6 +2124,8 @@ export const patterns = [
   ["Slow time: {1} s", "Tagal ng pagbagal: {1} s"],
   ["Pull distance: {1}", "Layo ng hila: {1}"],
   ["Hooks: {1}", "Mga kawil: {1}"],
+  ["Magazine: {1}", "Magasin: {1}"],
+  ["Reload: {1} s", "Pagkakarga: {1} s"],
   ["Shield duration: {1} s", "Tagal ng kalasag: {1} s"],
   ["Current evasion chance: {1}%", "Kasalukuyang tsansang makaiwas: {1}%"],
   ["Sell for {1} coins", "Ibenta sa {1} coins"],

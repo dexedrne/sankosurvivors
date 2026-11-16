@@ -2124,6 +2124,8 @@ export const patterns = [
   ["Slow time: {1} s", "Yavaşlatma süresi: {1} sn"],
   ["Pull distance: {1}", "Çekme mesafesi: {1}"],
   ["Hooks: {1}", "Kancalar: {1}"],
+  ["Magazine: {1}", "Şarjör: {1}"],
+  ["Reload: {1} s", "Şarjör değişimi: {1} s"],
   ["Shield duration: {1} s", "Kalkan süresi: {1} sn"],
   ["Current evasion chance: {1}%", "Mevcut sıyrılma şansı: %{1}"],
   ["Sell for {1} coins", "{1} altına sat"],

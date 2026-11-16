@@ -1,5 +1,5 @@
 // SankoQuest's own sound effects and music tracks. Starts on the first click (browser autoplay rules).
-import { asset } from './assets.js';
+import { asset, localOf } from './assets.js';
 const BASE = import.meta.env.BASE_URL || './';
 const SFX = {
   hit: ['Sword_Hit1', 'Sword_Hit2', 'Sword_Hit3', 'Sword_Hit4'], die: ['NPC_Death'], hurt: ['goblin_attacked', 'goblin_attacked2', 'goblin_attacked3', 'goblin_attacked4'],
@@ -78,6 +78,8 @@ export function createAudio() {
         const el = new Audio(), gain = ctx.createGain();
         el.crossOrigin = 'anonymous'; el.loop = true; el.volume = 1; el.preload = 'auto';
         const file = desired || TRACKS.early, url = asset(`music/${file}.mp3`); el.src = url;
+        // one track jsDelivr does not deliver: the game's own copy, once per track
+        el.onerror = () => { const slot = musicSlots.find((s) => s.el === el), alt = slot && slot.localFor !== slot.url && localOf(slot.url); if (!alt) return; slot.localFor = slot.url; slot.generation++; slot.pending = null; el.src = alt; if (slot === current || !slot.primed) attempt(slot); };
         const source = ctx.createMediaElementSource(el); source.connect(gain); gain.gain.value = 0; gain.connect(ctx.destination);
         musicSlots.push({ el, gain, source, file, url, generation: 0, pending: null, ready: false, primed: false });
       }

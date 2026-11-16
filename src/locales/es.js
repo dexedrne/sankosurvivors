@@ -2124,6 +2124,8 @@ export const patterns = [
   ["Slow time: {1} s", "Duración de la ralentización: {1} s"],
   ["Pull distance: {1}", "Distancia de arrastre: {1}"],
   ["Hooks: {1}", "Anzuelos: {1}"],
+  ["Magazine: {1}", "Cargador: {1}"],
+  ["Reload: {1} s", "Recarga: {1} s"],
   ["Shield duration: {1} s", "Duración del escudo: {1} s"],
   ["Current evasion chance: {1}%", "Probabilidad actual de esquivar: {1}%"],
   ["Sell for {1} coins", "Vender por {1} monedas"],

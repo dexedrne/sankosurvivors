@@ -18,5 +18,33 @@ export async function pickAssetHost() {
     const r = await Promise.all([fetch(CDN1 + 'ui/items/item_Gold.png', { signal: c.signal }), fetch(CDN2 + 'models/mobs/Skelly.glb', { method: 'HEAD', signal: c.signal })]);
     clearTimeout(timer); if (!r.every((x) => x.ok)) throw new Error('cdn');
   } catch { useCdn = false; }
+  installAssetFallback(); // and file by file from here on
   return assetHost();
+}
+// jsDelivr sometimes fails one file while the rest answer ("Failed to fetch the requested commit", seen 16 Nov on a monster
+// model). Call after pickAssetHost: a file it does not deliver is then asked from the game's own host, once.
+/** the game's own copy of a jsDelivr address ('' for anything else, or when the game already loads from its own host) */
+export const localOf = (u) => (!useCdn || typeof u !== 'string' ? '' : u.startsWith(CDN1) ? LOCAL + u.slice(CDN1.length) : u.startsWith(CDN2) ? LOCAL + u.slice(CDN2.length) : '');
+export function installAssetFallback(w = globalThis) {
+  if (!useCdn || w.__sqAssetFallback || typeof w.fetch !== 'function') return false;
+  w.__sqAssetFallback = true;
+  const local = localOf;
+  const plain = w.fetch.bind(w);
+  w.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : (input && input.url) || String(input), alt = local(url);
+    const method = (init && init.method) || (input && input.method) || 'GET', signal = (init && init.signal) || (input && input.signal) || undefined;
+    if (!alt || !/^(GET|HEAD)$/i.test(method)) return plain(input, init);
+    try { const r = await plain(input, init); if (r.ok) return r; } catch (e) { if (signal && signal.aborted) throw e; }
+    return plain(alt, { method, signal });
+  };
+  // pictures on the page (item icons, portraits). The retry comes before the picture's own error handler, which would
+  // swap in a placeholder; that still happens if the game's own copy fails too. Pictures and sounds that are not on the
+  // page never reach this: the map tiles, minimap and music retry for themselves (localOf)
+  if (typeof w.addEventListener === 'function') w.addEventListener('error', (e) => {
+    const t = e.target;
+    if (!t || !/^(IMG|AUDIO|VIDEO)$/.test(t.tagName || '') || !t.dataset || t.dataset.localTried) return;
+    const alt = local(t.currentSrc || t.src || '');
+    if (alt) { t.dataset.localTried = '1'; if (e.stopPropagation) e.stopPropagation(); t.src = alt; }
+  }, true);
+  return true;
 }

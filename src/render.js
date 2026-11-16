@@ -29,7 +29,7 @@ import { createBunModels } from './bun-models.js';
 import { terrainFromTiles, WATER_Y } from './terrain.js';
 
 const BASE = import.meta.env.BASE_URL || './';
-import { asset } from './assets.js';
+import { asset, localOf } from './assets.js';
 const A = asset; // jsDelivr on live builds, the game's own host otherwise (src/assets.js)
 export const GROUND_Y = 7.0;
 const MAP_SIZE = 512; // minimap covers world x,z in [0,512] (4 px per unit)
@@ -265,7 +265,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // ---- ground: SankoQuest's own ground tiles (heights, colours, paths and floors, walkability) ---------------
   onProgress('map', 0.05);
   const texLoader = new THREE.TextureLoader();
-  const loadImg = (url) => new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = url; });
+  // a picture jsDelivr does not deliver comes from the game's own host, once (the same texture object is filled in)
+  const texture = (url, onLoad) => { const t = texLoader.load(url, onLoad, undefined, () => { const alt = localOf(url); if (alt) texLoader.load(alt, (u) => { t.image = u.image; t.needsUpdate = true; if (onLoad) onLoad(t); }); }); return t; };
+  const loadImg = (url) => new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = (e) => { const alt = localOf(url); if (alt && !im.dataset.localTried) { im.dataset.localTried = '1'; im.src = alt; } else rej(e); }; im.src = url; });
   const pixels = (im) => { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0); return x.getImageData(0, 0, im.width, im.height).data; };
   const [heightBuf, diffImg, ovImg, navImg, fenceData] = await Promise.all([
     fetch(A('world/tiles/height.bin')).then((r) => r.arrayBuffer()), loadImg(A('world/tiles/diffuse.png')), loadImg(A('world/tiles/overlay.png')), loadImg(A('world/tiles/nav.png')),
@@ -828,7 +830,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     // pictures in the scene (rugs, stained glass): SankoQuest's image planes stand upright (width across, length up) and
     // the node's own rotation lays a rug flat or turns a window to its wall, so the plane is used as it comes
     if (!rugs.children.length) for (const pl of (nodes.planes || [])) {
-      const tex = texLoader.load(A('world/terrain/' + pl.file.split('/').pop())); tex.colorSpace = THREE.SRGBColorSpace;
+      const tex = texture(A('world/terrain/' + pl.file.split('/').pop())); tex.colorSpace = THREE.SRGBColorSpace;
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(pl.w, pl.l), new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
       mesh.matrixAutoUpdate = false; mesh.matrix.copy(pl.mw); mesh.matrix.multiply(new THREE.Matrix4().makeTranslation(0, 0, 0.03)); rugs.add(mesh); // a hair off its floor or wall
     }
@@ -1001,8 +1003,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     arm.quaternion.premultiply(gk.a.copy(gk.c).invert().multiply(gk.b).multiply(gk.c));
   }
   function glockShot(f, localId) {
-    const pa = playerActors.get(f.player || localId), s = Math.sin(f.a), c = Math.cos(f.a), y = groundAt(f.x, f.z) + 1.25;
-    emit(f.x + s * 0.95, y, f.z + c * 0.95, 3, 2.2, { s: 0.5, life: 0.1, color: 0xffd98a, up: 0.3, g: 0 });
+    const pa = playerActors.get(f.player || localId), s = Math.sin(f.a), c = Math.cos(f.a);
+    // your own flash sits on the pistol you see: in co-op a guest's character is drawn a little ahead of the confirmed position
+    // (not across a warp: the drawn character only jumps later this frame)
+    const own = pa && (f.player || localId) === localId && (pa.px - f.x) ** 2 + (pa.pz - f.z) ** 2 <= 9;
+    const ox = own ? pa.px : f.x, oz = own ? pa.pz : f.z, y = groundAt(ox, oz) + 1.25;
+    emit(ox + s * 0.95, y, oz + c * 0.95, 3, 2.2, { s: 0.5, life: 0.1, color: 0xffd98a, up: 0.3, g: 0 });
     if (!pa) return;
     pa.swingA = f.a; pa.swingT = 0.45; pa.kickT = 0.09;
     if (f.reload > 0) { pa.reloadT = pa.reloadLen = f.reload; pa.magOut = false; pa.racked = false; }
@@ -1012,7 +1018,6 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     if (!h || !h.model) return;
     a.kickT = Math.max(0, (a.kickT || 0) - dt);
     const reloading = a.reloadT > 0, u = reloading ? 1 - a.reloadT / a.reloadLen : 0;
-    if (reloading) a.reloadT = Math.max(0, a.reloadT - dt);
     // raised while it fires or reloads, lowered again a moment after the last shot
     a.aimW = Math.max(0, Math.min(1, (a.aimW || 0) + (a.swingT > 0 || reloading ? dt * 9 : -dt * 4)));
     if (rolling) a.aimW = 0; // mid-roll the pistol rides the hand with the body; it comes back up after
@@ -1449,7 +1454,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const mat = new THREE.PointsMaterial({ size, map: null, transparent: true, alphaTest: 0.35, depthWrite: true, sizeAttenuation: true, color: new THREE.Color(1.05, 1.05, 1.05), toneMapped: false });
     const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; fxOnly(pts); scene.add(pts); return pts;
   });
-  const shardTex = new THREE.TextureLoader().load(A('ui/items/item_Bones.png'), (t) => { t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; for (const g of gemSets) { g.material.map = t; g.material.needsUpdate = true; } });
+  const shardTex = texture(A('ui/items/item_Bones.png'), (t) => { t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; for (const g of gemSets) { g.material.map = t; g.material.needsUpdate = true; } });
   const pickupSprites = new Map(); const iconCache = new Map();
   let merchantActor = null;
   const castleMarker = new THREE.Group(); castleMarker.name = 'castle-defence-objective';
@@ -1467,7 +1472,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     const beam = sp.userData?.beam; if (beam) { beam.geometry.dispose(); beam.material.dispose(); }
   }
   function iconTex(name) {
-    if (!iconCache.has(name)) { const t = new THREE.TextureLoader().load(A(`ui/items/item_${name.replace(/ /g, '_')}.png`)); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; iconCache.set(name, t); } // no mipmaps: they blended the icons' black see-through pixels into a dark box
+    if (!iconCache.has(name)) { const u = A(`ui/items/item_${name.replace(/ /g, '_')}.png`), t = new THREE.TextureLoader().load(u, undefined, undefined, () => { const alt = localOf(u); if (alt) new THREE.TextureLoader().load(alt, (x) => { t.image = x.image; t.needsUpdate = true; }); }); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter; t.generateMipmaps = false; iconCache.set(name, t); } // no mipmaps: they blended the icons' black see-through pixels into a dark box
     return iconCache.get(name);
   }
   const dummy = new THREE.Object3D(); const gemColor = new THREE.Color();
@@ -1965,7 +1970,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
     petRenderer.update(view, dt, localId);
     meleeFx.begin(view.t, settings.fx === 'reduced');
     spFx.dmg.length = spFx.hurt.length = spFx.burst.length = spFx.volley.length = 0;
-    const vt = spellClock(view, dt, !!view.over || (!!view.pending && Object.keys(view.pending).length > 0)); // the sim holds still while a card is up
+    // the sim holds still while a card is up, and (petActive, set by the page) while it waits for a first move or for co-op
+    const simHeld = !!view.over || (!!view.pending && Object.keys(view.pending).length > 0);
+    const gunHeld = simHeld || view.petActive === false;
+    const vt = spellClock(view, dt, simHeld);
     if (me) { cam.x += (me.x - cam.x) * Math.min(1, dt * 10); cam.z += (me.z - cam.z) * Math.min(1, dt * 10); }
 
     // effects from sim
@@ -2088,8 +2096,12 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         }
         a.kit.setMoving(!!p.mv, 1);
         a.mixer.update(dt);
-        // only once the pistol itself is in the hand; a fallen or hidden player does not reload
-        if (rightId === 'glock' && a.heldRight === 'glock') { if (!p.al) a.reloadT = 0; glockPose(a, dt, p.rollT > 0); }
+        // the reload runs with the sim: it waits while a card is up, and it runs out even before the pistol has loaded.
+        // The pose itself only once the pistol is in the hand; a fallen or hidden player does not reload
+        if (rightId === 'glock') {
+          if (!p.al) a.reloadT = 0; else if (a.reloadT > 0 && !gunHeld) a.reloadT = Math.max(0, a.reloadT - dt * (spSlow > 0 ? 0.3 : 1)); // (slow motion as a boss falls)
+          if (a.heldRight === 'glock') glockPose(a, dt, p.rollT > 0);
+        }
       } else {
         const bob = p.mv ? Math.sin(time * 14) * 0.08 : 0;
         a.inner.position.y = (playerProto ? -playerProto.minY : 0) + Math.abs(bob);
