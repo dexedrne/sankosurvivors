@@ -26,7 +26,7 @@ import { cleanSettings } from './settings.js';
 import { createScreenLayout } from './screen-layout.js';
 import { setupFullscreen } from './fullscreen.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
-import { asset, pickAssetHost, localOf } from './assets.js';
+import { asset, pickAssetHost, localOf, installAssetFallback } from './assets.js';
 import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, merchantNear, buyMerchant, FOOD, BELT_SIZE, TICK, SHRINE, SHRINES } from './sim.js';
 import { createAudio } from './audio.js';
 import { DamageMeter } from './damage-meter.js';
@@ -79,6 +79,8 @@ const finishedBuilds = new WeakMap(), cardImages = new Map();
 let readyRunCard = null, cardGeneration = 0;
 let sim = null, renderer = null, rendererDefaults = null, mode = 'title', acc = 0, last = 0, frame = 0, selCard = 0, banishMode = false;
 const keys = new Set();
+// A trusted gesture can load sounds before the CDN health check finishes.
+installAssetFallback();
 const audio = createAudio();
 const p2 = (n) => String(Math.floor(n)).padStart(2, '0');
 const fmtT = (t) => (t >= 3600 ? `${Math.floor(t / 3600)}:${p2((t % 3600) / 60)}:${p2(t % 60)}` : `${Math.floor(t / 60)}:${p2(t % 60)}`); // 2:00:00 past an hour
