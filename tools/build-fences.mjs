@@ -13,10 +13,12 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { decodePng } from './build-ground.mjs';
 import { terrainFromTiles } from '../src/terrain.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const TAVERN = JSON.parse(readFileSync(path.join(ROOT, 'src/tavern-wall-data.json'), 'utf8'));
 // solid props: fences, walls the walk map may lack, the exchange's built pieces, pillars (gates, lintels, lanterns and
 // benches stay walkable; whole buildings come with their walls in the walk map)
 const SOLID = /^(Fence|Iron Fence|Wooden Fence)\.glb$|^exchange\/(arcades|side-post|central-post|bank-counter|deposit-box)-v1\.glb$|^kit_Wall(?!.*Doorway)|^castle\/wall_(interior|curtain)\.glb$|^court_Low_wall|^woodenhut_wall|^PSX Style Wall|^arenawall\.glb$|^(Pillar|wood_pillar|woodenpillar)\.glb$/;
@@ -52,6 +54,8 @@ const matOf = (t = {}) => {
 };
 
 export async function buildFences() {
+  if (TAVERN.walls.length !== 4 || TAVERN.walls.some(p => p.file !== 'kit_Wall_stone_1tile.glb') || createHash('sha256').update(readFileSync(path.join(ROOT, 'public/assets/world/scene-models/kit_Wall_stone_1tile.glb'))).digest('hex') !== TAVERN.modelSha256) throw Error('Tavern wall model changed; reinspect collision.');
+  const tavernSources = new Set();
   const tiles = path.join(ROOT, 'public/assets/world/tiles'), hb = readFileSync(path.join(tiles, 'height.bin'));
   const H = new Float32Array(hb.buffer.slice(hb.byteOffset, hb.byteOffset + hb.byteLength));
   const nav = decodePng(readFileSync(path.join(tiles, 'nav.png'))), T = terrainFromTiles({ height: H, nav: nav.rgba, S: nav.w });
@@ -78,8 +82,8 @@ export async function buildFences() {
   const triCache = {}; for (const f of new Set(placed.map((p) => p.file))) triCache[f] = await modelTris(f);
   const bits = new Map(), add = (map, i, j, b) => { if (i < 0 || j < 0 || i >= N || j >= N) return; const k = j * N + i; map.set(k, (map.get(k) || 0) | b); };
   // one projected edge -> thin walls on the nearest cell boundaries, every cell it touches (so pieces meet at corners)
-  const line = (map, ax, az, bx, bz, epsilon = 0) => {
-    const dx = bx - ax, dz = bz - az; if (Math.hypot(dx, dz) < 0.05) return;
+  const line = (map, ax, az, bx, bz, epsilon = 0, minimum = 0.05) => {
+    const dx = bx - ax, dz = bz - az; if (Math.hypot(dx, dz) < minimum) return;
     if (Math.abs(dx) >= Math.abs(dz)) {
       const x0 = Math.min(ax, bx), x1 = Math.max(ax, bx); let prev = null;
       for (let i = Math.floor(x0 + epsilon); i <= Math.floor(x1 - Math.max(epsilon, 1e-6)); i++) {
@@ -101,6 +105,7 @@ export async function buildFences() {
   const v = new THREE.Vector3(); let used = 0, skipped = 0; const byFile = {};
   for (const p of placed) {
     const tris = triCache[p.file]; if (!tris) continue;
+    const tavern = TAVERN.walls.findIndex(q => q.file === p.file && q.matrix.every((v, i) => v === p.W.elements[i]));
     // Millimetre fence-tip overshoots must not claim a full neighboring gate cell.
     const endpointTolerance = ['Fence.glb', 'Iron Fence.glb'].includes(p.file) ? 0.005 : 0;
     const mine = new Map(), joined = p.file.startsWith('kit_Wall') ? new Map() : mine;
@@ -110,7 +115,7 @@ export async function buildFences() {
       const g = ground(cxz[0], cxz[1]), ylo = Math.min(w[1], w[4], w[7]) - g, yhi = Math.max(w[1], w[4], w[7]) - g;
       if (yhi < BAND[0] || ylo > BAND[1]) continue; // under foot or overhead (lintels, roofs, rugs)
       line(mine, w[0], w[2], w[3], w[5], endpointTolerance); line(mine, w[3], w[5], w[6], w[8], endpointTolerance); line(mine, w[6], w[8], w[0], w[2], endpointTolerance);
-      if (joined !== mine) { line(joined, w[0], w[2], w[3], w[5], 1e-4); line(joined, w[3], w[5], w[6], w[8], 1e-4); line(joined, w[6], w[8], w[0], w[2], 1e-4); }
+      if (joined !== mine) { const minimum = tavern >= 0 ? 0.25 : 0.05; line(joined, w[0], w[2], w[3], w[5], 1e-4, minimum); line(joined, w[3], w[5], w[6], w[8], 1e-4, minimum); line(joined, w[6], w[8], w[0], w[2], 1e-4, minimum); }
     }
     if (!mine.size) continue;
     // already walled in the walk map? (most of its edges have a wall, or the cells are blocked anyway)
@@ -123,9 +128,11 @@ export async function buildFences() {
     let have = 0; for (const e of edges) { const [i, j] = e.slice(1).split(',').map(Number); if (e[0] === 'z' ? zEdge(i, j) : xEdge(i, j)) have++; }
     if (!ALWAYS.test(p.file) && edges.size && have / edges.size > 0.4) { skipped++; continue; }
     used++; byFile[p.file] = (byFile[p.file] || 0) + 1;
+    if (tavern >= 0) tavernSources.add(tavern);
     // Keep nav-coverage admission unchanged; only the emitted kit-wall endpoints use the tolerance.
     for (const [k, b] of joined) { const i = k % N, j = (k - i) / N; add(bits, i, j, b | (/^(Fence|Iron Fence|Wooden Fence)\.glb$/.test(p.file) ? 0 : b << 4)); }
   }
+  if (tavernSources.size !== 4) throw Error('Tavern wall placements changed; reinspect collision.');
   return { n: N, cells: [...bits.entries()].sort((a, b) => a[0] - b[0]), pieces: placed.length, used, skipped, byFile };
 }
 /** the prop wall layer as a per-cell array of wall bits (same layout as terrain walls) */

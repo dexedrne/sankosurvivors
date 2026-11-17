@@ -10,6 +10,7 @@ import {
 import { MERCHANT, merchantEligible, merchantStock } from './merchant.js';
 import { phaseCoins, continuationBaseline } from './casual-continuation.js';
 import { groundHash } from './ground-pack.js';
+import { tavernGround, wallSegmentClear } from './tavern-walls.js';
 import { extraStorms, stormView } from './weather.js';
 import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION, RAID_WAVES, WISE_OLD_MAN, CASTLE, CASTLE_WAVE } from './game-modes.js';
 
@@ -71,7 +72,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
     if (variant === 'boss') { meta = {}; players = players.map(p => ({ id: p.id, name: p.name, adv: BOSS_KIT.adv })); }
   }
   if (coop && (ranked || pace !== 2 || players.length !== 2)) throw Error('Co-op requires two casual pace2 players.');
-  if (pace >= 2) { ground = pastureGround(ground); if (map.id === 'oasis') ground = oasisGround(ground); }
+  if (pace >= 2) { ground = pastureGround(tavernGround(ground)); if (map.id === 'oasis') ground = oasisGround(ground); }
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
   const sim = {
@@ -159,6 +160,7 @@ function stepOK(W, n, i0, j0, i1, j1) {
 const WALL_GAP = 0.35; // bodies keep this far off a wall
 // the cells from (x0,z0) to (x1,z1), one step at a time (a fast shove can cross more than one): no wall in between?
 function crossOK(W, n, x0, z0, x1, z1) {
+  if (W.precise && !wallSegmentClear(W.precise, x0, z0, x1, z1)) return false;
   let i = Math.floor(x0), j = Math.floor(z0); const i1 = Math.floor(x1), j1 = Math.floor(z1);
   if (i < 0 || j < 0 || i >= n || j >= n) return true;
   for (let k = 0; k < 8 && (i !== i1 || j !== j1); k++) {
@@ -175,7 +177,7 @@ function wallsOf(sim) {
   const g = sim.ground; if (!g || !g.walls) return null;
   if (sim._wg !== g) {
     sim._wg = g; sim._W = g.walls;
-    if (sim.pace >= 2 && g.fences) { let c = fenceWallCache.get(g); if (!c) { c = new Uint8Array(g.walls.length); for (let k = 0; k < c.length; k++) c[k] = g.walls[k] | g.fences[k]; fenceWallCache.set(g, c); } sim._W = c; }
+    if (sim.pace >= 2 && g.fences) { let c = fenceWallCache.get(g); if (!c) { c = new Uint8Array(g.walls.length); for (let k = 0; k < c.length; k++) c[k] = g.walls[k] | g.fences[k]; if (g.preciseWalls) c.precise = g.preciseWalls; fenceWallCache.set(g, c); } sim._W = c; }
   }
   return sim._W;
 }
@@ -187,6 +189,7 @@ function tumbleWalls(sim) {
   if (!walls) {
     walls = new Uint8Array(g.walls.length);
     for (let k = 0; k < walls.length; k++) walls[k] = g.walls[k] | (g.fences[k] >>> 4);
+    if (g.preciseWalls) walls.precise = g.preciseWalls;
     tumbleWallCache.set(g, walls);
   }
   return walls;
@@ -199,6 +202,7 @@ function marginClear(sim, W, x, z, ox, oz) {
 }
 function noWall(sim, x0, z0, x1, z1, tumble = false) {
   const g = sim.ground, W = tumble ? tumbleWalls(sim) : wallsOf(sim); if (!g || !W || !g.cell) return true;
+  if (W.precise && !wallSegmentClear(W.precise, x0, z0, x1, z1, WALL_GAP)) return false;
   const n = g.n;
   // the move itself must not go through a wall...
   if (!crossOK(W, n, x0, z0, x1, z1)) return false;

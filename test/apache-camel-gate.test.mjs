@@ -9,10 +9,10 @@ for(const x of[186.5,186.75,187,187.25,187.5])for(const direction of[-1,1])test(
 for(const x of[184.5,190.5])test(`camel-pen fence beside the entrance stays solid at ${x}`,()=>{
  const r=fixture(x,87.8);walk(r,1);assert(r.p.z<89,JSON.stringify({x,z:r.p.z}));
 });
-test('gate precision alters only the inspected native fence-tip cells and retains every structural bit',()=>{
+test('gate precision alters only the inspected native fence-tip cells and retains unrelated structural bits',()=>{
  assert.deepEqual(current.blocked,prior.blocked);assert.deepEqual(current.walls,prior.walls);assert.deepEqual(current.water,prior.water);
  const changed=[];for(let k=0;k<current.fences.length;k++)if(current.fences[k]!==prior.fences[k])changed.push([k%512,Math.floor(k/512),prior.fences[k],current.fences[k]]);
- assert.deepEqual(changed,[[186,88,4,0],[186,89,9,8],[370,281,2,0],[371,281,12,4],[371,290,3,1],[372,290,8,0],[370,291,2,0],[371,291,12,4]]);
+ assert.deepEqual(changed,[[186,88,4,0],[186,89,9,8],[370,281,2,0],[371,281,12,4],[371,290,3,1],[372,290,8,0],[370,291,2,0],[371,291,12,4],[356,305,238,204],[357,305,238,68],[358,305,238,68],[359,305,255,119],[356,306,187,153],[357,306,187,17],[358,306,187,17],[359,306,187,17],[360,306,153,17]]);
 });
 test('pace1 movement still matches the immutable prior ground at the gate',()=>{
  for(const x of[186.5,187.5]){const a=fixture(x,87.8,current,1),b=fixture(x,87.8,prior,1);for(let i=0;i<18;i++){step(a.s,{p1:{mx:0,mz:1}},TICK);step(b.s,{p1:{mx:0,mz:1}},TICK);assert.equal(a.p.x,b.p.x);assert.equal(a.p.z,b.p.z);}}
