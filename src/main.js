@@ -1206,6 +1206,8 @@ async function showBoard(mapId, mode, focusSelector) {
   if (focusSelector) navFocus($('lbtabs').querySelector(focusSelector) || $('lbclose'));
   $('lblist').innerHTML = '<p class="dim">Loading…</p>';
   if (lbMode === 'ranked') return showRankedBoard(request);
+  $('lbretry').hidden = true;
+  let failed = false;
   const endless = lbEndless, all = lbMap === 'all';
   const maps = all ? MAPS : [{ id: lbMap }];
   const boards = await Promise.all(maps.map(async (map) => {
@@ -1218,11 +1220,15 @@ async function showBoard(mapId, mode, focusSelector) {
         const d = await r.json(), rows = d.rows || [];
         body = casualBoardRows(all ? rows.slice(0, 5) : rows, endless);
       }
-    } catch (e) { body = '<p class="dim">Could not reach the leaderboard.</p>'; }
+    } catch { failed = true; body = '<p class="dim">Could not reach the leaderboard.</p>'; }
     return all ? `<section class="lbmapgroup"><h3>${esc(map.name)}</h3>${body}</section>` : body;
   }));
-  if (request === lbRequest) $('lblist').innerHTML = boards.join('');
+  if (request === lbRequest) {
+    $('lblist').innerHTML = boards.join('');
+    $('lbretry').hidden = !failed;
+  }
 }
+$('lbretry').onclick = () => { navFocus($('lbclose')); return showBoard(); };
 function casualBoardRows(rows, endless) {
   const myName = load('sq-name', ''); // your own runs stand out
   return rows.length ? `<table class="lbtable"><tr><th>#</th><th>Name</th><th class="opt">Adventurer</th><th>Time</th><th class="opt">Level</th><th>Slain</th></tr>${rows.map((x, i) => `<tr class="${x.won ? 'won' : ''}${myName && x.name === myName ? ' me' : ''}"><td>${i + 1}</td><td><span translate="no">${esc(x.name)}</span>${x.holder ? ' <span class="dmtb">DMT</span>' : ''}${x.hard ? ' <em>hard</em>' : ''}</td><td class="opt">${esc(ADV_NAME(x.adv))}</td><td>${fmtT(x.t)}${x.won ? ' ✔' : ''}</td><td class="opt">${x.level}</td><td>${x.kills}</td></tr>`).join('')}</table>` : (endless ? '<p class="dim">No endless runs on this map yet. Clear the map, then tick Endless on the title screen and see how long you last.</p>' : '<p class="dim">No runs on this map yet. Be the first.</p>');
@@ -1241,6 +1247,7 @@ function rewardTransactions() {
 }
 // this week's ranked standings: each wallet's best run, and what the top places would win if the week ended now
 async function showRankedBoard(request = ++lbRequest) {
+  $('lbretry').hidden = true;
   try {
     const r = await fetch(`${BASE}api/ranked-week`); if (!r.ok) throw Error('ranked unavailable'); const d = await r.json();
     if (request !== lbRequest) return;
@@ -1266,7 +1273,12 @@ async function showRankedBoard(request = ++lbRequest) {
       + (estimate?.participation?.length ? `<details><summary>Participation rewards</summary><ul>${estimate.participation.map(p => { const row = rows.find(r => r.wallet === p.wallet); return `<li><span translate="no">${esc(row?.name || p.wallet)}</span> · ${estimatedDmtText(p.amount)} DMT</li>`; }).join('')}</ul></details>` : '')
       + rewardTransactions();
     for (const b of $('lblist').querySelectorAll('[data-race]')) b.onclick = () => { setRace(b.dataset.race); showRankedBoard(); };
-  } catch (e) { if (request === lbRequest) $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>'; }
+  } catch {
+    if (request === lbRequest) {
+      $('lblist').innerHTML = '<p class="dim">Could not reach ranked.</p>';
+      $('lbretry').hidden = false;
+    }
+  }
 }
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // ---- something to chase every run (owner: "we also want the game to be really addicting"): your best per map and mode,

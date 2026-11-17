@@ -10,7 +10,7 @@ const deferred = () => { let resolve, reject; const promise = new Promise((a, b)
 const response = (rows = []) => ({ ok: true, status: 200, json: async () => ({ rows }) });
 const rows = (prefix) => Array.from({ length: 7 }, (_, i) => ({ name: `${prefix}${i}`, adv: 'adventurer', t: 900 - i, level: i + 1, kills: 700 - i, hard: i === 0, holder: i === 0, won: i === 0 }));
 function board(fetch, overrides={}) {
-  const nodes = Object.fromEntries(['lbtabs', 'lblist', 'lbmapsel', 'rankedbtn', 'lbbtn', 'lbclose', 'board'].map(id => [id, { innerHTML: '', querySelector: () => null, querySelectorAll: () => [], classList: { contains: () => false, remove() {} } }]));
+  const nodes = Object.fromEntries(['lbtabs', 'lblist', 'lbmapsel', 'rankedbtn', 'lbbtn', 'lbclose', 'lbretry', 'board'].map(id => [id, { innerHTML: '', hidden: true, querySelector: () => null, querySelectorAll: () => [], classList: { contains: () => false, remove() {} } }]));
   const env = { rewardSummary:Function('return '+main.match(/const rewardSummary = ([^\n]+);/)[1])(), $: id => nodes[id], fetch, MAPS, MAP_BY_ID, ADVENTURER_BY_ID, BASE: '/', selMap: MAPS[0].id, load: () => 'me', fmtT: t => `${t}s`, localBest: () => 'best', rankedMode: 'normal', raceList: () => ['normal'], raceOf: d => ({ rows: d.rows || [] }), kpmRules: () => false, prizePlaces: () => [], prizeEstimate: () => null, navFocus: () => {}, poolReadout: () => 'ranked pot', prizeNotes: () => [],walletPrize,estimatedDmtText,noPrize:()=>false,completedRunText:()=> '1 completed run this week',...overrides };
   const api = Function('env', `with (env) { ${source}; ${main.split('\n').find(line => line.startsWith("$('lbbtn').onclick"))}; return { showBoard, showRankedBoard, open: () => $('lbbtn').onclick() }; }`)(env);
   return { ...api, nodes, setRunMap: id => { env.selMap = id; }, html: () => nodes.lblist.innerHTML };
@@ -62,6 +62,49 @@ test('All maps retains the Endless button and applies its captured filter to eve
   assert.equal((b.html().match(/No endless runs on this map yet/g) || []).length, MAPS.length);
 });
 
+test('Retry preserves the selected map and Endless filter and hides after recovery', async () => {
+  const calls = [], focuses = [];
+  let online = false;
+  const b = board(async url => {
+    calls.push(url);
+    if (!online) throw Error('offline');
+    return response(rows('recovered'));
+  }, {navFocus: node => focuses.push(node)});
+  const endless = { dataset: { endless: '1' } };
+  b.nodes.lbtabs.querySelectorAll = selector => selector === '[data-endless]' ? [endless] : [];
+  await b.showBoard(MAPS[0].id, 'casual');
+  endless.onclick();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(b.nodes.lbretry.hidden, false);
+  const url = calls.at(-1);
+  assert.match(url, new RegExp('map=' + MAPS[0].id + '&endless=1'));
+  online = true;
+  const retry = b.nodes.lbretry.onclick();
+  assert.equal(b.nodes.lbretry.hidden, true);
+  await retry;
+  assert.equal(calls.at(-1), url);
+  assert.equal(focuses.at(-1), b.nodes.lbclose);
+  assert.match(b.html(), /recovered0/);
+  assert.equal(b.nodes.lbretry.hidden, true);
+});
+
+test('Retry reloads Ranked after a transient failure', async () => {
+  let online = false;
+  const calls = [];
+  const b = board(async url => {
+    calls.push(url);
+    if (!online) throw Error('offline');
+    return response();
+  });
+  await b.showBoard(null, 'ranked');
+  assert.equal(b.nodes.lbretry.hidden, false);
+  online = true;
+  await b.nodes.lbretry.onclick();
+  assert.deepEqual(calls, ['/api/ranked-week', '/api/ranked-week']);
+  assert.match(b.html(), /ranked pot/);
+  assert.equal(b.nodes.lbretry.hidden, true);
+});
+
 test('map-local HTTP, network and JSON failures do not discard successful or empty map groups', async () => {
   const b = board(async url => {
     const i = MAPS.findIndex(m => url.includes(`map=${m.id}`));
@@ -77,6 +120,7 @@ test('map-local HTTP, network and JSON failures do not discard successful or emp
     const group = b.html().split(`<h3>${MAPS[i].name}</h3>`)[1].split('</section>')[0];
     assert.match(group, i === 3 ? /opens soon/ : /Could not reach the leaderboard/);
   }
+  assert.equal(b.nodes.lbretry.hidden, false);
   assert.match(b.html(), /No runs on this map yet/); assert.match(b.html(), /good4/); assert.ok(!b.html().includes('bad'));
 });
 
@@ -84,7 +128,7 @@ for (const failure of [false, true]) test(`delayed All maps ${failure ? 'failure
   const old = deferred(); const b = board(url => url.includes(`map=${MAPS[1].id}`) ? Promise.resolve(response(rows('new'))) : old.promise);
   const pending = b.showBoard('all', 'casual'); await b.showBoard(MAPS[1].id, 'casual');
   const html = b.html(); failure ? old.reject(Error('old')) : old.resolve(response(rows('old')));
-  await pending; assert.equal(b.html(), html); assert.match(html, /new0/);
+  await pending; assert.equal(b.html(), html); assert.equal(b.nodes.lbretry.hidden, true); assert.match(html, /new0/);
 });
 
 test('a delayed casual result cannot replace a newer ranked board', async () => {
