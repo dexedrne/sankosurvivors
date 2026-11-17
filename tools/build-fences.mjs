@@ -78,9 +78,7 @@ export async function buildFences() {
   const triCache = {}; for (const f of new Set(placed.map((p) => p.file))) triCache[f] = await modelTris(f);
   const bits = new Map(), add = (map, i, j, b) => { if (i < 0 || j < 0 || i >= N || j >= N) return; const k = j * N + i; map.set(k, (map.get(k) || 0) | b); };
   // one projected edge -> thin walls on the nearest cell boundaries, every cell it touches (so pieces meet at corners)
-  const line = (map, ax, az, bx, bz, kitJoin = false) => {
-    // Kit-wall endpoints have tiny transform overshoots; do not claim a neighboring door cell.
-    const epsilon = kitJoin ? 1e-4 : 0;
+  const line = (map, ax, az, bx, bz, epsilon = 0) => {
     const dx = bx - ax, dz = bz - az; if (Math.hypot(dx, dz) < 0.05) return;
     if (Math.abs(dx) >= Math.abs(dz)) {
       const x0 = Math.min(ax, bx), x1 = Math.max(ax, bx); let prev = null;
@@ -103,14 +101,16 @@ export async function buildFences() {
   const v = new THREE.Vector3(); let used = 0, skipped = 0; const byFile = {};
   for (const p of placed) {
     const tris = triCache[p.file]; if (!tris) continue;
+    // Millimetre fence-tip overshoots must not claim a full neighboring gate cell.
+    const endpointTolerance = ['Fence.glb', 'Iron Fence.glb'].includes(p.file) ? 0.005 : 0;
     const mine = new Map(), joined = p.file.startsWith('kit_Wall') ? new Map() : mine;
     for (const t of tris) {
       const w = []; for (let k = 0; k < 9; k += 3) { v.set(t[k], t[k + 1], t[k + 2]).applyMatrix4(p.W); w.push(v.x, v.y, v.z); }
       const cxz = [(w[0] + w[3] + w[6]) / 3, (w[2] + w[5] + w[8]) / 3]; if (cxz[0] < 0 || cxz[1] < 0 || cxz[0] > N || cxz[1] > N) continue;
       const g = ground(cxz[0], cxz[1]), ylo = Math.min(w[1], w[4], w[7]) - g, yhi = Math.max(w[1], w[4], w[7]) - g;
       if (yhi < BAND[0] || ylo > BAND[1]) continue; // under foot or overhead (lintels, roofs, rugs)
-      line(mine, w[0], w[2], w[3], w[5]); line(mine, w[3], w[5], w[6], w[8]); line(mine, w[6], w[8], w[0], w[2]);
-      if (joined !== mine) { line(joined, w[0], w[2], w[3], w[5], true); line(joined, w[3], w[5], w[6], w[8], true); line(joined, w[6], w[8], w[0], w[2], true); }
+      line(mine, w[0], w[2], w[3], w[5], endpointTolerance); line(mine, w[3], w[5], w[6], w[8], endpointTolerance); line(mine, w[6], w[8], w[0], w[2], endpointTolerance);
+      if (joined !== mine) { line(joined, w[0], w[2], w[3], w[5], 1e-4); line(joined, w[3], w[5], w[6], w[8], 1e-4); line(joined, w[6], w[8], w[0], w[2], 1e-4); }
     }
     if (!mine.size) continue;
     // already walled in the walk map? (most of its edges have a wall, or the cells are blocked anyway)

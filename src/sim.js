@@ -31,7 +31,7 @@ function pastureGround(ground) {
   if (!ground || !ground.cell || ground.n !== 512 || !ground.fences) return ground;
   if (pastureGroundCache.has(ground)) return pastureGroundCache.get(ground);
   let corrected = ground;
-  if (groundHash(ground) === PASTURE_NAV.hash) {
+  if (PASTURE_NAV.hashes.includes(groundHash(ground))) {
     const blocked = ground.blocked.slice();
     for (const k of PASTURE_NAV.cells) blocked[k] = 0;
     corrected = { ...ground, blocked };
@@ -45,7 +45,7 @@ function oasisGround(ground) {
   if (!ground || !ground.cell || ground.n !== 512) return ground;
   if (oasisGroundCache.has(ground)) return oasisGroundCache.get(ground);
   let corrected = ground;
-  if (groundHash(ground) === OASIS_WATER_NAV.hash) {
+  if (OASIS_WATER_NAV.hashes.includes(groundHash(ground))) {
     const blocked = ground.blocked.slice();
     for (const k of OASIS_WATER_NAV.cells) blocked[k] = 0;
     corrected = { ...ground, blocked };

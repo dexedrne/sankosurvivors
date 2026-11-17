@@ -26,9 +26,9 @@ test('the fence layer packs and unpacks exactly, and older ground files (no fenc
   const old = unpackGround(packGround({ ...ground, fences: null }));
   assert.equal(old.fences, null); assert.deepEqual(old.walls, ground.walls);
 });
-for(const [x,z,boundary]of[[370.4,291.5,371],[371.4,290.5,372]])test(`Greentown park fence corner keeps its existing collision at ${boundary},${z}`,()=>{
+for(const [x,z,boundary]of[[370.4,291.5,371],[371.4,290.5,372]])test(`Greentown park fence tip leaves the visible opening clear at ${boundary},${z}`,()=>{
  const s=createSim({seed:1106,pace:2,ground,map:MAP_BY_ID.greentown}),p=s.players[0];s.spawnAcc=-1e9;s.bossIndex=99;s.eventT=s.shrineT=1e9;p.x=x;p.z=z;p.weapons={};
- for(let i=0;i<16;i++)step(s,{p1:{mx:1,mz:0}},TICK);assert.ok(p.x<boundary,JSON.stringify({x:p.x,z:p.z,boundary}));
+ for(let i=0;i<16;i++)step(s,{p1:{mx:1,mz:0}},TICK);assert.ok(p.x>boundary+1.5,JSON.stringify({x:p.x,z:p.z,boundary}));
 });
 test('doorway precision preserves the inspected world prop admission rules',async()=>{
  const {buildFences}=await import('../tools/build-fences.mjs'),f=await buildFences();
@@ -46,4 +46,9 @@ test('native Greentown house interior walls block tumble even with an open door'
 test('previous low-only packed fence format remains byte sized and readable',()=>{
  const f=ground.fences.map(v=>v&15),g={...ground,fences:f},bytes=packGround(g),n=g.n;
  assert.equal(bytes.length,4+Math.ceil(n*n/8)+Math.ceil((n+1)*(n+1)/8)+2*Math.ceil(n*n/2));assert.deepEqual(unpackGround(bytes).fences,f);
+});
+
+for(const z of[288.5,289,292])test(`Greentown iron fence stays solid beside the cleared tips at z${z}`,()=>{
+ const s=createSim({seed:1116,pace:2,ground,map:MAP_BY_ID.greentown}),p=s.players[0];s.spawnAcc=-1e9;s.bossIndex=99;s.eventT=s.shrineT=1e9;p.x=374;p.z=z;p.weapons={};
+ for(let i=0;i<18;i++)step(s,{p1:{mx:-1,mz:0}},TICK);assert(p.x>372,JSON.stringify({x:p.x,z}));
 });

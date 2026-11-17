@@ -19,7 +19,7 @@ for(const [x,z,mx,mz] of [[36.5,477.5,1,0],[49.5,477.5,-1,0],[43.5,472.5,0,1],[4
 });
 test('Oasis correction preserves shared ground, solid edges, factory water and outside void',()=>{
  const base=fixture({map:MAP_BY_ID.apache}),s=fixture(),again=fixture();
- assert.equal(groundHash(raw),'165cf2df');assert.ok(s.ground!==base.ground);assert.ok(s.ground===again.ground);
+ assert.equal(groundHash(raw),'d5f8c77a');assert.ok(s.ground!==base.ground);assert.ok(s.ground===again.ground);
  for(const layer of ['walls','fences','water'])assert.equal(s.ground[layer],raw[layer]);
  let changes=0;for(let k=0;k<raw.blocked.length;k++)if(base.ground.blocked[k]!==s.ground.blocked[k]){
   changes++;assert.equal(base.ground.blocked[k],1);assert.equal(s.ground.blocked[k],0);

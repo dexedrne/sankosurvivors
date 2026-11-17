@@ -9,8 +9,8 @@ export const MAX_WEAPONS = 4;
 export const MAX_PASSIVES = 4;
 
 // Inspected submerged cells within the two native lower-floor Oasis pools.
-// Hash is after the existing pasture correction; walls, void and factory water remain solid.
-export const OASIS_WATER_NAV = { hash: '96e51670', cells: [
+// Hashes are after the pasture correction, before/after the Apache gate fix; other water stays solid.
+export const OASIS_WATER_NAV = { hashes: ['96e51670', '7b0eea1'], cells: [
   242218, 242219, 242220, 242221, 242728, 242729, 242730, 242731, 242732, 242733, 242734, 242735,
   243239, 243240, 243241, 243242, 243243, 243244, 243245, 243246, 243247, 243750, 243751, 243752,
   243753, 243754, 243755, 243756, 243757, 243758, 243759, 244262, 244263, 244264, 244265, 244266,
@@ -26,8 +26,8 @@ export const OASIS_WATER_NAV = { hash: '96e51670', cells: [
 ] };
 
 // Known native farm fence footprints whose old nav cells duplicate the thin railing collision.
-// Apply only to the matching world on pace2; a changed map must be inspected and rebaked.
-export const PASTURE_NAV = { hash: '165cf2df', cells: [
+// Recognize the inspected pre/post fence-tip worlds on pace2; other maps need inspection.
+export const PASTURE_NAV = { hashes: ['165cf2df', 'd5f8c77a'], cells: [
   105269, 105272, 105776, 105777, 105778, 105779, 105780, 105781, 105782, 105783, 105784, 105785,
   105786, 105787, 105788, 105789, 105790, 105791, 105792, 105793, 105794, 106301, 106302, 106304,
   106305, 121132, 121644, 121661, 121662, 121664, 121665, 122156, 122157, 122158, 122159, 122160,
