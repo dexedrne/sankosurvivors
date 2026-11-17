@@ -2823,7 +2823,7 @@ function navBack() {
     if (id === 'skills' || id === 'gear') { $(id + 'close').click(); return true; }
     if (id === 'settings') { $('setclose').click(); return true; }
     if (id === 'quests') { $('questclose').click(); return true; }
-    if (id === 'modemenu' || id === 'guide' || id === 'pets' || id === 'more' || id === 'coop' || id === 'upgrades') { $(id + 'close').click(); return true; }
+    if (id === 'modemenu' || id === 'guide' || id === 'pets' || id === 'more' || id === 'coop' || id === 'upgrades' || id === 'ranked') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
     navFocus(null); return true;
   }

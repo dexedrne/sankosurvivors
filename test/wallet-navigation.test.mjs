@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
 const input = source.slice(source.indexOf('// ---- input -----'), source.indexOf("addEventListener('keyup'", source.indexOf('// ---- input -----')));
 const navigation = source.slice(source.indexOf('const NAV_SCREENS'), source.indexOf('// ---- minimap:'));
+const rankedClose = source.split("\n").find(line => line.startsWith("$('rankedclose').onclick ="));
 const walletClose = source.slice(source.indexOf("$('walletclose').onclick ="), source.indexOf("$('wallet').addEventListener"));
 const tabTrap = source.slice(source.indexOf("$('ranked').addEventListener('click'"), source.indexOf('async function rankedAction'));
 const guideHandlers=source.slice(source.indexOf("$('guidebtn').onclick ="),source.indexOf("$('guide').addEventListener"));
@@ -52,6 +53,8 @@ function menu(mode = 'title') {
   }
   for (const id of ['modemenu', 'coop', 'cloudpick', 'walletlink', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'upgrades', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'merchant', 'pause', 'end', 'title']) element(id);
   for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
+  element('rankedbtn', elements.get('title'));
+  element('rankedrulessummary', elements.get('ranked'), 'summary');
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('settingssummary',elements.get('settings'),'summary');
   element('volume', elements.get('settings'), 'input'); element('setclose', elements.get('settings'));
@@ -72,6 +75,7 @@ function menu(mode = 'title') {
     const keys=new Set(), startRun=()=>{started++;}, pause=on=>{mode=on?'pause':'play';};
     $('start').onclick=startRun; $('again').onclick=startRun;
     $('walletconnect').onclick=()=>{connected++;};
+    ${rankedClose}
     ${walletClose}
     ${sharedTrap}
     ${tabTrap}
@@ -157,6 +161,16 @@ for (const action of ['Escape', 'controller B']) test(`${action} closes only wal
   assert.equal(m.$('wallet').classList.contains('hidden'), true);
   assert.equal(m.$('ranked').classList.contains('hidden'), false);
   assert.equal(m.active, 'rankedclose');
+});
+for (const action of ['Escape', 'Escape from rules', 'controller B']) test(`${action} closes Ranked and restores focus to its title button`, () => {
+  const m = menu();
+  m.open('ranked');
+  m.$(action === 'Escape from rules' ? 'rankedrulessummary' : 'rankedclose').focus();
+  if (action === 'controller B') m.app.frame({ b: true });
+  else m.key('Escape');
+  assert.ok(m.$('ranked').classList.contains('hidden'));
+  assert.equal(m.active, 'rankedbtn');
+  assert.equal(m.app.state().started, 0);
 });
 test('wallet Back restores the title wallet button when ranked is closed', () => {
   const m = menu(); m.open('wallet'); m.app.back();
