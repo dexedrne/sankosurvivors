@@ -24,7 +24,7 @@ const upgradeHandlers=source.split('\n').filter(line=>['upgradesbtn','upgradescl
 const upgradeBackdrop=source.split('\n').find(line=>line.startsWith("$('upgrades').addEventListener('click'"))||'';
 const settingsHandlers=source.slice(source.indexOf('const openSettings ='),source.indexOf("$('settings').addEventListener"));
 const petClose=source.split('\n').find(line=>line.startsWith("$('petsclose').onclick"));
-const trapStart=source.indexOf('function containMenuTab('),sharedTrap=trapStart<0?'':source.slice(trapStart,source.indexOf('\nfor (const id',trapStart));
+const trapStart=source.indexOf('function containMenuTab('),sharedTrap=trapStart<0?'':source.slice(trapStart,source.indexOf('// ---- updates log',trapStart));
 const sliderKey = source.slice(source.indexOf("    r.addEventListener('keydown'"), source.indexOf('\n', source.indexOf("    r.addEventListener('keydown'")));
 const choose = source.slice(source.indexOf('choose: (wal, dev)'), source.indexOf('  note: (t) => banner', source.indexOf('choose: (wal, dev)')));
 const loop = source.indexOf('function loop(ts)');
@@ -61,7 +61,7 @@ function menu(mode = 'title') {
   for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
   element('rankedbtn', elements.get('title'));
   element('rankedrulessummary', elements.get('ranked'), 'summary');
-  element('updbtn', elements.get('more')); element('updclose', elements.get('updates'));
+  element('updbtn', elements.get('more')); element('updcopy', elements.get('updates')); element('updclose', elements.get('updates'));
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('settingssummary',elements.get('settings'),'summary');
   element('volume', elements.get('settings'), 'input'); element('setclose', elements.get('settings'));
@@ -103,7 +103,6 @@ function menu(mode = 'title') {
     ${upgradeHandlers}
     ${upgradeBackdrop}
     ${petClose}
-    for(const id of ['guide','pets','more','upgrades','gear','skills','settings'])if(typeof containMenuTab==='function')$(id).addEventListener('keydown',containMenuTab);
     let cloudChoice=null;
     const cloud={${choose}};
     return {back:navBack, move:navMove, screen:()=>navScreen()?.id,
@@ -373,3 +372,13 @@ for (const action of ['Escape', 'controller B']) {
     assert.equal(m.active, 'morebtn');
   });
 }
+
+test('Updates wraps native Tab between Back and its first copy button', () => {
+  const m = menu();
+  m.open('updates');
+  m.$('updclose').focus();
+  assert.ok(m.key('Tab', { native: true }).prevented);
+  assert.equal(m.active, 'updcopy');
+  assert.ok(m.key('Tab', { native: true, shiftKey: true }).prevented);
+  assert.equal(m.active, 'updclose');
+});

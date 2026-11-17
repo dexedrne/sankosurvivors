@@ -1015,7 +1015,7 @@ function containMenuTab(e) {
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 }
-for (const id of ['modemenu', 'guide', 'pets', 'more', 'quests', 'gear', 'skills', 'upgrades', 'settings']) $(id).addEventListener('keydown', containMenuTab);
+for (const id of ['modemenu', 'guide', 'pets', 'more', 'quests', 'gear', 'skills', 'upgrades', 'settings', 'updates']) $(id).addEventListener('keydown', containMenuTab);
 
 // ---- updates log -------------------------------------------------------------------------------------------------------
 $('updnew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
