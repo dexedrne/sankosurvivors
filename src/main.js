@@ -1190,6 +1190,7 @@ addEventListener('error', (e) => { recentErrors.push(String(e.message || e).slic
 addEventListener('unhandledrejection', (e) => { recentErrors.push(String(e.reason && e.reason.message || e.reason).slice(0, 300)); if (recentErrors.length > 8) recentErrors.shift(); });
 const ADV_NAME = (id) => (ADVENTURER_BY_ID[id] || {}).name || id;
 let lbMap = 'all', lbMode = 'casual', lbEndless = false, lbRequest = 0;
+const BOARD_TIMEOUT_MS = 10000;
 const rankedIsOpen = () => !$('rankedbtn').classList.contains('hidden');
 // the leaderboard: Ranked standings or Casual, for one map or the top five on every map
 async function showBoard(mapId, mode, focusSelector) {
@@ -1213,7 +1214,7 @@ async function showBoard(mapId, mode, focusSelector) {
   const boards = await Promise.all(maps.map(async (map) => {
     let body;
     try {
-      const r = await fetch(`${BASE}api/scores?map=${encodeURIComponent(map.id)}${endless ? '&endless=1' : ''}`);
+      const r = await fetch(`${BASE}api/scores?map=${encodeURIComponent(map.id)}${endless ? '&endless=1' : ''}`, { signal: AbortSignal.timeout?.(BOARD_TIMEOUT_MS) });
       if (r.status === 503) body = '<p class="dim">The shared leaderboard opens soon. Your best run: ' + localBest() + '</p>';
       else {
         if (!r.ok) throw Error('leaderboard unavailable');
@@ -1249,7 +1250,7 @@ function rewardTransactions() {
 async function showRankedBoard(request = ++lbRequest) {
   $('lbretry').hidden = true;
   try {
-    const r = await fetch(`${BASE}api/ranked-week`); if (!r.ok) throw Error('ranked unavailable'); const d = await r.json();
+    const r = await fetch(`${BASE}api/ranked-week`, { signal: AbortSignal.timeout?.(BOARD_TIMEOUT_MS) }); if (!r.ok) throw Error('ranked unavailable'); const d = await r.json();
     if (request !== lbRequest) return;
     const races = raceList(d); if (!races.includes(rankedMode)) rankedMode = 'normal';
     const race = raceOf(d, rankedMode), kp = kpmRules(d), combined = d.rules === 'combined', two = races.length > 1;

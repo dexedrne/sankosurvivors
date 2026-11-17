@@ -105,6 +105,28 @@ test('Retry reloads Ranked after a transient failure', async () => {
   assert.equal(b.nodes.lbretry.hidden, true);
 });
 
+for (const mode of ['casual', 'ranked']) {
+  test(`${mode} stops loading when a leaderboard request times out`, async () => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    let requestSignal;
+    const b = board((_url, options) => {
+      requestSignal = options?.signal;
+      return new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), {once: true}));
+    }, {AbortSignal: {timeout(ms) {
+      assert.equal(ms, 10000);
+      return signal;
+    }}});
+    const loading = b.showBoard(MAPS[0].id, mode);
+    assert.match(b.html(), /Loading/);
+    assert.equal(requestSignal, signal);
+    controller.abort(new DOMException('Timed out', 'TimeoutError'));
+    await loading;
+    assert.match(b.html(), /Could not reach/);
+    assert.equal(b.nodes.lbretry.hidden, false);
+  });
+}
+
 test('map-local HTTP, network and JSON failures do not discard successful or empty map groups', async () => {
   const b = board(async url => {
     const i = MAPS.findIndex(m => url.includes(`map=${m.id}`));
