@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const main=readFileSync(new URL('../src/main.js',import.meta.url),'utf8');
 const fn=name=>{const a=main.indexOf(`function ${name}(`),b=main.indexOf('\n}',a);assert(a>=0&&b>a);return main.slice(a-6,a)==='async '?main.slice(a-6,b+2):main.slice(a,b+2);};
-test('Fun return yields to pending ranked payment, submission or live recovery',async()=>{
+test('Fun return yields to pending payment or unfinished ranked recovery, not a queued finished score',async()=>{
  const a=main.indexOf('boot().then(async () => {'),b=main.indexOf('// QA hooks',a),code=main.slice(a,b);
  for(const pending of [null,'sq-ranked-payment','sq-ranked-submit','live']){
-  const calls=[],ready={};await Function('boot','params','walletHandoff','rankedLive','readRanked','openRanked','recoverRankedRun','openModeMenu','cloudPull','refreshRanked','applyDmt','refreshPendingTitleProgress','window','SIM_ID','return '+code)(()=>Promise.resolve(),{get:()=> 'fun'},null,()=>pending==='live'?{sim:'same'}:null,key=>key===pending?{}:null,()=>calls.push('ranked'),()=>assert.fail('same sim'),()=>calls.push('fun'),()=>{},async()=>{},()=>{},async()=>{},ready,'same');
-  assert.deepEqual(calls,pending?['ranked']:['fun'],pending||'ordinary fun return');assert(ready.__sqReady);
+  const calls=[],ready={};await Function('boot','params','walletHandoff','rankedLive','readRanked','openRanked','recoverRankedRun','openModeMenu','cloudPull','refreshRanked','applyDmt','refreshPendingTitleProgress','window','SIM_ID',main.split('\n').find(line=>line.startsWith('const rankedUnfinished ='))+'\nreturn '+code)(()=>Promise.resolve(),{get:()=> 'fun'},null,()=>pending==='live'?{sim:'same'}:null,key=>key===pending?{}:null,()=>calls.push('ranked'),()=>assert.fail('same sim'),()=>calls.push('fun'),()=>{},async()=>{},()=>{},async()=>{},ready,'same');
+  assert.deepEqual(calls,['live','sq-ranked-payment'].includes(pending)?['ranked']:['fun'],pending||'ordinary fun return');assert(ready.__sqReady);
  }
 });
 test('mode card handlers cannot change maps once a run has started',async()=>{

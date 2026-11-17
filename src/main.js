@@ -333,6 +333,7 @@ const raceBadge = (m) => (m === 'hard' ? ' (Hard)' : '');
 const rewardSummary = race => race.rewards?.version===2 ? 'Prize pool: 80% placing, 10% eligible DMT contributed, 10% active playtime. Verified completed runs of at least 0:30 earn participation; placing requires 3:00. No run cap. Pauses earn no participation. The developer earns no prizes.' : 'Prize pool: 80% placing, 10% qualifying runs, 10% active playtime. No run or time caps; verified runs must last at least 3:00. Pauses earn no participation. The developer earns no prizes.';
 let walletBal = null; // the connected wallet's DMT and ETH on Arbitrum, last read
 const rankedLive = () => readRanked('sq-ranked-live');
+const rankedUnfinished = () => { const live = rankedLive(); return !!live && live.ended !== true; };
 const rankedPlaying = () => !!rankedRun && !!sim && !sim.over;
 const rankedMessage = (text) => { $('rankedmsg').textContent = text; };
 function persistRanked() {
@@ -478,9 +479,9 @@ async function refreshRanked() {
     const next = await rankedApi(BASE, 'week');
     if (next.endsAt !== rankedWeek?.endsAt) { rankedAckDeadline = null; $('rankedack').checked = false; }
     rankedWeek = next; rankedKnownClosed = next.open === false; rankedWeekOffset = Number.isFinite(next.serverNow) ? next.serverNow - Date.now() : 0;
-    $('rankedbtn').classList.toggle('hidden', !rankedWeek.open); $('rankedrefresh').classList.add('hidden'); renderRanked();
+    $('rankedbtn').classList.toggle('hidden', !rankedWeek.open && !rankedLive() && !readRanked('sq-ranked-submit') && !readRanked('sq-ranked-payment')); $('rankedrefresh').classList.add('hidden'); renderRanked();
   } catch {
-    rankedWeek = null; $('rankedbtn').classList.toggle('hidden', rankedKnownClosed); $('rankedrefresh').classList.remove('hidden');
+    rankedWeek = null; $('rankedbtn').classList.toggle('hidden', rankedKnownClosed && !rankedLive() && !readRanked('sq-ranked-submit') && !readRanked('sq-ranked-payment')); $('rankedrefresh').classList.remove('hidden');
     $('rankedpool').textContent = 'Could not refresh ranked standings. Try again shortly.';
     $('rankedstandings').replaceChildren(); renderRanked();
   } finally { rankedRefreshing = false; }
@@ -1450,7 +1451,7 @@ function renderWallet() {
 }
 // ---- cloud save on the wallet (src/cloud.js): the same progress on every device ---------------------------------------
 let cloudConnecting = null, cloudChoice = null, reloadTimer = 0, runStarting = false, updateAttempt = null, importAttempt = null, holderChecking = null, titleProgressPending = false;
-const cloudCanLoad = () => mode === 'title' && !runStarting && !coopLoading && !rankedBusy && !rankedLive();
+const cloudCanLoad = () => mode === 'title' && !runStarting && !coopLoading && !rankedBusy && !rankedUnfinished();
 const progressCanLoad = () => cloudCanLoad() && !!renderer && !mapLoading && !$('start').disabled;
 const canReloadGame = () => cloudCanLoad() && !buyBusy && !walletConnecting && !holderChecking && !walletRequests && !walletModalOpen();
 const canManuallyReload = () => canReloadGame() && !cloudConnecting;
@@ -1923,7 +1924,7 @@ function syncCoopRun(inp, edges) {
 // ---- solo and ranked startup ---------------------------------------------------------------------------------------
 async function startRun(live = null) {
   if (coop || mode === 'coop' || runStarting || coopLoading || mode === 'recovery') return;
-  if (!live?.run && (rankedLive() || rankedPlaying())) { openRanked(); return; }
+  if (!live?.run && (rankedUnfinished() || rankedPlaying())) { openRanked(); return; }
   const isRanked = !!live?.run;
   if (isRanked && live.sim !== SIM_ID) return;
   if (isRanked) selVariant = 'normal';
@@ -3038,9 +3039,9 @@ function loop(ts) {
 
 boot().then(async () => {
   applyDmt(); await refreshPendingTitleProgress(); window.__sqReady = true; cloudPull(); await refreshRanked();
-  if (!walletHandoff && (rankedLive() || readRanked('sq-ranked-submit') || readRanked('sq-ranked-payment'))) {
+  if (!walletHandoff && (rankedUnfinished() || readRanked('sq-ranked-payment'))) {
     await openRanked();
-    if (rankedLive()?.sim !== SIM_ID && rankedLive() && !readRanked('sq-ranked-submit')) recoverRankedRun();
+    if (rankedUnfinished() && rankedLive()?.sim !== SIM_ID && !readRanked('sq-ranked-submit')) recoverRankedRun();
   } else if (params.get('menu') === 'fun' && !walletHandoff) openModeMenu('fun');
 });
 // QA hooks (?qa or ?debug): drive the game from a test browser
