@@ -178,7 +178,7 @@ export const text = {
 
   "Ranked details": "Detalye ng ranked",
   "10% house fee · 90% to the prize pool.": "10% sa house · 90% sa pondo ng premyo.",
-  "Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.": "Pondo: 80% sa puwesto · 10% sa DMT na naiambag · 10% sa aktibong oras. Partisipasyon mula 0:30; puwesto mula 3:00. Parehong lakas sa simula.",
+  "All wagers share one pool and the same starting power. Your best run of at least 3:00 counts for placing (80%). Runs of 0:30 or longer share the rest by DMT contributed (10%) and active playtime (10%).": "Iisa ang pondo at pareho ang panimulang lakas sa lahat ng taya. Ang pinakamahusay mong laro na umabot sa 3:00 ang batayan ng puwesto (80%). Para sa mga larong umabot sa 0:30, hinahati ang natitira ayon sa iniambag na DMT (10%) at oras ng aktibong paglalaro (10%).",
   "30-minute pause budget. First 30 seconds of each pause are free. Reloading does not reset it.": "30 minutong pause allowance. Libre ang unang 30 segundo ng bawat pause. Hindi ito nare-reset sa pag-reload.",
   "Prize pool & standings": "Pondo at leaderboard",
   "Full ranked rules": "Buong ranked rules",

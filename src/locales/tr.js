@@ -178,7 +178,7 @@ export const text = {
 
   "Ranked details": "Sıralama ayrıntıları",
   "10% house fee · 90% to the prize pool.": "%10 ev payı · %90 ödül havuzuna.",
-  "Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.": "Havuz: %80 sıralama · %10 DMT katkısı · %10 aktif süre. Katılım en az 0:30; sıralama en az 3:00. Başlangıç gücü eşit.",
+  "All wagers share one pool and the same starting power. Your best run of at least 3:00 counts for placing (80%). Runs of 0:30 or longer share the rest by DMT contributed (10%) and active playtime (10%).": "Tüm bahisler aynı havuzu ve başlangıç gücünü paylaşır. En az 3:00 süren en iyi koşun sıralamada sayılır (%80). En az 0:30 süren koşular kalan ödülü yatırılan DMT (%10) ve aktif oyun süresi (%10) oranında paylaşır.",
   "30-minute pause budget. First 30 seconds of each pause are free. Reloading does not reset it.": "30 dakika duraklatma hakkı. Her duraklatmanın ilk 30 saniyesi ücretsiz. Yenilemek hakkı sıfırlamaz.",
   "Prize pool & standings": "Ödül havuzu ve sıralama",
   "Full ranked rules": "Tüm sıralama kuralları",

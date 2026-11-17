@@ -178,7 +178,7 @@ export const text = {
 
   "Ranked details": "Detalles de clasificatoria",
   "10% house fee · 90% to the prize pool.": "10% para la casa · 90% al fondo de premios.",
-  "Pool: 80% placing · 10% DMT contributed · 10% playtime. Participation from 0:30; placing from 3:00. Same starting power.": "Fondo: 80% por puesto · 10% por DMT aportado · 10% por tiempo jugado. Participación desde 0:30; clasificación desde 3:00. Mismo poder inicial.",
+  "All wagers share one pool and the same starting power. Your best run of at least 3:00 counts for placing (80%). Runs of 0:30 or longer share the rest by DMT contributed (10%) and active playtime (10%).": "Todas las apuestas comparten un fondo y el mismo poder inicial. Tu mejor partida de al menos 3:00 cuenta para la clasificación (80%). Las partidas de 0:30 o más se reparten el resto según los DMT aportados (10%) y el tiempo de juego activo (10%).",
   "30-minute pause budget. First 30 seconds of each pause are free. Reloading does not reset it.": "30 minutos de pausa. Los primeros 30 segundos de cada pausa son gratis. Recargar no reinicia el límite.",
   "Prize pool & standings": "Fondo y clasificación",
   "Full ranked rules": "Reglas completas",
