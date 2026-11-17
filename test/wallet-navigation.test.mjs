@@ -258,11 +258,25 @@ test('the new guide blocks background keyboard/controller starts and closes with
  const m=menu();m.open('guide');m.key('Enter');m.key(' ');m.app.frame({a:true,start:true});assert.equal(m.app.state().started,0);assert.equal(m.app.screen(),'guide');m.key('Escape');assert.equal(m.$('guide').classList.contains('hidden'),true);
 });
 
-test('controller follows title to More to guide without starting underneath',()=>{
- const m=menu();m.app.focus('morebtn');m.app.frame({a:true});assert.equal(m.app.screen(),'more');
- m.app.frame({start:true});m.key('Enter');assert.equal(m.app.state().started,0);
- m.app.frame({a:true});assert.equal(m.app.screen(),'guide');assert.equal(m.active,'guidesummary');assert.equal(m.app.state().started,0);
- m.key('Escape');assert.equal(m.app.screen(),'title');assert.equal(m.active,'morebtn');
+for (const exit of ['Back', 'Escape', 'controller B']) test(`Guide ${exit} returns to How to play in More`, () => {
+  const m = menu();
+  m.app.focus('morebtn');
+  m.app.frame({ a: true });
+  assert.equal(m.app.screen(), 'more');
+  m.app.frame({ start: true });
+  m.key('Enter');
+  m.app.frame({ a: true });
+  assert.equal(m.app.screen(), 'guide');
+  assert.equal(m.active, 'guidesummary');
+  if (exit === 'Back') m.$('guideclose').click();
+  else if (exit === 'Escape') m.key('Escape');
+  else m.app.frame({ b: true });
+  assert.equal(m.app.screen(), 'more');
+  assert.equal(m.active, 'guidebtn');
+  m.key('Escape');
+  assert.equal(m.app.screen(), 'title');
+  assert.equal(m.active, 'morebtn');
+  assert.equal(m.app.state().started, 0);
 });
 test('More blocks stale background controls and has its own controller Back route',()=>{
  const m=menu();m.open('more');m.app.focus('start');m.app.frame({a:true,start:true});m.key('Enter',{native:true});assert.equal(m.app.state().started,0);

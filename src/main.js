@@ -1006,7 +1006,7 @@ $('guidebtn').onclick = () => {
   $('guidecurrentrecipes').innerHTML = guideRecipes(2);
   $('guide').classList.remove('hidden'); navFocus($('guide').querySelector('summary'));
 };
-$('guideclose').onclick = () => { $('guide').classList.add('hidden'); navFocus($('morebtn')); };
+$('guideclose').onclick = () => { $('guide').classList.add('hidden'); $('morebtn').click(); };
 $('guide').addEventListener('click', e => { if (e.target.id === 'guide') $('guideclose').click(); });
 function containMenuTab(e) {
   if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return;
