@@ -1757,6 +1757,9 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   window.addEventListener('auxclick', (e) => { if (e.button === 1) e.preventDefault(); });
   window.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key.toLowerCase(); if (k === 'q' || k === 'e') rotKeys[k] = true; if (k === 'home') { cam.yaw = 0; cam.pitch = Math.atan2(21, 17); } });
   window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (k === 'q' || k === 'e') rotKeys[k] = false; });
+  const clearCameraInput = () => { drag = null; rotKeys.q = rotKeys.e = false; };
+  window.addEventListener('blur', clearCameraInput);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) clearCameraInput(); });
   window.addEventListener('wheel', (e) => { if (e.target === canvas || e.target === document.body || e.target.id === 'fx' || e.target.id === 'hud') { cam.zoomT = Math.max(0.5, Math.min(2.2, cam.zoomT * Math.exp(e.deltaY * 0.0012))); e.preventDefault(); } }, { passive: false });
   window.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey || e.altKey) return; if (e.key === '+' || e.key === '=') cam.zoomT = Math.max(0.5, cam.zoomT / 1.15); if (e.key === '-' || e.key === '_') cam.zoomT = Math.min(2.2, cam.zoomT * 1.15); });
   function zoomBy(factor) {
