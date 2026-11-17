@@ -990,7 +990,7 @@ function guideCatalogue(kind) {
   return Object.entries(kind === 'weapon' ? WEAPONS : PASSIVES).map(([id, item]) => `<article class="guidecatalogue-item">${iconHTML(kind, id, 1, false, 0)}<div><h4>${esc(item.name)}</h4><p>${esc(item.blurb)}</p>${item.legendary ? '<small>Legendary</small>' : ''}${item.casual ? '<small>Casual only</small>' : ''}</div></article>`).join('');
 }
 function guideRecipes(pace) {
-  return Object.entries(EVOLUTIONS).filter(([id]) => weaponIdsAt(pace).includes(id)).flatMap(([id, evolution]) => id === 'staff' && pace >= 2 ? Object.values(SPELL_EVOLUTIONS).map(branch => [id, branch, branch.passives]) : [[id, evolution, evolutionPassives(id, pace)]]).map(([id, evolution, passives]) => `<div class="guiderecipe"><span>${esc(WEAPONS[id].name)}</span> → <b>${esc(evolution.name)}</b><small>${passives.map(passive => `<span>${esc(PASSIVES[passive].name)}</span>`).join(' / ')}</small></div>`).join('');
+  return Object.entries(EVOLUTIONS).filter(([id]) => weaponIdsAt(pace).includes(id)).flatMap(([id, evolution]) => id === 'staff' && pace >= 2 ? Object.values(SPELL_EVOLUTIONS).map(branch => [id, branch, branch.passives]) : [[id, evolution, evolutionPassives(id, pace)]]).map(([id, evolution, passives]) => `<div class="guiderecipe"><span>${esc(WEAPONS[id].name)}</span> → <b>${esc(evolution.name)}</b>${WEAPONS[id].casual ? '<small><span>Casual only</span></small>' : ''}<small><span>Requires one of:</span> ${passives.map(passive => `<span>${esc(PASSIVES[passive].name)}</span>${PASSIVES[passive].casual ? ' <span>(Casual only)</span>' : ''}`).join(' / ')}</small><small>${esc(evolution.blurb)}</small></div>`).join('');
 }
 $('guidebtn').onclick = () => {
   $('guideweapons').innerHTML = guideCatalogue('weapon');

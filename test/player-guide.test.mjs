@@ -11,6 +11,22 @@ test('guide recipes show every actual evolution and distinguish original ranked 
  assert.notEqual(recipes(1),recipes(2));
  for(const name of['Twin Daggers','Dragnet','Longline'])assert(!recipes(1).includes(name)&&recipes(2).includes(name),name);
 });
+test('recipe FAQ labels casual weapons and individual alternative ingredients and explains each evolution',()=>{
+ const rows=recipes(2).match(/<div class="guiderecipe">.*?<\/div>/g);
+ for(const[id,evolution]of Object.entries(EVOLUTIONS)){
+  const row=rows.find(row=>row.includes('<b>'+evolution.name+'</b>'));assert(row,id);
+  assert(row.includes('<small>'+evolution.blurb+'</small>'),id+' effect');
+  const labels=(row.match(/<span>\(?Casual only\)?<\/span>/g)||[]).length;
+  assert.equal(labels,Number(!!WEAPONS[id].casual)+evolutionPassives(id,2).filter(key=>PASSIVES[key].casual).length,id+' casual labels');
+ }
+ for(const row of rows)assert(row.includes('<span>Requires one of:</span>'),row);
+ assert.match(recipes(2),/<span>Cheese<\/span> <span>\(Casual only\)<\/span>/);
+ assert.match(recipes(2),/<span>Beret<\/span> <span>\(Casual only\)<\/span>/);
+ assert.doesNotMatch(recipes(1),/Casual only/);
+});
+test('recipe explanations and FAQ labels translate in every supported language',()=>{
+ for(const language of ['tr','es','fil'])for(const text of ['Requires one of:', '(Casual only)', ...Object.values(EVOLUTIONS).map(e=>e.blurb), ...Object.values(SPELL_EVOLUTIONS).map(e=>e.blurb)])assert.notEqual(translateText(text,language),text,language+': '+text);
+});
 test('main-menu guide describes actual slot/level limits and does not turn keyboard navigation into a new run',()=>{
  assert.match(html,/id="guidebtn"/);assert.match(html,/id="guide"[^>]+role="dialog"/);assert.match(main,/const MENU_SCREENS = \[[^\n]*'guide'/);
  for(const text of[`${MAX_WEAPONS} weapons`,`${MAX_PASSIVES} passives`,`level ${MAX_WEAPON_LEVEL}`,`level ${MAX_PASSIVE_LEVEL}`])assert(html.includes(text),text);
