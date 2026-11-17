@@ -709,7 +709,7 @@ $('upgradesclose').onclick = () => { $('upgrades').classList.add('hidden'); navF
 $('upgrades').addEventListener('click', e => { if (e.target.id === 'upgrades') $('upgradesclose').click(); });
 $('skillsbtn').onclick = () => { buildSkills(); $('skills').classList.remove('hidden'); navFocus($('skillgrid').querySelector('button:not(:disabled)') || ($('skillrefund').disabled ? $('skillsclose') : $('skillrefund'))); };
 // tapping outside a menu panel closes it
-for (const id of ['skills', 'gear', 'quests']) $(id).addEventListener('click', (e) => { if (e.target.id === id) { if (id === 'skills' || id === 'gear') $(id + 'close').click(); else $(id).classList.add('hidden'); } });
+for (const id of ['skills', 'gear', 'quests']) $(id).addEventListener('click', (e) => { if (e.target.id === id) { if (id === 'skills' || id === 'gear') $(id + 'close').click(); else $('questclose').click(); } });
 $('skillsclose').onclick = () => { $('skillrefund').dataset.sure = ''; $('skills').classList.add('hidden'); navFocus($('skillsbtn')); };
 
 // ---- loading ------------------------------------------------------------------------------------------------------------
@@ -1023,7 +1023,7 @@ $('morenew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
 // More: the extras (settings, updates, DMT, bug report, install) in one small panel
 $('morebtn').onclick = () => { $('more').classList.remove('hidden'); navFocus($('guidebtn')); };
 $('moreclose').onclick = () => { $('more').classList.add('hidden'); navFocus($('morebtn')); };
-$('more').addEventListener('click', (e) => { if (e.target.id === 'more') $('more').classList.add('hidden'); });
+$('more').addEventListener('click', (e) => { if (e.target.id === 'more') $('moreclose').click(); });
 // ---- move progress to another device: a code with the save (progress and settings only, never ranked tickets, a DMT
 // pass or a wallet), checked key by key on the way in like the old-address hand-off in index.html
 const b64 = (s) => btoa(unescape(encodeURIComponent(s))), unb64 = (s) => decodeURIComponent(escape(atob(s)));
@@ -1156,7 +1156,7 @@ $('updbtn').onclick = () => {
   $('updates').classList.remove('hidden'); navFocus($('updclose')); save('sq-seen', LATEST); $('updnew').classList.add('hidden'); $('morenew').classList.add('hidden');
 };
 $('updclose').onclick = () => { $('updates').classList.add('hidden'); navFocus($($('updbtn').closest('#actions') ? 'updbtn' : 'morebtn')); };
-$('updates').addEventListener('click', (e) => { if (e.target.id === 'updates') $('updates').classList.add('hidden'); });
+$('updates').addEventListener('click', (e) => { if (e.target.id === 'updates') $('updclose').click(); });
 
 function playTitleMusic() {
   if (mode !== 'title') return;
@@ -2823,6 +2823,7 @@ function navBack() {
     if (id === 'skills' || id === 'gear') { $(id + 'close').click(); return true; }
     if (id === 'settings') { $('setclose').click(); return true; }
     if (id === 'quests') { $('questclose').click(); return true; }
+    if (id === 'updates') { $('updclose').click(); return true; }
     if (id === 'modemenu' || id === 'guide' || id === 'pets' || id === 'more' || id === 'coop' || id === 'upgrades' || id === 'ranked') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
     navFocus(null); return true;

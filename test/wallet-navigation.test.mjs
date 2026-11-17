@@ -11,6 +11,12 @@ const tabTrap = source.slice(source.indexOf("$('ranked').addEventListener('click
 const guideHandlers=source.slice(source.indexOf("$('guidebtn').onclick ="),source.indexOf("$('guide').addEventListener"));
 const moreHandlers=['morebtn','moreclose'].map(id=>source.split('\n').find(line=>line.startsWith("$('"+id+"').onclick"))).join('\n');
 const moreCapture=source.split('\n').find(line=>line.startsWith("for (const b of document.querySelectorAll('#more"));
+const dismissalHandlers = source.split('\n').filter(line =>
+  line.startsWith("$('more').addEventListener('click'") ||
+  line.startsWith("$('updclose').onclick") ||
+  line.startsWith("$('updates').addEventListener('click'") ||
+  line.startsWith("for (const id of ['skills', 'gear', 'quests']) $(id).addEventListener('click'")
+).join('\n');
 const questHandlers=source.split('\n').filter(line=>line.startsWith("$('questbtn').onclick")||line.startsWith("$('questclose').onclick")).join('\n');
 const coopClose=source.split('\n').find(line=>line.startsWith("$('coopclose').onclick"));
 const page = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -55,6 +61,7 @@ function menu(mode = 'title') {
   for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
   element('rankedbtn', elements.get('title'));
   element('rankedrulessummary', elements.get('ranked'), 'summary');
+  element('updbtn', elements.get('more')); element('updclose', elements.get('updates'));
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('settingssummary',elements.get('settings'),'summary');
   element('volume', elements.get('settings'), 'input'); element('setclose', elements.get('settings'));
@@ -89,6 +96,7 @@ function menu(mode = 'title') {
     const toMenu=()=>{$('coop').classList.add('hidden');},mapLoading=false,coopLoading=false,loadedMapId='greentown',selMap='greentown',pickMap=()=>Promise.resolve(),banner=()=>{},buildQuests=()=>{};
     ${coopClose}
     ${questHandlers}
+    ${dismissalHandlers}
     ${moreCapture}
     const buildSettings=()=>{},buildGear=()=>{},buildSkills=()=>{};
     ${settingsHandlers}
@@ -342,3 +350,26 @@ test('controller Back consumes simultaneous confirm or Start before returning to
   assert.equal(m.app.state().started,0,press+' cannot start underneath a closing menu');
  }
 });
+
+for (const [panel, control] of [['more', 'moreclose'], ['quests', 'questclose'], ['updates', 'updclose']]) {
+  test(`${panel} backdrop closes the panel and restores More focus`, () => {
+    const m = menu();
+    m.open(panel);
+    m.$(control).focus();
+    m.$(panel).click();
+    assert.equal(m.app.screen(), 'title');
+    assert.equal(m.active, 'morebtn');
+  });
+}
+
+for (const action of ['Escape', 'controller B']) {
+  test(`${action} closes Updates and restores More focus`, () => {
+    const m = menu();
+    m.open('updates');
+    m.$('updclose').focus();
+    if (action === 'Escape') m.key('Escape');
+    else m.app.frame({ b: true });
+    assert.equal(m.app.screen(), 'title');
+    assert.equal(m.active, 'morebtn');
+  });
+}
