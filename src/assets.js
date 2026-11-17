@@ -25,8 +25,9 @@ export async function pickAssetHost() {
 }
 // jsDelivr sometimes fails one file while the rest answer ("Failed to fetch the requested commit", seen 16 Nov on a monster
 // model). Install before the first asset request; health probes retain the original fetch. A missing file retries locally once.
-/** the game's own copy of a jsDelivr address ('' for anything else, or when the game already loads from its own host) */
-export const localOf = (u) => (!useCdn || typeof u !== 'string' ? '' : u.startsWith(CDN1) ? LOCAL + u.slice(CDN1.length) : u.startsWith(CDN2) ? LOCAL + u.slice(CDN2.length) : '');
+// Pending CDN requests can still fail after health probes switch new loads to local.
+/** the game's own copy of a configured CDN address ('' for anything else) */
+export const localOf = (u) => (!(CDN1 && CDN2) || typeof u !== 'string' ? '' : u.startsWith(CDN1) ? LOCAL + u.slice(CDN1.length) : u.startsWith(CDN2) ? LOCAL + u.slice(CDN2.length) : '');
 export function installAssetFallback(w = globalThis) {
   if (!useCdn || w.__sqAssetFallback || typeof w.fetch !== 'function') return false;
   w.__sqAssetFallback = true;

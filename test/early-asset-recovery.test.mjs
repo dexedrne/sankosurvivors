@@ -17,3 +17,16 @@ test('whole-CDN admission still fails closed to local when per-file recovery is 
 test('the offline edition implements the shared asset recovery interface without external fetching',async()=>{
  const adapted=wavedashEdition().transform(source,'/fixture/src/assets.js');assert(adapted?.code);const m=await import('data:text/javascript,'+encodeURIComponent(adapted.code.replaceAll('import.meta.env','({BASE_URL:"./"})')));assert.equal(m.asset('world/map.webp'),'./assets/world/map.webp');assert.equal(m.assetHost(),'local');assert.equal(await m.pickAssetHost(),'local');assert.equal(typeof m.localOf,'function');assert.equal(m.localOf('https://one/file'),'');assert.equal(typeof m.installAssetFallback,'function');assert.equal(m.installAssetFallback(),false);
 });
+test('assets already requested from CDN can recover after health probes switch new loads to local',async t=>{
+ isolate(t,async()=>({ok:false}));const m=await assets(),listeners=[];
+ const w={fetch:globalThis.fetch,addEventListener:(name,fn)=>listeners.push(fn)};m.installAssetFallback(w);
+ const music=m.asset('music/Fresh_Beginnings.mp3'),icon={tagName:'IMG',src:m.asset('ui/items/item_Bones.png'),dataset:{}};
+ assert.equal(await m.pickAssetHost(),'local');assert.equal(m.asset('music/Fresh_Beginnings.mp3'),'./assets/music/Fresh_Beginnings.mp3');
+ assert.equal(m.localOf(music),'./assets/music/Fresh_Beginnings.mp3','late detached music errors still have a local retry');
+ listeners[0]({target:icon});assert.equal(icon.src,'./assets/ui/items/item_Bones.png','late DOM image errors still recover');
+ assert.equal(m.localOf(icon.src),'');assert.equal(m.localOf('https://elsewhere/file'),'');
+});
+test('a build without CDN configuration never treats arbitrary URLs as CDN assets',async()=>{
+ const m=await import('data:text/javascript,'+encodeURIComponent(source.replaceAll('import.meta.env','({BASE_URL:"./"})')));
+ assert.equal(m.assetHost(),'local');for(const url of ['https://elsewhere/file','./assets/file','file'])assert.equal(m.localOf(url),'');
+});
