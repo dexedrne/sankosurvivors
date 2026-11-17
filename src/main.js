@@ -182,16 +182,21 @@ function buildAdventurers() {
   $('ainfo').innerHTML = `<b>${a.name}</b> · starts with ${weaponTitle(a.weapon, 1)}<br>${a.blurb} <span style="opacity:.75">(${bonus})</span>`;
 }
 function buildMaps() {
-  const cl = clearedMaps();
+  const cl = clearedMaps(), mapImage = asset('world/world-map-full.webp');
   $('mpick').innerHTML = MAPS.map((m, i) => {
     const open = unlockedMap(i), px = 1.2;
-    const bg = m.world ? `background-image:url(${asset('')}world/world-map-full.webp);background-size:cover;background-position:center` : `background-image:url(${asset('')}world/world-map-full.webp);background-size:${512 * px}px;background-position:${-(m.cx * px - 45)}px ${-(m.cz * px - 26)}px`;
-    return `<div class="mopt${m.id === selMap ? ' sel' : ''}${open ? '' : ' locked'}" data-id="${m.id}"><div class="thumb" style="${bg}">${open ? '' : '🔒'}${cl.has(m.id) ? '<i>✔</i>' : ''}</div>${m.name}</div>`;
+    const bg = m.world ? `background-image:url(${mapImage});background-size:cover;background-position:center` : `background-image:url(${mapImage});background-size:${512 * px}px;background-position:${-(m.cx * px - 45)}px ${-(m.cz * px - 26)}px`;
+    return `<div class="mopt${m.id === selMap ? ' sel' : ''}${open ? '' : ' locked'}" data-id="${m.id}"><div class="thumb" style="${bg}"><img hidden alt="" src="${mapImage}">${open ? '' : '🔒'}${cl.has(m.id) ? '<i>✔</i>' : ''}</div>${m.name}</div>`;
   }).join('');
-  for (const el of $('mpick').children) el.onclick = () => {
-    if (el.classList.contains('locked')) { const m = MAP_BY_ID[el.dataset.id]; $('mapinfo').textContent = m.after ? `Clear ${MAP_BY_ID[m.after].name} to unlock this one.` : 'Clear the map before it to unlock this one.'; return; }
-    pickMap(el.dataset.id);
-  };
+  for (const el of $('mpick').children) {
+    // Decorative loaders let the existing image fallback recover CSS thumbnail backgrounds.
+    const image = el.querySelector('img');
+    image.onload = () => { el.querySelector('.thumb').style.backgroundImage = `url("${image.currentSrc || image.src}")`; };
+    el.onclick = () => {
+      if (el.classList.contains('locked')) { const m = MAP_BY_ID[el.dataset.id]; $('mapinfo').textContent = m.after ? `Clear ${MAP_BY_ID[m.after].name} to unlock this one.` : 'Clear the map before it to unlock this one.'; return; }
+      pickMap(el.dataset.id);
+    };
+  }
   const m = MAP_BY_ID[selMap];
   $('maplabel').textContent = m.name;
   $('adventurerlabel').textContent = ADVENTURER_BY_ID[m.forceAdv || selAdv].name;
