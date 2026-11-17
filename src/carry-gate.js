@@ -24,7 +24,7 @@ function prompt({old,device,changed=false,error=null}){
   keep.onclick=buttons.includes(keep)?()=>select('device'):null;use.onclick=buttons.includes(use)?()=>select('old'):null;retry.onclick=buttons.includes(retry)?()=>select('retry'):null;for(const b of buttons)b.disabled=false;
   const focusStep=step=>{const i=buttons.indexOf(document.activeElement);buttons[(Math.max(0,i)+step+buttons.length)%buttons.length].focus()};
   function down(e){
-   if(done)return;
+   if(done||e.ctrlKey||e.metaKey||e.altKey)return;
    if(e.key==='Enter'||e.key===' '){held.add(e.key);if(e.repeat||selected)e.preventDefault();return;}
    if(e.key==='Tab'||/^Arrow/.test(e.key)){e.preventDefault();if(!selected)focusStep(e.key==='Tab'?(e.shiftKey?-1:1):['ArrowLeft','ArrowUp'].includes(e.key)?-1:1);}
    else if(e.key==='Escape'){e.preventDefault();if(!selected)buttons[0].focus();}

@@ -1001,7 +1001,7 @@ $('guidebtn').onclick = () => {
 $('guideclose').onclick = () => { $('guide').classList.add('hidden'); navFocus($('morebtn')); };
 $('guide').addEventListener('click', e => { if (e.target.id === 'guide') $('guideclose').click(); });
 function containMenuTab(e) {
-  if (e.key !== 'Tab') return;
+  if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return;
   const nodes = [...e.currentTarget.querySelectorAll('summary, [data-milestone][tabindex="0"], button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]')].filter(n => n.offsetParent !== null);
   if (!nodes.length) return;
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
@@ -1086,7 +1086,7 @@ function showProgressRecovery(canRestart = () => true, settingsOnly = false, run
   retry.textContent = runRecovery ? 'Retry saving run' : settingsOnly ? 'Reload game' : 'Restore previous progress';
   screen.classList.remove('hidden'); screen.inert = walletModalOpen();
   if (!screen.inert) retry.focus();
-  screen.onkeydown = e => { if (e.key === 'Tab' || e.key === 'Escape') { e.preventDefault(); retry.focus(); } e.stopPropagation(); };
+  screen.onkeydown = e => { if (e.ctrlKey || e.metaKey || e.altKey) return; if (e.key === 'Tab' || e.key === 'Escape') { e.preventDefault(); retry.focus(); } e.stopPropagation(); };
   retry.onclick = async () => {
     if (retry.disabled) return;
     const waiting = () => { $('progressrecoverystatus').textContent = runRecovery ? 'Finish your wallet action before saving this run.' : 'Finish your wallet action before restarting the game.'; retry.disabled = false; if (!walletModalOpen()) retry.focus(); };
@@ -2183,6 +2183,7 @@ function toMenu() {
 // ---- input ------------------------------------------------------------------------------------------------------------------
 const MENU_SCREENS = ['modemenu', 'coop', 'cloudpick', 'wallet', 'ranked', 'dmt', 'tip', 'bug', 'board', 'settings', 'updates', 'skills', 'gear', 'quests', 'guide', 'pets', 'more', 'upgrades', 'merchant'];
 addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (mode === 'recovery' || walletModalOpen()) return;
   if (mode === 'play' && (e.target?.closest?.('#equipmenthud') || e.target?.closest?.('[data-inspect]')) && ['Tab', 'Enter', ' '].includes(e.key)) return;
   if (e.target?.matches?.('input, textarea, select, [contenteditable="true"]') || e.target?.matches?.('summary') && !e.target?.closest?.('#equipmenthud')) return;
@@ -2822,6 +2823,7 @@ function navBack() {
   return false;
 }
 addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (mode === 'recovery' || walletModalOpen()) return;
   const k = e.key, dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
   if (k === 'Tab' && navEl) navFocus(null);

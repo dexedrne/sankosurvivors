@@ -777,7 +777,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   // roofs: every building's roof shows from outside; the roof over you lifts off when you walk in. T hides all roofs.
   const roofMeshes = [], roofBoxes = new Map(), roofHidden = new Set();
   let roofsOff = false; try { roofsOff = localStorage.getItem('sq-roofs') === 'off'; } catch { /* storage blocked */ }
-  window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 't' && !e.repeat) { roofsOff = !roofsOff; try { localStorage.setItem('sq-roofs', roofsOff ? 'off' : 'auto'); } catch { /* */ } roofHidden.clear(); roofHidden.add(-1); } });
+  window.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey || e.altKey) return; if (e.key.toLowerCase() === 't' && !e.repeat) { roofsOff = !roofsOff; try { localStorage.setItem('sq-roofs', roofsOff ? 'off' : 'auto'); } catch { /* */ } roofHidden.clear(); roofHidden.add(-1); } });
   const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
   function updateRoofs(px, pz) {
     const want = new Set();
@@ -1755,10 +1755,10 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   window.addEventListener('mouseup', (e) => { if (e.button === 1) drag = null; });
   window.addEventListener('mousemove', (e) => { if (!drag) return; cam.yaw -= (e.clientX - drag.x) * 0.006; cam.pitch = Math.max(0.5, Math.min(1.35, cam.pitch + (e.clientY - drag.y) * 0.004)); drag = { x: e.clientX, y: e.clientY }; });
   window.addEventListener('auxclick', (e) => { if (e.button === 1) e.preventDefault(); });
-  window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 'q' || k === 'e') rotKeys[k] = true; if (k === 'home') { cam.yaw = 0; cam.pitch = Math.atan2(21, 17); } });
+  window.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key.toLowerCase(); if (k === 'q' || k === 'e') rotKeys[k] = true; if (k === 'home') { cam.yaw = 0; cam.pitch = Math.atan2(21, 17); } });
   window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (k === 'q' || k === 'e') rotKeys[k] = false; });
   window.addEventListener('wheel', (e) => { if (e.target === canvas || e.target === document.body || e.target.id === 'fx' || e.target.id === 'hud') { cam.zoomT = Math.max(0.5, Math.min(2.2, cam.zoomT * Math.exp(e.deltaY * 0.0012))); e.preventDefault(); } }, { passive: false });
-  window.addEventListener('keydown', (e) => { if (e.key === '+' || e.key === '=') cam.zoomT = Math.max(0.5, cam.zoomT / 1.15); if (e.key === '-' || e.key === '_') cam.zoomT = Math.min(2.2, cam.zoomT * 1.15); });
+  window.addEventListener('keydown', (e) => { if (e.ctrlKey || e.metaKey || e.altKey) return; if (e.key === '+' || e.key === '=') cam.zoomT = Math.max(0.5, cam.zoomT / 1.15); if (e.key === '-' || e.key === '_') cam.zoomT = Math.min(2.2, cam.zoomT * 1.15); });
   function zoomBy(factor) {
     cam.zoomT = Math.max(0.5, Math.min(2.2, cam.zoomT * factor));
   }
