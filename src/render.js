@@ -1341,7 +1341,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   const shieldObjs = new Map(); // `${playerId}:${i}` -> object
   const dyn = new THREE.Group(); dyn.name = 'dyn'; scene.add(dyn);
   const meleeFx = createMeleeVfx({ group: dyn, camera, groundAt, colorOut, fxOnly });
-  const bunModels = createBunModels(loadGLB, A, path => texLoader.loadAsync(path));
+  const bunModels = createBunModels(loadGLB, A, path => texLoader.loadAsync(path).catch(error => { const alt = localOf(path); if (!alt) throw error; return texLoader.loadAsync(alt); }));
   const petModels = {
     choice: id => petChoice(id) || bunModels.choice(id),
     async load(id) {
