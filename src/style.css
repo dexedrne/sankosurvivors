@@ -465,6 +465,7 @@ body.touch .seg button { min-height: 38px; min-width: 44px; }
 .rkraces button { flex: 1; min-height: 44px; }
 #rankedwagers button { min-width: 0; padding: 4px 3px; font-size: 16px; }
 #rankedwagers button b { white-space: nowrap; }
+@media (max-width: 360px) { #rankedwagers button { margin-inline: 0; } }
 /* the price sits on its own line under the race name, so the buttons stay tidy on phones */
 .rkraces button span, .lbrace button span { display: block; font-size: .8em; opacity: .85; }
 .lbrace { display: flex; gap: 6px; justify-content: center; margin: 2px 0 6px; }
