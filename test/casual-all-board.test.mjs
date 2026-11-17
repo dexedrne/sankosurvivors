@@ -10,8 +10,8 @@ const deferred = () => { let resolve, reject; const promise = new Promise((a, b)
 const response = (rows = []) => ({ ok: true, status: 200, json: async () => ({ rows }) });
 const rows = (prefix) => Array.from({ length: 7 }, (_, i) => ({ name: `${prefix}${i}`, adv: 'adventurer', t: 900 - i, level: i + 1, kills: 700 - i, hard: i === 0, holder: i === 0, won: i === 0 }));
 function board(fetch, overrides={}) {
-  const nodes = Object.fromEntries(['lbtabs', 'lblist', 'lbmapsel', 'rankedbtn', 'lbbtn', 'board'].map(id => [id, { innerHTML: '', querySelectorAll: () => [], classList: { contains: () => false, remove() {} } }]));
-  const env = { rewardSummary:Function('return '+main.match(/const rewardSummary = ([^\n]+);/)[1])(), $: id => nodes[id], fetch, MAPS, MAP_BY_ID, ADVENTURER_BY_ID, BASE: '/', selMap: MAPS[0].id, load: () => 'me', fmtT: t => `${t}s`, localBest: () => 'best', rankedMode: 'normal', raceList: () => ['normal'], raceOf: d => ({ rows: d.rows || [] }), kpmRules: () => false, prizePlaces: () => [], prizeEstimate: () => null, poolReadout: () => 'ranked pot', prizeNotes: () => [],walletPrize,estimatedDmtText,noPrize:()=>false,completedRunText:()=> '1 completed run this week',...overrides };
+  const nodes = Object.fromEntries(['lbtabs', 'lblist', 'lbmapsel', 'rankedbtn', 'lbbtn', 'lbclose', 'board'].map(id => [id, { innerHTML: '', querySelector: () => null, querySelectorAll: () => [], classList: { contains: () => false, remove() {} } }]));
+  const env = { rewardSummary:Function('return '+main.match(/const rewardSummary = ([^\n]+);/)[1])(), $: id => nodes[id], fetch, MAPS, MAP_BY_ID, ADVENTURER_BY_ID, BASE: '/', selMap: MAPS[0].id, load: () => 'me', fmtT: t => `${t}s`, localBest: () => 'best', rankedMode: 'normal', raceList: () => ['normal'], raceOf: d => ({ rows: d.rows || [] }), kpmRules: () => false, prizePlaces: () => [], prizeEstimate: () => null, navFocus: () => {}, poolReadout: () => 'ranked pot', prizeNotes: () => [],walletPrize,estimatedDmtText,noPrize:()=>false,completedRunText:()=> '1 completed run this week',...overrides };
   const api = Function('env', `with (env) { ${source}; ${main.split('\n').find(line => line.startsWith("$('lbbtn').onclick"))}; return { showBoard, showRankedBoard, open: () => $('lbbtn').onclick() }; }`)(env);
   return { ...api, nodes, setRunMap: id => { env.selMap = id; }, html: () => nodes.lblist.innerHTML };
 }
@@ -49,11 +49,13 @@ test('single map retains all returned rows and personal highlight', async () => 
 });
 
 test('All maps retains the Endless button and applies its captured filter to every request', async () => {
-  const calls = [], b = board(async url => { calls.push(url); return response(); });
-  const button = { dataset: { endless: '1' } };
+  const calls = [], focused = [], b = board(async url => { calls.push(url); return response(); }, {navFocus: node => focused.push(node)});
+  const button = { dataset: { endless: '1' } }, replacement = {};
+  b.nodes.lbtabs.querySelector = selector => selector === '[data-endless="1"]' ? replacement : null;
   b.nodes.lbtabs.querySelectorAll = selector => selector === '[data-endless]' ? [button] : [];
   await b.showBoard('all', 'casual'); calls.length = 0;
   await button.onclick();
+  assert.deepEqual(focused, [replacement]);
   // The handler launches the async refresh; wait for its requests and render.
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(calls.length, MAPS.length); assert.ok(calls.every(url => url.endsWith('&endless=1')));

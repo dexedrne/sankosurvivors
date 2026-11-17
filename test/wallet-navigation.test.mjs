@@ -17,6 +17,10 @@ const dismissalHandlers = source.split('\n').filter(line =>
   line.startsWith("$('updates').addEventListener('click'") ||
   line.startsWith("for (const id of ['skills', 'gear', 'quests']) $(id).addEventListener('click'")
 ).join('\n');
+const boardHandlers = source.split('\n').filter(line =>
+  line.startsWith("$('lbbtn').onclick") || line.startsWith("$('lbclose').onclick") ||
+  line.startsWith("$('board').addEventListener('click'")
+).join('\n');
 const questHandlers=source.split('\n').filter(line=>line.startsWith("$('questbtn').onclick")||line.startsWith("$('questclose').onclick")).join('\n');
 const coopClose=source.split('\n').find(line=>line.startsWith("$('coopclose').onclick"));
 const page = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -61,6 +65,7 @@ function menu(mode = 'title') {
   for (const [id, parent] of [['walletlinkback', 'walletlink'], ['start', 'title'], ['again', 'end'], ['walletconnect', 'wallet'], ['walletclose', 'wallet'], ['rankedpay', 'ranked'], ['rankedclose', 'ranked'], ['cloudusewal', 'cloudpick'], ['cloudusedev', 'cloudpick']]) element(id, elements.get(parent));
   element('rankedbtn', elements.get('title'));
   element('rankedrulessummary', elements.get('ranked'), 'summary');
+  element('lbbtn', elements.get('title')); element('lbtab', elements.get('board')); element('lbclose', elements.get('board'));
   element('updbtn', elements.get('more')); element('updcopy', elements.get('updates')); element('updclose', elements.get('updates'));
   element('advsummary', elements.get('title'), 'summary'); element('mapsummary', elements.get('title'), 'summary');
   element('settingssummary',elements.get('settings'),'summary');
@@ -97,6 +102,8 @@ function menu(mode = 'title') {
     ${coopClose}
     ${questHandlers}
     ${dismissalHandlers}
+    const showBoard = () => {}, rankedIsOpen = () => false;
+    ${boardHandlers}
     ${moreCapture}
     const buildSettings=()=>{},buildGear=()=>{},buildSkills=()=>{};
     ${settingsHandlers}
@@ -381,4 +388,18 @@ test('Updates wraps native Tab between Back and its first copy button', () => {
   assert.equal(m.active, 'updcopy');
   assert.ok(m.key('Tab', { native: true, shiftKey: true }).prevented);
   assert.equal(m.active, 'updclose');
+});
+
+test('Leaderboard takes focus on open, contains Tab and restores its opener on Escape', () => {
+  const m = menu();
+  m.$('lbbtn').click();
+  assert.equal(m.app.screen(), 'board');
+  assert.equal(m.active, 'lbclose');
+  assert.ok(m.key('Tab', { native: true }).prevented);
+  assert.equal(m.active, 'lbtab');
+  assert.ok(m.key('Tab', { native: true, shiftKey: true }).prevented);
+  assert.equal(m.active, 'lbclose');
+  m.key('Escape');
+  assert.equal(m.app.screen(), 'title');
+  assert.equal(m.active, 'lbbtn');
 });

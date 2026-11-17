@@ -1015,7 +1015,7 @@ function containMenuTab(e) {
   if (e.shiftKey && document.activeElement === nodes[0]) { nodes.at(-1).focus(); e.preventDefault(); }
   else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { nodes[0].focus(); e.preventDefault(); }
 }
-for (const id of ['modemenu', 'guide', 'pets', 'more', 'quests', 'gear', 'skills', 'upgrades', 'settings', 'updates']) $(id).addEventListener('keydown', containMenuTab);
+for (const id of ['modemenu', 'guide', 'pets', 'more', 'quests', 'gear', 'skills', 'upgrades', 'settings', 'updates', 'board']) $(id).addEventListener('keydown', containMenuTab);
 
 // ---- updates log -------------------------------------------------------------------------------------------------------
 $('updnew').classList.toggle('hidden', load('sq-seen', '') === LATEST);
@@ -1192,7 +1192,7 @@ const ADV_NAME = (id) => (ADVENTURER_BY_ID[id] || {}).name || id;
 let lbMap = 'all', lbMode = 'casual', lbEndless = false, lbRequest = 0;
 const rankedIsOpen = () => !$('rankedbtn').classList.contains('hidden');
 // the leaderboard: Ranked standings or Casual, for one map or the top five on every map
-async function showBoard(mapId, mode) {
+async function showBoard(mapId, mode, focusSelector) {
   const request = ++lbRequest;
   if (mode) lbMode = mode; if (mapId && mapId !== 'ranked') lbMap = mapId; lbMap = lbMap || 'all';
   if (mapId === 'ranked') lbMode = 'ranked';
@@ -1200,9 +1200,10 @@ async function showBoard(mapId, mode) {
   $('lbtabs').innerHTML = (rankedIsOpen() ? `<div class="lbmode"><button class="${lbMode === 'ranked' ? 'on' : 'ghost'} rankedtab" data-mode="ranked">Ranked</button><button class="${lbMode === 'casual' ? 'on' : 'ghost'}" data-mode="casual">Casual</button></div>` : '')
     + (lbMode === 'casual' ? `<label class="lbpick">Map <select id="lbmapsel"><option value="all"${lbMap === 'all' ? ' selected' : ''}>All maps</option>${MAPS.map((m) => `<option value="${m.id}"${m.id === lbMap ? ' selected' : ''}>${m.name}</option>`).join('')}</select></label>`
       + `<div class="lbmode lbsub"><button class="${!lbEndless ? 'on' : 'ghost'}" data-endless="0">15:00 runs</button><button class="${lbEndless ? 'on' : 'ghost'}" data-endless="1">Endless</button></div>` : '');
-  for (const b of $('lbtabs').querySelectorAll('[data-mode]')) b.onclick = () => showBoard(null, b.dataset.mode);
-  if ($('lbmapsel')) $('lbmapsel').onchange = (e) => showBoard(e.target.value, 'casual');
-  for (const b of $('lbtabs').querySelectorAll('[data-endless]')) b.onclick = () => { lbEndless = b.dataset.endless === '1'; showBoard(null, 'casual'); };
+  for (const b of $('lbtabs').querySelectorAll('[data-mode]')) b.onclick = () => showBoard(null, b.dataset.mode, `[data-mode="${b.dataset.mode}"]`);
+  if ($('lbmapsel')) $('lbmapsel').onchange = (e) => showBoard(e.target.value, 'casual', '#lbmapsel');
+  for (const b of $('lbtabs').querySelectorAll('[data-endless]')) b.onclick = () => { lbEndless = b.dataset.endless === '1'; showBoard(null, 'casual', `[data-endless="${b.dataset.endless}"]`); };
+  if (focusSelector) navFocus($('lbtabs').querySelector(focusSelector) || $('lbclose'));
   $('lblist').innerHTML = '<p class="dim">Loading…</p>';
   if (lbMode === 'ranked') return showRankedBoard(request);
   const endless = lbEndless, all = lbMap === 'all';
@@ -1304,9 +1305,9 @@ function chaseText(t, kills) {
   return ` · ${where} · ${fmtT(Math.max(1, next.t - t))} to ${to}`;
 }
 const localBest = () => { const b = load('sq-best', null); return b ? `${fmtT(Number(b.t) || 0)}, level ${Number(b.level) || 0}, ${Number(b.kills) || 0} slain` : 'none yet'; };
-$('lbbtn').onclick = () => { $('board').classList.remove('hidden'); showBoard(null, rankedIsOpen() ? 'ranked' : 'casual'); };
-$('lbclose').onclick = () => $('board').classList.add('hidden');
-$('board').addEventListener('click', (e) => { if (e.target.id === 'board') $('board').classList.add('hidden'); });
+$('lbbtn').onclick = () => { $('board').classList.remove('hidden'); navFocus($('lbclose')); showBoard(null, rankedIsOpen() ? 'ranked' : 'casual'); };
+$('lbclose').onclick = () => { $('board').classList.add('hidden'); navFocus($('lbbtn')); };
+$('board').addEventListener('click', (e) => { if (e.target.id === 'board') $('lbclose').click(); });
 let lastRun = null;
 $('lbname').value = load('sq-name', '');
 async function submitScore(target = lastRun) {
@@ -2824,6 +2825,7 @@ function navBack() {
     if (id === 'settings') { $('setclose').click(); return true; }
     if (id === 'quests') { $('questclose').click(); return true; }
     if (id === 'updates') { $('updclose').click(); return true; }
+    if (id === 'board') { $('lbclose').click(); return true; }
     if (id === 'modemenu' || id === 'guide' || id === 'pets' || id === 'more' || id === 'coop' || id === 'upgrades' || id === 'ranked') { $(id + 'close').click(); return true; }
     if (id === 'wallet') $('walletclose').click(); else $(id).classList.add('hidden');
     navFocus(null); return true;
