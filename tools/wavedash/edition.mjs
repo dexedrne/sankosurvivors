@@ -81,6 +81,7 @@ export function transformMain(source) {
   s = once(s, "  $('racersportal')?.classList.toggle('hidden', category !== 'fun');\n");
   s = once(s, '  if (!document.hidden) bunCompanions.sync(!!bunChoice(selectedPet));\n');
   s = once(s, ' && (!sim.coop || !!coop?.run && !coop.run.held && !coop.run.closed)');
+  s = once(s, "  view.alpha = sim.coop ? (mode === 'play' ? coop?.run?.renderAlpha ?? 0 : 0) : Math.min(1, Math.max(0, acc / TICK)); // Co-op has its own confirmed-step clock; only solo advances acc.", "  view.alpha = Math.min(1, Math.max(0, acc / TICK)); // The solo edition uses its simulation accumulator.");
   s = between(s, 'function queuePageReload(', '// ---- quests', reload);
   s = once(s, '  syncTitleNames();\n');
   s = once(s, 'async function startRun(live = null)', 'async function startRun()');

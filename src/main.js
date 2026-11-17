@@ -3026,7 +3026,7 @@ function loop(ts) {
   view.enemySpellTargets = Object.fromEntries(sim.eproj.filter(p => typeof p.target === 'string' && Number.isSafeInteger(p.caster)).map(p => [p.id, { target: p.target, caster: p.caster, speed: Math.hypot(p.vx, p.vz), radius: p.r }]));
   if (sim.pace >= 2) view.spellHits = view.fx.filter(f => f.k === 'spell-hit');
   view.petActive = mode === 'play' && !waitingForMove && !Object.keys(view.pending || {}).length && !view.over && (!sim.coop || !!coop?.run && !coop.run.held && !coop.run.closed);
-  view.alpha = Math.min(1, Math.max(0, acc / TICK)); // where between sim ticks this frame is (the renderer slides spells by it)
+  view.alpha = sim.coop ? (mode === 'play' ? coop?.run?.renderAlpha ?? 0 : 0) : Math.min(1, Math.max(0, acc / TICK)); // Co-op has its own confirmed-step clock; only solo advances acc.
   if (view.fx.some((f) => f.k === 'die' && f.boss)) slowmo = 0.9;
   audio.onFx(view.fx, mode === 'play' ? view : null, sim.map.world && view.region ? MAP_BY_ID[view.region].music : sim.map.music);
   const renderView = coop?.run && mode === 'play' ? predictedView(view, coop.run.pose(), PLAYER) : view;
