@@ -1721,7 +1721,7 @@ export const text = {
   "-1 damage taken per level. You wear each new tier.": "-1 pinsalang natatanggap bawat level. Isinusuot mo ang bawat bagong antas.",
   "+10% experience per level.": "+10% karanasan bawat level.",
   "+10% attack area per level. Arrows and thrown swords hit wider too.": "+10% saklaw ng atake bawat level. Lumalawak din ang tama ng mga palaso at ibinabatong espada.",
-  "+1 projectile from every weapon that throws or fires (+2 at level 4), and they fly 6% farther per level.": "+1 bala sa bawat sandatang nagbabato o nagpapaputok (+2 sa level 4), at lumilipad ang mga ito nang 6% na mas malayo bawat level.",
+  "+1 projectile from every weapon that throws or fires, and they fly 6% farther per level.": "+1 bala sa bawat sandatang nagbabato o nagpapaputok, at lumilipad ang mga ito nang 6% na mas malayo bawat level.",
   "+5% critical chance per level; critical hits hit harder too.": "+5% tsansa ng kritikal na tama bawat level; mas malakas din ang kritikal na tama.",
   "Monsters that hit you take 8 damage per level back.": "Ang mga halimaw na tumama sa iyo ay makakatanggap ng 8 pinsala bawat level bilang ganti.",
   "+15% coins and more reward caskets per level.": "+15% barya at mas maraming kabang may gantimpala bawat level.",

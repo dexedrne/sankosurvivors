@@ -480,7 +480,7 @@ test('new upgrades: Cape widens, Feather adds projectiles, Amanita crits harder,
   const base = playerStats(p);
   p.passives = { area: 5, amount: 4, crit: 5, thorns: 3, greed: 2 };
   const st = playerStats(p);
-  assert.ok(st.area > 1.45 && st.amount === 2 && st.critC > base.critC + 0.2 && st.critM > base.critM && st.thorns === 24 && st.coin > base.coin, JSON.stringify(st));
+  assert.ok(st.area > 1.45 && st.amount === 1 && st.critC > base.critC + 0.2 && st.critM > base.critM && st.thorns === 24 && st.coin > base.coin, JSON.stringify(st));
   // thorns: a monster touching you gets hurt back
   p.weapons = {}; sim.enemies.length = 0; spawnEnemy(sim, 'goblin', p.x + 0.3, p.z, 50); const g = sim.enemies[0]; const hp0 = g.hp;
   p.inv = 0; for (let i = 0; i < 6; i++) step(sim, {}, TICK);

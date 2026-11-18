@@ -369,7 +369,7 @@ export function playerStats(p, meta = p.meta || {}) {
     projectileSpeed: 1 + 0.1 * m('projectileSpeed') + (p.pace >= 2 ? 0.05 * passiveStrength(p, 'air') : 0),
     rerolls: REROLLS_PER_RUN + m('rerolls'), revives: m('revive'),
     area: 1 + 0.1 * passiveStrength(p, 'area') + 0.05 * m('area'),
-    amount: m('amount') + (passiveLevel(p, 'amount') >= 1 ? 1 : 0) + (passiveLevel(p, 'amount') >= 4 ? 1 : 0),
+    amount: m('amount') + (passiveLevel(p, 'amount') >= 1 ? 1 : 0),
     reach: 1 + 0.06 * passiveStrength(p, 'amount'), // Feather: projectiles fly a little farther every level
     critC: 0.08 + 0.05 * passiveStrength(p, 'crit'), critM: 1.8 + 0.1 * passiveStrength(p, 'crit') + (p.pace >= 2 ? 0.2 * passiveStrength(p, 'void') : 0),
     thorns: 8 * passiveStrength(p, 'thorns'),

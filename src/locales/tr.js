@@ -1721,7 +1721,7 @@ export const text = {
   "-1 damage taken per level. You wear each new tier.": "Her seviyede alınan hasar -1. Her yeni kademeyi kuşanırsın.",
   "+10% experience per level.": "Her seviyede +%10 deneyim.",
   "+10% attack area per level. Arrows and thrown swords hit wider too.": "Her seviyede +%10 saldırı alanı. Oklar ve fırlatılan kılıçlar da daha geniş alana vurur.",
-  "+1 projectile from every weapon that throws or fires (+2 at level 4), and they fly 6% farther per level.": "Atış yapan her silaha +1 mermi (4. seviyede +2); her seviyede %6 daha uzağa giderler.",
+  "+1 projectile from every weapon that throws or fires, and they fly 6% farther per level.": "Atış yapan her silaha +1 mermi; her seviyede %6 daha uzağa giderler.",
   "+5% critical chance per level; critical hits hit harder too.": "Her seviyede +%5 kritik vuruş şansı; kritik vuruşların hasarı da artar.",
   "Monsters that hit you take 8 damage per level back.": "Sana vuran canavarlar her seviye için 8 karşı hasar alır.",
   "+15% coins and more reward caskets per level.": "Her seviyede +%15 altın ve daha fazla ödül sandığı.",

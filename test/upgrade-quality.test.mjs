@@ -42,11 +42,11 @@ test('maxed weapons/passives cannot receive more quality or farm Epic healing',(
  assert.equal(JSON.stringify({weapons:p.weapons,passives:p.passives,quality:p.quality}),before);assert.equal(p.hp,1);
  const ids=S.rollChoices(sim,p).map(c=>c.id);assert.ok(!ids.includes('bow')&&!ids.includes('might'));
 });
-test('passive strength changes continuous gains, while Feather thresholds and Curse remain integer',()=>{
+test('passive strength changes continuous gains while Feather stays at one projectile and Curse remains integer',()=>{
  helpers();const{sim,p}=fresh();pick(sim,p,'passive','might','epic');close(S.playerStats(p).might,1.18);assert.equal(p.passives.might,1);
  pick(sim,p,'passive','vigor','epic');assert.equal(p.maxHp,130);close(S.playerStats(p).regen,.225);
  for(let i=0;i<3;i++)pick(sim,p,'passive','amount','epic');let stats=S.playerStats(p);assert.equal(stats.amount,1);close(stats.reach,1.27);
- pick(sim,p,'passive','amount','common');assert.equal(S.playerStats(p).amount,2);
+ pick(sim,p,'passive','amount','common');stats=S.playerStats(p);assert.equal(stats.amount,1);close(stats.reach,1.33);
  pick(sim,p,'passive','curse','epic');assert.equal(p.passives.curse,1);assert.equal(p.quality.passives.curse||0,0);
  let saw=false;for(let i=0;i<100;i++)for(const c of S.rollChoices(sim,p))if(c.id==='curse'){saw=true;assert.equal(c.rarity,undefined);assert.equal(c.level-c.from,1);}assert.equal(saw,true);
 });

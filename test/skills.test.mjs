@@ -60,7 +60,7 @@ test('new skill stats stack with passives and initialize rerolls and revives', (
   const s = createSim({ meta: { projectileSpeed: 2, amount: 1, area: 2, luck: 3, coins: 5, rerolls: 3, revive: 1 } }), p = s.players[0];
   p.passives = { area: 2, amount: 4, greed: 2 };
   const st = playerStats(p);
-  close(st.projectileSpeed, 1.2); assert.equal(st.amount, 3); close(st.area, 1.3);
+  close(st.projectileSpeed, 1.2); assert.equal(st.amount, 2); close(st.area, 1.3);
   close(st.luck, 1.45); close(st.casket, 1.5 * 1.45); close(st.coinBonus, 1.5);
   close(st.coin, 1.3); // end-run Coins must not also increase coin drops
   assert.equal(p.rerolls, C.REROLLS_PER_RUN + 3); assert.equal(p.revives, 1);
@@ -86,6 +86,15 @@ test('projectile speed and amount reach every Feather weapon; Area matches Cape'
   assert.equal(snapshot(b.s).players[0].shields.count - snapshot(a.s).players[0].shields.count, 1);
   const wide = shots('shield', { area: 2 });
   close(snapshot(wide.s).players[0].shields.radius, C.WEAPONS.shield.stats(1).radius * 1.05);
+});
+
+test('Feather adds one projectile at every rank while travel distance keeps growing', () => {
+  const base = shots('bow');
+  for (let rank = 1; rank <= C.MAX_PASSIVE_LEVEL; rank++) {
+    const withFeather = shots('bow', {}, {amount: rank});
+    assert.equal(withFeather.shots.length, base.shots.length + 1, 'Feather rank ' + rank);
+    close(playerStats(withFeather.p).reach, 1 + 0.06 * rank);
+  }
 });
 
 test('Luck increases marginal casket odds and adds bonus boss chests without replacing guaranteed loot', () => {

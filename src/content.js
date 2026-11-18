@@ -263,7 +263,7 @@ export const PASSIVES = {
   armor:   { name: 'Plate Armor',   item: 'Bronze Chestplate', blurb: '-1 damage taken per level. You wear each new tier.' },
   growth:  { name: 'Wizard Hat',    item: 'Wizard Hat',    blurb: '+10% experience per level.' },
   area:    { name: 'Cape',          item: 'Cape',          blurb: '+10% attack area per level. Arrows and thrown swords hit wider too.' },
-  amount:  { name: 'Feather',       item: 'Feather',       blurb: '+1 projectile from every weapon that throws or fires (+2 at level 4), and they fly 6% farther per level.' },
+  amount:  { name: 'Feather',       item: 'Feather',       blurb: '+1 projectile from every weapon that throws or fires, and they fly 6% farther per level.' },
   crit:    { name: 'Amanita',       item: 'Amanita',       blurb: '+5% critical chance per level; critical hits hit harder too.' },
   thorns:  { name: 'Scorpion Carapace', item: 'Scorpion Carapace', blurb: 'Monsters that hit you take 8 damage per level back.' },
   greed:   { name: 'Rusty Key',     item: 'Rusty Key',     blurb: '+15% coins and more reward caskets per level.' },

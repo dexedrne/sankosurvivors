@@ -1721,7 +1721,7 @@ export const text = {
   "-1 damage taken per level. You wear each new tier.": "-1 de daño recibido por nivel. Equipas cada nueva categoría.",
   "+10% experience per level.": "+10% de experiencia por nivel.",
   "+10% attack area per level. Arrows and thrown swords hit wider too.": "+10% de área de ataque por nivel. Las flechas y espadas arrojadizas también abarcan más.",
-  "+1 projectile from every weapon that throws or fires (+2 at level 4), and they fly 6% farther per level.": "+1 proyectil por cada arma que lanza o dispara (+2 en el nivel 4); vuelan un 6% más lejos por nivel.",
+  "+1 projectile from every weapon that throws or fires, and they fly 6% farther per level.": "+1 proyectil por cada arma que lanza o dispara; vuelan un 6% más lejos por nivel.",
   "+5% critical chance per level; critical hits hit harder too.": "+5% de probabilidad de crítico por nivel; los golpes críticos también hacen más daño.",
   "Monsters that hit you take 8 damage per level back.": "Los monstruos que te golpean reciben 8 de daño de vuelta por nivel.",
   "+15% coins and more reward caskets per level.": "+15% de monedas y más cofres de recompensas por nivel.",
