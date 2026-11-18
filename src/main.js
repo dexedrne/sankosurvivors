@@ -53,7 +53,7 @@ import { walletConnectLinks } from './wallet-connect.js';
 import { connect as requestWallet, disconnect as walletDisconnect, restore as walletRestore, current as walletNow, walletRevision, onWallet, balances, fmtDmt, fmtEth, GET_DMT, BRIDGE, arbiscanTx, arbiscanAddress, ETH_FOR_GAS } from './wallet.js';
 import {
   MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID, ENEMIES, WEAPONS, PASSIVES, EVOLUTIONS, evolutionPassives, SPELL_EVOLUTIONS, spellEvolutions, SKILLS, SKILL_IDS, clampSkills, skillCost,
-  weaponItem, weaponTitle, weaponDisplay, evolvedBy, weaponIdsAt, passiveItem, passiveTitle, itemIconFile,
+  MORTAR_STAT_ROWS, weaponItem, weaponTitle, weaponDisplay, evolvedBy, weaponIdsAt, passiveItem, passiveTitle, itemIconFile,
   GEAR, GEAR_SLOTS, GEAR_SLOT_NAMES, GEAR_SETS, GEAR_MAX_LV, gearUpgradeCost, smithNext, smithPrev, gearBonus, gearPieceBonus, bonusText, deltaText, compareGear, gearRarity, alchValue, ARMOR_TIERS,
   gearGroups, isWeaponItem, WEAPON_ITEMS, weaponItemText, weaponItemLabel, weaponStep, CARD_RARITIES, CARD_RARITY_NAMES, CARD_HEAL, weaponStats, passiveStrength, cardLuck,
 } from './content.js';
@@ -2461,24 +2461,33 @@ function showLevelUp() {
   const wrap = $('cards'); wrap.innerHTML = '';
   $('lutitle').textContent = pend.spell ? 'Choose a Blast' : pend.choices.some((c) => c.kind === 'evolve') ? 'Evolution!' : 'Level up!';
   const me = sim.players.find((q) => q.id === PLAYER);
-  function statLines(c) {
+  const shardCards = {
+    air: { key: 'projectileSpeed', label: 'Projectile speed', help: 'Ground Air Shards still give experience.' },
+    fire: { key: 'magic', label: 'Magic damage', help: 'Affects Spells and the Lighter.' },
+  };
+  function statLines(c, shard) {
     if (!(sim.pace >= 2) || !me || c.id === 'curse' || !['weapon', 'passive'].includes(c.kind)) return '';
     const after = previewChoice(sim, me, c), fresh = !(c.kind === 'weapon' ? me.weapons[c.id] : me.passives[c.id]);
     let before, next, rows;
     if (c.kind === 'weapon') {
       before = weaponStats(me, c.id); next = weaponStats(after, c.id);
-      rows = [['dmg', 'Base damage'], ['cd', 'Cooldown', ' s'], ['count', 'Projectiles'], ['pierce', 'Pierce'], ['bounces', 'Bounces'], ['range', 'Range'], ['radius', 'Radius'], ['r', 'Size'], ['arc', 'Arc'], ['spin', 'Orbit speed'], ['burst', 'Burst radius'], ['boost', 'Tumble boost', '×'], ['boostT', 'Tumble boost time', ' s'], ['slow', 'Slow', '%'], ['slowT', 'Slow time', ' s'], ['pull', 'Pull distance'], ['hooks', 'Hooks'], ['mag', 'Magazine'], ['reload', 'Reload', ' s']];
+      rows = c.id === 'mortar' ? MORTAR_STAT_ROWS : [['dmg', 'Base damage'], ['cd', 'Cooldown', ' s'], ['count', 'Projectiles'], ['pierce', 'Pierce'], ['bounces', 'Bounces'], ['range', 'Range'], ['radius', 'Radius'], ['r', 'Size'], ['arc', 'Arc'], ['spin', 'Orbit speed'], ['burst', 'Burst radius'], ['boost', 'Tumble boost', '×'], ['boostT', 'Tumble boost time', ' s'], ['slow', 'Slow', '%'], ['slowT', 'Slow time', ' s'], ['pull', 'Pull distance'], ['hooks', 'Hooks'], ['mag', 'Magazine'], ['reload', 'Reload', ' s']];
     } else {
       const stats = p => ({ ...playerStats(p), cardLuck: cardLuck(p.meta, { greed: passiveStrength(p, 'greed') }) });
       before = stats(me); next = stats(after);
-      rows = { cheese: [['cheeseShield', 'Shield duration', ' s']], evasion: [['evasion', 'Evasion chance', '%']], fortune: [['might', 'Damage multiplier', '×']], might: [['might', 'Damage multiplier', '×']], haste: [['haste', 'Cooldown multiplier', '×']], boots: [['speed', 'Movement speed']], magnet: [['magnet', 'Pickup range']], armor: [['armor', 'Armor']], growth: [['growth', 'XP multiplier', '×']], vigor: [['maxHp', 'Maximum health'], ['regen', 'Health per second']], greed: [['coin', 'Coin multiplier', '×'], ['casket', 'Casket multiplier', '×'], ['cardLuck', 'Card luck', '%']], area: [['area', 'Area multiplier', '×']], amount: [['amount', 'Extra projectiles'], ['reach', 'Reach multiplier', '×']], crit: [['critC', 'Critical chance', '%'], ['critM', 'Critical multiplier', '×']], thorns: [['thorns', 'Thorns damage']], air: [['projectileSpeed', 'Projectile speed multiplier', '×']], water: [['heal', 'Healing multiplier', '×']], earth: [['knockback', 'Knockback multiplier', '×']], fire: [['magic', 'Magic damage multiplier', '×']], void: [['critM', 'Critical multiplier', '×']] }[c.id];
+      if (shard) {
+        const gain = Number(((next[shard.key] - before[shard.key]) * 100).toFixed(4));
+        return `<div class="upstats"><div><span>${shard.label}</span><b>+${gain}%</b></div></div>`;
+      }
+      rows = { cheese: [['cheeseShield', 'Shield duration', ' s']], evasion: [['evasion', 'Evasion chance', '%']], fortune: [['might', 'Damage multiplier', '×']], might: [['might', 'Damage multiplier', '×']], haste: [['haste', 'Cooldown multiplier', '×']], boots: [['speed', 'Movement speed']], magnet: [['magnet', 'Pickup range']], armor: [['armor', 'Armor']], growth: [['growth', 'XP multiplier', '×']], vigor: [['maxHp', 'Maximum health'], ['regen', 'Health per second']], greed: [['coin', 'Coin multiplier', '×'], ['casket', 'Casket multiplier', '×'], ['cardLuck', 'Card luck', '%']], area: [['area', 'Area multiplier', '×']], amount: [['amount', 'Extra projectiles'], ['reach', 'Reach multiplier', '×']], crit: [['critC', 'Critical chance', '%'], ['critM', 'Critical multiplier', '×']], thorns: [['thorns', 'Thorns damage']], water: [['heal', 'Healing multiplier', '×']], earth: [['knockback', 'Knockback multiplier', '×']], void: [['critM', 'Critical multiplier', '×']] }[c.id];
     }
     const number = (n, unit) => (unit === '×' ? '×' : '') + Number((unit === '%' ? n * 100 : n).toFixed(4)) + (unit && unit !== '×' ? unit : '');
-    return '<div class="upstats">' + (c.kind === 'weapon' ? '<div>Base weapon stats</div>' : '') + rows.filter(([key]) => typeof next[key] === 'number').map(([key, label, unit]) => `<div><span>${label}</span><b>${fresh ? '' : number(before[key], unit) + ' → '}${number(next[key], unit)}</b></div>`).join('') + '</div>';
+    return '<div class="upstats">' + (c.kind === 'weapon' ? '<div>Base weapon stats</div>' : '') + rows.filter(([key]) => typeof next[key] === 'number').map(([key, label, unit]) => `<div><span>${label}</span><b>${fresh || (c.id === 'mortar' && before[key] === next[key]) ? '' : number(before[key], unit) + ' → '}${number(next[key], unit)}</b></div>`).join('') + '</div>';
   }
   pend.choices.forEach((c, i) => {
     // Rarity strengthens one accepted level; discrete unlocks use the integer level.
     const ri = c.rarity ? Math.max(0, CARD_RARITIES.indexOf(c.rarity)) : -1;
+    const shard = sim.pace >= 2 && me && c.kind === 'passive' && Object.hasOwn(shardCards, c.id) ? shardCards[c.id] : null;
     const el = document.createElement('div'); el.className = 'card' + (c.banished ? ' banished' : '') + (c.kind === 'slot' ? ' slot-upgrade' : '') + (c.kind === 'evolve' ? ' evo' : '') + (c.kind === 'weapon' && WEAPONS[c.id]?.legendary ? ' legendary' : '') + (ri >= 0 ? ` rar r-${CARD_RARITIES[ri]}` : ''); el.dataset.i = i; el.setAttribute('role', 'button'); el.setAttribute('aria-disabled', String(!!c.banished)); el.tabIndex = c.banished ? -1 : 0;
     const from = typeof c.from === 'number' && c.rarity ? c.from : c.level - 1; // the level you have now
     const lvTag = () => (from === 0 ? (c.level > 1 ? `NEW · Lv ${c.level}` : 'NEW') : c.level - from > 1 ? `Lv ${from} → ${c.level}` : `Lv ${c.level}`);
@@ -2504,13 +2513,13 @@ function showLevelUp() {
         else if (needs.length) text += ` <span>${needs.length === 2 ? `Evolves with ${needs[0]} or ${needs[1]}.` : `Evolves with ${needs[0]}.`}</span>`;
       }
     } else if (c.kind === 'passive') {
-      const p = PASSIVES[c.id]; name = passiveTitle(c.id, c.level); tag = lvTag(); text = sim.pace >= 2 && c.id !== 'curse' ? `<span>Common rank:</span> ${p.blurb}` : p.blurb; icon = iconHTML('passive', c.id, c.level);
+      const p = PASSIVES[c.id]; name = passiveTitle(c.id, c.level); tag = lvTag(); text = shard ? `<span>${shard.help}</span>` : sim.pace >= 2 && c.id !== 'curse' ? `<span>Common rank:</span> ${p.blurb}` : p.blurb; icon = iconHTML('passive', c.id, c.level);
       const ev = evolvedBy(c.id, sim.pace, sim.ranked);
       if (ev.length) text += ` Evolves ${ev.map(id => id === 'staff' && sim.pace >= 2 ? WEAPONS.staff.name : weaponTitle(id, 6, stepOf(id))).join(', ')}.`;
     } else { const hp = CARD_HEAL[Math.max(0, ri)]; name = 'Cooked Bubba Bass'; tag = 'Heal'; text = hp >= 9999 ? 'Restore all your health.' : `Restore ${hp} health.`; icon = iconHTML('item', 'Cooked Bubba Bass'); }
     if (ri === 3 && c.kind !== 'heal') text += c.kind === 'weapon' ? ' <span>Heals you to full.</span>' : ' Heals you to full.';
     const rar = (c.kind === 'weapon' && WEAPONS[c.id]?.legendary ? '<div class="legend">Legendary</div>' : '') + (ri >= 0 ? `<div class="rarity">${CARD_RARITY_NAMES[ri]}</div>` : '');
-    el.innerHTML = `${c.banished ? '<div class="banished-label">Banished</div>' : ''}${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p>${statLines(c)}<div class="key">[${i + 1}]</div>`;
+    el.innerHTML = `${c.banished ? '<div class="banished-label">Banished</div>' : ''}${rar}${icon}<h3>${name}</h3><div class="tier">${tag}</div><p>${text}</p>${statLines(c, shard)}<div class="key">[${i + 1}]</div>`;
     el.onfocus = () => { selCard = i; markCard(); }; el.onclick = () => pick(i); wrap.appendChild(el);
   });
   $('reroll').innerHTML = `Reroll<span class="key"> (R)</span> · ${me ? me.rerolls : 0} left`; $('reroll').disabled = !!pend.spell || !me || me.rerolls <= 0;

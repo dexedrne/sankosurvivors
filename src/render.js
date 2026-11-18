@@ -1630,6 +1630,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
   }
   // a painted splash on the ground instead of a flat ring: a broken wave front that races out and slows, a hot white flash
   // in the middle, a soft fill, sparkling flecks, and for blasts radial streaks (kind 1). Drawn in a shader, so no sprites.
+  const POISON_POOL_SPLASH = 2;
   const splashMat = (color, kind) => new THREE.ShaderMaterial({
     uniforms: { uProg: { value: 0 }, uColor: { value: new THREE.Color(color).multiplyScalar(1.35) }, uKind: { value: kind }, uSeed: { value: Math.random() * 50 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
@@ -1638,6 +1639,15 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y); }
       void main(){
         vec2 p = vUv * 2.0 - 1.0; float r = length(p); float a = atan(p.y, p.x + 1e-5); float t = uProg;
+        if (uKind > 1.5) {
+          float edge = smoothstep(0.82, 0.91, r) * (1.0 - smoothstep(0.91, 0.959, r));
+          float ripple = 0.6 + 0.4 * n(p * 9.0 + t * 2.0);
+          float body = (1.0 - smoothstep(0.66, 0.955, r)) * ripple;
+          float fade = 1.0 - smoothstep(0.8, 1.0, t);
+          gl_FragColor = vec4(mix(vec3(0.12, 0.31, 0.04), uColor, edge),
+                              (0.42 * body + 0.82 * edge) * fade);
+          return;
+        }
         float front = mix(0.2, 0.97, 1.0 - pow(1.0 - t, 2.4));
         float rr = r + (n(vec2(a * 2.6 + 9.0, t * 1.5)) - 0.5) * 0.12;
         float rim = smoothstep(front - 0.18, front - 0.03, rr) * (1.0 - smoothstep(front - 0.03, front + 0.03, rr));
@@ -1650,7 +1660,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
         vec3 col = mix(uColor, vec3(1.0), clamp(core * 0.85 + rim * 0.3 * (1.0 - t), 0.0, 1.0));
         gl_FragColor = vec4(col * alpha, alpha);
       }`),
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    transparent: true, depthWrite: false, blending: kind === POISON_POOL_SPLASH ? THREE.NormalBlending : THREE.AdditiveBlending, side: THREE.DoubleSide,
   });
   function ringFx(x, z, r, color, kind = 0, life = 0.45) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2.1, r * 2.1).rotateX(-Math.PI / 2), splashMat(color, kind));
@@ -2003,6 +2013,26 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       else if (f.k === 'aim') aimFx(f.x, f.z, f.a, f.len, f.t);
       else if (f.k === 'volley') spFx.volley.push(f); // where the boss stood: its shots start there (the game shows no cast puff; the cast sound stays in audio.js)
       else if (f.k === 'quake') { meleeFx.quake(f.x, f.z, f.r); cam.shake = Math.max(cam.shake, 0.18); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
+      else if (f.k === 'poison-throw') {
+        const flask = new THREE.Mesh(new THREE.LatheGeometry([
+          new THREE.Vector2(0, -0.32), new THREE.Vector2(0.18, -0.3), new THREE.Vector2(0.26, -0.08),
+          new THREE.Vector2(0.22, 0.1), new THREE.Vector2(0.09, 0.2), new THREE.Vector2(0.09, 0.33), new THREE.Vector2(0, 0.33),
+        ], 8), new THREE.MeshBasicMaterial({ color: 0xb8ff56 }));
+        flask.name = 'poison-flask';
+        const lift = groundAt(f.x, f.z) + 1.15, landing = groundAt(f.tx, f.tz) + 0.15;
+        flask.position.set(f.x, lift, f.z);
+        addEffect(flask, f.t, 0);
+        flask.userData.animate = fraction => {
+          flask.position.set(THREE.MathUtils.lerp(f.x, f.tx, fraction),
+            THREE.MathUtils.lerp(lift, landing, fraction) + 6 * fraction * (1 - fraction),
+            THREE.MathUtils.lerp(f.z, f.tz, fraction));
+          flask.rotation.z = fraction * Math.PI * 2;
+        };
+      }
+      else if (f.k === 'poison-pool') {
+        ringFx(f.x, f.z, f.r, 0x96ff49, POISON_POOL_SPLASH, f.t);
+        ringFx(f.x, f.z, f.r, 0x96ff49, 0.5, 0.45);
+      }
       else if (f.k === 'net') { netFx(f.x, f.z, f.r, f.t, f.evo); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'hook') { hookFx(f.x, f.z, f.tx, f.tz, f.evo); const pa = playerActors.get(f.player || localId); if (pa && pa.kit && pa.kit.play) pa.kit.play('slash'); }
       else if (f.k === 'burst') spFx.burst.push(f); // the staff's splash: a thin ring in the spell's colour when the bolt lands (spellLand)
@@ -2378,6 +2408,7 @@ export async function createRenderer(canvas, onProgress = () => {}) {
       const m = effects[i], u = m.userData; u.life -= dt;
       if (u.life <= 0) { dyn.remove(m); m.geometry.dispose(); m.material.dispose(); effects.splice(i, 1); continue; }
       if (m.userData.shader) m.material.uniforms.uProg.value = 1 - u.life / u.max; else m.material.opacity = 0.8 * (u.life / u.max);
+      u.animate?.(1 - u.life / u.max);
       if (u.grow) m.scale.setScalar((u.base || 1) * (1 + u.grow * (1 - u.life / u.max)));
     }
 

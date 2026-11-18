@@ -1,4 +1,4 @@
-import {WEAPONS,EVOLUTIONS,GEAR,GEAR_SLOT_NAMES,GEAR_SLOTS,GEAR_MAX_LV,weaponDisplay,weaponStep,weaponMetal,weaponStats,evolveStats,evolutionPassives,evolvedBy,PASSIVES,passiveTitle,passiveStrength,fortuneBonus,MAX_PASSIVE_LEVEL,gearPieceBonus,bonusText} from './content.js';
+import {MORTAR_STAT_ROWS,WEAPONS,EVOLUTIONS,GEAR,GEAR_SLOT_NAMES,GEAR_SLOTS,GEAR_MAX_LV,weaponDisplay,weaponStep,weaponMetal,weaponStats,evolveStats,evolutionPassives,evolvedBy,PASSIVES,passiveTitle,passiveStrength,fortuneBonus,MAX_PASSIVE_LEVEL,gearPieceBonus,bonusText} from './content.js';
 import {playerStats} from './sim.js';
 const statRows=[['dmg','Base damage'],['cd','Cooldown',' s'],['count','Projectiles'],['pierce','Pierce'],['bounces','Bounces'],['range','Range'],['radius','Radius'],['r','Size'],['arc','Arc'],['spin','Orbit speed'],['speed','Projectile speed'],['burst','Burst radius'],['boost','Tumble boost','×'],['boostT','Tumble boost time',' s'],['slow','Slow','%'],['slowT','Slow time',' s'],['pull','Pull distance'],['hooks','Hooks'],['mag','Magazine'],['reload','Reload',' s']];
 export function itemInspection(player,kind,id,pace=2,ranked=false) {
@@ -28,7 +28,7 @@ export function itemInspection(player,kind,id,pace=2,ranked=false) {
   if(pace>=2){const metal=weaponMetal(id,player.wm);if(Number.isFinite(stats.dmg))stats.dmg*=metal.dmg;if(metal.pierce)stats.pierce=(stats.pierce||0)+metal.pierce;}
   const title=weaponDisplay(id,level,evolved,pace>=2?weaponStep(id,player.wm):null,pace>=2?player.spellElement:null).name;
   const details=[`Level: ${level}`,evolved?EVOLUTIONS[id].blurb:WEAPONS[id].blurb];
-  for(const[key,label,suffix='']of statRows)if(Number.isFinite(stats[key]))details.push(`${label}: ${suffix==='×'?'×':''}${Math.round(stats[key]*(suffix==='%'?100:1)*100)/100}${suffix==='×'?'':suffix}`);
+  for(const[key,label,suffix='']of (id==='mortar'?MORTAR_STAT_ROWS:statRows))if(Number.isFinite(stats[key]))details.push(`${label}: ${suffix==='×'?'×':''}${Math.round(stats[key]*(suffix==='%'?100:1)*100)/100}${suffix==='×'?'':suffix}`);
   details.push('Weapon values before shared bonuses.');
   if(!evolved&&EVOLUTIONS[id])details.push('Evolves with '+evolutionPassives(id,pace).map(p=>PASSIVES[p].name).join(' or ')+'.');
   return {title,details};

@@ -164,6 +164,25 @@ test('new weapon card shows resulting stats, retained Common improves existing q
  const h=setup({shown:false,choices:[{kind:'weapon',id:'bow',level:1,from:0,rarity:'epic'}]});h.p.weapons={katana:1};h.showReal();let html=h.element('cards').children[0].innerHTML;assert.ok(html.includes('Base damage'));assert.ok(html.includes('9.9'));assert.ok(html.includes('1.155'));assert.ok(!html.includes('0 →'));assert.ok(html.includes('NEW'));h.pick(0);assert.equal(h.p.weapons.bow,1);
  const k=setup({shown:false,choices:[{kind:'weapon',id:'bow',level:6,from:5,rarity:'common'}]});k.p.weapons={bow:5};k.p.quality.weapons.bow=50;k.showReal();html=k.element('cards').children[0].innerHTML;assert.ok(html.includes('21.1 → 23.9'));assert.ok(html.includes('Winged Boots'));assert.ok(html.includes('Amanita'));
 });
+for (const [id, label, rarity, gain, stat] of [
+  ['air', 'Projectile speed', 'rare', '6.5', 'projectileSpeed'],
+  ['air', 'Projectile speed', 'epic', '7.5', 'projectileSpeed'],
+  ['fire', 'Magic damage', 'rare', '7.8', 'magic'],
+  ['fire', 'Magic damage', 'epic', '9', 'magic'],
+]) test(`Ranked ${rarity} ${id} shard shows its actual upgrade`, () => {
+  const h = setup({ranked:true, shown:false, choices:[{kind:'passive', id, level:2, from:1, rarity}]});
+  h.sim.ranked = true;
+  h.p.passives[id] = 1;
+  const before = playerStats(h.p)[stat];
+  h.showReal();
+  const html = h.element('cards').children[0].innerHTML;
+  assert.ok(html.includes(`<span>${label}</span><b>+${gain}%</b>`), html);
+  assert.doesNotMatch(html, /Common rank:|\+[56]% .* per level/);
+  assert.equal(h.p.passives[id], 1);
+  h.pick(0);
+  assert.equal(Number(((playerStats(h.p)[stat] - before) * 100).toFixed(2)), Number(gain));
+});
+
 test('passive preview shows actual capped cooldown and maximum health/regen, without changing live state',()=>{
  for(const id of ['haste','vigor']){
   const h=setup({shown:false,choices:[{kind:'passive',id,level:5,from:4,rarity:'epic'}]});h.p.passives={[id]:4};h.p.quality.passives[id]=200;if(id==='haste'){h.p.meta={fletching:5};h.p.gb.haste=.2;}const before=structuredClone(h.p);h.showReal();const html=h.element('cards').children[0].innerHTML;assert.deepEqual(h.p,before);
@@ -178,4 +197,15 @@ test('fixed Curse and legacy cards do not promise rolled quality or new stat pre
 test('a visible earned upgrade moves focus from equipment inspection into its card',()=>{
  const h=setup({phone:false}),prior={};h.element('equipmenthud').children.push(prior);h.document.activeElement=prior;h.showReal();
  assert.notEqual(h.document.activeElement,prior);assert.equal(h.document.activeElement,h.element('cards').children[0]);
+});
+
+test('Mortar reward shows poison damage per tick and fixed pool timing',()=>{
+ const h=setup({shown:false,choices:[{kind:'weapon',id:'mortar',level:2,from:1,rarity:'rare'}]});
+ h.p.weapons={mortar:1};
+ h.showReal();
+ const html=h.element('cards').children[0].innerHTML;
+ assert.match(html,/<span>Damage per tick<\/span><b>4 → /);
+ assert.match(html,/<span>Tick interval<\/span><b>0\.5 s<\/b>/);
+ assert.match(html,/<span>Pool duration<\/span><b>3 s<\/b>/);
+ assert.doesNotMatch(html,/<span>Base damage<\/span>/);
 });

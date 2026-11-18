@@ -5,7 +5,7 @@ import {
   ENEMIES, MAPS, WEAPONS, WEAPON_IDS, weaponIdsAt, LEGENDARY_WEIGHT, PASSIVES, PASSIVE_IDS, passiveIdsAt, CURSE,
   ADVENTURER_BY_ID, EVOLUTIONS, evolutionPassives, spellEvolutions, spellEvolutionChoices, evolveStats, clampSkills, PLAYER_BASE, MAX_WEAPON_LEVEL, MAX_PASSIVE_LEVEL, MAX_WEAPONS, MAX_PASSIVES, xpForLevel, gearBonus, rollCasket, casketRank, compareGear, REROLLS_PER_RUN, GEAR,
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength, fortuneBonus,
-  weaponSlotItem, TUMBLE, PASTURE_NAV, OASIS_WATER_NAV, SNOW_WAVE_AT, isSnowEnemy,
+  weaponSlotItem, MORTAR_POISON, TUMBLE, PASTURE_NAV, OASIS_WATER_NAV, SNOW_WAVE_AT, isSnowEnemy,
 } from './content.js';
 import { MERCHANT, merchantEligible, merchantStock } from './merchant.js';
 import { phaseCoins, continuationBaseline } from './casual-continuation.js';
@@ -386,12 +386,12 @@ export function playerStats(p, meta = p.meta || {}) {
   return stats;
 }
 
-function nearestEnemy(sim, x, z, maxD = 1e9, skip, bodyRange = false) {
+function nearestEnemy(sim, x, z, maxD = 1e9, skip, bodyRange = false, eligible = null) {
   let best = null, bd = bodyRange ? Infinity : maxD * maxD;
   for (const e of sim.enemies) {
     if (skip && skip.has(e.id)) continue;
     const dx = e.x - x, dz = e.z - z, d = dx * dx + dz * dz;
-    if (d < bd && (!bodyRange || d <= (maxD + ENEMIES[e.type].r) ** 2)) { bd = d; best = e; }
+    if (d < bd && (!bodyRange || d <= (maxD + ENEMIES[e.type].r) ** 2) && (!eligible || eligible(e))) { bd = d; best = e; }
   }
   return best;
 }
@@ -876,6 +876,10 @@ const GLOCK_EXTRA = 0.35; // what each of the Feather's extra Glock rounds does,
 // Fishing Rod: a knockback impulse k moves a monster k * TICK / (1 - 0.86) in all (the decay in step()), so this turns
 // a distance to reel in into the impulse for it. The cap bounds two rods (co-op, Longline) landing on one monster.
 const HOOK_IMPULSE = (1 - 0.86) / TICK, HOOK_MAX = 9 * HOOK_IMPULSE;
+const POISON_FLIGHT = 8;
+const POISON_LIFE = Math.round(MORTAR_POISON.poolSeconds / TICK);
+const POISON_INTERVAL = Math.round(MORTAR_POISON.tickSeconds / TICK);
+
 function fireWeapons(sim, p, dt, st) {
   p.orbit += dt;
   for (const id of Object.keys(p.weapons)) {
@@ -890,9 +894,10 @@ function fireWeapons(sim, p, dt, st) {
     if (metal.pierce) s = { ...s, pierce: (s.pierce || 0) + metal.pierce };
     p.cd[id] = (p.cd[id] ?? 0.2) - dt;
     if (p.cd[id] > 0) continue;
-    const reach = id === 'pickaxe' ? 7 : id === 'katana' || id === 'greatsword' ? s.range + 1.5 : id === 'shortsword' ? 20 : id === 'baseball' ? 14 : id === 'net' ? s.cast : id === 'rod' ? s.range : 18;
+    const reach = id === 'pickaxe' ? 7 : id === 'katana' || id === 'greatsword' ? s.range + 1.5 : id === 'shortsword' ? 20 : id === 'baseball' ? 14 : (id === 'net' || id === 'mortar') ? s.cast : id === 'rod' ? s.range : 18;
     const melee = sim.pace >= 2 && (id === 'katana' || id === 'greatsword' || id === 'dagger');
-    const target = nearestEnemy(sim, p.x, p.z, melee ? s.range : reach, undefined, melee || id === 'rod'); // the Rod's hook reaches a body's edge, as its picks do
+    const mortarTarget = id === 'mortar' ? e => !e.dead && !(e.rise > 0) && clearPath(sim, p.x, p.z, e.x, e.z) : null;
+    const target = nearestEnemy(sim, p.x, p.z, melee ? s.range : reach, undefined, melee || id === 'rod', mortarTarget);
     if (!target && id !== 'pickaxe') { p.cd[id] = 0; continue; }
     sim.src = id;
     p.cd[id] = s.cd * st.haste;
@@ -986,6 +991,10 @@ function fireWeapons(sim, p, dt, st) {
       p.shots = empty ? 0 : fired;
       if (empty) p.cd[id] = s.reload * st.haste;
       sim.fx.push({ k: 'shot', x: p.x, z: p.z, a, lvl, ...(empty ? { reload: p.cd[id] } : {}), ...(sim.coop ? { player: p.id } : {}) });
+    } else if (id === 'mortar') {
+      const { x, z } = target, land = sim.tick + POISON_FLIGHT;
+      (sim.poisonPools ??= []).push({ x, z, land, until: land + POISON_LIFE, r: s.radius, dmg, owner: p.id });
+      sim.fx.push({ k: 'poison-throw', x: p.x, z: p.z, tx: x, tz: z, t: POISON_FLIGHT * TICK, player: p.id });
     } else if (id === 'net') {
       // lands on the nearest monster and catches the group round it; the slow is a timer on each monster (see step()),
       // refreshed rather than stacked, and bosses only take the damage
@@ -1052,6 +1061,30 @@ function fireWeapons(sim, p, dt, st) {
         damageEnemy(sim, e, dmg, p.id, 1.5, p.x, p.z);
       }
     }
+  }
+}
+
+function stepPoisonPools(sim) {
+  const pools = sim.poisonPools;
+  if (!pools?.length) return;
+  for (let i = pools.length - 1; i >= 0; i--) {
+    const pool = pools[i];
+    if (pool.until <= sim.tick) pools.splice(i, 1);
+    else if (pool.land === sim.tick) sim.fx.push({ k: 'poison-pool', x: pool.x, z: pool.z, r: pool.r, t: (pool.until - pool.land) * TICK });
+  }
+  // A shared cadence bounds overlapping pools to one tick per enemy, even with two throwers.
+  if (!pools.length || sim.tick % POISON_INTERVAL !== 0) return;
+  for (const enemy of sim.enemies) {
+    if (enemy.dead || enemy.rise > 0) continue;
+    let strongest = null;
+    for (const pool of pools) {
+      if (pool.land > sim.tick || (strongest && strongest.dmg >= pool.dmg)) continue;
+      if (hyp(enemy.x - pool.x, enemy.z - pool.z) <= pool.r + ENEMIES[enemy.type].r
+          && clearPath(sim, pool.x, pool.z, enemy.x, enemy.z)) strongest = pool;
+    }
+    if (!strongest) continue;
+    sim.src = 'mortar';
+    damageEnemy(sim, enemy, strongest.dmg, strongest.owner);
   }
 }
 
@@ -1654,6 +1687,7 @@ export function step(sim, inputs = {}, dt = TICK) {
   }
 
   stepProjectiles(sim, dt);
+  stepPoisonPools(sim);
   stepBossAttacks(sim, dt);
   sim.enemies = sim.enemies.filter((e) => !e.dead);
   if (sim.variant !== 'castle') recycleStrays(sim, dt);

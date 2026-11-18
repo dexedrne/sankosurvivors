@@ -22,8 +22,8 @@ function foe(s,type,x,z,extra={}){S.spawnEnemy(s,type,x,z);const e=s.enemies.at(
 const run=(s,n,input={mx:0,mz:0})=>{const fx=[];for(let i=0;i<n;i++){S.step(s,{p1:input});fx.push(...s.fx);s.fx.length=0;}return fx;};
 
 test('the three weapons are real casual-only entries after the original ten',()=>{
- assert.deepEqual(C.WEAPON_IDS,[...OLD,...NEW,'glock']);
- assert.deepEqual(C.weaponIdsAt(2,false),[...OLD,...NEW,'glock']);
+ assert.deepEqual(C.WEAPON_IDS,[...OLD,...NEW,'glock','mortar']);
+ assert.deepEqual(C.weaponIdsAt(2,false),[...OLD,...NEW,'glock','mortar']);
  for(const[pace,ranked]of[[1,false],[1,true],[2,true],[undefined,false]])assert.deepEqual(C.weaponIdsAt(pace,ranked),OLD);
  for(const id of NEW){assert.equal(C.WEAPONS[id].pace,2);assert.equal(C.WEAPONS[id].casual,true);assert(C.WEAPONS[id].blurb.length>20);}
 });
@@ -94,7 +94,7 @@ test('casual offers include them and respect slots, the level cap, banishing and
  // every original weapon held: only the casual three and the Glock keep the extra weapon slot worth offering
  const s=S.createSim({seed:5}),p=s.players[0];s.level=10;p.weapons=Object.fromEntries(OLD.slice(0,4).map(id=>[id,1]));p.passives={};p.banished=OLD.slice(4).map(id=>'weapon:'+id);
  let slot=false;for(let seed=1;seed<=400&&!slot;seed++){s.rng=S.mulberry32(seed);slot=S.rollChoices(s,p).some(c=>c.kind==='slot'&&c.id==='weapon');}assert(slot);
- p.banished.push(...[...NEW,'glock'].map(id=>'weapon:'+id));for(let seed=1;seed<=400;seed++){s.rng=S.mulberry32(seed);assert(!S.rollChoices(s,p).some(c=>c.kind==='slot'&&c.id==='weapon'));}
+ p.banished.push(...[...NEW,'glock','mortar'].map(id=>'weapon:'+id));for(let seed=1;seed<=400;seed++){s.rng=S.mulberry32(seed);assert(!S.rollChoices(s,p).some(c=>c.kind==='slot'&&c.id==='weapon'));}
 });
 for(const[weapon,original,alternative]of[['dagger','boots','evasion'],['net','area','water'],['rod','magnet','greed']])test(`${weapon} evolves at level 6 with ${original} or ${alternative}, once`,()=>{
  const offers=(passives,level=6,evolved=false)=>{const s=S.createSim({seed:71}),p=s.players[0];p.weapons={[weapon]:level};p.passives=passives;p.evo=evolved?{[weapon]:true}:{};return S.rollChoices(s,p).filter(c=>c.kind==='evolve').map(c=>c.id);};
@@ -314,4 +314,105 @@ test('the Feather adds a round to each Glock shot without spending the magazine 
  const s=scene(),p=s.players[0];p.weapons={};const e=foe(s,'chicken',p.x,p.z+6),r=C.ENEMIES.chicken.r;assert(r+.4<1,'the fixture needs a small monster');
  s.proj.push({id:s.nextId++,art:'bullet',evo:false,owner:p.id,x:p.x,z:p.z+5,vx:0,vz:2/S.TICK,dmg:7,pierce:0,life:1,r:.4,hit:[],lvl:1});
  run(s,1);assert.equal(1e6-e.hp,7);assert.equal(s.proj.length,0,'spent on the monster it hit');
+});
+
+test('Mortar and Pestle is offered only in modern casual runs with the official item icon',()=>{
+ const id='mortar', name='Mortar and Pestle';
+ assert(C.weaponIdsAt(2).includes(id));
+ for(const [pace,ranked] of [[1,false],[1,true],[2,true]])assert(!C.weaponIdsAt(pace,ranked).includes(id));
+ assert.equal(C.weaponItem(id,1),name);
+ assert(existsSync(new URL('../public/assets/ui/items/'+C.itemIconFile(name),import.meta.url)));
+});
+
+test('a mortar flask lands after a flight and poisons only enemies standing inside the pool',()=>{
+ const s=scene(),p=s.players[0];
+ p.weapons={mortar:1};
+ const target=foe(s,'goblin',p.x,p.z+6), outside=foe(s,'goblin',p.x+7,p.z+6);
+ const throwFx=run(s,8).find(f=>f.k==='poison-throw');
+ assert(throwFx);
+ assert.equal(target.hp,1e6);
+ p.weapons={};
+ assert(run(s,30).some(f=>f.k==='poison-pool'));
+ assert(target.hp<1e6);
+ assert.equal(outside.hp,1e6);
+ const hp=target.hp;
+ outside.x=target.x;outside.z=target.z;
+ target.x+=12;
+ run(s,16);
+ assert.equal(target.hp,hp);
+ assert(outside.hp<1e6);
+ run(s,120);
+ const last=outside.hp;
+ run(s,30);
+ assert.equal(outside.hp,last);
+});
+
+test('simultaneous poison pools count only their strongest hit, including in co-op',()=>{
+ function hit(coop){
+   const players=coop?[{id:'p1'},{id:'p2'}]:[{id:'p1'}];
+   const s=scene({coop,players}),p=s.players[0];
+   p.weapons={mortar:6};
+   if(coop){
+     const other=s.players[1];
+     other.x=p.x;other.z=p.z;other.weapons={mortar:1};
+   }
+   const target=foe(s,'goblin',p.x,p.z+6);
+   assert.equal(run(s,8).filter(f=>f.k==='poison-throw').length,players.length);
+   for(const player of s.players)player.weapons={};
+   run(s,130);
+   return 1e6-target.hp;
+ }
+ assert.equal(hit(true),hit(false));
+});
+
+test('Mortar aims at an exposed monster and a solid wall blocks the pool',()=>{
+ const {s,p,g}=walled();
+ for(let z=3;z<25;z++)g.walls[z*g.n+14]=8;
+ p.weapons={mortar:1};
+ const covered=foe(s,'goblin',14.8,10.5), exposed=foe(s,'goblin',13.2,13.2);
+ const fx=run(s,8).find(f=>f.k==='poison-throw');
+ assert(fx);
+ close(fx.tx,exposed.x);close(fx.tz,exposed.z);
+ covered.z=exposed.z;
+ assert(Math.hypot(covered.x-exposed.x,covered.z-exposed.z)<C.WEAPONS.mortar.stats(1).radius);
+ p.weapons={};
+ run(s,35);
+ assert(exposed.hp<1e6);
+ assert.equal(covered.hp,1e6);
+});
+
+test('Cape and Spirit Shard improve the pool and cooldown while Feather leaves one flask',()=>{
+ const s=scene(),p=s.players[0],base=C.WEAPONS.mortar.stats(1);
+ p.weapons={mortar:1};p.passives={area:2,haste:2,amount:3};
+ foe(s,'goblin',p.x,p.z+6);
+ assert.equal(run(s,8).filter(f=>f.k==='poison-throw').length,1);
+ assert(p.cd.mortar<base.cd);
+ const pool=run(s,20).find(f=>f.k==='poison-pool');
+ close(pool.r,base.radius*S.playerStats(p).area);
+});
+
+test('Mortar flask lands in eight ticks with a wider pool at level one',()=>{
+ const s=scene(),p=s.players[0];
+ p.weapons={mortar:1};
+ foe(s,'goblin',p.x,p.z+6);
+ while(s.tick<8){
+   const thrown=run(s,1).find(f=>f.k==='poison-throw');
+   if(!thrown)continue;
+   close(thrown.t,8*S.TICK);
+   p.weapons={};
+   assert(!run(s,7).some(f=>f.k==='poison-pool'));
+   const pool=run(s,1).find(f=>f.k==='poison-pool');
+   assert(pool);
+   close(pool.r,2.55);
+   return;
+ }
+ assert.fail('expected the mortar to throw');
+});
+
+test('Mortar inspection distinguishes ticking damage from throw cooldown',()=>{
+ const s=scene(),p=s.players[0];
+ p.weapons={mortar:1};
+ const {details}=itemInspection(p,'weapon','mortar');
+ for(const line of ['Damage per tick: 4','Tick interval: 0.5 s','Pool duration: 3 s','Cooldown: 3.5 s','Radius: 2.55'])assert(details.includes(line),line);
+ assert(!details.some(line=>line.startsWith('Base damage:')));
 });

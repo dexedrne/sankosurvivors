@@ -134,6 +134,12 @@ export const RUN_LENGTH = 900; // 15 minutes: survive, or kill the Dragon to win
 // stats(level) -> numbers used by the sim. Level 1..6 maps onto METAL_TIERS.
 const L = (lvl, base, per) => base + per * (lvl - 1);
 
+export const MORTAR_POISON = { poolSeconds: 3, tickSeconds: 0.5 };
+export const MORTAR_STAT_ROWS = [
+  ['dmg', 'Damage per tick'], ['tickSeconds', 'Tick interval', ' s'], ['poolSeconds', 'Pool duration', ' s'],
+  ['cd', 'Cooldown', ' s'], ['radius', 'Radius'],
+];
+
 export const WEAPONS = {
   katana: {
     name: 'Katana', icon: 'katana', model: 'equipment/weapons/blade/katana/{tier}_katana.glb',
@@ -224,6 +230,12 @@ export const WEAPONS = {
     stats: (l) => ({ dmg: L(l, 10, 5), cd: Math.max(0.1, L(l, 0.2, -0.015)), mag: 12 + (l >= 3 ? 3 : 0) + (l >= 5 ? 3 : 0), reload: Math.max(0.8, L(l, 1.6, -0.12)), speed: 34, pierce: l >= 6 ? 2 : l >= 4 ? 1 : 0, life: 0.7 }),
     next: (l) => ['+damage', 'bigger magazine', 'pierces', 'bigger magazine', 'pierces twice', 'SankoCorp rounds'][l - 1] || 'max',
   },
+  mortar: {
+    name: 'Mortar and Pestle', icon: 'mortar', model: null, pace: 2, casual: true,
+    blurb: 'Throws a flask that leaves a poison pool. Overlapping pools deal only their strongest hit.',
+    stats: (l) => ({ dmg: L(l, 4, 1.6), cd: Math.max(1.4, L(l, 3.5, -0.18)), radius: Math.min(5, L(l, 2.55, 0.28)), cast: 11, ...MORTAR_POISON }),
+    next: () => 'Stronger, wider poison',
+  },
 };
 /** how often a weapon you do not hold yet is offered, against 2 for an ordinary one */
 export const LEGENDARY_WEIGHT = 0.6;
@@ -309,6 +321,7 @@ export function weaponItem(id, level, step = null) {
     case 'net': return 'Fishing Net';
     case 'rod': return 'Fishing Rod';
     case 'glock': return 'SankoCorp Glock';
+    case 'mortar': return 'Mortar and Pestle';
     default: return 'Staff';
   }
 }
