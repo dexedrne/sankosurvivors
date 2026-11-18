@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { endInputOpen, endKeyOpen } from '../src/end-input.js';
 
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
 const input = source.slice(source.indexOf('// ---- input -----'), source.indexOf("addEventListener('keyup'", source.indexOf('// ---- input -----')));
@@ -37,7 +38,8 @@ const titleStart = source.indexOf("  if (mode === 'title' || mode === 'end')", m
 const pad = source.slice(menuStart, source.indexOf('    if (!sim) { // title backdrop:', titleStart)) + '  }';
 
 // Execute the shipped handlers; substitute only DOM operations and the run/wallet boundaries.
-function menu(mode = 'title') {
+// endedAt: when the last run ended (performance.now()); by default long enough ago for the end screen to take input
+function menu(mode = 'title', { endedAt = performance.now() - 1e6 } = {}) {
   const elements = new Map(), listeners = [];
   let active = null;
   function element(id, parent = null, tag = 'button') {
@@ -81,7 +83,8 @@ function menu(mode = 'title') {
   for (const id of ['walletchip', 'cloudwal', 'clouddev', 'quitconfirm']) element(id);
   const $ = id => { assert.ok(elements.has(id), `unknown DOM id ${id}`); return elements.get(id); };
   $(mode).classList.remove('hidden');
-  const app = Function('$', 'addEventListener', 'document', 'initialMode', 'onWallet', 'walletRevision', `
+  const app = Function('$', 'addEventListener', 'document', 'initialMode', 'onWallet', 'walletRevision', 'endInputOpen', 'endKeyOpen', 'endedAt', `
+    let endShownAt=endedAt;
     let mode=initialMode, started=0, connected=0, mobileModal=false, petViewer=null, petViewDrag=null;
     const walletModalOpen=()=>mobileModal;
     const keys=new Set(), startRun=()=>{started++;}, pause=on=>{mode=on?'pause':'play';};
@@ -116,13 +119,13 @@ function menu(mode = 'title') {
       frame(edges){${pad}},
       modal:on=>mobileModal=on, choose:cloud.choose, focus(id){navFocus($(id));},
       state:()=>({started,connected,mode})};
-  `)($, (event, fn, capture = false) => listeners.push({ event, fn, capture }), { get activeElement() { return active; },querySelectorAll:()=>[elements.get('guidebtn'),elements.get('questbtn'),elements.get('setbtn')] }, mode, () => () => {}, () => 0);
+  `)($, (event, fn, capture = false) => listeners.push({ event, fn, capture }), { get activeElement() { return active; },querySelectorAll:()=>[elements.get('guidebtn'),elements.get('questbtn'),elements.get('setbtn')] }, mode, () => () => {}, () => 0, endInputOpen, endKeyOpen, endedAt);
   return {
     app, $, get active() { return active?.id; },
     open(id) { $(id).classList.remove('hidden'); },
-    key(key, { native = false, shiftKey = false } = {}) {
+    key(key, { native = false, shiftKey = false, repeat = false } = {}) {
       let stopped = false, prevented = false;
-      const e = { key, shiftKey, repeat: false, target: active || { matches: () => false }, preventDefault() { prevented=true; }, stopPropagation() { stopped=true; }, stopImmediatePropagation() { stopped = true; } };
+      const e = { key, shiftKey, repeat, target: active || { matches: () => false }, preventDefault() { prevented=true; }, stopPropagation() { stopped=true; }, stopImmediatePropagation() { stopped = true; } };
       for (const { fn } of listeners.filter(l => l.event === 'keydown' && l.capture)) { fn(e); if (stopped) break; }
       for (let el = active; el && !stopped; el = el.parent) for (const {event,fn} of el.handlers) if (event === 'keydown') {e.currentTarget=el;fn(e);}
       if (!stopped) for (const { fn } of listeners.filter(l => l.event === 'keydown' && !l.capture)) { fn(e); if (stopped) break; }
@@ -210,6 +213,19 @@ for (const mode of ['title', 'end']) test(`ordinary ${mode} shortcuts still star
   const m = menu(mode);
   m.key('Enter'); m.key(' '); m.app.frame({ a: true });
   assert.equal(m.app.state().started, 3);
+});
+// Player report 18 Nov: dying mid-roll and pressing Space (the roll key) closed the results and started a new run.
+test('the end screen waits a moment before Enter, Space or A start the next run', () => {
+  const m = menu('end', { endedAt: performance.now() });
+  m.key('Enter'); m.key(' '); m.app.frame({ a: true });
+  assert.equal(m.app.state().started, 0);
+});
+test('a key held through the end of a run never starts the next one', () => {
+  const m = menu('end');
+  m.key(' ', { repeat: true }); m.key('Enter', { repeat: true });
+  assert.equal(m.app.state().started, 0);
+  m.key(' ');
+  assert.equal(m.app.state().started, 1, 'a fresh press after the wait does');
 });
 test('controller Start still starts from the plain title screen', () => {
   const m = menu(); m.app.frame({ start: true });

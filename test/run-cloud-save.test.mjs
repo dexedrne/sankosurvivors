@@ -41,7 +41,7 @@ function fixture(t,{cloudOn=true,ranked=false,coopPlay=false,outcome='win',respo
   const finishedBuilds=new WeakMap(),renderEndBuild=()=>{},retainRunStats=()=>{},startStatsSession=()=>{};
   const LATEST='fixture-version',savedPass=()=>null,DMT_COIN_BONUS=.25;let runTicket='fixture-ticket';
   const keys=new Set(),clearTouch=()=>{},audio={duck(){}},showLevelUp=()=>{},resumeAfterReward=()=>{};let pendingUse=null,slowmo=0,acc=0,shownPending=false,runBest=null,passedBest=false;
-  const fmtT=t=>String(t),imgTag=()=>'',buildMaps=()=>{},buildAdventurers=()=>{},showBest=()=>{},stepOf=()=>null,iconHTML=()=>'',weaponDisplay=()=>({name:'Sword'});
+  const fmtT=t=>String(t),imgTag=()=>'',buildMaps=()=>{},buildAdventurers=()=>{},showBest=()=>{},lockEndInput=()=>{},stepOf=()=>null,iconHTML=()=>'',weaponDisplay=()=>({name:'Sword'});
   const alchValue=()=>0,submitScore=async()=>({ok:true}),liveRace=s=>s,kpmWeek=()=>false,submitRanked=submit,banner=note;
   const walletModalOpen=()=>walletOpen,cancelPendingLoads=()=>{},location={reload(){throw Error('in-memory run must not reload');}};
   const navigator={},buyBusy=null,walletConnecting=null,holderChecking=null,walletRequests=0;let rankedBusy=false,walletOpen=false;

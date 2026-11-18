@@ -1,4 +1,5 @@
 import {startRunStats,captureCasualRunSummary} from './run-stats.js';
+import {END_INPUT_LOCK_MS,endInputOpen,endKeyOpen} from './end-input.js';
 import {openRunStatsStore,createRunStatsOutbox,queueFinishedRunStats} from './run-stats-client.js';
 import {lowHealthOpacity} from './health-warning.js';
 import {bindItemKeys} from './item-keys.js';
@@ -2073,9 +2074,17 @@ $('sharecard').onclick = async () => {
 };
 for (const control of document.querySelectorAll('[data-language]')) control.addEventListener('change', () => { if (mode === 'end' && lastRun) void prepareEndCard(lastRun); });
 
+// When the last run ended (performance.now()): the end screen's confirm presses wait END_INPUT_LOCK_MS (end-input.js).
+let endShownAt = -Infinity;
+function lockEndInput() {
+  const at = endShownAt = performance.now(), again = $('again');
+  again.disabled = true;
+  setTimeout(() => { if (endShownAt === at) again.disabled = false; }, END_INPUT_LOCK_MS);
+}
 function endRun() {
   if (sim.coop && coopResult !== 'complete') return;
   mode = 'end';
+  lockEndInput();
   waitingForMove = rewardWasShown = false; $('movehint').classList.add('hidden');
   const wasRanked = !!rankedRun;
   const cutoff = !!rankedRun?.cutoff;
@@ -2245,7 +2254,7 @@ addEventListener('keydown', (e) => {
   if (mode === 'play') { const slot = itemKeyControls.slot(e); if (slot >= 0) { pendingUse = slot; e.preventDefault(); } }
   if (mode === 'play' && k === ' ') { hop(); e.preventDefault(); }
   if (k === 'escape' && !navBack() && mode === 'play') pause(true);
-  if ((k === 'enter' || k === ' ') && (mode === 'title' && !$('start').disabled || mode === 'end') && MENU_SCREENS.every((id) => $(id).classList.contains('hidden'))) startRun();
+  if ((k === 'enter' || k === ' ') && (mode === 'title' && !$('start').disabled || mode === 'end' && endKeyOpen(endShownAt, performance.now(), e.repeat)) && MENU_SCREENS.every((id) => $(id).classList.contains('hidden'))) startRun();
 });
 addEventListener('keyup', (e) => { keys.delete(e.key.toLowerCase()); coopReviveUi.keyUp(e.key); });
 addEventListener('blur', () => { coopReviveUi.clear(); keys.clear(); clearTouch(); pendingUse = null; padId = null; if (mode === 'play' && (document.hidden || !keepPlayingUnfocused())) pause(true); });
@@ -2974,6 +2983,7 @@ function loop(ts) {
   if (mode !== 'play' && mode !== 'levelup' && mode !== 'casket') {
     if (edges.b && navBack()) return;
     for (const d of ['up', 'down', 'left', 'right']) if (edges[d]) navMove(d);
+    if (edges.a && mode === 'end' && !endInputOpen(endShownAt, performance.now())) edges.a = false; // a roll pressed as the run ended
     if (edges.a && navPress()) edges.a = false;
     if (edges.start && mode === 'title' && !$('start').disabled && navScreen()?.id === 'title') edges.a = true;
   }

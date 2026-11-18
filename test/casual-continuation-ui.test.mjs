@@ -69,7 +69,7 @@ test('actual score retry keeps the displayed submitted name after an uncertain r
 
 async function delayedTicketFixture({endless=false}={}) {
  const {submitCasualResult}=await import('../src/casual-continuation.js'),c=setup(),requests=[];
- Object.assign(c,{retainRunStats(){},BASE:'/',URLSearchParams,submitCasualResult,save(){},savedPass:()=>null,MAP_BY_ID:{greentown:{name:'Greentown'}},LATEST:'fixture',rankedRun:null,coopResult:null,finishedBuilds:new WeakMap(),captureRunBuild});
+ Object.assign(c,{retainRunStats(){},BASE:'/',URLSearchParams,submitCasualResult,save(){},savedPass:()=>null,MAP_BY_ID:{greentown:{name:'Greentown'}},LATEST:'fixture',rankedRun:null,coopResult:null,finishedBuilds:new WeakMap(),captureRunBuild,lockEndInput(){}});
  c.sim.endless=endless;c.casualRun.phase='playing';c.casualRun.normalResult=null;c.casualRun.endlessTicket=null;c.runTicket=null;c.$('lbname').value='';
  let deliver;
  c.fetch=async(url,options)=>{
