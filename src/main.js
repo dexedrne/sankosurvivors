@@ -1205,13 +1205,21 @@ async function showBoard(mapId, mode, focusSelector) {
   if ($('lbmapsel')) $('lbmapsel').onchange = (e) => showBoard(e.target.value, 'casual', '#lbmapsel');
   for (const b of $('lbtabs').querySelectorAll('[data-endless]')) b.onclick = () => { lbEndless = b.dataset.endless === '1'; showBoard(null, 'casual', `[data-endless="${b.dataset.endless}"]`); };
   if (focusSelector) navFocus($('lbtabs').querySelector(focusSelector) || $('lbclose'));
-  $('lblist').innerHTML = '<p class="dim">Loading…</p>';
-  if (lbMode === 'ranked') return showRankedBoard(request);
+  const list = $('lblist');
+  const loading = '<p class="dim">Loading…</p>';
+  if (lbMode === 'ranked') {
+    list.innerHTML = loading;
+    return showRankedBoard(request);
+  }
   $('lbretry').hidden = true;
   let failed = false;
   const endless = lbEndless, all = lbMap === 'all';
   const maps = all ? MAPS : [{ id: lbMap }];
-  const boards = await Promise.all(maps.map(async (map) => {
+  list.innerHTML = all
+    ? maps.map(map => `<section class="lbmapgroup"><h3>${esc(map.name)}</h3><div class="lbmapresults">${loading}</div></section>`).join('')
+    : loading;
+  const results = all ? list.querySelectorAll('.lbmapresults') : [list];
+  await Promise.all(maps.map(async (map, index) => {
     let body;
     try {
       const r = await fetch(`${BASE}api/scores?map=${encodeURIComponent(map.id)}${endless ? '&endless=1' : ''}`, { signal: AbortSignal.timeout?.(BOARD_TIMEOUT_MS) });
@@ -1222,12 +1230,9 @@ async function showBoard(mapId, mode, focusSelector) {
         body = casualBoardRows(all ? rows.slice(0, 5) : rows, endless);
       }
     } catch { failed = true; body = '<p class="dim">Could not reach the leaderboard.</p>'; }
-    return all ? `<section class="lbmapgroup"><h3>${esc(map.name)}</h3>${body}</section>` : body;
+    if (request === lbRequest) results[index].innerHTML = body;
   }));
-  if (request === lbRequest) {
-    $('lblist').innerHTML = boards.join('');
-    $('lbretry').hidden = !failed;
-  }
+  if (request === lbRequest) $('lbretry').hidden = !failed;
 }
 $('lbretry').onclick = () => { navFocus($('lbclose')); return showBoard(); };
 function casualBoardRows(rows, endless) {

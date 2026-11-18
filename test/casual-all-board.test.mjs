@@ -11,6 +11,19 @@ const response = (rows = []) => ({ ok: true, status: 200, json: async () => ({ r
 const rows = (prefix) => Array.from({ length: 7 }, (_, i) => ({ name: `${prefix}${i}`, adv: 'adventurer', t: 900 - i, level: i + 1, kills: 700 - i, hard: i === 0, holder: i === 0, won: i === 0 }));
 function board(fetch, overrides={}) {
   const nodes = Object.fromEntries(['lbtabs', 'lblist', 'lbmapsel', 'rankedbtn', 'lbbtn', 'lbclose', 'lbretry', 'board'].map(id => [id, { innerHTML: '', hidden: true, querySelector: () => null, querySelectorAll: () => [], classList: { contains: () => false, remove() {} } }]));
+  let listHtml = '', groups = [];
+  const slot = /<div class="lbmapresults">(<p class="dim">Loading…<\/p>)<\/div>/g;
+  Object.defineProperty(nodes.lblist, 'innerHTML', {
+    get() {
+      let index = 0;
+      return listHtml.replace(slot, () => `<div class="lbmapresults">${groups[index++].innerHTML}</div>`);
+    },
+    set(html) {
+      listHtml = html;
+      groups = [...html.matchAll(slot)].map(([, innerHTML]) => ({innerHTML}));
+    },
+  });
+  nodes.lblist.querySelectorAll = selector => selector === '.lbmapresults' ? groups : [];
   const env = { rewardSummary:Function('return '+main.match(/const rewardSummary = ([^\n]+);/)[1])(), $: id => nodes[id], fetch, MAPS, MAP_BY_ID, ADVENTURER_BY_ID, BASE: '/', selMap: MAPS[0].id, load: () => 'me', fmtT: t => `${t}s`, localBest: () => 'best', rankedMode: 'normal', raceList: () => ['normal'], raceOf: d => ({ rows: d.rows || [] }), kpmRules: () => false, prizePlaces: () => [], prizeEstimate: () => null, navFocus: () => {}, poolReadout: () => 'ranked pot', prizeNotes: () => [],walletPrize,estimatedDmtText,noPrize:()=>false,completedRunText:()=> '1 completed run this week',...overrides };
   const api = Function('env', `with (env) { ${source}; ${main.split('\n').find(line => line.startsWith("$('lbbtn').onclick"))}; return { showBoard, showRankedBoard, open: () => $('lbbtn').onclick() }; }`)(env);
   return { ...api, nodes, setRunMap: id => { env.selMap = id; }, html: () => nodes.lblist.innerHTML };
@@ -39,6 +52,24 @@ test('All maps fetches every shipped map and renders its first five in server or
     assert.ok(!group.includes(`${map.id}-5`));
     assert.match(group, /&lt;me&gt;/); assert.match(group, /<em>hard<\/em>/); assert.match(group, /class="dmtb"/); assert.match(group, /✔/);
   }
+});
+
+test('All maps shows ready results in map order while another map is still loading', async () => {
+  const slow = deferred();
+  const fastMap = MAPS[1];
+  const b = board(url => url.includes(`map=${MAPS[0].id}`) ? slow.promise : Promise.resolve(response(rows('ready'))));
+  const pending = b.showBoard('all', 'casual');
+  try {
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(b.html().indexOf(`<h3>${MAPS[0].name}</h3>`) >= 0);
+    const slowGroup = b.html().split(`<h3>${MAPS[0].name}</h3>`)[1].split('</section>')[0];
+    const fastGroup = b.html().split(`<h3>${fastMap.name}</h3>`)[1].split('</section>')[0];
+    assert.match(slowGroup, /Loading/);
+    assert.match(fastGroup, /ready0/);
+    assert.doesNotMatch(fastGroup, /Loading/);
+  } finally { slow.resolve(response(rows('finished'))); await pending; }
+  assert.match(b.html(), /finished0/);
+  assert.doesNotMatch(b.html(), /Loading/);
 });
 
 test('single map retains all returned rows and personal highlight', async () => {
