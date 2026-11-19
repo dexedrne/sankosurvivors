@@ -62,3 +62,31 @@ for (const [update, wager] of [[21,25n],[24,100n]]) test(`SQL${update} admits ex
   const grants=(await db.query("select has_function_privilege('anon','sqs_ranked_enter_v2(text,text,text,integer,text,numeric,bigint,integer,text)','execute') enter,has_function_privilege('authenticated','sqs_ranked_enter_v2(text,text,text,integer,text,numeric,bigint,integer,text)','execute') auth,has_function_privilege('anon','sqs_ranked_can_enter_v2(text,text,integer,text,integer,text)','execute') ready")).rows[0];assert.deepEqual(grants,{enter:true,auth:false,ready:true});
  }finally{await db.close();}
 });
+
+test('SQL25 admits exactly 100 DMT in week 2 under the existing reward policy',{skip:!process.env.SQS_PGLITE},async()=>{
+ const {db,rpc}=await sqlDB({current:true});
+ try{
+  const load=async n=>db.exec(await readFile(new URL(`../tools/supabase/update${n}.sql`,import.meta.url),'utf8'));
+  for(const n of [19,20,21,23,24])await load(n);
+  const gate=()=>rpc('sqs_ranked_can_enter_v2',{p_server_key:'server-key',p_wallet:a,p_week:2,p_ip_hash:a,p_max:100, p_mode:'normal'});
+  const enter=(paid,mode='normal',week=2)=>rpc('sqs_ranked_enter_v2',{p_server_key:'server-key',p_tx:'0x'+'e'.repeat(64),p_wallet:a,p_week:week,p_ip_hash:a,p_paid:String(paid),p_seed:1,p_max:100,p_mode:mode});
+  assert.equal((await gate()).entry_100,false);
+  assert.equal((await enter(100n*unit)).error,'bad entry amount');
+  await load(25);
+  await load(25);
+  const ready=await gate();
+  assert.equal(ready.reward_version,2);
+  assert.equal(ready.entry_100,true);
+  assert.equal((await enter(100n*unit+1n)).error,'bad entry amount');
+  assert.equal((await enter(100n*unit,'hard')).error,'bad entry amount');
+  assert.equal((await enter(100n*unit,'normal',1)).error,'bad entry amount');
+  const entry=await enter(100n*unit);
+  assert(entry.ok,JSON.stringify(entry));
+  assert.equal((await enter(100n*unit)).id,entry.id);
+  await db.query("update sqs_ranked_entries set t=1200,verdict='ok',finished_at=now() where id=$1",[entry.id]);
+  const report=await rpc('sqs_ranked_settle_v2',{p_key:'reports-key',p_week:2,p_mode:'normal'});
+  assert.equal(report.reward_version,2);
+  assert.deepEqual(report.activity,[{wallet:a,runs:'1',seconds:'1200',paid:String(100n*unit)}]);
+  assert.equal((await rpc('sqs_ranked_board_v2',{p_week:3,p_mode:'normal'})).reward_version,3);
+ }finally{await db.close();}
+});

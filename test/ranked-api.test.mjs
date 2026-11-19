@@ -881,8 +881,8 @@ test('25DMT nonce refuses missing SQL21 readiness before any payment',async t=>{
  t.mock.method(db,'rpc',async()=>({ok:true,left:100,reward_version:2}));
  const out=await call(nonceRoute(w)+'&tier=max');assert.equal(out.code,400);assert.equal(out.json.nonce,undefined);
 });
-test('100 DMT entry requires its SQL capability, then admits its exact signed payment once',async t=>{
- now=epoch+3*weekMs+12*3600000;const w=wallet();
+test('week-two 100 DMT entry requires its SQL capability, then admits its exact signed payment once',async t=>{
+ now=epoch+2*weekMs+12*3600000;const w=wallet();
  const rpc=db.rpc.bind(db);
  let enabled=false;
  t.mock.method(db,'rpc',async(fn,p)=>{
@@ -898,6 +898,9 @@ test('100 DMT entry requires its SQL capability, then admits its exact signed pa
  const quote=await call(route);assert.equal(quote.code,200);
  assert.equal(decode(quote.json.nonce).h,3);
  assert.equal(quote.json.amountWei,'100000000000000000000');
+ const board=await call('ranked-week');
+ assert.equal(board.json.rewards.version,2);
+ assert.deepEqual(board.json.races.normal.entryOptions.map(x=>x.entryDmt),['1','10','25','100']);
  assert.match(quote.json.message,/sending the 100 DMT entry/);
  const auth={nonce:quote.json.nonce,signature:w.sign(quote.json.message)};
  const under=await call('ranked-enter',{...auth,tx:payment(w,{amount:25n*10n**18n})});

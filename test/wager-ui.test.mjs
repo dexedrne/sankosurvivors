@@ -12,9 +12,9 @@ function setup(tier,balance=async()=>({dmt:100,eth:1})){
  vm.createContext(c);const a=main.indexOf("$('rankedenter').onclick ="),b=main.indexOf('async function startRankedEntry(',a);assert(a>=0&&b>a);vm.runInContext(main.slice(a,b),c);return c;
 }
 for(const tier of ['standard','high','max','ultra'])test('actual entry handler captures exact selected '+tier+' wager',async()=>{
- const c=setup(tier);if(tier==='ultra'){c.rankedWeek.week=3;c.rankedWeek.races.normal.entryOptions=entryOptions(3);}
+ const c=setup(tier);if(tier==='ultra'){c.rankedWeek.week=2;c.rankedWeek.races.normal.entryOptions=entryOptions(2);}
  c.$('rankedenter').onclick();await c.pending;
- assert.equal(c.payment[4],'normal');assert.equal(c.payment[5],tier==='ultra'?3:1);assert.equal(c.payment[7],tier);
+ assert.equal(c.payment[4],'normal');assert.equal(c.payment[5],tier==='ultra'?2:1);assert.equal(c.payment[7],tier);
 });
 test('changing the displayed wager during the balance await cannot change the captured payment',async()=>{
  let release;const c=setup('high',()=>new Promise(resolve=>release=resolve));c.$('rankedenter').onclick();c.rankedTier='standard';release({dmt:20,eth:1});await c.pending;assert.equal(c.payment[7],'high');

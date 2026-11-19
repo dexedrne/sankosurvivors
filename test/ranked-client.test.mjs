@@ -160,7 +160,7 @@ for(const changed of [{amountWei:'1000000000000000000'},{tier:undefined},{messag
 
 for (const [tier, dmt] of [['max',25n],['ultra',100n]]) test(`${tier} wager sends exactly ${dmt} DMT once and keeps the same normal-race payment`,async t=>{
  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage()});
- const week=tier==='ultra'?3:1;
+ const week=tier==='ultra'?2:1;
  const n={...nonce,nonce:'wager-fixture',week,tier,amountWei:String(dmt*10n**18n),message:entryMessage('wager-fixture',week,'normal',undefined,tier)},requests=[];
  mockRankedFetch(t,async(url,options)=>{
   if(url.includes('nonce')){assert.equal(new URL(url,'http://localhost').searchParams.get('tier'),tier);return response(n);}

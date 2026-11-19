@@ -1,5 +1,6 @@
 import {raceForWeek} from './ranked.js';
-import {REBATE_WEEK} from './reward-policy.js';
+
+export const ULTRA_ENTRY_WEEK = 2;
 
 const PAID_TIERS = {
  high: {entryDmt:'10',entryWei:'10000000000000000000'},
@@ -13,7 +14,7 @@ export function entryForWeek(week,mode='normal',tier='standard') {
  const race=raceForWeek(week,mode);
  if(!race)return null;
  if(tier==='standard')return {...race,tier};
- if(week<(tier==='ultra'?REBATE_WEEK:1)||mode!=='normal'||!Object.hasOwn(PAID_TIERS,tier))return null;
+ if(week<(tier==='ultra'?ULTRA_ENTRY_WEEK:1)||mode!=='normal'||!Object.hasOwn(PAID_TIERS,tier))return null;
  return {...race,tier,...PAID_TIERS[tier]};
 }
 export const entryOptions=(week,mode='normal')=>['standard',...Object.keys(PAID_TIERS)].map(tier=>entryForWeek(week,mode,tier)).filter(Boolean);

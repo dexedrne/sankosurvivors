@@ -18,7 +18,8 @@ test('unsupported wager tiers, historical high wagers and malformed weeks fail c
  assert.equal(entryForWeek(0,'normal','max'),null);
  assert.equal(entryForWeek(1,'hard','max'),null);
  assert.equal(entryForWeek(0,'normal','ultra'),null);
- assert.equal(entryForWeek(2,'normal','ultra'),null);
+ assert.equal(entryForWeek(1,'normal','ultra'),null);
+ assert.equal(entryForWeek(2,'normal','ultra')?.entryDmt,'100');
  assert.equal(entryForWeek(1,'hard','ultra'),null);
  for(const week of [-1,NaN,1.2,'1',null])assert.equal(entryForWeek(week),null);
  assert.equal(entryForWeek(1,'constructor'),null);
