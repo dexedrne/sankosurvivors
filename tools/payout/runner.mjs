@@ -1,3 +1,4 @@
+import {rewardPolicyVersion} from '../../src/reward-policy.js';
 import {FIRST_BONUS,firstBonusFor} from '../../src/first-bonus.js';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -86,7 +87,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       for(const mode of racesOf(w)) {
         if(state.weeks.some(p=>p.week===w&&modeOf(p)===mode))continue;
         const report=await rpc(w>=1?'sqs_ranked_settle_v2':'sqs_ranked_settle',{p_key:config.reportsKey,p_week:w,p_mode:mode});
-        if(report.error || w>=1&&report.reward_version!==2)throw Error('settlement unavailable');
+        if(report.error || w>=1&&report.reward_version!==rewardPolicyVersion(w,mode))throw Error('settlement unavailable');
         const incoming=w===firstWeek(mode)?'0':state.weeks.find(p=>p.week===w-1&&modeOf(p)===mode)?.rollover;
         if(incoming==null)throw Error('previous plan missing');
         const planned=await rpc(w>=1?'sqs_payout_plan_v2':'sqs_payout_plan',{p_key:config.payoutKey,p_week:w,p_mode:mode,p_plan:makePlan(report,incoming,w)});
@@ -104,7 +105,7 @@ export async function run(config,{rpc,chain,notify,log=console.log,key,now=Date.
       const mode=modeOf(week),rows=state.rows.filter(r=>r.week===week.week&&modeOf(r)===mode),refunds=rows.filter(r=>r.kind==='refund');
       const score=p=>kpmWeek(week.week)?`${rankedPoints(p.kills,p.t)} points · ${kpm(p.kills,p.t).toFixed(2)} KPM (${p.kills} kills in ${Math.floor(p.t/60)}m ${p.t%60}s)`:`${Math.floor(p.t/60)}m ${p.t%60}s`;
       const participation=rows.filter(r=>r.kind==='participation');
-      const activityNotice=week.week>=1?`\nParticipation: ${participation.length} wallets, ${dmt(sum(participation))} DMT (${week.reward_version===2?'10% eligible DMT contributed':'10% qualifying runs'} + 10% active seconds; uncapped).`:'';
+      const activityNotice=week.week>=1?`\nParticipation: ${participation.length} wallets, ${dmt(sum(participation))} DMT (${week.reward_version===3?'survival rebates and active playtime':week.reward_version===2?'10% eligible DMT contributed + 10% active seconds':'10% qualifying runs + 10% active seconds'}).`:'';
       const winners=week.top.slice(0,5).map((p,i)=>{
         const amount=rows.find(r=>r.kind==='prize'+(i+1))?.amount??'0';
         const bonus=rows.find(r=>r.kind==='prize-bonus'&&r.wallet===p.wallet);

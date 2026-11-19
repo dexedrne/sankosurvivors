@@ -50,3 +50,15 @@ test('public estimates distinguish version2 activity while stored version1 plans
  assert.deepEqual(makePlan({paid:'100',top:[],activity:legacy,reward_version:1},'0',1).participation,expected.participation);
  assert.deepEqual(prizeEstimate({...race,rewards:rewardPolicy(1,1),activity:legacy},[],payouts),allocateRewards('10000',0,1,legacy,1));
 });
+
+test('survival rebates pay the earned amount and shift the rest of participation to playtime',()=>{
+ const unit=10n**18n,pool=100n*unit;
+ const entries=[
+  {wallet:'0x'+'1'.repeat(40),runs:'2',seconds:'1200',paid:String(101n*unit),rebate:String(6n*unit)},
+  {wallet:'0x'+'2'.repeat(40),runs:'1',seconds:'1200',paid:String(unit),rebate:String(9n*unit/100n)},
+ ];
+ const result=allocateRewards(pool,0,3,entries,3,92n*unit);
+ assert.deepEqual(result.participation.map(r=>r.amount),['12955000000000000000','7045000000000000000']);
+ assert.equal(result.rollover,String(80n*unit));
+ assert.throws(()=>allocateRewards(pool,0,3,[{...entries[0],rebate:String(10n*unit)}],3,92n*unit),/rebate/);
+});

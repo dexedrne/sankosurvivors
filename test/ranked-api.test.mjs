@@ -881,6 +881,60 @@ test('25DMT nonce refuses missing SQL21 readiness before any payment',async t=>{
  t.mock.method(db,'rpc',async()=>({ok:true,left:100,reward_version:2}));
  const out=await call(nonceRoute(w)+'&tier=max');assert.equal(out.code,400);assert.equal(out.json.nonce,undefined);
 });
+test('100 DMT entry requires its SQL capability, then admits its exact signed payment once',async t=>{
+ now=epoch+3*weekMs+12*3600000;const w=wallet();
+ const rpc=db.rpc.bind(db);
+ let enabled=false;
+ t.mock.method(db,'rpc',async(fn,p)=>{
+  const result=await rpc(fn,p);
+  return fn==='sqs_ranked_can_enter_v2'&&result.ok?{...result,entry_100:enabled}:result;
+ });
+ const route=nonceRoute(w)+'&tier=ultra';
+ const denied=await call(route);
+ assert.equal(denied.code,400);assert.equal(denied.json.nonce,undefined);
+ assert.match(denied.json.error,/100 DMT entry update/);
+ assert.equal((await call(nonceRoute(w)+'&tier=max')).code,200);
+ enabled=true;
+ const quote=await call(route);assert.equal(quote.code,200);
+ assert.equal(decode(quote.json.nonce).h,3);
+ assert.equal(quote.json.amountWei,'100000000000000000000');
+ assert.match(quote.json.message,/sending the 100 DMT entry/);
+ const auth={nonce:quote.json.nonce,signature:w.sign(quote.json.message)};
+ const under=await call('ranked-enter',{...auth,tx:payment(w,{amount:25n*10n**18n})});
+ assert.equal(under.code,400);assert.match(under.json.error,/did not send 100 DMT/);
+ const tx=payment(w,{amount:100n*10n**18n});
+ const entry=await call('ranked-enter',{...auth,tx});
+ assert.equal(entry.code,200,JSON.stringify(entry));assert.equal(entry.json.mode,'normal');
+ assert.equal((await call('ranked-enter',{...auth,tx})).json.id,entry.json.id);
+ assert.equal(db.rows.length,1);assert.equal(db.rows[0].paid,'100000000000000000000');
+});
+
+test('week-three Ranked board exposes only the verified rebate aggregate and gates admission on its policy',async t=>{
+ now=epoch+3*weekMs+12*3600000;
+ const w=wallet();
+ const original=db.rpc.bind(db);
+ let version=2,rebate='90000000000000000';
+ t.mock.method(db,'rpc',async(fn,p)=>{
+  const result=await original(fn,p);
+  if(fn==='sqs_ranked_can_enter_v2')return {...result,reward_version:version};
+  if(fn!=='sqs_ranked_board_v2')return result;
+  return {...result,reward_version:version,paid:'1000000000000000000',entries:1,
+    activity:[{wallet:w.address,runs:'1',seconds:'1200',paid:'1000000000000000000',rebate,log:'private'}]};
+ });
+ assert.equal((await call('ranked-week')).code,503);
+ const denied=await call(nonceRoute(w));
+ assert.equal(denied.code,400);
+ assert.match(denied.json.error,/reward policy/);
+ version=3;
+ const board=await call('ranked-week');
+ assert.equal(board.code,200);
+ assert.deepEqual(board.json.rewards.rebates,[[180,3],[600,6],[1200,9]]);
+ assert.deepEqual(board.json.races.normal.entryOptions.map(x=>x.entryDmt),['1','10','25','100']);
+ assert.deepEqual(board.json.races.normal.rewardActivity,[{wallet:w.address,runs:'1',seconds:'1200',paid:'1000000000000000000',rebate}]);
+ rebate='90000000000000001';
+ assert.equal((await call('ranked-week')).code,503);
+});
+
 test('accepted ranked build statistics come from replay, never a supplied client build',async()=>{
  const r=await ready();const out=await call('ranked-submit',{run:r.run.run,name:'Tester',log:r.log,stats:{weapons:{bow:6}}});assert.equal(out.code,200);
  assert(db.stats?.has(r.e.id),'Verified build retained by versioned finish');const saved=db.stats.get(r.e.id);assert.equal(saved.kind,'ranked');assert.equal(saved.week,0);assert.equal(saved.sim,SIM_TEST_ID);assert.equal(saved.stats.complete,true);assert.equal(saved.stats.starter.weapons.katana,1);assert.equal(saved.t,r.result.t);assert.equal(saved.kills,r.result.kills);assert.equal(saved.level,r.result.level);

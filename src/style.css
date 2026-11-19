@@ -465,6 +465,7 @@ body.touch .seg button { min-height: 38px; min-width: 44px; }
 .rkraces { display: flex; gap: 8px; margin: 4px 0 8px; }
 .rkraces:empty { display: none; }
 .rkraces button { flex: 1; min-height: 44px; }
+#rankedwagers:has([data-tier="ultra"]) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
 #rankedwagers button { min-width: 0; padding: 4px 3px; font-size: 16px; }
 #rankedwagers button b { white-space: nowrap; }
 @media (max-width: 360px) { #rankedwagers button { margin-inline: 0; } }

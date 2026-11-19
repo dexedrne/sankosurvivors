@@ -158,17 +158,18 @@ for(const changed of [{amountWei:'1000000000000000000'},{tier:undefined},{messag
  assert.deepEqual(methods,['eth_requestAccounts']);
 });
 
-test('max wager sends exactly25DMT once and recovery keeps the same normal-race payment',async t=>{
+for (const [tier, dmt] of [['max',25n],['ultra',100n]]) test(`${tier} wager sends exactly ${dmt} DMT once and keeps the same normal-race payment`,async t=>{
  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage()});
- const n={...nonce,nonce:'max-fixture',week:1,tier:'max',amountWei:'25000000000000000000',message:entryMessage('max-fixture',1,'normal',undefined,'max')},requests=[];
+ const week=tier==='ultra'?3:1;
+ const n={...nonce,nonce:'wager-fixture',week,tier,amountWei:String(dmt*10n**18n),message:entryMessage('wager-fixture',week,'normal',undefined,tier)},requests=[];
  mockRankedFetch(t,async(url,options)=>{
-  if(url.includes('nonce')){assert.match(url,/tier=max/);return response(n);}
-  const body=JSON.parse(options.body);assert.equal(body.nonce,n.nonce);return response({entry:'max-ticket',id:10,week:1,mode:'normal'});
+  if(url.includes('nonce')){assert.equal(new URL(url,'http://localhost').searchParams.get('tier'),tier);return response(n);}
+  const body=JSON.parse(options.body);assert.equal(body.nonce,n.nonce);return response({entry:'max-ticket',id:10,week,mode:'normal'});
  });
  const wallet={p:{request:async r=>{requests.push(r);if(r.method==='eth_requestAccounts')return[address];if(r.method==='eth_chainId')return'0xa4b1';if(r.method==='personal_sign')return'sig';if(r.method==='eth_sendTransaction')return tx;}}};
- await client.payEntry(wallet,'/',()=>{},()=>{},'normal',1,CLIENT,'max');
+ await client.payEntry(wallet,'/',()=>{},()=>{},'normal',week,CLIENT,tier);
  const sends=requests.filter(r=>r.method==='eth_sendTransaction');assert.equal(sends.length,1);assert.equal(sends[0].params[0].data.slice(-64),BigInt(n.amountWei).toString(16).padStart(64,'0'));
- assert.deepEqual(JSON.parse(localStorage.getItem('sq-ranked-entries')),[{entry:'max-ticket',id:10,week:1,mode:'normal'}]);assert.equal(localStorage.getItem('sq-ranked-payment'),null);
+ assert.deepEqual(JSON.parse(localStorage.getItem('sq-ranked-entries')),[{entry:'max-ticket',id:10,week,mode:'normal'}]);assert.equal(localStorage.getItem('sq-ranked-payment'),null);
 });
 for(const changed of [{amountWei:'1000000000000000000'},{tier:undefined},{message:'Sign for1DMT'},{week:0}])test('max wager refuses mismatched authorization before signing or broadcasting '+JSON.stringify(changed),async t=>{
  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage()});

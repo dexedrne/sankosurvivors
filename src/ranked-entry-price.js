@@ -1,13 +1,22 @@
 import {raceForWeek} from './ranked.js';
+import {REBATE_WEEK} from './reward-policy.js';
 
-// Wager size changes contribution weight, never the race, physics or scoring.
+const PAID_TIERS = {
+ high: {entryDmt:'10',entryWei:'10000000000000000000'},
+ max: {entryDmt:'25',entryWei:'25000000000000000000'},
+ ultra: {entryDmt:'100',entryWei:'100000000000000000000'},
+};
+
+// Every wager uses the same Normal race, physics and scoring.
 export function entryForWeek(week,mode='normal',tier='standard') {
- if(!Number.isSafeInteger(week)||week<0||!['standard','high','max'].includes(tier))return null;
+ if(!Number.isSafeInteger(week)||week<0||typeof tier!=='string')return null;
  const race=raceForWeek(week,mode);
- if(!race||tier!=='standard'&&(week<1||mode!=='normal'))return null;
- return {...race,tier,...(tier==='high'?{entryDmt:'10',entryWei:'10000000000000000000'}:tier==='max'?{entryDmt:'25',entryWei:'25000000000000000000'}:{})};
+ if(!race)return null;
+ if(tier==='standard')return {...race,tier};
+ if(week<(tier==='ultra'?REBATE_WEEK:1)||mode!=='normal'||!Object.hasOwn(PAID_TIERS,tier))return null;
+ return {...race,tier,...PAID_TIERS[tier]};
 }
-export const entryOptions=(week,mode='normal')=>['standard','high','max'].map(tier=>entryForWeek(week,mode,tier)).filter(Boolean);
+export const entryOptions=(week,mode='normal')=>['standard',...Object.keys(PAID_TIERS)].map(tier=>entryForWeek(week,mode,tier)).filter(Boolean);
 
 export function entryMessage(nonce,week,mode='normal',deadline,tier='standard') {
  const price=entryForWeek(week,mode,tier)||(tier==='standard'&&Number.isSafeInteger(week)&&week<0?raceForWeek(week,mode):null);

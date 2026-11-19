@@ -45,7 +45,9 @@ export function prizeEstimate(race, places, payouts) {
       if(race.firstBonusWei!==(bonus?.amountWei??'0')||race.firstBonusTx!==(bonus?.tx??null))return null;
       extra=BigInt(race.firstBonusWei);
     }
-    const estimate=allocateRewards(pool,Math.min(places.filter(p=>p>=0).length,5),race.week??0,version===2?race.rewardActivity:race.activity,version);
+    const entryPool=version===3?amount(race.entryPoolWei):undefined;
+    if(entryPool===null)return null;
+    const estimate=allocateRewards(pool,Math.min(places.filter(p=>p>=0).length,5),race.week??0,version>=2?race.rewardActivity:race.activity,version,entryPool);
     if(estimate.prizes.length)estimate.prizes[0]=String(BigInt(estimate.prizes[0])+extra);
     return estimate;
   }

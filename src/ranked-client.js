@@ -3,6 +3,7 @@ import { hex } from './dmt.js';
 // where entry fees go, fixed here so a tampered server answer can never redirect a payment (security pass, 3 Nov)
 const ENTRY_WALLET = '0xa1e6e6ee71300c238935b7d59c8983b06e991be0', DMT_CONTRACT = '0x8b0e6f19ee57089f7649a455d89d7bc6314d04e8';
 import { RANKED, raceForWeek } from './ranked.js';
+import {REBATE_WEEK} from './reward-policy.js';
 import { clockPolicy } from './ranked-clock.js';
 const PAYMENT = 'sq-ranked-payment', ENTRIES = 'sq-ranked-entries';
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -113,7 +114,7 @@ export async function clearUnsentPayment() {
 // onTx(hash) hears about the payment as soon as the wallet sends it (for an Arbiscan link while it confirms).
 // The wallet is only ever asked for the selected week's exact race price.
 export async function payEntry(wallet, base, onStep, onTx = () => {}, mode = 'normal', expectedWeek, client, tier = 'standard') {
-  if (!['standard','high','max'].includes(tier) || !Object.hasOwn(RANKED.races, mode)) throw new Error('Pick a ranked race first.');
+  if (!entryForWeek(expectedWeek ?? REBATE_WEEK, mode, tier) || !Object.hasOwn(RANKED.races, mode)) throw new Error('Pick a ranked race first.');
   return paymentLock(async () => {
     if (readRanked(PAYMENT)) throw plain('Check your saved payment before entering again.');
     writeRanked(ENTRIES, readRanked(ENTRIES, []));
