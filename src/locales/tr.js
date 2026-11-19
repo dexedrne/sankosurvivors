@@ -2034,6 +2034,12 @@ export const text = {
   "Void Shard": "Hiçlik Parçası",
   "Staff · Void Shard": "Asa · Hiçlik Parçası",
   "Shrine of Strength": "Kuvvet Tapınağı",
+  "Harden": "Sertleşme",
+  "Greater Might": "Üstün Kudret",
+  "Mystic Lore": "Mistik Bilgi",
+  "+2 armour": "+2 zırh",
+  "+10% melee damage": "+%10 yakın dövüş hasarı",
+  "+10% magic damage": "+%10 büyü hasarı",
   "Shrine of Prayer": "Dua Tapınağı",
   "Shrine of Magic": "Büyü Tapınağı",
   "Shrine of Agility": "Çeviklik Tapınağı",
@@ -2155,6 +2161,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["{1} · {2} for {3} seconds. Health restored.", "{1} · {3} saniye boyunca {2}. Can yenilendi."],
   ["Damage per tick: {1}", "Zehir vuruşu başına hasar: {1}"],
   ["Tick interval: {1} s", "Zehir vuruşu aralığı: {1} sn"],
   ["Pool duration: {1} s", "Birikinti süresi: {1} sn"],

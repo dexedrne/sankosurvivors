@@ -28,7 +28,7 @@ import { createScreenLayout } from './screen-layout.js';
 import { setupFullscreen } from './fullscreen.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost, localOf, installAssetFallback } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, merchantNear, buyMerchant, FOOD, BELT_SIZE, TICK, SHRINE, SHRINES } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, merchantNear, buyMerchant, FOOD, BELT_SIZE, TICK, SHRINE, SHRINES, SHRINE_PSALMS, SHRINE_PSALM_SECONDS } from './sim.js';
 import { createAudio } from './audio.js';
 import { DamageMeter } from './damage-meter.js';
 import { bindBeltItem } from './belt-input.js';
@@ -2698,8 +2698,10 @@ function updateShrineHud(view) {
   $('shrinecharge').classList.toggle('hidden', !nearest);
   if (!nearest) return;
   const percent = Math.round(Math.max(0, Math.min(1, nearest[4])) * 100);
-  $('shrinename').textContent = SHRINES[nearest[1]].name;
-  $('shrinestate').textContent = distance < SHRINE.r ? nearest[1] === 'gold' ? 'Mining' : 'Charging' : 'Step into circle';
+  const psalm = SHRINE_PSALMS[nearest[6]];
+  $('shrinename').textContent = psalm?.name || SHRINES[nearest[1]].name;
+  const state = distance < SHRINE.r ? nearest[1] === 'gold' ? 'Mining' : 'Charging' : 'Step into circle';
+  $('shrinestate').textContent = psalm ? `${state} · ${psalm.text}` : state;
   $('shrineprogress').value = percent; $('shrinepct').textContent = percent + '%';
 }
 function updateTumbleHud(me) {
@@ -2722,6 +2724,23 @@ function updateBeerHud() {
   if (!$('beericon').innerHTML) $('beericon').innerHTML = imgTag('Tin of Beer');
   const label = left + 's';
   if ($('beerleft').textContent !== label) $('beerleft').textContent = label;
+}
+function updatePsalmHud() {
+  const player = sim.players.find(p => p.id === PLAYER && p.alive);
+  const active = player && Object.entries(SHRINE_PSALMS).find(([id]) => player.buffs[id] > 0);
+  const hud = $('psalmboost');
+  hud.hidden = !active;
+  if (!active) return;
+  const [id, psalm] = active;
+  if (hud.dataset.psalm !== id) {
+    hud.dataset.psalm = id;
+    const icon = $('psalmicon');
+    delete icon.dataset.localTried;
+    icon.src = asset(psalm.icon);
+    $('psalmlabel').textContent = psalm.name;
+  }
+  const left = Math.ceil(player.buffs[id]) + 's';
+  if ($('psalmleft').textContent !== left) $('psalmleft').textContent = left;
 }
 function updateReviveHud() {
   const p = sim.players.find(p => p.id === PLAYER), left = p?.alive && Number.isSafeInteger(p.revives) ? p.revives : 0;
@@ -2749,6 +2768,7 @@ function updateHud(view) {
   updateShrineHud(view);
   updateTumbleHud(me);
   updateBeerHud();
+  updatePsalmHud();
   updateCheeseHud();
   updateReviveHud();
   $('modeprogress').classList.toggle('hidden', !sim.variant);
@@ -2805,7 +2825,10 @@ function updateHud(view) {
     else if (f.k === 'event') banner(f.kind === 'treasure' ? 'A treasure goblin! Catch it before it gets away' : f.kind === 'swarm' ? 'Swarm!' : f.kind === 'warband' ? `A goblin warband charges from the ${f.dir}!` : f.kind === 'rising' ? 'The dead rise around you!' : f.kind === 'rainstorm' ? 'Rainstorm! Distant views and the minimap are clouded' : f.kind === 'snowstorm' ? 'Snowstorm! Distant views and the minimap are clouded' : f.kind === 'blizzard' ? 'Blizzard! The snow slows you down' : f.kind === 'duel' ? 'A champion of the Fighting Forum challenges you!' : f.kind === 'stampede' ? `Chicken stampede from the ${f.dir}!` : f.kind === 'sandstorm' ? 'Sandstorm! Scorpions in the dust' : f.kind === 'ambush' ? 'Ambush! Things are crawling out of the water' : 'Meteor shower! Watch the ground', 2600);
     else if (f.k === 'treasure') banner('Treasure goblin caught!', 1800);
     else if (f.k === 'shrine' && SHRINES[f.kind]) banner(`A ${SHRINES[f.kind].name} rose nearby: stand in its circle to charge it`, 3200);
-    else if (f.k === 'shrine-done' && SHRINES[f.kind] && f.id === PLAYER) banner(`${SHRINES[f.kind].name}: ${SHRINES[f.kind].text}`, 3200);
+    else if (f.k === 'shrine-done' && SHRINES[f.kind] && f.id === PLAYER) {
+      const psalm = SHRINE_PSALMS[f.psalm];
+      banner(psalm ? `${psalm.name} · ${psalm.text} for ${SHRINE_PSALM_SECONDS} seconds. Health restored.` : `${SHRINES[f.kind].name}: ${SHRINES[f.kind].text}`, 3200);
+    }
     else if (f.k === 'region' && sim.t > 1) banner(MAP_BY_ID[f.id].name, 1800);
     else if (f.k === 'escape') banner('The treasure goblin got away', 1600);
     else if (f.k === 'slot-upgrade' && ['weapon', 'passive'].includes(f.slot)) banner(f.slot === 'weapon' ? 'Extra weapon slot unlocked.' : 'Extra passive slot unlocked.', 1800);

@@ -2034,6 +2034,12 @@ export const text = {
   "Void Shard": "Fragmento de Vacío",
   "Staff · Void Shard": "Bastón · Fragmento de Vacío",
   "Shrine of Strength": "Santuario de Fuerza",
+  "Harden": "Endurecer",
+  "Greater Might": "Potencia superior",
+  "Mystic Lore": "Saber místico",
+  "+2 armour": "+2 de armadura",
+  "+10% melee damage": "+10% de daño cuerpo a cuerpo",
+  "+10% magic damage": "+10% de daño mágico",
   "Shrine of Prayer": "Santuario de Oración",
   "Shrine of Magic": "Santuario de Magia",
   "Shrine of Agility": "Santuario de Agilidad",
@@ -2155,6 +2161,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["{1} · {2} for {3} seconds. Health restored.", "{1} · {2} durante {3} segundos. Salud restaurada."],
   ["Damage per tick: {1}", "Daño por pulso: {1}"],
   ["Tick interval: {1} s", "Intervalo entre pulsos: {1} s"],
   ["Pool duration: {1} s", "Duración del charco: {1} s"],

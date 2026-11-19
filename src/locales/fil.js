@@ -2034,6 +2034,12 @@ export const text = {
   "Void Shard": "Piraso ng Kawalan",
   "Staff · Void Shard": "Tungkod · Piraso ng Kawalan",
   "Shrine of Strength": "Dambana ng Lakas",
+  "Harden": "Tibay",
+  "Greater Might": "Higit na Lakas",
+  "Mystic Lore": "Kaalamang Mistiko",
+  "+2 armour": "+2 baluti",
+  "+10% melee damage": "+10% pinsala sa malapitan",
+  "+10% magic damage": "+10% pinsalang mahika",
   "Shrine of Prayer": "Dambana ng Dasal",
   "Shrine of Magic": "Dambana ng Mahika",
   "Shrine of Agility": "Dambana ng Liksi",
@@ -2155,6 +2161,7 @@ export const text = {
 };
 
 export const patterns = [
+  ["{1} · {2} for {3} seconds. Health restored.", "{1} · {2} sa loob ng {3} segundo. Naibalik ang kalusugan."],
   ["Damage per tick: {1}", "Pinsala bawat pulso: {1}"],
   ["Tick interval: {1} s", "Pagitan ng mga pulso: {1} s"],
   ["Pool duration: {1} s", "Tagal ng lason sa lupa: {1} s"],

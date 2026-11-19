@@ -357,7 +357,7 @@ export function playerStats(p, meta = p.meta || {}) {
     might, haste,
     speed: PLAYER_BASE.speed * (1 + 0.08 * passiveStrength(p, 'boots') + 0.03 * m('woodcutting') + (B.speed || 0) + (G.speed || 0)) * ((p.buffs && p.buffs.speed > 0) ? 1.35 : 1) * ((p.buffs && p.buffs.chill > 0) ? 0.9 : 1) * (bf.agility > 0 ? 1.25 : 1), // beer speeds you up, a blizzard slows you
     magnet: (p.pace >= 2 ? 2.5 : PLAYER_BASE.magnet) * (1 + 0.3 * passiveStrength(p, 'magnet') + 0.1 * m('magic') + (B.magnet || 0) + (G.magnet || 0)),
-    armor: passiveStrength(p, 'armor') + (B.armor || 0) + (G.armor || 0) + (m('mining') >= 2 ? 1 : 0) + (m('mining') >= 4 ? 1 : 0),
+    armor: passiveStrength(p, 'armor') + (B.armor || 0) + (G.armor || 0) + (m('mining') >= 2 ? 1 : 0) + (m('mining') >= 4 ? 1 : 0) + (bf.harden > 0 ? SHRINE_PSALMS.harden.armor : 0),
     growth: (1 + 0.1 * passiveStrength(p, 'growth') + 0.05 * m('herblore') + (B.growth || 0) + (G.growth || 0)) * (bf.wisdom > 0 ? 1.4 : 1),
     maxHp: Math.round(PLAYER_BASE.hp + 20 * passiveStrength(p, 'vigor') + 8 * m('smithing') + (B.hp || 0) + (G.hp || 0)),
     regen: 0.15 * passiveStrength(p, 'vigor') + 0.1 * m('cooking') + (G.regen || 0),
@@ -374,7 +374,7 @@ export function playerStats(p, meta = p.meta || {}) {
     critC: 0.08 + 0.05 * passiveStrength(p, 'crit'), critM: 1.8 + 0.1 * passiveStrength(p, 'crit') + (p.pace >= 2 ? 0.2 * passiveStrength(p, 'void') : 0),
     thorns: 8 * passiveStrength(p, 'thorns'),
     heal: 1 + 0.12 * m('fishing') + (p.pace >= 2 ? 0.1 * passiveStrength(p, 'water') : 0),
-    magic: 1 + (G.magic || 0) + (p.pace >= 2 ? 0.06 * passiveStrength(p, 'fire') : 0), // the Minion set: magic weapons (Shard Staff, Lighter) hit harder
+    magic: (1 + (G.magic || 0) + (p.pace >= 2 ? 0.06 * passiveStrength(p, 'fire') : 0)) * (bf.mysticLore > 0 ? SHRINE_PSALMS.mysticLore.damage : 1), // the Minion set: magic weapons (Shard Staff, Lighter) hit harder
   };
   const knockback = knockbackMultiplier(p); if (knockback !== 1) stats.knockback = knockback;
   if (p.pace >= 2 && passiveStrength(p, 'cheese') > 0) stats.cheeseShield = Math.min(5, 1.5 + 0.5 * passiveStrength(p, 'cheese'));
@@ -871,6 +871,7 @@ function withPassives(id, s, st) {
   if (st.amount && ['bow', 'axe', 'staff', 'shortsword', 'baseball', 'shield', 'glock'].includes(id) && !s.ring) s.count = (s.count || 1) + st.amount;
   return s;
 }
+const MELEE_PSALM_WEAPONS = ['katana', 'greatsword', 'dagger'];
 const NO_METAL = { dmg: 1, pierce: 0 };
 const GLOCK_EXTRA = 0.35; // what each of the Feather's extra Glock rounds does, against the aimed round
 // Fishing Rod: a knockback impulse k moves a monster k * TICK / (1 - 0.86) in all (the decay in step()), so this turns
@@ -882,6 +883,7 @@ const POISON_INTERVAL = Math.round(MORTAR_POISON.tickSeconds / TICK);
 
 function fireWeapons(sim, p, dt, st) {
   p.orbit += dt;
+  const meleePsalm = p.buffs.greaterMight > 0 ? SHRINE_PSALMS.greaterMight.damage : 1;
   for (const id of Object.keys(p.weapons)) {
     const lvl = p.weapons[id];
     let s = weaponStats(p, id);
@@ -890,7 +892,8 @@ function fireWeapons(sim, p, dt, st) {
     if (id === 'shield' || id === 'lighter') continue; // handled continuously
     // weapon metals (pace 2): more damage, the Bow's arrows pierce more; mt is the look of the thrown axe or sword
     const metal = sim.pace >= 2 ? weaponMetal(id, p.wm) : NO_METAL, mt = sim.pace >= 2 ? weaponLook(id, p.wm, p.evo[id]) : undefined;
-    const dmg = (s.dmg || 0) * st.might * metal.dmg * (MAGIC_WEAPONS.includes(id) ? st.magic : 1);
+    const styleDamage = MAGIC_WEAPONS.includes(id) ? st.magic : MELEE_PSALM_WEAPONS.includes(id) ? meleePsalm : 1;
+    const dmg = (s.dmg || 0) * st.might * metal.dmg * styleDamage;
     if (metal.pierce) s = { ...s, pierce: (s.pierce || 0) + metal.pierce };
     p.cd[id] = (p.cd[id] ?? 0.2) - dt;
     if (p.cd[id] > 0) continue;
@@ -1259,6 +1262,14 @@ export const SHRINES = {
   wealth: { name: 'Shrine of Wealth', text: 'a ring of coins', color: 0xffb03a },
   gold: { name: 'Gold node', text: '24 coins', color: 0xffd34d },
 };
+export const SHRINE_PSALMS = {
+  harden: { name: 'Harden', armor: 2, text: '+2 armour', icon: 'ui/psalms/harden.png' },
+  greaterMight: { name: 'Greater Might', damage: 1.10, text: '+10% melee damage', icon: 'ui/psalms/greater-might.png' },
+  mysticLore: { name: 'Mystic Lore', damage: 1.10, text: '+10% magic damage', icon: 'ui/psalms/mystic-lore.png' },
+};
+export const SHRINE_PSALM_SECONDS = 15;
+const SHRINE_PSALM_IDS = Object.keys(SHRINE_PSALMS);
+const hasShrinePsalms = sim => !sim.ranked && !sim.coop && !sim.variant;
 export const SHRINE = { first: 75, every: 110, charge: 3.5, r: 2.6, life: 75 };
 const SHRINE_KINDS = Object.keys(SHRINES).filter(kind => kind !== 'gold');
 const CASUAL_SHRINE_KINDS = [...SHRINE_KINDS, 'gold'];
@@ -1285,7 +1296,10 @@ function shrineTick(sim, dt) {
         if (!clear) continue;
         const kinds = sim.ranked || sim.variant ? SHRINE_KINDS : CASUAL_SHRINE_KINDS;
         const kind = kinds[Math.floor(sim.rng() * kinds.length)];
-        sim.shrines.push({ id: sim.nextId++, x, z, kind, charge: 0, life: SHRINE.life }); sim.fx.push({ k: 'shrine', kind, x, z });
+        const id = sim.nextId++;
+        const psalm = kind === 'prayer' && hasShrinePsalms(sim) ? { psalm: SHRINE_PSALM_IDS[id % SHRINE_PSALM_IDS.length] } : {};
+        sim.shrines.push({ id, x, z, kind, charge: 0, life: SHRINE.life, ...psalm });
+        sim.fx.push({ k: 'shrine', kind, x, z });
         break;
       }
     }
@@ -1294,7 +1308,11 @@ function shrineTick(sim, dt) {
     s.life -= dt;
     const p = alive.find((q) => hyp(q.x - s.x, q.z - s.z) < SHRINE.r);
     s.charge = p ? s.charge + dt : Math.max(0, s.charge - dt * 0.5);
-    if (p && s.charge >= SHRINE.charge) { shrineReward(sim, p, s); s.done = true; sim.fx.push({ k: 'shrine-done', kind: s.kind, x: s.x, z: s.z, id: p.id }); }
+    if (p && s.charge >= SHRINE.charge) {
+      const psalm = shrineReward(sim, p, s);
+      s.done = true;
+      sim.fx.push({ k: 'shrine-done', kind: s.kind, x: s.x, z: s.z, id: p.id, ...(psalm ? { psalm } : {}) });
+    }
     else if (s.life <= 0) { s.done = true; sim.fx.push({ k: 'shrine-gone', kind: s.kind, x: s.x, z: s.z }); }
   }
   if (sim.shrines.some((s) => s.done)) sim.shrines = sim.shrines.filter((s) => !s.done);
@@ -1302,7 +1320,16 @@ function shrineTick(sim, dt) {
 function shrineReward(sim, p, s) {
   const k = s.kind;
   if (k === 'strength') p.buffs.strength = 40;
-  else if (k === 'prayer') { p.hp = p.maxHp; p.inv = Math.max(p.inv, 3); }
+  else if (k === 'prayer') {
+    p.hp = p.maxHp;
+    p.inv = Math.max(p.inv, 3);
+    if (hasShrinePsalms(sim)) {
+      const psalm = Object.hasOwn(SHRINE_PSALMS, s.psalm) ? s.psalm : 'harden';
+      for (const id of SHRINE_PSALM_IDS) if (p.buffs[id]) p.buffs[id] = 0;
+      p.buffs[psalm] = SHRINE_PSALM_SECONDS;
+      return psalm;
+    }
+  }
   else if (k === 'magic') { for (const g of sim.gems) g.pulled = true; p.buffs.wisdom = 40; }
   else if (k === 'agility') p.buffs.agility = 40;
   else if (k === 'fortune') sim.pickups.push({ id: sim.nextId++, x: s.x, z: s.z, kind: 'chest' });
@@ -1580,7 +1607,10 @@ export function step(sim, inputs = {}, dt = TICK) {
     }
     boundPlayer(sim, p);
     p.inv = Math.max(0, p.inv - dt); p.hurt = Math.max(0, p.hurt - dt);
-    for (const b of Object.keys(p.buffs)) p.buffs[b] = Math.max(0, p.buffs[b] - dt);
+    for (const b of Object.keys(p.buffs)) {
+      const left = Math.max(0, p.buffs[b] - dt);
+      p.buffs[b] = left < 1e-9 && Object.hasOwn(SHRINE_PSALMS, b) ? 0 : left;
+    }
     if (sim.pace >= 2 && !sim.ranked && st.cheeseShield > 0) {
       if (p.buffs.cheeseShield < 1e-9) p.buffs.cheeseShield = 0;
       p.cheeseCd = Math.max(0, (p.cheeseCd ?? 20) - dt);
@@ -1770,7 +1800,7 @@ export function snapshot(sim, { maxEnemies = 260 } = {}) {
     gems: sim.gems.map((g) => [g.id, r1(g.x), r1(g.z), g.v]),
     pickups: sim.pickups.map((k) => [k.id, k.kind, r1(k.x), r1(k.z)]),
     ...(merchantEligible(sim) ? { merchant: sim.merchant ? { ...sim.merchant, offers: sim.merchant.offers.map(o => ({ ...o })) } : null } : {}),
-    shrines: sim.shrines.map((s) => [s.id, s.kind, r1(s.x), r1(s.z), Math.round(Math.min(1, s.charge / SHRINE.charge) * 100) / 100, Math.round(s.life)]),
+    shrines: sim.shrines.map((s) => [s.id, s.kind, r1(s.x), r1(s.z), Math.round(Math.min(1, s.charge / SHRINE.charge) * 100) / 100, Math.round(s.life), ...(s.psalm ? [s.psalm] : [])]),
     pending: Object.fromEntries(Object.entries(sim.pending).map(([id, v]) => [id, v.casket ? { ...(v.merchantPurchase ? { merchantPurchase: true } : {}), choices: v.choices, left: Math.ceil(v.left), casket: v.casket, rec: v.rec, more: v.more } : { choices: v.choices, left: Math.ceil(v.left), ...(v.spell ? { spell: true, page: v.page } : {}) }])),
     fx,
   };
