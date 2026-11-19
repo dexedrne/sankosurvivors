@@ -443,6 +443,9 @@ test('missing simulation never consumes the entry', async () => {
   const e = await enter(), run = await start(e);
   expectError(await call('ranked-submit', { run: signed({ ...decode(run.run), v: '000000000000' }), log: { v: 1, runs: [[1, 0, 0]], uses: [], picks: [] } }), 500, 'server error: that game version is missing. Your run was not used up; tell the dev');
   assert.equal(db.rows[0].claimed_at, undefined);
+  const merchantLog = { v: 1, runs: [[1, 0, 0]], uses: [], picks: ['m:1:42:buy:0'] };
+  expectError(await call('ranked-submit', { run: signed({ ...decode(run.run), v: '000000000000' }), log: merchantLog }), 500, 'server error: that game version is missing. Your run was not used up; tell the dev');
+  assert.equal(db.rows[0].claimed_at, undefined);
   const { v, ...withoutVersion } = decode(run.run);
   expectError(await call('ranked-submit', { run: signed(withoutVersion), log: { v: 1, runs: [[1, 0, 0]], uses: [], picks: [] } }), 500, 'server error: that game version is missing. Your run was not used up; tell the dev');
   assert.equal(db.rows[0].claimed_at, undefined);

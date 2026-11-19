@@ -133,7 +133,7 @@ const ADDR = /^0x[0-9a-f]{40}$/, TXH = /^0x[0-9a-f]{64}$/;
 const ipHash = (ip, week, key) => crypto.createHmac('sha256', key).update(`ip|${week}|${ip}`).digest('hex').slice(0, 32);
 
 // a sane log before spending CPU on it
-function logShape(log, maxTicks) {
+function logShape(log, maxTicks, shopTick) {
   if (!log || typeof log !== 'object' || log.v !== 1 || Object.keys(log).some(k => !['v', 'runs', 'uses', 'picks'].includes(k))) return 'bad log';
   const { runs, uses, picks } = log;
   if (!Array.isArray(runs) || !Array.isArray(uses) || !Array.isArray(picks)) return 'bad log';
@@ -146,7 +146,11 @@ function logShape(log, maxTicks) {
     if (!Array.isArray(u) || u.length !== 2 || !Number.isInteger(u[0]) || u[0] <= lastUse || u[0] >= ticks || !Number.isInteger(u[1]) || u[1] < 0 || u[1] > 4) return 'bad item use';
     lastUse = u[0];
   }
-  for (const p of picks) if (![0, 1, 2, 'a', 'r', 's', 'b0', 'b1', 'b2'].includes(p)) return 'bad choice';
+  for (const p of picks) {
+    if ([0, 1, 2, 'a', 'r', 's', 'b0', 'b1', 'b2'].includes(p)) continue;
+    const at = shopTick?.(p);
+    if (!Number.isInteger(at) || at > ticks) return 'bad choice';
+  }
   return null;
 }
 
@@ -323,8 +327,9 @@ async function handle(route, req, res, ctx) {
     const cutoff = r.c === 1;
     if (cutoff && (!Number.isSafeInteger(r.d) || r.d !== g.weekStart(r.w + 1) || r.d <= r.s)) return send(res, 400, {error:'no run'});
     const maxTicks = Math.min(Math.ceil(runMax * 30), cutoff ? Math.floor((r.d-r.s)*30/1000) : Infinity);
-    const shape = logShape(b.log, maxTicks); if (shape) return send(res, 400, { error: shape });
     if (!played) return send(res, 500, { error: 'server error: that game version is missing. Your run was not used up; tell the dev' });
+    const shopTick = played.game.rankedMerchantFor?.(r.w, modeOf(r)) ? played.game.rankedShopTick : undefined;
+    const shape = logShape(b.log, maxTicks, shopTick); if (shape) return send(res, 400, { error: shape });
     const sha = crypto.createHash('sha256').update(JSON.stringify(b.log)).digest('hex');
     const ident = { p_server_key: SERVER_KEY, p_id: r.id, p_wallet: r.a, p_started: r.s, p_log_sha: sha, p_attempt: crypto.randomUUID() };
     const reply = (out) => {

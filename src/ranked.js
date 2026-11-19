@@ -2,7 +2,7 @@ import {startRunStats,captureRunStats} from './run-stats.js';
 // Ranked weekly DMT runs: the rules, the run recorder and the replay that checks a run. The game and the server both use
 // this file, so a run replays on the server exactly as it was played (the simulation's maths is deterministic, see
 // dmath.js). Ranked runs start equal: no skills, no gear, no DMT perks, any adventurer.
-import { createSim, step, choose, reroll, skipLevel, autoChoice, banish, TICK } from './sim.js';
+import { createSim, step, choose, reroll, skipLevel, autoChoice, banish, buyMerchant, changeMerchantLoadout, TICK } from './sim.js';
 import { MAPS, MAP_BY_ID, ADVENTURERS, ADVENTURER_BY_ID } from './content.js';
 
 export const RANKED = {
@@ -44,6 +44,7 @@ export const kpmWeek = (w) => Number.isInteger(w) && w >= RANKED.kpmWeek;
 export const racesOf = (w) => (kpmWeek(w) ? ['normal', 'hard'] : ['normal']);
 // New ranked entries are Standard only; closing a race must not erase historical liabilities.
 export const entryRacesOf = () => ['normal'];
+export const rankedMerchantFor = (week, mode) => Number.isInteger(week) && week >= 3 && mode === 'normal';
 export const isRace = (w, mode) => racesOf(w).includes(mode);
 // the longest a run of that week can last, in game seconds (a little slack for the end screen)
 export const runSeconds = () => RANKED.timeLimit + 60; // every run of this build is endless
@@ -104,8 +105,24 @@ export function rankedSim({ seed, mapId, adv, ground, week, mode = 'normal' } = 
   if (!a || a.special || !Object.hasOwn(MAP_BY_ID, mapId) || !Number.isInteger(week) || !isRace(week, mode)) throw new Error('bad ranked run');
   const endless = true; // every ranked run is endless from this build on (week 0 too); week 0 still ranks by time
   // the crowd: week 0 keeps the pace it started on (2 Nov), the denser one of 3 Nov from week 1, so a week is one contest
-  return createSim({ seed, map: MAP_BY_ID[mapId], hard: mode === 'hard', endless, endAt: endless ? RANKED.timeLimit : 0, meta: {}, ground, pace: kpmWeek(week) ? 2 : 1, ranked: true, rankedFood: week >= 2,
+  return createSim({ seed, map: MAP_BY_ID[mapId], hard: mode === 'hard', endless, endAt: endless ? RANKED.timeLimit : 0, meta: {}, ground, pace: kpmWeek(week) ? 2 : 1, ranked: true, rankedFood: week >= 2, rankedMerchant: rankedMerchantFor(week, mode),
     players: [{ id: PID, name: 'You', adv, weapon: a.weapon, gear: {}, gearLv: {} }] });
+}
+
+// Shop transactions share the choice stream so a purchase can open a reward at the same tick.
+const shopPattern = /^m:(0|[1-9]\d{0,5}):([1-9]\d{0,9}):(?:(buy):([0-2])|(upgrade|remove):(weapon|passive):([a-z][a-z0-9_-]{0,31}):([1-6]):([1-9]\d{0,8}))$/;
+const parseRankedShop = action => typeof action === 'string' && action.length <= 80 ? shopPattern.exec(action) : null;
+export const rankedShopTick = action => {
+  const match = parseRankedShop(action);
+  return match ? Number(match[1]) : null;
+};
+export function applyRankedShopAction(sim, action) {
+  if (!sim.rankedMerchant) return false;
+  const match = parseRankedShop(action);
+  if (!match || Number(match[1]) !== sim.tick) return false;
+  const [, , encounter, buy, offer, service, kind, id, level, price] = match;
+  return buy ? buyMerchant(sim, PID, Number(encounter), Number(offer))
+    : changeMerchantLoadout(sim, PID, Number(encounter), service, kind, id, Number(level), Number(price));
 }
 
 // stick and key input reaches the simulation in hundredths, so the recorded run is exactly what was simulated
@@ -150,7 +167,13 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
   let pi = 0, ui = 0, tick = 0;
   const resolve = (partial = false) => {
     let guard = 0;
-    while (sim.pending[PID]) {
+    while (true) {
+      if (!sim.pending[PID]) {
+        const shopTick = sim.rankedMerchant ? rankedShopTick(log.picks[pi]) : null;
+        if (shopTick === null || shopTick > sim.tick) return null;
+        if (!applyRankedShopAction(sim, log.picks[pi++])) return 'bad merchant action';
+        continue;
+      }
       if (sim.pace < 2 && guard++ > 60) return 'too many choices'; // pace 2 consumes a finite pick per queued reward
       if (partial && pi === log.picks.length) return null;
       const a = log.picks[pi++];
@@ -160,9 +183,8 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
       else if (typeof a === 'string' && /^b[0-2]$/.test(a)) { if (!banish(sim, PID, Number(a[1]))) return 'banish not allowed'; }
       else if (a === 'a') choose(sim, PID, autoChoice(sim.pending[PID])); // what step() itself does when the card timer runs out
       else if (a === 0 || a === 1 || a === 2) { if (!sim.pending[PID].choices[a]) return 'no such choice'; if (!choose(sim, PID, a)) return 'choice not allowed'; }
-      else return 'bad choice';
+      else return typeof a === 'string' && a.startsWith('m:') ? 'bad merchant action' : 'bad choice';
     }
-    return null;
   };
   for (const r of log.runs) {
     if (!Array.isArray(r) || r.length !== 3) return { error: 'bad input' };
@@ -180,7 +202,8 @@ export function replay(log, params, { maxTicks = Math.ceil(runSeconds(params?.we
       if (tick > maxTicks) return { error: 'run too long' };
     }
   }
-  const err = resolve(allowPartial); if (err && !sim.over) return { error: err };
+  const err = resolve(allowPartial); if (err && (!sim.over || err === 'bad merchant action')) return { error: err };
+  if (log.picks.slice(pi).some(a => typeof a === 'string' && a.startsWith('m:'))) return { error: 'unused merchant action' };
   if (ui !== log.uses.length) return { error: 'item uses out of order' };
   if (!sim.over && !allowPartial) return { error: 'the run had not ended' };
   return { t: Math.floor(sim.t), kills: sim.kills, level: sim.level, won: sim.over === 'win', timeUp: sim.over === 'time', ticks: tick, picksUsed: pi, ...(analytics ? {stats:captureRunStats(sim,sim.players[0])} : {}) };

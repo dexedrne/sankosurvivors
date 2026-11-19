@@ -935,6 +935,10 @@ body.touch #equipmenthud, body.ds-layout #equipmenthud { display:none; }
 /* The optional merchant keeps mobile movement and shop choices separate. */
 #tradebtn { position:absolute; left:50%; bottom:calc(150px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); pointer-events:auto; min-height:44px; margin:0; padding:8px 18px; font-size:20px; }
 #merchant .panel { max-width:760px; }
+#merchantkit { margin:12px 0; border:1px solid var(--line); padding:0 8px; text-align:left; }
+#merchantkit summary { cursor:pointer; min-height:44px; padding:10px 0; }
+.merchantservice { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px; padding:8px 0; border-top:1px solid var(--line); }
+.merchantservice button { min-height:44px; padding:4px 8px; margin:2px; font-size:16px; }
 #merchantoffers { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
 .merchantoffer { min-width:0; display:flex; flex-direction:column; padding:8px; border:1px solid var(--line); background:#1e171066; }
 .merchantoffer .ckitem { margin:0; flex-direction:column; text-align:center; }

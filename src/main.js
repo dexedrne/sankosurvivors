@@ -4,6 +4,7 @@ import {openRunStatsStore,createRunStatsOutbox,queueFinishedRunStats} from './ru
 import {lowHealthOpacity} from './health-warning.js';
 import {bindItemKeys} from './item-keys.js';
 import {entryForWeek} from './ranked-entry-price.js';
+import {merchantLoadoutOptions, merchantServicePrices} from './merchant.js';
 import { captureRunBuild } from './run-build.js';
 import { pauseBuild, pauseBuildHTML } from './pause-build.js';
 import { drawRunCard } from './run-card.js';
@@ -14,8 +15,8 @@ import { predictedView } from './coop-view.js';
 import { createCoopReviveUi } from './coop-revive-ui.js';
 import { groundHash } from './ground-pack.js';
 import { VARIANTS, TRIAL_BOSSES, BOSS_KIT, RAID_DURATION, WISE_OLD_MAN } from './game-modes.js';
-import { RunRecorder, RANKED, pauseRemaining, rankedPoints, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf } from './ranked.js';
-import { rankedStep, rankedChoice, resumeRankedAsync } from './ranked-play.js';
+import { RunRecorder, RANKED, pauseRemaining, rankedPoints, kpm, kpmMicro, kpmWeek, prizePlaces as racePlaces, placeable, raceForWeek, entryRacesOf, rankedMerchantFor } from './ranked.js';
+import { rankedStep, rankedChoice, rankedShop, resumeRankedAsync } from './ranked-play.js';
 import { clockPolicy } from './ranked-clock.js';
 import { RankedClock } from './ranked-clock-client.js';
 import { itemInspection } from './item-inspection.js';
@@ -28,7 +29,7 @@ import { createScreenLayout } from './screen-layout.js';
 import { setupFullscreen } from './fullscreen.js';
 import { profileValue, profileBest, validProfileValue, finiteNumber } from './progress-values.js';
 import { asset, pickAssetHost, localOf, installAssetFallback } from './assets.js';
-import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, merchantNear, buyMerchant, FOOD, BELT_SIZE, TICK, SHRINE, SHRINES, SHRINE_PSALMS, SHRINE_PSALM_SECONDS } from './sim.js';
+import { createSim, step, snapshot, choose, spawnEnemy, findWalkable, reroll, skipLevel, canBanish, banish, playerStats, previewChoice, openCasket, autoChoice, merchantNear, buyMerchant, changeMerchantLoadout, FOOD, BELT_SIZE, TICK, SHRINE, SHRINES, SHRINE_PSALMS, SHRINE_PSALM_SECONDS } from './sim.js';
 import { createAudio } from './audio.js';
 import { DamageMeter } from './damage-meter.js';
 import { bindBeltItem } from './belt-input.js';
@@ -365,7 +366,7 @@ function enforceRankedDeadline() {
   if (!rankedPlaying() || runStarting || rankedRun.clockVersion !== 1 || !Number.isSafeInteger(rankedRun.deadline)) return false;
   if (Date.now() + (Number.isFinite(rankedRun.clockOffset) ? rankedRun.clockOffset : 0) < rankedRun.deadline) return false;
   rankedRun.cutoff = true; sim.over = 'time';
-  for (const id of ['levelup', 'casket', 'pause', 'settings', 'bug']) $(id).classList.add('hidden');
+  for (const id of ['levelup', 'casket', 'pause', 'settings', 'bug', 'merchant']) $(id).classList.add('hidden');
   endRun();
   return true;
 }
@@ -452,6 +453,10 @@ function renderRanked() {
       : 'Entry is 0.5 DMT on Arbitrum: 10% house fee, 90% prize pool split 40/25/15/12/8 between the top five wallets. Monday to Monday UTC, one map, as many entries as you like, one wallet per player per connection each week. Any regular adventurer, no skills, gear or DMT perks. The server checks every input. Runs must be played live by a person: bot, script or tool-assisted runs, and runs rewound to an earlier save, are disqualified and their prizes held (resuming after a reload is fine).';
     if (race.rewards?.version===3) $('rankedrules').textContent="All entry sizes share the leaderboard and starting power. The house fee is 10% of each entry. Placing requires 3:00 in a single run. The top five eligible wallets receive 40%, 25%, 15%, 12% and 8% of the placement share. Score is kills plus whole seconds survived. Ties use exact KPM, kills, earlier finish, then entry order. Verified runs of at least 0:30 count for playtime. Pauses do not count. The developer earns no prizes. Human play only. Reload recovery is allowed. Unfilled rewards roll over.";
     if (race.rewards?.version===2) $('rankedrules').textContent='All entry sizes share one leaderboard and prize pool. A higher wager changes only contribution weight, not your score or playtime weight. The house fee is 10% of each entry; 90% joins the pool. Each wallet’s best result determines its place and must last at least 3:00 to win a placement prize. The top five eligible wallets receive 40%, 25%, 15%, 12% and 8% of the placement portion, respectively. Score is kills plus whole seconds. Ties use exact KPM, kills, earlier finish, then entry order. All runs use standard rules: any regular adventurer, no gear, skills or holder perks. One wallet per player per connection each week. Human play only; bots, scripts, tool assistance and rewinds are disqualified. Reload recovery is allowed. Unfilled rewards roll over.';
+    if (rankedMerchantFor(rankedWeek.week, rankedMode)) {
+      const merchant = document.createElement('span'); merchant.textContent = 'The Wandering Merchant sells gear and loadout services for GP earned in your run. Shopping uses the standard Ranked pause rules.';
+      $('rankedrules').append(document.createElement('br'), merchant);
+    }
     if (rankedWeek.week >= 2) {
       const food = document.createElement('span'); food.textContent = 'Food: up to 5 per type; extra food is eaten immediately. Stored food can save you before a fatal hit. Pumpkin bombs: up to 10 per stack; extras stay on the ground.';
       $('rankedrules').append(document.createElement('br'), food);
@@ -2004,6 +2009,7 @@ function runCoinOptions(s) {
   return { player: p, multiplier: playerStats(p).coinBonus * (s.hard ? 1.25 : 1) * (savedPass() ? 1 + DMT_COIN_BONUS : 1), baseline: s.endless && casualRun?.sim === s ? casualRun.baseline || null : null };
 }
 function runCoins(s, won = false) { return phaseCoins(s, { ...runCoinOptions(s), won }); }
+const spendableRunCoins = s => s.rankedMerchant ? phaseCoins(s) : runCoins(s);
 
 function cardImage(path) {
   if (cardImages.has(path)) return cardImages.get(path);
@@ -2617,6 +2623,7 @@ function afterCasket() {
 function pickCasket(i, auto = false) {
   const pend = sim && sim.pending[PLAYER]; if (!pend || !pend.casket || (!auto && mode !== 'casket')) return;
   if (sim.coop) { coop.run.action({kind:'choose',index:i},coopDecision); return; }
+  if (pend.merchantPurchase && rankedRec && enforceRankedDeadline()) return;
   if (rankedRec) { if (!rankedChoice(sim, rankedRec, i)) return; persistRanked(); } else choose(sim, PLAYER, i);
   afterCasket();
 }
@@ -2627,7 +2634,7 @@ let merchantVisit = null;
 function renderMerchant() {
   const m = sim?.merchant;
   if (!merchantVisit || merchantVisit.sim !== sim || m?.id !== merchantVisit.id) { $('merchantstatus').textContent = 'This merchant is no longer available.'; return; }
-  const p = sim.players.find(p => p.id === PLAYER), budget = runCoins(sim);
+  const p = sim.players.find(p => p.id === PLAYER), budget = spendableRunCoins(sim);
   $('merchantgp').textContent = budget.toLocaleString();
   $('merchantoffers').innerHTML = m.offers.map((offer, i) => {
     if (!Object.hasOwn(GEAR, offer.item)) return '';
@@ -2636,15 +2643,31 @@ function renderMerchant() {
     return `<article class="merchantoffer">${casketItemHTML(offer.item, 'new', 'For sale')}<ul class="merchantdelta">${delta || '<li>No stat change</li>'}</ul><button type="button" data-merchant-offer="${i}"${offer.sold || !valid || budget < offer.price ? ' disabled' : ''}>${offer.sold ? 'Sold out' : valid ? `<span>Buy</span> · <span translate="no">${offer.price.toLocaleString()} GP</span>` : 'Unavailable'}</button></article>`;
   }).join('');
   for (const button of $('merchantoffers').querySelectorAll('[data-merchant-offer]')) button.onclick = () => buyMerchantOffer(Number(button.dataset.merchantOffer));
+
+  const items = merchantLoadoutOptions(p), prices = merchantServicePrices(budget, sim.t);
+  $('merchantservices').innerHTML = items.map((item, index) => {
+    const disabled = service => !item[service] || budget < prices[service] ? ' disabled' : '';
+    return `<article class="merchantservice"><b>${esc(item.name)} <small translate="no">Lv ${item.level}</small></b><div>
+      <button type="button" data-merchant-item="${index}" data-service="upgrade"${disabled('upgrade')}><span>Upgrade</span> · <span translate="no">${prices.upgrade.toLocaleString()} GP</span></button>
+      <button type="button" data-merchant-item="${index}" data-service="remove"${disabled('remove')}><span>Remove</span> · <span translate="no">${prices.remove.toLocaleString()} GP</span></button></div></article>`;
+  }).join('');
+  for (const button of $('merchantservices').querySelectorAll('[data-merchant-item]')) {
+    const service = button.dataset.service;
+    button.onclick = () => serviceMerchantItem(service, items[Number(button.dataset.merchantItem)], prices[service]);
+  }
 }
 function openMerchant() {
   if (mode !== 'play' || !sim || sim.pending[PLAYER] || !merchantNear(sim, PLAYER)) return false;
   merchantVisit = { sim, id: sim.merchant.id };
+  $('merchantkit').open = false;
+  $('merchantpause').hidden = !sim.rankedMerchant;
+  $('merchantpause').classList.toggle('rankedpause', !!sim.rankedMerchant);
   clearTouch(); keys.clear(); pendingUse = null; setMapPeek(false); audio.duck(true);
   rewardWasShown = true;
   mode = 'merchant'; $('tradebtn').classList.add('hidden'); $('merchantstatus').textContent = '';
   renderMerchant(); $('merchant').classList.remove('hidden');
-  ($('merchantoffers').querySelectorAll('button:not([disabled])')[0] || $('merchantclose')).focus({ preventScroll: true });
+  if (sim.rankedMerchant) { syncRankedClock(); updateRankedPause(); }
+  navFocus($('merchantkit').querySelector('summary'));
   return true;
 }
 function closeMerchant() {
@@ -2655,10 +2678,33 @@ function closeMerchant() {
 }
 function buyMerchantOffer(index) {
   if (mode !== 'merchant' || !merchantVisit || merchantVisit.sim !== sim || merchantVisit.id !== sim?.merchant?.id) return false;
-  if (!buyMerchant(sim, PLAYER, merchantVisit.id, index, runCoinOptions(sim))) {
+  if (sim.rankedMerchant && (!rankedRec || enforceRankedDeadline())) return false;
+  const bought = sim.rankedMerchant
+    ? rankedShop(sim, rankedRec, `m:${sim.tick}:${merchantVisit.id}:buy:${index}`)
+    : buyMerchant(sim, PLAYER, merchantVisit.id, index, runCoinOptions(sim));
+  if (!bought) {
     $('merchantstatus').textContent = 'Offer unavailable. Check your run GP and try another item.'; renderMerchant(); return false;
   }
+  if (sim.rankedMerchant) persistRanked();
   closeMerchant(); return true;
+}
+function serviceMerchantItem(service, item, quotedPrice) {
+  if (!item || mode !== 'merchant' || !merchantVisit || merchantVisit.sim !== sim || merchantVisit.id !== sim?.merchant?.id) return false;
+  if (service === 'remove' && !confirm(translateText('Remove this item and lose its upgrades for this run?', document.documentElement.lang))) return false;
+  if (sim.rankedMerchant && (!rankedRec || enforceRankedDeadline())) return false;
+  const changed = sim.rankedMerchant
+    ? rankedShop(sim, rankedRec, `m:${sim.tick}:${merchantVisit.id}:${service}:${item.kind}:${item.id}:${item.level}:${quotedPrice}`)
+    : changeMerchantLoadout(sim, PLAYER, merchantVisit.id, service, item.kind, item.id, item.level, quotedPrice, runCoinOptions(sim));
+  if (!changed) {
+    $('merchantstatus').textContent = 'Service unavailable. Check your run GP and try another item.';
+    renderMerchant();
+    return false;
+  }
+  if (sim.rankedMerchant) persistRanked();
+  $('merchantstatus').textContent = service === 'remove' ? 'Item removed. Slot freed.' : 'Upgrade purchased.';
+  renderMerchant();
+  navFocus($('merchantkit').querySelector('summary'));
+  return true;
 }
 $('tradebtn').onclick = openMerchant;
 $('merchantclose').onclick = closeMerchant;
@@ -2786,7 +2832,7 @@ function updateHud(view) {
   $('clockgoal').textContent = (goal ? `of ${fmtT(goal)}` : '') + (runBest ? (passedBest ? ' · new best!' : ` · best ${fmtT(runBest.t)}`) : '') + chaseText(t, view.kills);
   $('kills').textContent = view.kills;
   $('tradebtn').classList.toggle('hidden', mode !== 'play' || !sim || !merchantNear(sim, PLAYER));
-  if (sim && sim.players[0] && (frame % 10 === 0 || !$('gp').textContent)) $('gp').textContent = runCoins(sim).toLocaleString();
+  if (sim && sim.players[0] && (frame % 10 === 0 || !$('gp').textContent)) $('gp').textContent = spendableRunCoins(sim).toLocaleString();
   const boss = view.enemies.find((e) => ENEMIES[e[1]].boss);
   $('bossbar').classList.toggle('hidden', !boss);
   if (boss) { $('bossname').textContent = bossName(sim && sim.map, boss[1]); $('bossfill').style.width = boss[5] + '%'; }

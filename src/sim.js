@@ -7,7 +7,7 @@ import {
   WEAPON_ITEMS, isWeaponItem, compareWeaponItem, weaponMetal, weaponLook, MAGIC_WEAPONS, CARD_GAIN, CARD_QUALITY, CARD_HEAL, CARD_RARITIES, cardLuck, rarityFromRoll, weaponStats, passiveStrength, fortuneBonus,
   weaponSlotItem, MORTAR_POISON, TUMBLE, PASTURE_NAV, OASIS_WATER_NAV, SNOW_WAVE_AT, isSnowEnemy,
 } from './content.js';
-import { MERCHANT, merchantEligible, merchantStock } from './merchant.js';
+import { MERCHANT, merchantEligible, merchantStock, merchantLoadoutOptions, merchantServicePrices } from './merchant.js';
 import { phaseCoins, continuationBaseline } from './casual-continuation.js';
 import { groundHash } from './ground-pack.js';
 import { tavernGround, wallSegmentClear } from './tavern-walls.js';
@@ -55,7 +55,7 @@ function oasisGround(ground) {
   return corrected;
 }
 
-export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, rankedFood = false, coop = false, variant = 'normal', trialBoss = 'giant' } = {}) {
+export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' }], startWeapon = 'katana', map = MAPS[0], hard = false, meta = {}, ground = null, endless = false, endAt = 0, pace = 2, ranked = false, rankedFood = false, rankedMerchant = false, coop = false, variant = 'normal', trialBoss = 'giant' } = {}) {
   if (!Object.hasOwn(VARIANTS, variant) || !TRIAL_BOSSES.includes(trialBoss)) throw Error('Unknown game mode or trial boss.');
   if (variant !== 'normal') {
     if (ranked || pace !== 2 || hard || endAt || endless && !['fun', 'wizard', 'castle'].includes(variant) || !MAPS.some(m => m.id === map.id)
@@ -75,14 +75,16 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
   if (pace >= 2) { ground = pastureGround(tavernGround(ground)); if (map.id === 'oasis') ground = oasisGround(ground); }
   meta = clampSkills(meta);
   const rng = mulberry32(seed);
+  const rankedShop = ranked && pace === 2 && !coop && players.length === 1 && rankedMerchant === true;
   const sim = {
     seed, rng, map, hard, meta, endless, endAt, pace, ranked: !!ranked, ...(ranked && pace >= 2 && rankedFood === true ? { rankedFood: true } : {}), t: 0, tick: 0, nextId: 1,
+    ...(rankedShop ? { rankedMerchant: true } : {}),
     // veterans (owner 3 Nov: "regular mode feels too easy"): each permanent skill rank makes casual monsters 1.5% tougher
     // and harder-hitting, to +60% at 40 ranks, with a few more of them. A new player is untouched; ranked has no skills.
     vet: 1, // set below once the players (and the gear they wear) are in // pace: 2 the denser crowd of 3 Nov, 1 the 2 Nov one (ranked week 0)
     mapIndex: Math.max(0, MAPS.findIndex((m) => m.id === map.id)), casketRank: casketRank(map),
     killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [],
-    ...(pace >= 2 && !ranked && !coop ? { alchedLootIndices: [] } : {}), endlessBossT: 0, endlessCycle: 0,
+    ...(pace >= 2 && (!ranked || rankedShop) && !coop ? { alchedLootIndices: [] } : {}), endlessBossT: 0, endlessCycle: 0,
     players: [], enemies: [], proj: [], gems: [], pickups: [], fx: [],
     hazards: [],          // telegraphed boss attacks on the ground: { x, z, r, t, max, dmg }
     shrines: [],          // shrines to charge (pace 2): { id, x, z, kind, charge, life }
@@ -95,7 +97,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
     ground,               // optional { n, blocked: Uint8Array, walls?: Uint8Array } one cell per world unit: ridges, mountains, water; thin walls
     flow: null, flowT: 0, // distance-to-player field so monsters find their way around cliffs
   };
-  if (pace === 2 && !ranked && !coop && players.length === 1) Object.assign(sim, { merchant: null, merchantSpent: 0, merchantLootIndices: [] });
+  if (pace === 2 && (!ranked || sim.rankedMerchant) && !coop && players.length === 1) Object.assign(sim, { merchant: null, merchantSpent: 0, merchantLootIndices: [] });
   if (coop) sim.coop = true;
   if (variant !== 'normal') {
     sim.variant = variant;
@@ -111,7 +113,7 @@ export function createSim({ seed = 1, players = [{ id: 'p1', name: 'Adventurer' 
       face: 0, moving: false, hp: PLAYER_BASE.hp, maxHp: PLAYER_BASE.hp, alive: true, inv: 0,
       meta: coop ? clampSkills(p.meta) : meta, adv: p.adv || 'adventurer', weapons: { [p.weapon || (ADVENTURER_BY_ID[p.adv] ? ADVENTURER_BY_ID[p.adv].weapon : startWeapon)]: 1 }, passives: { ...((ADVENTURER_BY_ID[p.adv] || {}).startPassives || {}) }, evo: {}, buffs: {}, cd: {}, orbit: 0, kills: 0, coins: 0, regen: 0, hurt: 0,
       gear: p.gear || {}, gearLv: p.gearLv || {}, gb: gearBonus(p.gear || {}, p.gearLv || {}, pace), rerolls: REROLLS_PER_RUN, belt: [],
-      casketQ: [], ...(pace >= 2 && !ranked && !coop ? { casketLootIndices: [] } : {}), alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
+      casketQ: [], ...(pace >= 2 && (!ranked || sim.rankedMerchant) && !coop ? { casketLootIndices: [] } : {}), alch: 0, // reward caskets waiting for Wear or High alch; coins from high alching this run
       wm: {}, // weapon metals from caskets (pace 2): { katana: 0..5, bow: 0..3, arrow: 0..4, ... } (missing = Bronze / plain Bow)
       ...(pace >= 2 ? { pace, foodStacks: {}, quality: { weapons: {}, passives: {} }, banished: [] } : {}),
       ...(coop ? { killsByType: {}, bossKills: 0, evolves: 0, loot: [], alched: [], dmgBy: {} } : {}),
@@ -1196,7 +1198,7 @@ export function useBelt(sim, playerId, slot) {
   useItem(sim, p, kind); return true;
 }
 
-// Merchant state and RNG exist only in the solo casual simulation.
+// Older Ranked simulations never consume merchant RNG.
 function merchantTick(sim, dt) {
   if (!merchantEligible(sim) || !sim.players[0].alive) return;
   sim.merchantT = (sim.merchantT ?? MERCHANT.first + sim.rng() * MERCHANT.firstJitter) - dt;
@@ -1249,6 +1251,48 @@ export function buyMerchant(sim, playerId, merchantId, index, { multiplier = 1, 
     sim.merchantLootIndices.push(sim.loot.length - 1); sim.merchantSpent += offer.price; offer.sold = true;
     return true;
   } catch { return false; }
+}
+
+export function changeMerchantLoadout(sim, playerId, merchantId, service, kind, id, level, quotedPrice, { multiplier = 1, baseline = null } = {}) {
+  if ((service !== 'upgrade' && service !== 'remove') || !Number.isFinite(multiplier) || multiplier < 1 || multiplier > 3
+    || continuationBaseline(sim) !== baseline || !merchantNear(sim, playerId) || sim.merchant.id !== merchantId
+    || Object.keys(sim.pending).length) return false;
+  const p = sim.players[0];
+  if (p.levelQ > 0 || p.casketQ.length) return false;
+  const item = merchantLoadoutOptions(p).find(o => o.kind === kind && o.id === id && o.level === level);
+  if (!item?.[service]) return false;
+  const available = phaseCoins(sim, { player: p, multiplier, baseline });
+  const price = merchantServicePrices(available, sim.t)[service];
+  if (!Number.isSafeInteger(price) || price <= 0 || price !== quotedPrice || available < price
+    || !Number.isSafeInteger(sim.merchantSpent + price)) return false;
+
+  const key = kind === 'weapon' ? 'weapons' : 'passives';
+  if (service === 'upgrade') {
+    p[key][id]++;
+  } else {
+    delete p[key][id];
+    delete p.quality?.[key]?.[id];
+    if (kind === 'weapon') {
+      delete p.evo[id];
+      delete p.cd[id];
+      delete p.wm[id];
+      if (id === 'bow') delete p.wm.arrow;
+      if (id === 'staff') delete p.spellElement;
+      if (id === 'glock') delete p.shots;
+      if (id === 'shield') delete p.shields;
+      if (id === 'lighter') p.fire = 0;
+    } else if (id === 'cheese') {
+      delete p.buffs.cheeseShield;
+      delete p.cheeseCd;
+    }
+  }
+  if (kind === 'passive' && !p.godMode) {
+    const maxHp = playerStats(p).maxHp;
+    p.hp = Math.min(maxHp, p.hp + Math.max(0, maxHp - p.maxHp));
+    p.maxHp = maxHp;
+  }
+  sim.merchantSpent += price;
+  return true;
 }
 
 // ---- shrines (owner 3 Nov: "we should have shrines"): one of SankoQuest's altars rises nearby every two minutes or so;

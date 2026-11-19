@@ -1,6 +1,6 @@
 // The only simulation mutations used by the ranked UI. Choices pause indefinitely.
 import { step, choose, reroll, skipLevel, autoChoice, banish, TICK } from './sim.js';
-import { rankedSim, RunRecorder, runSeconds } from './ranked.js';
+import { rankedSim, RunRecorder, runSeconds, rankedShopTick, applyRankedShopAction } from './ranked.js';
 
 export function rankedStep(sim, rec, mx, mz, use) {
   if (sim.over || sim.pending.p1) return;
@@ -26,6 +26,12 @@ export function rankedChoice(sim, rec, action) {
   return true;
 }
 
+export function rankedShop(sim, rec, action) {
+  if (!applyRankedShopAction(sim, action)) return false;
+  rec.pick(action);
+  return true;
+}
+
 // Replay a prefix, including choices after its last tick, and continue the same recorder.
 export function resumeRanked(log, params) {
   const it = resumeSteps(log, params); let r = it.next();
@@ -48,8 +54,16 @@ function* resumeSteps(log, params) {
   let pi = 0, ui = 0, total = 0;
   const all = log.runs.reduce((n, row) => n + (Array.isArray(row) && Number.isInteger(row[0]) ? row[0] : 0), 0);
   const choices = () => {
-    while (sim.pending.p1 && pi < log.picks.length) {
-      if (!rankedChoice(sim, rec, log.picks[pi++])) throw new Error('Invalid saved choice.');
+    while (pi < log.picks.length) {
+      const action = log.picks[pi];
+      if (sim.pending.p1) {
+        if (!rankedChoice(sim, rec, action)) throw new Error('Invalid saved choice.');
+      } else {
+        const shopTick = sim.rankedMerchant ? rankedShopTick(action) : null;
+        if (shopTick === null || shopTick > sim.tick) break;
+        if (!rankedShop(sim, rec, action)) throw new Error('Invalid saved merchant action.');
+      }
+      pi++;
     }
   };
   for (const row of log.runs) {

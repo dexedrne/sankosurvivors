@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { unpackGround } from '../src/ground-pack.js';
 import * as game from '../src/sim.js';
+import * as shopRules from '../src/merchant.js';
 import { GEAR, alchValue, casketWeights, MAPS } from '../src/content.js';
 import { DUPLICATE_GEAR_COINS } from '../src/profile-milestones.js';
 import { phaseCoins, captureRewardBaseline, continueCasual } from '../src/casual-continuation.js';
@@ -129,4 +130,64 @@ test('holder bonus loss in Endless caps only new merchant spending and preserves
 test('without merchant spending the existing negative phase alch adjustment remains exact',()=>{
  const s=quiet();s.over='win';s.loot=['Iron Helmet'];const r=prepareRunRewards(db(['Iron Helmet']),s,{earned:120}),b=captureRewardBaseline(s,r);continueCasual(s,b);
  s.alched=['Iron Helmet'];s.alchedLootIndices=[0];assert.equal(s.merchantSpent,0);assert.equal(phaseCoins(s,{baseline:b}),-25);
+});
+
+test('merchant upgrades a held item by one level and debits only run GP',()=>{
+ const s=shop(),p=s.players[0],weapon=Object.keys(p.weapons)[0];
+ const before=phaseCoins(s);
+ assert.equal(game.changeMerchantLoadout(s,'p1',81,'upgrade','weapon',weapon,1,270),true);
+ assert.equal(p.weapons[weapon],2);
+ assert.equal(phaseCoins(s),before-270);
+ const settled=state(s);
+ assert.equal(game.changeMerchantLoadout(s,'p1',81,'upgrade','weapon',weapon,1,270),false);
+ assert.equal(state(s),settled);
+});
+
+test('merchant removal frees a slot and clears its run upgrades without removing the final weapon',()=>{
+ const s=shop(),p=s.players[0];
+ p.weapons.staff=6;p.cd.staff=7;p.evo.staff=true;p.spellElement='fire';p.quality.weapons.staff=20;
+ const before=phaseCoins(s);
+ assert.equal(game.changeMerchantLoadout(s,'p1',81,'remove','weapon','staff',6,400),true);
+ for(const table of [p.weapons,p.cd,p.evo,p.quality.weapons])assert.equal(Object.hasOwn(table,'staff'),false);
+ assert.equal(p.spellElement,undefined);
+ assert.equal(phaseCoins(s),before-400);
+ const after=state(s);
+ assert.equal(game.changeMerchantLoadout(s,'p1',81,'remove','weapon',Object.keys(p.weapons)[0],1,280),false);
+ assert.equal(state(s),after);
+});
+
+test('merchant removal recalculates max health and rejects insufficient or ineligible trades without spending',()=>{
+ const s=shop(),p=s.players[0];
+ p.passives.vigor=2;p.quality.passives.vigor=20;
+ p.maxHp=game.playerStats(p).maxHp;p.hp=p.maxHp;
+ assert.equal(game.changeMerchantLoadout(s,'p1',81,'remove','passive','vigor',2,400),true);
+ assert.equal(p.maxHp,game.playerStats(p).maxHp);assert.equal(p.hp,p.maxHp);
+ assert.equal(p.quality.passives.vigor,undefined);
+ const s2=shop();s2.kills=0;s2.players[0].passives.vigor=1;
+ let before=state(s2);
+ assert.equal(game.changeMerchantLoadout(s2,'p1',81,'remove','passive','vigor',1,100),false);
+ assert.equal(state(s2),before);
+ s2.kills=6000;s2.ranked=true;before=state(s2);
+ assert.equal(game.changeMerchantLoadout(s2,'p1',81,'remove','passive','vigor',1,400),false);
+ assert.equal(state(s2),before);
+});
+
+
+test('loadout service prices increase with run GP and survival time',()=>{
+ const prices = shopRules.merchantServicePrices;
+ assert.deepEqual(prices(1000,600),{upgrade:310,remove:460});
+ assert.deepEqual(prices(2000,600),{upgrade:510,remove:760});
+ assert.deepEqual(prices(1000,1200),{upgrade:350,remove:520});
+ assert.deepEqual(prices(0,0),{upgrade:70,remove:100});
+});
+
+test('the merchant rejects a stale price and charges exactly the current quote',()=>{
+ const s=shop(),p=s.players[0],weapon=Object.keys(p.weapons)[0];
+ s.t=600;
+ const initial=state(s);
+ assert.equal(game.changeMerchantLoadout(s,'p1',81,'upgrade','weapon',weapon,1,300),false);
+ assert.equal(state(s),initial);
+ assert.equal(game.changeMerchantLoadout(s,'p1',81,'upgrade','weapon',weapon,1,310),true);
+ assert.equal(phaseCoins(s),690);
+ assert.deepEqual(shopRules.merchantServicePrices(phaseCoins(s),s.t),{upgrade:250,remove:370});
 });
