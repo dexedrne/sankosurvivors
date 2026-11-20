@@ -343,7 +343,7 @@ async function handle(route, req, res, ctx) {
       if (claim && (claim.error || claim.busy || claim.result)) {
         release = false;
         if (claim.error) return /older submission|already settled/.test(claim.error) ? send(res, 409, { ...claim, retry: true }) : send(res, 400, claim);
-        if (claim.busy) return send(res, 409, { error: 'that run is still being checked. Retry shortly; after a server interruption recovery can take up to 15 minutes.', retry: true });
+        if (claim.busy) return send(res, 409, { error: 'that run is still being checked. Retry shortly; after a server interruption recovery can take up to 35 minutes.', retry: true });
         return reply(claim.result);
       }
       if (!claim || !claim.ok || !Number.isSafeInteger(claim.received)) throw new Error('ranked claim was not acknowledged');

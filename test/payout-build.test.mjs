@@ -18,7 +18,7 @@ test('Vercel output preserves the site/API and deploys no payout function or cro
   assert.equal(config.routes.at(-1).handle,'filesystem');
   assert.ok(config.routes.some(r=>r.dest==='/preview'));
   await assert.rejects(readFile(join(out,'functions/payout.func/.vc-config.json')),'no payout function is deployed');
-  assert.deepEqual(await json('functions/api.func/.vc-config.json'),{runtime:'nodejs22.x',handler:'index.js',launcherType:'Nodejs',shouldAddHelpers:false,maxDuration:800,memory:2048});
+  assert.deepEqual(await json('functions/api.func/.vc-config.json'),{runtime:'nodejs22.x',handler:'index.js',launcherType:'Nodejs',shouldAddHelpers:false,maxDuration:1800,memory:2048});
   for(const file of ['index.js','ranked.js','cloud.js','noble-crypto.cjs','noble-LICENSE.txt'])assert.deepEqual(await readFile(join(out,'functions/api.func',file)),await readFile(new URL('../tools/vercel-api/'+file,import.meta.url)));
   const files=async dir=>{const paths=[];for(const e of await readdir(dir,{withFileTypes:true})){const p=join(dir,e.name);if(e.isDirectory())paths.push(...await files(p));else paths.push(p);}return paths;};
   const sims=new URL('../tools/vercel-api/sims/',import.meta.url);

@@ -43,6 +43,19 @@ test('rollover SQL: guarded clock, immutable credit, admission and settlement',{
   await db.exec('update sqs_ranked_entries set clock_paused_at=clock_paused_at-90000 where id=1');
   const retry=await rpc('sqs_ranked_claim_v2',claimArgs);assert.equal(retry.creditMs,claim.creditMs);assert.equal(retry.received,claim.received);
   assert.equal((await clock({p_action:'resume',p_seq:2})).error,'bad clock transition');
+  await db.exec(await sql('update26'));await db.exec(await sql('update26'));
+  const releaseClaim=Object.fromEntries(Object.entries(claimArgs).filter(([key])=>key!=='p_allow_claim'));
+  await rpc('sqs_ranked_release_v2',releaseClaim);
+  assert.equal((await rpc('sqs_ranked_claim_v2',claimArgs)).received,claim.received);
+  const duplicate={...claimArgs,p_attempt:'00000000-0000-4000-8000-000000000002'};
+  for(const seconds of [900,1800,2099]){
+   await db.query('update sqs_fixture_time set ms=$1',[ms+seconds*1000]);
+   assert.equal((await rpc('sqs_ranked_claim_v2',duplicate)).busy,true);
+  }
+  await db.query('update sqs_fixture_time set ms=$1',[ms+2100000]);
+  const recovered=await rpc('sqs_ranked_claim_v2',{...duplicate,p_allow_claim:false});
+  assert.equal(recovered.received,claim.received);assert.equal(recovered.creditMs,claim.creditMs);
+  await db.query('update sqs_fixture_time set ms=$1',[ms]);
   const plan={p_key:'payout-key',p_week:0,p_plan:{house:'50000000000000000',pool:'450000000000000000',rollover:'450000000000000000',prizes:[]}};
   // Shift only the disposable fixture's week origin so reset is in the past, no system clock change.
   let migration=await sql('update16');migration=migration.replaceAll('2026-11-02T00:00:00Z','2020-01-01T00:00:00Z');await db.exec(migration);

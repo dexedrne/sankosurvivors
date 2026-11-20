@@ -1282,7 +1282,7 @@ export const text = {
   "#1 vs starting board": "başlangıç tablosuna göre #1",
   "outside starting top 25": "başlangıçtaki ilk 25 dışında",
   "Capes": "Pelerinler",
-  "that run is still being checked. Retry shortly; after a server interruption recovery can take up to 15 minutes.": "Tur hâlâ kontrol ediliyor. Birazdan yeniden dene; sunucu kesintisinden sonra kurtarma 15 dakika kadar sürebilir.",
+  "that run is still being checked. Retry shortly; after a server interruption recovery can take up to 35 minutes.": "Tur hâlâ kontrol ediliyor. Birazdan yeniden dene; sunucu kesintisinden sonra kurtarma 35 dakika kadar sürebilir.",
   "an older submission is in progress: tell the dev if it does not finish": "Önceki bir gönderim hâlâ işleniyor; tamamlanmazsa geliştiriciye bildir.",
   "that week is already settled: tell the dev": "Bu haftanın hesaplaşması tamamlandı; geliştiriciye bildir.",
   "Could not reach ranked. Your run is saved: retry when your connection returns.": "Dereceli sunucuya ulaşılamadı. Turun kayıtlı: bağlantın geri geldiğinde yeniden dene.",

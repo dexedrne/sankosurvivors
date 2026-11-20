@@ -157,7 +157,9 @@ test('a crashed worker recovers after lease expiry using the original receipt ti
   slowRefusalOk = true;
   try { assert.equal((await submit(r)).code,500); } finally { slowRefusalOk = false; }
   assert.equal((await submit(r)).code,409);
-  now += 900001; crash = false;
+  now += 30 * 60 * 1000;
+  assert.equal((await submit(r)).code,409,'a long-running worker still owns the lease at 30 minutes');
+  now += 5 * 60 * 1000 + 1; crash = false;
   assert.equal((await submit(r)).code,200,'waiting for recovery must not trigger the slower-than-real-time rejection');
 });
 

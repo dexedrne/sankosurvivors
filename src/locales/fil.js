@@ -1282,7 +1282,7 @@ export const text = {
   "#1 vs starting board": "#1 kumpara sa talaan sa simula",
   "outside starting top 25": "wala sa unang 25 ng talaan sa simula",
   "Capes": "Mga Kapa",
-  "that run is still being checked. Retry shortly; after a server interruption recovery can take up to 15 minutes.": "Sinusuri pa ang larong iyon. Subukan muli maya-maya; pagkatapos ng pagkaantala ng server, maaaring umabot sa 15 minuto ang pagbawi.",
+  "that run is still being checked. Retry shortly; after a server interruption recovery can take up to 35 minutes.": "Sinusuri pa ang larong iyon. Subukan muli maya-maya; pagkatapos ng pagkaantala ng server, maaaring umabot sa 35 minuto ang pagbawi.",
   "an older submission is in progress: tell the dev if it does not finish": "may naunang pagpapadalang pinoproseso pa: ipaalam sa developer kung hindi ito matapos",
   "that week is already settled: tell the dev": "naisara na ang linggong iyon: ipaalam sa developer",
   "Could not reach ranked. Your run is saved: retry when your connection returns.": "Hindi makakonekta sa ranked. Naka-save ang laro mo: subukang muli kapag bumalik ang koneksyon mo.",

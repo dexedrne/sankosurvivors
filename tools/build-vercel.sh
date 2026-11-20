@@ -41,9 +41,8 @@ cp tools/vercel-api/ranked.js .vercel/output/functions/api.func/
 cp tools/vercel-api/cloud.js .vercel/output/functions/api.func/
 cp -r tools/vercel-api/sims .vercel/output/functions/api.func/sims
 cp .vercel/output/static/version.json .vercel/output/functions/api.func/sims/client.json
-# 800 s, a full vCPU: ranked-submit replays the whole run, and endless ranked runs last up to 2:00:00 (about 143 s
-# locally, 5-7 min here; RANKED2.md has the timings)
-echo '{"runtime":"nodejs22.x","handler":"index.js","launcherType":"Nodejs","shouldAddHelpers":false,"maxDuration":800,"memory":2048}' > .vercel/output/functions/api.func/.vc-config.json
+# Keep the replay runtime below the 35-minute recovery lease in Supabase Update26.
+echo '{"runtime":"nodejs22.x","handler":"index.js","launcherType":"Nodejs","shouldAddHelpers":false,"maxDuration":1800,"memory":2048}' > .vercel/output/functions/api.func/.vc-config.json
 # Bundle server code without substituting environment values; secrets exist only at runtime.
 cat > .vercel/output/config.json <<'JSON'
 {"version":3,"routes":[

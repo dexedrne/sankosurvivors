@@ -102,7 +102,7 @@ export class RankedDB {
         if (e.submit_sha == null && p.p_allow_claim !== true) return error('that run was sent too late');
         if (e.submit_until > Date.now()) return { busy:true };
         if(e.clock_version===1&&e.submit_credit_ms==null)e.submit_credit_ms=e.clock_credit_ms+(e.clock_paused_at==null?0:Math.min(30000,Math.max(0,Math.min(Date.now(),e.clock_deadline)-e.clock_paused_at)));
-        Object.assign(e,{claimed_at:e.claimed_at ?? Date.now(),submit_sha:p.p_log_sha,submit_attempt:p.p_attempt,submit_until:Date.now()+900000});
+        Object.assign(e,{claimed_at:e.claimed_at ?? Date.now(),submit_sha:p.p_log_sha,submit_attempt:p.p_attempt,submit_until:Date.now()+35*60*1000});
         return {ok:true,received:Math.round(e.claimed_at),...(e.clock_version===1?{creditMs:e.submit_credit_ms}:{})};
       case 'sqs_ranked_release_v2':
         if (e && e.started_at === p.p_started && e.submit_sha === p.p_log_sha && e.submit_attempt === p.p_attempt && e.finished_at == null) e.submit_until=Date.now();

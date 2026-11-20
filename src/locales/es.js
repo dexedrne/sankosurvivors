@@ -1282,7 +1282,7 @@ export const text = {
   "#1 vs starting board": "n.º 1 frente a la tabla inicial",
   "outside starting top 25": "fuera de los 25 primeros de la tabla inicial",
   "Capes": "Capas",
-  "that run is still being checked. Retry shortly; after a server interruption recovery can take up to 15 minutes.": "esa partida aún se está verificando. Vuelve a intentarlo en breve; tras una interrupción del servidor, la recuperación puede tardar hasta 15 minutos.",
+  "that run is still being checked. Retry shortly; after a server interruption recovery can take up to 35 minutes.": "esa partida aún se está verificando. Vuelve a intentarlo en breve; tras una interrupción del servidor, la recuperación puede tardar hasta 35 minutos.",
   "an older submission is in progress: tell the dev if it does not finish": "hay un envío anterior en curso: avisa al desarrollador si no termina",
   "that week is already settled: tell the dev": "esa semana ya está liquidada: avisa al desarrollador",
   "Could not reach ranked. Your run is saved: retry when your connection returns.": "No se pudo conectar con el modo competitivo. Tu partida está guardada: vuelve a intentarlo cuando recuperes la conexión.",
