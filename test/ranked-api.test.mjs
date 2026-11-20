@@ -137,6 +137,27 @@ for (const stage of ['claim', 'finish']) test(`lost ${stage} response retries th
   assert.equal(db.rows.filter(e => e.verdict === 'ok').length, 1);
 });
 
+for (const afterCommit of [false, true]) test(`finish retries a broken database connection ${afterCommit ? 'after' : 'before'} commit within one claimed replay`, async t => {
+  const r = await ready(), original = db.rpc.bind(db);
+  let claims = 0;
+  const finishes = [];
+  db.rpc = async (fn,p) => {
+    if (fn === 'sqs_ranked_claim_v2') claims++;
+    if (fn !== 'sqs_ranked_finish_v3') return original(fn,p);
+    finishes.push(p);
+    if (finishes.length > 2) return original(fn,p);
+    if (afterCommit) await original(fn,p);
+    throw new TypeError('fetch failed', {cause: Object.assign(new Error(finishes.length === 1 ? 'write EPIPE' : 'write ETIMEDOUT'), {code: finishes.length === 1 ? 'EPIPE' : 'ETIMEDOUT'})});
+  };
+  t.mock.method(console,'error',()=>{});
+  assert.equal((await submit(r)).code,200);
+  assert.equal(claims,1);
+  assert.equal(finishes.length,3);
+  assert.deepEqual(finishes[0],finishes[1]);
+  assert.deepEqual(finishes[0],finishes[2]);
+  assert.equal(db.rows.filter(e => e.verdict === 'ok').length,1);
+});
+
 test('a transient finish failure releases only the lease and keeps the original log binding', async () => {
   const r = await ready(); db.finishError = 'temporary storage failure'; slowRefusalOk = true;
   try { assert.equal((await submit(r)).code, 503); } finally { slowRefusalOk = false; }

@@ -154,6 +154,17 @@ function logShape(log, maxTicks, shopTick) {
   return null;
 }
 
+async function saveRankedResult(rpc, fn, args) {
+  // A finish is idempotent for this claim, even when the database committed but lost its response.
+  for (let attempt = 0; ; attempt++) {
+    try { return await rpc(fn, args, { close: true }); }
+    catch (error) {
+      const transport = error instanceof TypeError || error?.name === 'TimeoutError';
+      if (!transport || attempt >= 2) throw error;
+    }
+  }
+}
+
 async function handle(route, req, res, ctx) {
   const { rpc, send, signed, unsign, recoverSigner, clean, ip, SERVER_KEY, TICKET_KEY } = ctx;
   const cur = currentSim(), sim = load(cur);
@@ -339,7 +350,7 @@ async function handle(route, req, res, ctx) {
     };
     let release = true; // a lost claim response may still have acquired our UUID's lease
     try {
-      const claim = await rpc('sqs_ranked_claim_v2', { ...ident, p_allow_claim: cutoff ? Date.now() <= r.d + g.UPLOAD_MS : sentReal <= runMax + LATE_SECONDS });
+      const claim = await rpc('sqs_ranked_claim_v2', { ...ident, p_allow_claim: cutoff ? Date.now() <= r.d + g.UPLOAD_MS : sentReal <= runMax + LATE_SECONDS }, { close: true });
       if (claim && (claim.error || claim.busy || claim.result)) {
         release = false;
         if (claim.error) return /older submission|already settled/.test(claim.error) ? send(res, 409, { ...claim, retry: true }) : send(res, 400, claim);
@@ -362,14 +373,14 @@ async function handle(route, req, res, ctx) {
       const finishArgs={ ...ident, p_name: (typeof b.name === 'string' && clean(b.name, 16)) || 'Adventurer', p_t: ok ? result.t : 0, p_kills: ok ? result.kills : 0, p_level: ok ? result.level : 0, p_won: ok && result.won, p_verdict: verdict, p_log: ok ? zlib.gzipSync(JSON.stringify(b.log)).toString('base64') : null };
       const stats=ok&&result.stats&&typeof played.game.normalizeRunSummary==='function'?played.game.normalizeRunSummary({kind:'ranked',map:played.game.weekMap(r.w),adv:r.adv,hard:modeOf(r)==='hard',endless:true,t:result.t,kills:result.kills,level:result.level,won:!!result.won,build:'sim-'+r.v,sim:r.v,week:r.w,stats:result.stats}):null;
       let out;
-      try{out=await rpc('sqs_ranked_finish_v3',{...finishArgs,p_stats:stats});}
-      catch(error){if(!/ 404 /.test(String(error.message)))throw error;out=await rpc('sqs_ranked_finish_v2',finishArgs);}
+      try{out=await saveRankedResult(rpc,'sqs_ranked_finish_v3',{...finishArgs,p_stats:stats});}
+      catch(error){if(!/ 404 /.test(String(error.message)))throw error;out=await saveRankedResult(rpc,'sqs_ranked_finish_v2',finishArgs);}
 
       if (!out || out.error) return send(res, 503, { error: out?.error || 'could not save the run', retry: true });
       release = false;
       return reply(out);
     } finally {
-      if (release) await rpc('sqs_ranked_release_v2', ident).catch(() => {}); // otherwise the 15-minute lease expires safely
+      if (release) await rpc('sqs_ranked_release_v2', ident).catch(() => {}); // otherwise the lease expires safely
     }
   }
   if (route === 'ranked-void' && req.method === 'POST') {

@@ -59,8 +59,10 @@ function readTicket(t) {
 }
 const KEY = process.env.SUPABASE_KEY || '';
 let MAPS = null; // every map with win rules below (the list was kept by hand and missed the Hidden Oasis)
-async function rpc(fn, args) {
-  const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, { signal: AbortSignal.timeout(10000), method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+async function rpc(fn, args, { close = false } = {}) {
+  const headers = { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' };
+  if (close) headers.Connection = 'close';
+  const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, { signal: AbortSignal.timeout(10000), method: 'POST', headers, body: JSON.stringify(args) });
   if (!r.ok) throw new Error(`${fn} ${r.status} ${(await r.text()).slice(0, 200)}`);
   return r.json();
 }
